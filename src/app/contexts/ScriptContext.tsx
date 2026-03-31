@@ -17,6 +17,32 @@ export class ReportTimeoutError extends Error {
   }
 }
 
+interface ActionTimelineItem {
+  action: string;
+  deadline?: string | null;
+  note?: string | null;
+}
+
+interface FinancialScenario {
+  territory?: string;
+  // v3 6-step fields
+  totalBudget?: string | null;
+  qualifyingSpendPct?: string | null;
+  qualifyingSpend?: string | null;
+  atlDeduction?: string | null;
+  netQualifyingSpend?: string | null;
+  programme?: string | null;
+  rateGross?: string | null;
+  rateNet?: string | null;
+  grossRebate?: string | null;
+  netRebate?: string | null;
+  netBudget?: string | null;
+  notes?: string | null;
+  // legacy (deprecated but still present in transition)
+  localSpend?: string | null;
+  rebateRate?: string | null;
+}
+
 interface ScriptAnalysis {
   id?: string;
   // Tab 1: Script Summary
@@ -24,6 +50,24 @@ interface ScriptAnalysis {
   tone: string;
   scale: string;
   complexity: 'Low' | 'Medium' | 'High' | 'Very High';
+
+  // Executive Summary (v3)
+  executiveSummary?: {
+    headlineNetBudget?: string | null;
+    actionTimeline?: ActionTimelineItem[] | null;
+    keyFlags?: string[] | null;
+    recommendedTerritories?: string[];
+    [key: string]: unknown;
+  } | null;
+
+  // Financial Analysis (v3)
+  financialAnalysis?: {
+    budgetScenarios?: FinancialScenario[] | null;
+    [key: string]: unknown;
+  } | null;
+
+  // Section explainers (v3)
+  sectionExplainers?: Record<string, string> | null;
 
   // Tab 2: Location Rankings
   locationRankings: LocationRanking[];
@@ -57,6 +101,8 @@ interface LocationRanking {
   infrastructure: number;
   incentiveStrength: number;
   currencyAdvantage: number;
+  incentiveReliability?: number | null;
+  bankabilityLabel?: 'BANKABLE' | 'VERIFY FIRST' | 'NOT BANKABLE' | null;
   reasoning: string[];
   isAssessmentOnly?: boolean;
 }
@@ -72,6 +118,7 @@ interface IncentiveEstimate {
   disclaimer: string;
   dataSource: string;
   lastUpdated: string;
+  bankabilityLabel?: 'BANKABLE' | 'VERIFY FIRST' | 'NOT BANKABLE' | null;
 }
 
 interface CrewInsight {
@@ -118,7 +165,8 @@ interface FundingOpportunity {
 interface ScriptMetadata {
   title: string;
   genre: string[];
-  budget: string;
+  budgetAmount: number;
+  budgetCurrency: string;
   format: string;
   country: string;
   stateProvince?: string;
@@ -186,7 +234,8 @@ function buildReportRequestBody(
     script_title: metadata.title,
     report_type: reportType,
     genre: metadata.genre,
-    budget_range: metadata.budget,
+    budget_amount: metadata.budgetAmount,
+    budget_currency: metadata.budgetCurrency,
     format: metadata.format,
     country: metadata.country,
     location_strategy: metadata.locationStrategy,
@@ -223,6 +272,8 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
       infrastructure: clampScore(Number(territory.locationMatch?.score || 65)),
       incentiveStrength: clampScore(incentive ? 80 : 45),
       currencyAdvantage: clampScore(65),
+      incentiveReliability: territory.incentiveReliability != null ? clampScore(Number(territory.incentiveReliability)) : null,
+      bankabilityLabel: territory.bankabilityLabel ?? null,
       reasoning: toArray<string>(territory.locationMatch?.reasons).length
         ? toArray<string>(territory.locationMatch?.reasons)
         : ['Territory assessed from production fit and available incentives.'],
@@ -245,6 +296,7 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
           disclaimer: 'Figures are indicative and subject to local authority rules.',
           dataSource: 'Prodculator backend datasets',
           lastUpdated: new Date().toISOString(),
+          bankabilityLabel: null,
         },
       ];
     }
@@ -262,6 +314,7 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
       disclaimer: 'Estimate only. Final eligibility depends on official approval.',
       dataSource: 'Prodculator backend datasets',
       lastUpdated: new Date().toISOString(),
+      bankabilityLabel: inc.bankabilityLabel ?? territory.bankabilityLabel ?? null,
     }));
   });
 
@@ -285,7 +338,7 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
   const comparables: ComparableProduction[] = toArray<any>(reportData.comparableProductions).map((item: any) => ({
     title: item.title || 'Comparable Project',
     genre: toArray<string>(item.genres).join(', ') || metadata.genre.join(', '),
-    budgetRange: item.budget || metadata.budget,
+    budgetRange: item.budget || `${metadata.budgetCurrency} ${metadata.budgetAmount}`,
     visualScale: 'Comparable production scale',
     location: item.territory || 'Unknown',
     year: Number(item.year || new Date().getFullYear()),
@@ -328,6 +381,9 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
     tone: metadata.targetAudience || 'Production-ready with balanced commercial and creative intent',
     scale: `${productionDetails.format || metadata.format || 'feature'} • ${productionDetails.crewSize || metadata.crewSize || 'medium'} crew`,
     complexity: complexityFromDays(shootingDays),
+    executiveSummary: reportData.executiveSummary ?? null,
+    financialAnalysis: reportData.financialAnalysis ?? null,
+    sectionExplainers: reportData.sectionExplainers ?? null,
     locationRankings,
     incentiveEstimates,
     crewInsights,
@@ -346,7 +402,7 @@ function buildPreviewAnalysis(metadata: ScriptMetadata): ScriptAnalysis {
   return {
     genre: metadata.genre.length ? metadata.genre.join(', ') : 'Drama',
     tone: metadata.targetAudience || 'Preview estimate based on supplied production metadata',
-    scale: `${metadata.format || 'Feature Film'} • ${metadata.budget || 'budget TBD'}`,
+    scale: `${metadata.format || 'Feature Film'} • ${metadata.budgetCurrency} ${metadata.budgetAmount || 'budget TBD'}`,
     complexity: 'Medium',
     locationRankings: [
       {
@@ -538,4 +594,6 @@ export type {
   WeatherLogistics,
   FundingOpportunity,
   ScriptMetadata,
+  ActionTimelineItem,
+  FinancialScenario,
 };

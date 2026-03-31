@@ -127,7 +127,7 @@ export function InfoTip({ text, placement = 'top' }: InfoTipProps) {
  */
 export const TOOLTIP_TEXTS = {
   // Upload Form
-  budgetRange: "Your estimated total production budget — what you expect to spend making the film or series from first day of pre-production to picture lock. Not the distribution or marketing budget.",
+  budgetAmount: "The actual total production budget figure — what you expect to spend making the film or series from first day of pre-production to picture lock. Not the distribution or marketing budget.",
   format: "The final format your project will be delivered in. This affects which incentive programmes you qualify for — some are film-only, some include series.",
   filmingDuration: "The number of weeks your principal photography (actual shooting) is planned to take. Not including pre-production or post-production.",
   crewSize: "The total number of people on your production crew — camera, sound, art department, lighting, etc. Does not include cast.",

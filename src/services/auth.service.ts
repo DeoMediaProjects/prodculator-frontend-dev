@@ -10,6 +10,7 @@ import {
   clearTokens,
   getAccessToken,
   getRefreshToken,
+  isAdminSession,
   setTokens,
   setTokensSilent,
   subscribeAuthState,
@@ -197,7 +198,7 @@ export class AuthService {
   async getAdminUser(): Promise<AuthUser | null> {
     try {
       const token = getAccessToken();
-      if (!token) return null;
+      if (!token || !isAdminSession()) return null;
       return await apiClient.get<AuthUser>('/api/admin/auth/me', { auth: true });
     } catch (_error) {
       return null;

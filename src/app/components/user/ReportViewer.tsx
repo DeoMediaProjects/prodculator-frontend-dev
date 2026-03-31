@@ -36,6 +36,10 @@ import {
   TrendingUp,
   Info,
   Lock,
+  Warning,
+  CheckCircle,
+  AccessTime,
+  BarChart,
 } from '@mui/icons-material';
 import { useScript, mapReportToAnalysis } from '@/app/contexts/ScriptContext';
 import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/report-pdf.service';
@@ -93,7 +97,8 @@ export function ReportViewer() {
           const metadata = {
             title: report.script_title || report.title || 'Untitled',
             genre: report.genre ? (Array.isArray(report.genre) ? report.genre : [report.genre]) : [],
-            budget: report.budget_range || '',
+            budgetAmount: Number(report.budget_amount || 0),
+            budgetCurrency: report.budget_currency || 'GBP',
             format: report.format || '',
             country: report.country || '',
             locationStrategy: report.location_strategy || '',
@@ -182,6 +187,7 @@ export function ReportViewer() {
     { label: 'Script Summary', icon: <Info /> },
     { label: 'Location Rankings', icon: <Public /> },
     { label: 'Tax Incentives', icon: <AttachMoney /> },
+    { label: 'Financial Analysis', icon: <BarChart />, locked: isPreview },
     { label: 'Crew & Cost', icon: <People />, locked: isPreview },
     { label: 'Comparables', icon: <Movie />, locked: isPreview },
     { label: 'Weather & Logistics', icon: <WbSunny />, locked: isPreview },
@@ -328,23 +334,103 @@ export function ReportViewer() {
             {/* Tab 1: Script Summary */}
             <TabPanel value={tabValue} index={0}>
               <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Script Intelligence Summary</Typography>
-              <Grid container spacing={3}>
+
+              {/* Headline Net Budget */}
+              {analysis.executiveSummary?.headlineNetBudget && (
+                <Paper sx={{ p: 3, mb: 3, bgcolor: '#0d1a0d', border: '2px solid #4caf50', borderRadius: 2 }}>
+                  <Typography variant="overline" sx={{ color: '#4caf50', letterSpacing: 2 }}>Net Effective Budget After Incentives</Typography>
+                  <Typography variant="h3" sx={{ color: '#4caf50', fontWeight: 800, mt: 0.5 }}>
+                    {analysis.executiveSummary.headlineNetBudget}
+                  </Typography>
+                </Paper>
+              )}
+
+              {/* Key Flags */}
+              {analysis.executiveSummary?.keyFlags && analysis.executiveSummary.keyFlags.length > 0 && (
+                <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {analysis.executiveSummary.keyFlags.slice(0, 3).map((flag, i) => (
+                    <Alert
+                      key={i}
+                      icon={<Warning sx={{ color: '#D4AF37' }} />}
+                      sx={{
+                        bgcolor: 'rgba(212, 175, 55, 0.08)',
+                        border: '1px solid rgba(212, 175, 55, 0.4)',
+                        color: '#ffffff',
+                        '& .MuiAlert-icon': { alignItems: 'center' },
+                      }}
+                    >
+                      {flag}
+                    </Alert>
+                  ))}
+                </Box>
+              )}
+
+              {/* Core metadata cards */}
+              <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 12, md: 6 }}><Card sx={{ bgcolor: '#111' }}><CardContent><Typography variant="overline" color="primary">Genre</Typography><Typography variant="h6">{analysis.genre}</Typography></CardContent></Card></Grid>
                 <Grid size={{ xs: 12, md: 6 }}><Card sx={{ bgcolor: '#111' }}><CardContent><Typography variant="overline" color="primary">Complexity</Typography><Typography variant="h6">{analysis.complexity}</Typography></CardContent></Card></Grid>
                 <Grid size={{ xs: 12 }}><Card sx={{ bgcolor: '#111' }}><CardContent><Typography variant="overline" color="primary">Tone & Scale</Typography><Typography variant="body1">{analysis.tone}</Typography></CardContent></Card></Grid>
               </Grid>
+
+              {/* Action Timeline */}
+              {analysis.executiveSummary?.actionTimeline && analysis.executiveSummary.actionTimeline.length > 0 && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2, fontWeight: 600 }}>
+                    Action Timeline
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {analysis.executiveSummary.actionTimeline.map((item, i) => (
+                      <Paper key={i} sx={{ p: 2, bgcolor: '#111', border: '1px solid #222', display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                        <Box sx={{ mt: 0.25, flexShrink: 0 }}>
+                          <CheckCircle sx={{ color: '#D4AF37', fontSize: 20 }} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" sx={{ color: '#ffffff', fontWeight: 500 }}>{item.action}</Typography>
+                          {item.deadline && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                              <AccessTime sx={{ fontSize: 14, color: '#a0a0a0' }} />
+                              <Typography variant="caption" sx={{ color: '#a0a0a0' }}>{item.deadline}</Typography>
+                            </Box>
+                          )}
+                          {item.note && (
+                            <Typography variant="caption" sx={{ color: '#888', display: 'block', mt: 0.5, fontStyle: 'italic' }}>{item.note}</Typography>
+                          )}
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </TabPanel>
 
             {/* Tab 2: Location Rankings */}
             <TabPanel value={tabValue} index={1}>
-              <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Global Territory Rankings</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Global Territory Rankings</Typography>
+              {analysis.sectionExplainers?.locationRankings && (
+                <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>{analysis.sectionExplainers.locationRankings}</Typography>
+              )}
               {analysis.locationRankings.map((loc, i) => (
                 <Paper key={i} sx={{ p: 3, mb: 2, bgcolor: '#111', border: '1px solid #222' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                       <Typography variant="h6" sx={{ color: '#D4AF37' }}>{loc.name}, {loc.country}</Typography>
                       {loc.isAssessmentOnly && (
                         <Chip label="Assessment Only" size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37', border: '1px solid #D4AF37', fontSize: '0.7rem' }} />
+                      )}
+                      {loc.bankabilityLabel && (
+                        <Chip
+                          label={loc.bankabilityLabel}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: '0.7rem',
+                            ...(loc.bankabilityLabel === 'BANKABLE'
+                              ? { bgcolor: 'rgba(76,175,80,0.2)', color: '#4caf50', border: '1px solid #4caf50' }
+                              : loc.bankabilityLabel === 'VERIFY FIRST'
+                              ? { bgcolor: 'rgba(255,152,0,0.2)', color: '#ff9800', border: '1px solid #ff9800' }
+                              : { bgcolor: 'rgba(244,67,54,0.2)', color: '#f44336', border: '1px solid #f44336' }),
+                          }}
+                        />
                       )}
                     </Box>
                     <Chip label={`Score: ${loc.score}/100`} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700 }} />
@@ -356,8 +442,9 @@ export function ReportViewer() {
                       { label: 'Infrastructure', value: loc.infrastructure },
                       { label: 'Incentive Strength', value: loc.incentiveStrength },
                       { label: 'Currency Advantage', value: loc.currencyAdvantage },
+                      ...(loc.incentiveReliability != null ? [{ label: 'Incentive Reliability', value: loc.incentiveReliability }] : []),
                     ].map((metric) => (
-                      <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={metric.label}>
+                      <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
                         <Typography variant="caption" sx={{ color: '#666' }}>{metric.label}</Typography>
                         <LinearProgress variant="determinate" value={metric.value} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#222', '& .MuiLinearProgress-bar': { bgcolor: metric.value >= 80 ? '#4caf50' : metric.value >= 60 ? '#2196f3' : metric.value >= 40 ? '#D4AF37' : '#ff9800' } }} />
                         <Typography variant="caption" sx={{ color: '#888', fontSize: '0.7rem' }}>{metric.value}/100</Typography>
@@ -373,7 +460,10 @@ export function ReportViewer() {
 
             {/* Tab 3: Tax Incentives */}
             <TabPanel value={tabValue} index={2}>
-              <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Tax Incentive Estimates</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Tax Incentive Estimates</Typography>
+              {analysis.sectionExplainers?.incentiveEstimates && (
+                <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>{analysis.sectionExplainers.incentiveEstimates}</Typography>
+              )}
               {isPreview && (
                 <Box sx={{ position: 'relative' }}>
                   <Box sx={{ filter: 'blur(4px)', pointerEvents: 'none', userSelect: 'none' }}>
@@ -411,7 +501,24 @@ export function ReportViewer() {
                   {analysis.incentiveEstimates.map((inc, i) => (
                     <Grid size={{ xs: 12, md: 6 }} key={i}>
                       <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
-                        <Typography variant="h6" sx={{ color: '#D4AF37', mb: 1 }}>{inc.territory}</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Typography variant="h6" sx={{ color: '#D4AF37' }}>{inc.territory}</Typography>
+                          {inc.bankabilityLabel && (
+                            <Chip
+                              label={inc.bankabilityLabel}
+                              size="small"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                ...(inc.bankabilityLabel === 'BANKABLE'
+                                  ? { bgcolor: 'rgba(76,175,80,0.2)', color: '#4caf50', border: '1px solid #4caf50' }
+                                  : inc.bankabilityLabel === 'VERIFY FIRST'
+                                  ? { bgcolor: 'rgba(255,152,0,0.2)', color: '#ff9800', border: '1px solid #ff9800' }
+                                  : { bgcolor: 'rgba(244,67,54,0.2)', color: '#f44336', border: '1px solid #f44336' }),
+                              }}
+                            />
+                          )}
+                        </Box>
                         <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>{inc.program}</Typography>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                           <Typography variant="body2">Rate:</Typography>
@@ -431,7 +538,7 @@ export function ReportViewer() {
                         </Box>
                         <Divider sx={{ my: 2, borderColor: '#333' }} />
                         <Typography variant="subtitle2" sx={{ mb: 1, color: '#D4AF37' }}>Requirements:</Typography>
-                        <List dense>{inc.requirements.map((r, ri) => <ListItem key={ri} sx={{ color: '#a0a0a0', py: 0.25 }}>• {r}</ListItem>)}</List>
+                        <List dense>{Array.isArray(inc.requirements) ? inc.requirements.map((r, ri) => <ListItem key={ri} sx={{ color: '#a0a0a0', py: 0.25 }}>• {r}</ListItem>) : null}</List>
                         <Typography variant="caption" sx={{ color: '#555', display: 'block', mt: 1 }}>{inc.disclaimer}</Typography>
                         <Typography variant="caption" sx={{ color: '#444', display: 'block' }}>Source: {inc.dataSource} • Updated: {new Date(inc.lastUpdated).toLocaleDateString()}</Typography>
                       </Paper>
@@ -441,8 +548,98 @@ export function ReportViewer() {
               )}
             </TabPanel>
 
-            {/* Tab 4: Crew & Cost */}
+            {/* Tab 4: Financial Analysis */}
             <TabPanel value={tabValue} index={3}>
+              {isPreview ? <BlurredContent title="Financial Analysis" /> : (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Financial Analysis</Typography>
+                  {analysis.sectionExplainers?.financialAnalysis && (
+                    <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>{analysis.sectionExplainers.financialAnalysis}</Typography>
+                  )}
+                  {analysis.financialAnalysis?.budgetScenarios && analysis.financialAnalysis.budgetScenarios.length > 0 ? (
+                    <Grid container spacing={3}>
+                      {analysis.financialAnalysis.budgetScenarios.map((scenario, i) => {
+                        const hasV3Fields = scenario.totalBudget || scenario.qualifyingSpend || scenario.netRebate;
+                        return (
+                          <Grid size={{ xs: 12 }} key={i}>
+                            <Paper sx={{ p: 3, bgcolor: '#111', border: i === 0 ? '2px solid #D4AF37' : '1px solid #222' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6" sx={{ color: '#D4AF37' }}>{scenario.territory || `Scenario ${i + 1}`}</Typography>
+                                {scenario.programme && (
+                                  <Chip label={scenario.programme} size="small" sx={{ bgcolor: 'rgba(212,175,55,0.15)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.4)' }} />
+                                )}
+                              </Box>
+
+                              {hasV3Fields ? (
+                                /* 6-step calculation breakdown */
+                                <Box>
+                                  {[
+                                    { label: 'Total Budget', value: scenario.totalBudget },
+                                    { label: `Qualifying Spend (${scenario.qualifyingSpendPct || '—'})`, value: scenario.qualifyingSpend },
+                                    { label: 'ATL Deduction', value: scenario.atlDeduction },
+                                    { label: 'Net Qualifying Spend', value: scenario.netQualifyingSpend },
+                                    { label: `Gross Rebate (${scenario.rateGross || scenario.rateNet || '—'})`, value: scenario.grossRebate },
+                                    { label: 'Net Rebate', value: scenario.netRebate, highlight: true },
+                                    { label: 'Net Budget After Rebate', value: scenario.netBudget, bold: true },
+                                  ].map((step, si) => step.value ? (
+                                    <Box
+                                      key={si}
+                                      sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        py: 1,
+                                        px: 1.5,
+                                        mb: 0.5,
+                                        borderRadius: 1,
+                                        bgcolor: step.bold ? 'rgba(76,175,80,0.08)' : step.highlight ? 'rgba(212,175,55,0.06)' : 'transparent',
+                                        borderLeft: step.bold ? '3px solid #4caf50' : step.highlight ? '3px solid #D4AF37' : '3px solid transparent',
+                                      }}
+                                    >
+                                      <Typography variant="body2" sx={{ color: step.bold ? '#ffffff' : '#a0a0a0', fontWeight: step.bold ? 600 : 400 }}>
+                                        {`${si + 1}. ${step.label}`}
+                                      </Typography>
+                                      <Typography variant="body1" sx={{ fontWeight: step.bold ? 700 : 500, color: step.bold ? '#4caf50' : step.highlight ? '#D4AF37' : '#ffffff' }}>
+                                        {step.value}
+                                      </Typography>
+                                    </Box>
+                                  ) : null)}
+                                  {scenario.notes && (
+                                    <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 1.5, fontStyle: 'italic' }}>
+                                      {scenario.notes}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ) : (
+                                /* Legacy fallback */
+                                <Box>
+                                  {[
+                                    { label: 'Local Spend', value: scenario.localSpend },
+                                    { label: 'Rebate Rate', value: scenario.rebateRate },
+                                  ].map((row, ri) => row.value ? (
+                                    <Box key={ri} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
+                                      <Typography variant="body2" sx={{ color: '#a0a0a0' }}>{row.label}</Typography>
+                                      <Typography variant="body1" sx={{ fontWeight: 500 }}>{row.value}</Typography>
+                                    </Box>
+                                  ) : null)}
+                                </Box>
+                              )}
+                            </Paper>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  ) : (
+                    <Paper sx={{ p: 4, bgcolor: '#111', border: '1px solid #222', textAlign: 'center' }}>
+                      <Typography variant="body1" sx={{ color: '#666' }}>Financial scenario data will appear here once your report is generated.</Typography>
+                    </Paper>
+                  )}
+                </>
+              )}
+            </TabPanel>
+
+            {/* Tab 5: Crew & Cost */}
+            <TabPanel value={tabValue} index={4}>
               {isPreview ? <BlurredContent title="Crew & Cost" /> : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Crew Insights by Territory</Typography>
@@ -486,8 +683,8 @@ export function ReportViewer() {
               )}
             </TabPanel>
 
-            {/* Tab 5: Comparables */}
-            <TabPanel value={tabValue} index={4}>
+            {/* Tab 6: Comparables */}
+            <TabPanel value={tabValue} index={5}>
               {isPreview ? <BlurredContent title="Comparables" /> : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Comparable Productions</Typography>
@@ -521,8 +718,8 @@ export function ReportViewer() {
               )}
             </TabPanel>
 
-            {/* Tab 6: Weather & Logistics */}
-            <TabPanel value={tabValue} index={5}>
+            {/* Tab 7: Weather & Logistics */}
+            <TabPanel value={tabValue} index={6}>
               {isPreview ? <BlurredContent title="Weather & Logistics" /> : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Weather & Logistics</Typography>
@@ -576,13 +773,13 @@ export function ReportViewer() {
               )}
             </TabPanel>
 
-            {/* Tab 7: Funding & Festivals */}
-            <TabPanel value={tabValue} index={6}>
+            {/* Tab 8: Funding & Festivals */}
+            <TabPanel value={tabValue} index={7}>
               {isPreview ? <BlurredContent title="Funding & Festivals" /> : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Funding & Festival Opportunities</Typography>
                   <Grid container spacing={3}>
-                    {analysis.fundingOpportunities.map((opp, i) => (
+                    {Array.isArray(analysis.fundingOpportunities) ? analysis.fundingOpportunities.map((opp, i) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -599,9 +796,9 @@ export function ReportViewer() {
                             </Box>
                           </Box>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                            {opp.genre.map((g, gi) => (
+                            {Array.isArray(opp.genre) ? opp.genre.map((g, gi) => (
                               <Chip key={gi} label={g} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37', fontSize: '0.7rem' }} />
-                            ))}
+                            )) : null}
                           </Box>
                           {opp.deadline && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -617,7 +814,7 @@ export function ReportViewer() {
                           )}
                         </Paper>
                       </Grid>
-                    ))}
+                    )) : null}
                   </Grid>
                 </>
               )}

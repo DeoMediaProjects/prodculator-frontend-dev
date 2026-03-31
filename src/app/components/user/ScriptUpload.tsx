@@ -48,7 +48,8 @@ export function ScriptUpload() {
   const [title, setTitle] = useState('');
   const [email, setEmail] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
-  const [budgetRange, setBudgetRange] = useState('');
+  const [budgetAmount, setBudgetAmount] = useState<number | ''>('');
+  const [budgetCurrency, setBudgetCurrency] = useState('GBP');
   const [format, setFormat] = useState('');
   const [country, setCountry] = useState('');
   const [stateProvince, setStateProvince] = useState('');
@@ -153,7 +154,7 @@ export function ScriptUpload() {
     if (requireFile && !file) return 'Please upload a script file';
     if (!title) return 'Project title is required';
     if (genres.length === 0) return 'Please select at least one genre';
-    if (!budgetRange) return 'Budget range is required';
+    if (!budgetAmount || Number(budgetAmount) <= 0) return 'Please enter a budget amount greater than 0';
     if (!format) return 'Format is required';
     if (!country) return 'Primary production country is required';
     return null;
@@ -192,7 +193,8 @@ export function ScriptUpload() {
       const metadata: ScriptMetadata = {
         title,
         genre: genres,
-        budget: budgetRange,
+        budgetAmount: Number(budgetAmount),
+        budgetCurrency,
         format,
         country,
         locationStrategy,
@@ -246,7 +248,8 @@ export function ScriptUpload() {
       const metadata: ScriptMetadata = {
         title,
         genre: genres,
-        budget: budgetRange,
+        budgetAmount: Number(budgetAmount),
+        budgetCurrency,
         format,
         country,
         locationStrategy,
@@ -411,26 +414,51 @@ export function ScriptUpload() {
                     </FormControl>
                   </Grid>
 
-                  <Grid size={{ xs: 12, sm: 6 }}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <FormControl fullWidth>
-                      <InputLabel>
-                        Budget Range
-                        <InfoTip text={TOOLTIP_TEXTS.budgetRange} />
-                      </InputLabel>
-                      <Select 
-                        value={budgetRange} 
-                        label="Budget Range" 
-                        onChange={(e) => setBudgetRange(e.target.value)}
+                      <InputLabel>Currency</InputLabel>
+                      <Select
+                        value={budgetCurrency}
+                        label="Currency"
+                        onChange={(e) => setBudgetCurrency(e.target.value)}
                       >
-                        {/* ✅ SECTION 2b: Budget Range - confirmed 6 options in GBP */}
-                        <MenuItem value="<500k">Under £500K</MenuItem>
-                        <MenuItem value="500k-2m">£500K–£2M</MenuItem>
-                        <MenuItem value="2m-5m">£2M–£5M</MenuItem>
-                        <MenuItem value="5m-15m">£5M–£15M</MenuItem>
-                        <MenuItem value="15m-30m">£15M–£30M</MenuItem>
-                        <MenuItem value="30m+">£30M+</MenuItem>
+                        {[
+                          { value: 'GBP', label: '£ GBP' },
+                          { value: 'USD', label: '$ USD' },
+                          { value: 'EUR', label: '€ EUR' },
+                          { value: 'ZAR', label: 'R ZAR' },
+                          { value: 'CAD', label: '$ CAD' },
+                          { value: 'AUD', label: '$ AUD' },
+                          { value: 'NGN', label: '₦ NGN' },
+                          { value: 'HUF', label: 'Ft HUF' },
+                          { value: 'CZK', label: 'Kč CZK' },
+                          { value: 'MAD', label: 'MAD' },
+                          { value: 'NZD', label: '$ NZD' },
+                          { value: 'RON', label: 'lei RON' },
+                          { value: 'RSD', label: 'din RSD' },
+                          { value: 'OTHER', label: 'Other' },
+                        ].map((c) => (
+                          <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 8 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label={
+                        <>
+                          Budget Amount
+                          <InfoTip text="The actual total production budget figure — what you expect to spend making the film or series from first day of pre-production to picture lock. Not distribution or marketing." />
+                        </>
+                      }
+                      value={budgetAmount}
+                      onChange={(e) => setBudgetAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                      inputProps={{ min: 1, step: 1 }}
+                      placeholder="e.g. 3000000"
+                    />
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6 }}>
