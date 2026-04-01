@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,6 @@ import {
   StepContent,
   Button,
   Checkbox,
-  FormControlLabel,
   Chip,
   IconButton,
   Alert,
@@ -25,201 +24,317 @@ import {
   Divider,
   Menu,
   MenuItem,
+  CircularProgress,
+  Select,
+  FormControl,
+  InputLabel,
+  type SelectChangeEvent,
 } from '@mui/material';
 import {
   CheckCircle,
   Circle,
   RadioButtonUnchecked,
   CalendarToday,
-  Email,
-  Download,
   Add,
   MoreVert,
   Delete,
-  Edit,
-  Notifications,
   Event,
+  AutoAwesome,
 } from '@mui/icons-material';
-
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  status: 'completed' | 'in-progress' | 'upcoming';
-  dueDate?: string;
-  tasks: Task[];
-  isCustom?: boolean;
-}
-
-interface Task {
-  id: string;
-  text: string;
-  completed: boolean;
-  territory?: string;
-  deadline?: string;
-}
+import {
+  fetchMilestones,
+  createMilestone,
+  updateMilestone,
+  deleteMilestone,
+  updateTask,
+  createTask,
+  deleteTask,
+  seedMilestones,
+  type MilestoneResponse,
+} from '@/services/milestone.service';
 
 interface ProductionTimelineProps {
-  scriptTitle: string;
   userPlan: 'free' | 'professional' | 'studio';
+  reports?: Array<{ id: string; title: string }>;
 }
 
-export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimelineProps) {
-  const [milestones, setMilestones] = useState<Milestone[]>([
-    {
-      id: '1',
-      title: 'Script Analysis Complete',
-      description: 'Your comprehensive production intelligence report is ready',
-      status: 'completed',
-      tasks: [
-        { id: '1-1', text: 'Upload script', completed: true },
-        { id: '1-2', text: 'Review territory recommendations', completed: true },
-        { id: '1-3', text: 'Download PDF report', completed: true },
-      ],
-    },
-    {
-      id: '2',
-      title: 'Contact Film Commissions',
-      description: 'Reach out to film commissions in your top territories',
-      status: 'in-progress',
-      dueDate: 'This Week',
-      tasks: [
-        { id: '2-1', text: 'British Columbia Film Commission', completed: false, territory: 'BC, Canada', deadline: 'Feb 1, 2026' },
-        { id: '2-2', text: 'UK BFI (British Film Institute)', completed: false, territory: 'UK', deadline: 'Feb 5, 2026' },
-        { id: '2-3', text: 'Georgia Film Office', completed: true, territory: 'Georgia, USA' },
-      ],
-    },
-    {
-      id: '3',
-      title: 'Tax Advisor Consultation',
-      description: 'Book consultation with entertainment tax specialists',
-      status: 'upcoming',
-      dueDate: 'Next 2 Weeks',
-      tasks: [
-        { id: '3-1', text: 'Research qualified tax advisors', completed: false },
-        { id: '3-2', text: 'Schedule initial consultation', completed: false },
-        { id: '3-3', text: 'Prepare budget breakdown', completed: false },
-      ],
-    },
-    {
-      id: '4',
-      title: 'Submit Incentive Applications',
-      description: 'Apply for tax credits and rebates',
-      status: 'upcoming',
-      dueDate: '6 Weeks',
-      tasks: [
-        { id: '4-1', text: 'Georgia Application', completed: false, deadline: 'March 15, 2026' },
-        { id: '4-2', text: 'BC Application', completed: false, deadline: 'March 20, 2026' },
-        { id: '4-3', text: 'Prepare supporting documents', completed: false },
-      ],
-    },
-    {
-      id: '5',
-      title: 'Location Scouting',
-      description: 'Visit and assess filming locations',
-      status: 'upcoming',
-      dueDate: '8 Weeks',
-      tasks: [
-        { id: '5-1', text: 'Hire location scout', completed: false },
-        { id: '5-2', text: 'Schedule territory visits', completed: false },
-        { id: '5-3', text: 'Create location package', completed: false },
-      ],
-    },
-  ]);
+export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelineProps) {
+  const [milestones, setMilestones] = useState<MilestoneResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string>('');
 
-  const [emailRemindersEnabled, setEmailRemindersEnabled] = useState(false);
+  // Dialog state
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
+  const [newMilestoneDescription, setNewMilestoneDescription] = useState('');
+
+  // Add task dialog
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [addTaskMilestoneId, setAddTaskMilestoneId] = useState('');
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskDeadline, setNewTaskDeadline] = useState('');
+
+  // Context menu
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
 
   const canAddCustomMilestones = userPlan !== 'free';
 
-  const handleTaskToggle = (milestoneId: string, taskId: string) => {
-    setMilestones(milestones.map(milestone => {
-      if (milestone.id === milestoneId) {
-        const updatedTasks = milestone.tasks.map(task =>
-          task.id === taskId ? { ...task, completed: !task.completed } : task
+  // ── Fetch milestones ───────────────────────────────────────────────────
+
+  const loadMilestones = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data, error: err } = await fetchMilestones(selectedReportId || undefined);
+    if (err) {
+      setError(err);
+    } else if (data) {
+      setMilestones(data.milestones ?? []);
+    }
+    setLoading(false);
+  }, [selectedReportId]);
+
+  useEffect(() => {
+    loadMilestones();
+  }, [loadMilestones]);
+
+  // ── Task toggle (optimistic) ───────────────────────────────────────────
+
+  const handleTaskToggle = async (milestoneId: string, taskId: string, currentCompleted: boolean) => {
+    // Optimistic update
+    setMilestones((prev) =>
+      prev.map((m) => {
+        if (m.id !== milestoneId) return m;
+        const updatedTasks = m.tasks.map((t) =>
+          t.id === taskId ? { ...t, completed: !currentCompleted } : t,
         );
-        const allCompleted = updatedTasks.every(t => t.completed);
-        return {
-          ...milestone,
-          tasks: updatedTasks,
-          status: allCompleted ? 'completed' as const : milestone.status,
-        };
+        const allDone = updatedTasks.every((t) => t.completed);
+        const anyDone = updatedTasks.some((t) => t.completed);
+        let newStatus = m.status;
+        if (allDone) newStatus = 'completed';
+        else if (anyDone) newStatus = 'in-progress';
+        else newStatus = 'upcoming';
+        return { ...m, tasks: updatedTasks, status: newStatus };
+      }),
+    );
+
+    // Persist
+    const { error: err } = await updateTask(milestoneId, taskId, {
+      completed: !currentCompleted,
+    });
+    if (err) {
+      // Revert on failure
+      loadMilestones();
+    } else {
+      // Check if we need to update milestone status
+      const milestone = milestones.find((m) => m.id === milestoneId);
+      if (milestone) {
+        const updatedTasks = milestone.tasks.map((t) =>
+          t.id === taskId ? { ...t, completed: !currentCompleted } : t,
+        );
+        const allDone = updatedTasks.every((t) => t.completed);
+        const anyDone = updatedTasks.some((t) => t.completed);
+        let newStatus: 'completed' | 'in-progress' | 'upcoming' = 'upcoming';
+        if (allDone) newStatus = 'completed';
+        else if (anyDone) newStatus = 'in-progress';
+
+        if (newStatus !== milestone.status) {
+          await updateMilestone(milestoneId, { status: newStatus });
+        }
       }
-      return milestone;
-    }));
-  };
-
-  const handleAddMilestone = () => {
-    const newMilestone: Milestone = {
-      id: Date.now().toString(),
-      title: newMilestoneTitle,
-      description: 'Custom milestone',
-      status: 'upcoming',
-      tasks: [],
-      isCustom: true,
-    };
-    setMilestones([...milestones, newMilestone]);
-    setAddMilestoneOpen(false);
-    setNewMilestoneTitle('');
-  };
-
-  const handleDeleteMilestone = (id: string) => {
-    setMilestones(milestones.filter(m => m.id !== id));
-    setMenuAnchor(null);
-  };
-
-  const exportToCalendar = () => {
-    // In real implementation, this would generate .ics file
-    alert('Calendar export feature coming soon!');
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return '#4caf50';
-      case 'in-progress': return '#D4AF37';
-      case 'upcoming': return '#666666';
-      default: return '#666666';
     }
   };
+
+  // ── Add milestone ──────────────────────────────────────────────────────
+
+  const handleAddMilestone = async () => {
+    if (!newMilestoneTitle.trim()) return;
+    const { data, error: err } = await createMilestone({
+      title: newMilestoneTitle.trim(),
+      description: newMilestoneDescription.trim() || undefined,
+      report_id: selectedReportId || undefined,
+    });
+    if (err) {
+      setError(err);
+    } else if (data) {
+      setMilestones((prev) => [...prev, data]);
+    }
+    setAddMilestoneOpen(false);
+    setNewMilestoneTitle('');
+    setNewMilestoneDescription('');
+  };
+
+  // ── Delete milestone ───────────────────────────────────────────────────
+
+  const handleDeleteMilestone = async (id: string) => {
+    setMenuAnchor(null);
+    const { error: err } = await deleteMilestone(id);
+    if (err) {
+      setError(err);
+    } else {
+      setMilestones((prev) => prev.filter((m) => m.id !== id));
+    }
+  };
+
+  // ── Add task ───────────────────────────────────────────────────────────
+
+  const handleAddTask = async () => {
+    if (!newTaskText.trim() || !addTaskMilestoneId) return;
+    const { data, error: err } = await createTask(addTaskMilestoneId, {
+      text: newTaskText.trim(),
+      deadline: newTaskDeadline || undefined,
+    });
+    if (err) {
+      setError(err);
+    } else if (data) {
+      setMilestones((prev) =>
+        prev.map((m) =>
+          m.id === addTaskMilestoneId ? { ...m, tasks: [...m.tasks, data] } : m,
+        ),
+      );
+    }
+    setAddTaskOpen(false);
+    setNewTaskText('');
+    setNewTaskDeadline('');
+    setAddTaskMilestoneId('');
+  };
+
+  // ── Delete task ────────────────────────────────────────────────────────
+
+  const handleDeleteTask = async (milestoneId: string, taskId: string) => {
+    const { error: err } = await deleteTask(milestoneId, taskId);
+    if (err) {
+      setError(err);
+    } else {
+      setMilestones((prev) =>
+        prev.map((m) =>
+          m.id === milestoneId
+            ? { ...m, tasks: m.tasks.filter((t) => t.id !== taskId) }
+            : m,
+        ),
+      );
+    }
+  };
+
+  // ── Seed from report ───────────────────────────────────────────────────
+
+  const handleSeed = async (reportId: string) => {
+    setSeeding(true);
+    setError(null);
+    const { data, error: err } = await seedMilestones(reportId);
+    if (err) {
+      setError(err);
+    } else if (data) {
+      setMilestones(data.milestones);
+      setSelectedReportId(reportId);
+    }
+    setSeeding(false);
+  };
+
+  // ── Calendar export placeholder ────────────────────────────────────────
+
+  const exportToCalendar = () => {
+    if (!milestones.length) return;
+    // Generate simple .ics content
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Prodculator//Timeline//EN',
+    ];
+    for (const m of milestones) {
+      if (!m.due_date) continue;
+      const dateStr = m.due_date.replace(/-/g, '').slice(0, 8);
+      lines.push('BEGIN:VEVENT');
+      lines.push(`DTSTART;VALUE=DATE:${dateStr}`);
+      lines.push(`SUMMARY:${m.title}`);
+      lines.push(`DESCRIPTION:${m.description || ''}`);
+      lines.push('END:VEVENT');
+    }
+    lines.push('END:VCALENDAR');
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'production-timeline.ics';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Helpers ────────────────────────────────────────────────────────────
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle sx={{ color: '#4caf50' }} />;
       case 'in-progress': return <Circle sx={{ color: '#D4AF37' }} />;
-      case 'upcoming': return <RadioButtonUnchecked sx={{ color: '#666666' }} />;
       default: return <RadioButtonUnchecked sx={{ color: '#666666' }} />;
     }
   };
 
-  const activeStep = milestones.findIndex(m => m.status === 'in-progress');
+  const inProgressIdx = milestones.findIndex((m) => m.status === 'in-progress');
+  const [expandedStep, setExpandedStep] = useState<number>(inProgressIdx >= 0 ? inProgressIdx : 0);
+
+  // Keep expandedStep in sync when milestones change (e.g. after seed/load)
+  useEffect(() => {
+    const idx = milestones.findIndex((m) => m.status === 'in-progress');
+    setExpandedStep(idx >= 0 ? idx : 0);
+  }, [milestones.length]);
+
+  // ── Render ─────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress sx={{ color: '#D4AF37' }} />
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 600, mb: 0.5 }}>
             Production Timeline
           </Typography>
           <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-            "{scriptTitle}" • Track your progress from analysis to production
+            Track your progress from analysis to production
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {reports.length > 0 && (
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel sx={{ color: '#a0a0a0' }}>Filter by Report</InputLabel>
+              <Select
+                value={selectedReportId}
+                label="Filter by Report"
+                onChange={(e: SelectChangeEvent) => setSelectedReportId(e.target.value)}
+                sx={{
+                  color: '#ffffff',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D4AF37' },
+                }}
+              >
+                <MenuItem value="">All Reports</MenuItem>
+                {reports.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>{r.title}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
           <Button
             variant="outlined"
             size="small"
             startIcon={<Event />}
             onClick={exportToCalendar}
+            disabled={!milestones.length}
             sx={{
               borderColor: '#D4AF37',
               color: '#D4AF37',
-              '&:hover': {
-                borderColor: '#E5C158',
-                bgcolor: 'rgba(212, 175, 55, 0.1)',
-              },
+              '&:hover': { borderColor: '#E5C158', bgcolor: 'rgba(212, 175, 55, 0.1)' },
+              '&.Mui-disabled': { opacity: 0.4 },
             }}
           >
             Export to Calendar
@@ -234,9 +349,7 @@ export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimeline
                 bgcolor: '#D4AF37',
                 color: '#000000',
                 fontWeight: 600,
-                '&:hover': {
-                  bgcolor: '#E5C158',
-                },
+                '&:hover': { bgcolor: '#E5C158' },
               }}
             >
               Add Milestone
@@ -245,89 +358,119 @@ export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimeline
         </Box>
       </Box>
 
-      {/* Email Reminders Toggle */}
-      <Alert 
-        severity="info"
-        icon={<Email />}
-        sx={{ 
-          mb: 3,
-          bgcolor: 'rgba(33, 150, 243, 0.1)',
-          '& .MuiAlert-icon': { color: '#2196F3' },
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={emailRemindersEnabled}
-                onChange={(e) => setEmailRemindersEnabled(e.target.checked)}
-                sx={{
-                  color: '#2196F3',
-                  '&.Mui-checked': { color: '#D4AF37' },
-                }}
-              />
-            }
-            label={
-              <Typography variant="body2" sx={{ color: '#2196F3' }}>
-                Email me weekly reminders about upcoming milestones
-              </Typography>
-            }
-          />
+      {/* Error */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Empty state — offer seeding */}
+      {!milestones.length && !error && (
+        <Paper
+          sx={{
+            p: 4, textAlign: 'center', bgcolor: '#0a0a0a',
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+          }}
+        >
+          <AutoAwesome sx={{ fontSize: 48, color: '#D4AF37', mb: 2 }} />
+          <Typography variant="h6" sx={{ color: '#ffffff', mb: 1 }}>
+            No milestones yet
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>
+            Generate a production timeline from one of your analysis reports, or create milestones manually.
+          </Typography>
+          {reports.length > 0 ? (
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {reports.slice(0, 3).map((r) => (
+                <Button
+                  key={r.id}
+                  variant="outlined"
+                  size="small"
+                  startIcon={seeding ? <CircularProgress size={16} sx={{ color: '#D4AF37' }} /> : <AutoAwesome />}
+                  disabled={seeding}
+                  onClick={() => handleSeed(r.id)}
+                  sx={{
+                    borderColor: '#D4AF37',
+                    color: '#D4AF37',
+                    '&:hover': { borderColor: '#E5C158', bgcolor: 'rgba(212, 175, 55, 0.1)' },
+                  }}
+                >
+                  Generate from "{r.title}"
+                </Button>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ color: '#666' }}>
+              Complete a script analysis first to auto-generate milestones.
+            </Typography>
+          )}
+          {canAddCustomMilestones && (
+            <Button
+              variant="text"
+              size="small"
+              onClick={() => setAddMilestoneOpen(true)}
+              sx={{ color: '#a0a0a0', mt: 2 }}
+            >
+              Or create a milestone manually
+            </Button>
+          )}
           {!canAddCustomMilestones && (
-            <Button 
-              size="small" 
-              sx={{ 
-                color: '#D4AF37',
-                fontWeight: 600,
-              }}
+            <Button
+              size="small"
+              sx={{ color: '#D4AF37', fontWeight: 600, mt: 2 }}
               onClick={() => window.location.href = '/pricing'}
             >
               Upgrade for Custom Milestones
             </Button>
           )}
-        </Box>
-      </Alert>
+        </Paper>
+      )}
 
       {/* Timeline Stepper */}
-      <Paper
-        sx={{
-          p: 3,
-          bgcolor: '#0a0a0a',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
-        }}
-      >
-        <Stepper activeStep={activeStep} orientation="vertical">
-          {milestones.map((milestone) => (
-            <Step key={milestone.id} completed={milestone.status === 'completed'}>
-              <StepLabel
-                StepIconComponent={() => getStatusIcon(milestone.status)}
-                sx={{
-                  '& .MuiStepLabel-label': {
-                    color: milestone.status === 'completed' ? '#4caf50' : '#ffffff',
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                  },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>
-                    {milestone.title}
-                  </Typography>
-                  {milestone.dueDate && (
-                    <Chip
-                      label={milestone.dueDate}
-                      size="small"
-                      icon={<CalendarToday />}
-                      sx={{
-                        bgcolor: milestone.status === 'in-progress' 
-                          ? 'rgba(212, 175, 55, 0.2)' 
-                          : 'rgba(102, 102, 102, 0.2)',
-                        color: milestone.status === 'in-progress' ? '#D4AF37' : '#a0a0a0',
-                      }}
-                    />
-                  )}
-                  {milestone.isCustom && (
-                    <Box>
+      {milestones.length > 0 && (
+        <Paper
+          sx={{
+            p: 3, bgcolor: '#0a0a0a',
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+          }}
+        >
+          <Stepper nonLinear activeStep={expandedStep} orientation="vertical">
+            {milestones.map((milestone, stepIndex) => (
+              <Step key={milestone.id} completed={milestone.status === 'completed'} active={stepIndex === expandedStep}>
+                <StepLabel
+                  onClick={() => setExpandedStep(stepIndex)}
+                  StepIconComponent={() => getStatusIcon(milestone.status)}
+                  sx={{
+                    cursor: 'pointer',
+                    '& .MuiStepLabel-label': {
+                      color: milestone.status === 'completed' ? '#4caf50' : '#ffffff',
+                      fontWeight: 600,
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                      {milestone.title}
+                    </Typography>
+                    {milestone.due_date && (
+                      <Chip
+                        label={milestone.due_date.slice(0, 10)}
+                        size="small"
+                        icon={<CalendarToday />}
+                        sx={{
+                          bgcolor: milestone.status === 'in-progress'
+                            ? 'rgba(212, 175, 55, 0.2)'
+                            : 'rgba(102, 102, 102, 0.2)',
+                          color: milestone.status === 'in-progress' ? '#D4AF37' : '#a0a0a0',
+                          '& .MuiChip-icon': {
+                            color: milestone.status === 'in-progress' ? '#D4AF37' : '#a0a0a0',
+                            fontSize: '14px',
+                          },
+                        }}
+                      />
+                    )}
+                    {milestone.is_custom && (
                       <IconButton
                         size="small"
                         onClick={(e) => {
@@ -338,102 +481,136 @@ export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimeline
                       >
                         <MoreVert />
                       </IconButton>
-                    </Box>
+                    )}
+                  </Box>
+                  {milestone.description && (
+                    <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5 }}>
+                      {milestone.description}
+                    </Typography>
                   )}
-                </Box>
-                <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5 }}>
-                  {milestone.description}
-                </Typography>
-              </StepLabel>
-              <StepContent>
-                <Box sx={{ ml: 2, mt: 2 }}>
-                  <List sx={{ p: 0 }}>
-                    {milestone.tasks.map((task, index) => (
-                      <Box key={task.id}>
-                        <ListItem
-                          sx={{ 
-                            px: 0, 
-                            py: 1,
-                            opacity: task.completed ? 0.6 : 1,
-                          }}
-                        >
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <Checkbox
-                              checked={task.completed}
-                              onChange={() => handleTaskToggle(milestone.id, task.id)}
-                              sx={{
-                                color: '#666666',
-                                '&.Mui-checked': {
-                                  color: '#4caf50',
-                                },
-                              }}
-                            />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Typography
-                                  variant="body1"
-                                  sx={{
-                                    color: task.completed ? '#a0a0a0' : '#ffffff',
-                                    textDecoration: task.completed ? 'line-through' : 'none',
-                                  }}
-                                >
-                                  {task.text}
-                                </Typography>
-                                {task.territory && (
-                                  <Chip
-                                    label={task.territory}
-                                    size="small"
+                </StepLabel>
+                <StepContent>
+                  <Box sx={{ ml: 2, mt: 2 }}>
+                    <List sx={{ p: 0 }}>
+                      {milestone.tasks.map((task, index) => (
+                        <Box key={task.id}>
+                          <ListItem
+                            sx={{ px: 0, py: 1, opacity: task.completed ? 0.6 : 1 }}
+                            secondaryAction={
+                              <IconButton
+                                edge="end"
+                                size="small"
+                                onClick={() => handleDeleteTask(milestone.id, task.id)}
+                                sx={{ color: '#444', '&:hover': { color: '#ff6b6b' } }}
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            }
+                          >
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                              <Checkbox
+                                checked={task.completed}
+                                onChange={() => handleTaskToggle(milestone.id, task.id, task.completed)}
+                                sx={{
+                                  color: '#666666',
+                                  '&.Mui-checked': { color: '#4caf50' },
+                                }}
+                              />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Typography
+                                    variant="body1"
                                     sx={{
-                                      bgcolor: 'rgba(212, 175, 55, 0.15)',
-                                      color: '#D4AF37',
-                                      fontSize: '0.7rem',
-                                      height: '20px',
+                                      color: task.completed ? '#a0a0a0' : '#ffffff',
+                                      textDecoration: task.completed ? 'line-through' : 'none',
                                     }}
-                                  />
-                                )}
-                              </Box>
-                            }
-                            secondary={
-                              task.deadline && (
-                                <Typography variant="caption" sx={{ color: '#ff9800' }}>
-                                  Deadline: {task.deadline}
-                                </Typography>
-                              )
-                            }
-                          />
-                        </ListItem>
-                        {index < milestone.tasks.length - 1 && (
-                          <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />
-                        )}
-                      </Box>
-                    ))}
-                  </List>
+                                  >
+                                    {task.text}
+                                  </Typography>
+                                  {task.territory && (
+                                    <Chip
+                                      label={task.territory}
+                                      size="small"
+                                      sx={{
+                                        bgcolor: 'rgba(212, 175, 55, 0.15)',
+                                        color: '#D4AF37',
+                                        fontSize: '0.7rem',
+                                        height: '20px',
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+                              }
+                              secondary={
+                                task.deadline && (
+                                  <Typography variant="caption" sx={{ color: '#ff9800' }}>
+                                    Deadline: {task.deadline.slice(0, 10)}
+                                  </Typography>
+                                )
+                              }
+                            />
+                          </ListItem>
+                          {index < milestone.tasks.length - 1 && (
+                            <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />
+                          )}
+                        </Box>
+                      ))}
+                    </List>
 
-                  {milestone.status === 'completed' && (
-                    <Alert 
-                      severity="success"
-                      icon={<CheckCircle />}
-                      sx={{ 
-                        mt: 2,
-                        bgcolor: 'rgba(76, 175, 80, 0.1)',
-                        '& .MuiAlert-icon': { color: '#4caf50' },
+                    {/* Add task button */}
+                    <Button
+                      size="small"
+                      startIcon={<Add />}
+                      onClick={() => {
+                        setAddTaskMilestoneId(milestone.id);
+                        setAddTaskOpen(true);
                       }}
+                      sx={{ color: '#a0a0a0', mt: 1, '&:hover': { color: '#D4AF37' } }}
                     >
-                      <Typography variant="body2" sx={{ color: '#4caf50' }}>
-                        Milestone completed! Great progress.
-                      </Typography>
-                    </Alert>
-                  )}
-                </Box>
-              </StepContent>
-            </Step>
-          ))}
-        </Stepper>
-      </Paper>
+                      Add Task
+                    </Button>
 
-      {/* Add Custom Milestone Dialog */}
+                    {milestone.status === 'completed' && (
+                      <Alert
+                        severity="success"
+                        icon={<CheckCircle />}
+                        sx={{
+                          mt: 2,
+                          bgcolor: 'rgba(76, 175, 80, 0.1)',
+                          '& .MuiAlert-icon': { color: '#4caf50' },
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ color: '#4caf50' }}>
+                          Milestone completed!
+                        </Typography>
+                      </Alert>
+                    )}
+                  </Box>
+                </StepContent>
+              </Step>
+            ))}
+          </Stepper>
+        </Paper>
+      )}
+
+      {/* Seed CTA (when milestones exist but user may want to regenerate) */}
+      {milestones.length > 0 && reports.length > 0 && (
+        <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+          <Button
+            size="small"
+            startIcon={seeding ? <CircularProgress size={14} sx={{ color: '#D4AF37' }} /> : <AutoAwesome />}
+            disabled={seeding}
+            onClick={() => handleSeed(reports[0].id)}
+            sx={{ color: '#a0a0a0', '&:hover': { color: '#D4AF37' } }}
+          >
+            Regenerate from latest report
+          </Button>
+        </Box>
+      )}
+
+      {/* Add Milestone Dialog */}
       <Dialog
         open={addMilestoneOpen}
         onClose={() => setAddMilestoneOpen(false)}
@@ -455,38 +632,29 @@ export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimeline
             value={newMilestoneTitle}
             onChange={(e) => setNewMilestoneTitle(e.target.value)}
             placeholder="e.g., Finalize Budget, Hire Key Crew"
-            sx={{
-              '& .MuiInputLabel-root': { color: '#a0a0a0' },
-              '& .MuiOutlinedInput-root': {
-                color: '#ffffff',
-                '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                '&:hover fieldset': { borderColor: '#D4AF37' },
-                '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-              },
-            }}
+            sx={{ ...textFieldSx, mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Description (optional)"
+            value={newMilestoneDescription}
+            onChange={(e) => setNewMilestoneDescription(e.target.value)}
+            multiline
+            rows={2}
+            sx={textFieldSx}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
-          <Button
-            onClick={() => setAddMilestoneOpen(false)}
-            sx={{ color: '#a0a0a0' }}
-          >
+          <Button onClick={() => setAddMilestoneOpen(false)} sx={{ color: '#a0a0a0' }}>
             Cancel
           </Button>
           <Button
             onClick={handleAddMilestone}
             disabled={!newMilestoneTitle.trim()}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              fontWeight: 600,
-              '&:hover': {
-                bgcolor: '#E5C158',
-              },
-              '&:disabled': {
-                bgcolor: 'rgba(212, 175, 55, 0.3)',
-                color: 'rgba(0, 0, 0, 0.5)',
-              },
+              bgcolor: '#D4AF37', color: '#000000', fontWeight: 600,
+              '&:hover': { bgcolor: '#E5C158' },
+              '&:disabled': { bgcolor: 'rgba(212, 175, 55, 0.3)', color: 'rgba(0,0,0,0.5)' },
             }}
           >
             Add Milestone
@@ -494,7 +662,59 @@ export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimeline
         </DialogActions>
       </Dialog>
 
-      {/* Milestone Menu */}
+      {/* Add Task Dialog */}
+      <Dialog
+        open={addTaskOpen}
+        onClose={() => setAddTaskOpen(false)}
+        PaperProps={{
+          sx: {
+            bgcolor: '#1a1a1a',
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+            minWidth: '400px',
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: '#ffffff', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+          Add Task
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <TextField
+            fullWidth
+            label="Task"
+            value={newTaskText}
+            onChange={(e) => setNewTaskText(e.target.value)}
+            placeholder="e.g., Contact film commission"
+            sx={{ ...textFieldSx, mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Deadline (optional)"
+            type="date"
+            value={newTaskDeadline}
+            onChange={(e) => setNewTaskDeadline(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={textFieldSx}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
+          <Button onClick={() => setAddTaskOpen(false)} sx={{ color: '#a0a0a0' }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddTask}
+            disabled={!newTaskText.trim()}
+            sx={{
+              bgcolor: '#D4AF37', color: '#000000', fontWeight: 600,
+              '&:hover': { bgcolor: '#E5C158' },
+              '&:disabled': { bgcolor: 'rgba(212, 175, 55, 0.3)', color: 'rgba(0,0,0,0.5)' },
+            }}
+          >
+            Add Task
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Milestone Context Menu */}
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
@@ -508,16 +728,8 @@ export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimeline
       >
         <MenuItem
           onClick={() => {
-            setMenuAnchor(null);
-            // Edit functionality
+            if (selectedMilestoneId) handleDeleteMilestone(selectedMilestoneId);
           }}
-          sx={{ color: '#ffffff' }}
-        >
-          <Edit sx={{ mr: 1, fontSize: '1rem' }} />
-          Edit
-        </MenuItem>
-        <MenuItem
-          onClick={() => selectedMilestoneId && handleDeleteMilestone(selectedMilestoneId)}
           sx={{ color: '#ff6b6b' }}
         >
           <Delete sx={{ mr: 1, fontSize: '1rem' }} />
@@ -527,3 +739,15 @@ export function ProductionTimeline({ scriptTitle, userPlan }: ProductionTimeline
     </Box>
   );
 }
+
+// ── Shared MUI sx for text fields ────────────────────────────────────────────
+
+const textFieldSx = {
+  '& .MuiInputLabel-root': { color: '#a0a0a0' },
+  '& .MuiOutlinedInput-root': {
+    color: '#ffffff',
+    '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
+    '&:hover fieldset': { borderColor: '#D4AF37' },
+    '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
+  },
+};

@@ -49,6 +49,8 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
 import { downloadReportPDF } from '@/services/report-pdf.service';
 import { WhatIfCalculator } from '@/app/components/user/WhatIfCalculator';
+import { TerritoryComparison } from '@/app/components/user/TerritoryComparison';
+import { ProductionTimeline } from '@/app/components/user/ProductionTimeline';
 
 interface ReportSummary {
   id: string;
@@ -353,9 +355,14 @@ export function UserDashboard() {
           )}
         </TabPanel>
 
-        <TabPanel value={currentTab} index={1}><Typography sx={{ color: '#a0a0a0', p: 4 }}>Compare different territories side-by-side. (Coming Soon)</Typography></TabPanel>
+        <TabPanel value={currentTab} index={1}><TerritoryComparison /></TabPanel>
         <TabPanel value={currentTab} index={2}><WhatIfCalculator /></TabPanel>
-        <TabPanel value={currentTab} index={3}><Typography sx={{ color: '#a0a0a0', p: 4 }}>Track your production timeline and milestones. (Coming Soon)</Typography></TabPanel>
+        <TabPanel value={currentTab} index={3}>
+          <ProductionTimeline
+            userPlan={(user?.plan as 'free' | 'professional' | 'studio') || 'free'}
+            reports={reports.filter((r) => r.status === 'Completed').map((r) => ({ id: r.id, title: r.title }))}
+          />
+        </TabPanel>
         <TabPanel value={currentTab} index={4}>
           <Paper sx={{ p: 4, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)', mt: 2 }}>
             <Typography variant="h6" sx={{ color: '#D4AF37', mb: 3 }}>Account Settings</Typography>
