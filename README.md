@@ -12,6 +12,7 @@ Prodculator is a professional platform for film producers to upload scripts and 
 - Australia
 - New Zealand
 - Malta
+-Italy
 
 ## 🚀 Features
 
