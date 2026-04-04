@@ -3,6 +3,7 @@ import {
   ADMIN_ADMIN_USERS_URL,
   adminAdminUserUrl,
   ADMIN_METRICS_URL,
+  ADMIN_PRODUCTION_SIGNALS_URL,
   ADMIN_INCENTIVES_URL,
   adminIncentiveUrl,
   ADMIN_CREW_COSTS_URL,
@@ -59,6 +60,8 @@ import {
 } from './admin.apiurl';
 import type {
   AdminMetrics,
+  ProductionSignal,
+  ProductionSignalsResponse,
   IncentiveData,
   CrewRate,
   ComparableProduction,
@@ -101,6 +104,87 @@ function paginationQuery(limit = 50, offset = 0) {
   return `?limit=${limit}&offset=${offset}`;
 }
 
+type ProductionSignalScale = ProductionSignal['crewSize'];
+type RawProductionSignalsResponse = {
+  items?: Array<Record<string, unknown>>;
+  total?: number;
+};
+
+function toStringOrUndefined(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function toStringArray(value: unknown): string[] | undefined {
+  if (Array.isArray(value)) {
+    const items = value
+      .map((entry) => toStringOrUndefined(entry))
+      .filter((entry): entry is string => Boolean(entry));
+    return items.length ? items : undefined;
+  }
+  const asString = toStringOrUndefined(value);
+  if (!asString) return undefined;
+  const parts = asString
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.length ? parts : undefined;
+}
+
+function normalizeScaleBand(value: unknown): ProductionSignalScale | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    if (value <= 10) return 'small';
+    if (value <= 50) return 'medium';
+    if (value <= 100) return 'large';
+    return 'extra_large';
+  }
+
+  const raw = toStringOrUndefined(value)?.toLowerCase();
+  if (!raw) return undefined;
+
+  if (raw === 'small' || raw === 'medium' || raw === 'large' || raw === 'extra_large') {
+    return raw;
+  }
+  if (raw.includes('extra') || raw.includes('xl') || raw.includes('100+')) return 'extra_large';
+  if (raw.includes('large')) return 'large';
+  if (raw.includes('medium')) return 'medium';
+  if (raw.includes('small')) return 'small';
+
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed)) return normalizeScaleBand(parsed);
+  return undefined;
+}
+
+function normalizeCameraEquipment(value: unknown): ProductionSignal['cameraEquipment'] {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  const raw = toStringOrUndefined(rawValue)?.toLowerCase();
+  if (!raw) return undefined;
+  if (raw.includes('arri')) return 'arri';
+  if (raw.includes('red')) return 'red';
+  if (raw.includes('sony')) return 'sony';
+  if (raw.includes('panavision')) return 'panavision';
+  if (raw.includes('blackmagic')) return 'blackmagic';
+  if (raw.includes('canon')) return 'canon';
+  return 'other';
+}
+
+function mapProductionSignal(item: Record<string, unknown>): ProductionSignal {
+  return {
+    id: toStringOrUndefined(item.id) ?? '',
+    scriptId: toStringOrUndefined(item.script_id) ?? toStringOrUndefined(item.id) ?? '',
+    territory: toStringOrUndefined(item.territory) ?? 'Unknown',
+    state: toStringOrUndefined(item.state),
+    submissionDate: toStringOrUndefined(item.submission_date) ?? '',
+    cameraEquipment: normalizeCameraEquipment(item.camera_equipment),
+    crewSize: normalizeScaleBand(item.crew_size),
+    principalCast: normalizeScaleBand(item.principal_cast),
+    supportingCast: normalizeScaleBand(item.supporting_cast),
+    backgroundExtras: normalizeScaleBand(item.background_extras),
+    budgetRange: toStringOrUndefined(item.budget_range),
+    format: toStringOrUndefined(item.format),
+    genres: toStringArray(item.genres),
+  };
+}
+
 // ── Metrics ───────────────────────────────────────────────────────────────────
 async function getMetrics(signal?: AbortSignal): ApiResult<AdminMetrics> {
   try {
@@ -108,6 +192,39 @@ async function getMetrics(signal?: AbortSignal): ApiResult<AdminMetrics> {
     return { data, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch metrics' };
+  }
+}
+
+// ── Production Signals ────────────────────────────────────────────────────────
+async function getProductionSignals(
+  territory?: string,
+  startDate?: string,
+  endDate?: string,
+  signal?: AbortSignal,
+): ApiResult<ProductionSignalsResponse> {
+  try {
+    const query = new URLSearchParams();
+    if (territory) query.set('territory', territory);
+    if (startDate) query.set('start_date', startDate);
+    if (endDate) query.set('end_date', endDate);
+
+    const queryString = query.toString();
+    const url = queryString
+      ? `${ADMIN_PRODUCTION_SIGNALS_URL}?${queryString}`
+      : ADMIN_PRODUCTION_SIGNALS_URL;
+
+    const response = await apiClient.get<RawProductionSignalsResponse>(url, { auth: true, signal });
+    const items = (response.items ?? []).map(mapProductionSignal);
+
+    return {
+      data: {
+        items,
+        total: typeof response.total === 'number' ? response.total : items.length,
+      },
+      error: null,
+    };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch production signals' };
   }
 }
 
@@ -840,6 +957,7 @@ export const adminApi = {
   updateAdminUser,
   deleteAdminUser,
   getMetrics,
+  getProductionSignals,
   getIncentives,
   createIncentive,
   updateIncentive,

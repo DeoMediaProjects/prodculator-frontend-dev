@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -21,16 +21,21 @@ import {
   LinearProgress,
   Tabs,
   Tab,
+  Alert,
+  CircularProgress,
+  TextField,
 } from '@mui/material';
 import {
-  TrendingUp,
   Videocam,
   People,
   TheaterComedy,
   GroupWork,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { productionIntelligenceManager } from '@/app/data/ProductionIntelligenceManager';
+import { ProductionIntelligenceManager } from '@/app/data/ProductionIntelligenceManager';
+import { adminApi } from '@/services/admin.api';
+import type { ProductionSignal } from '@/services/admin.types';
+import { fetchTerritoryList } from '@/services/territory.service';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
 interface TabPanelProps {
@@ -52,6 +57,10 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+function toIsoDateString(value: Date): string {
+  return value.toISOString().split('T')[0];
+}
+
 export function ProductionIntelligence() {
   const { hasAdminPermission } = useAuth();
 
@@ -70,40 +79,95 @@ export function ProductionIntelligence() {
 function ProductionIntelligenceContent() {
   const [activeTab, setActiveTab] = useState(0);
   const [territory, setTerritory] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<string>('90days');
-
-  // Calculate date range
-  const getDateRange = () => {
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date();
-    
-    switch (dateRange) {
-      case '30days':
-        startDate.setDate(startDate.getDate() - 30);
-        break;
-      case '90days':
-        startDate.setDate(startDate.getDate() - 90);
-        break;
-      case '180days':
-        startDate.setDate(startDate.getDate() - 180);
-        break;
-      default:
-        return { startDate: undefined, endDate: undefined };
-    }
-    
-    return { startDate: startDate.toISOString().split('T')[0], endDate };
-  };
-
-  const { startDate, endDate } = getDateRange();
+  const [availableTerritories, setAvailableTerritories] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<string>(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 90);
+    return toIsoDateString(date);
+  });
+  const [endDate, setEndDate] = useState<string>(() => toIsoDateString(new Date()));
+  const [signals, setSignals] = useState<ProductionSignal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [territoriesError, setTerritoriesError] = useState<string | null>(null);
+  const didFetchTerritories = useRef(false);
   const territoryFilter = territory === 'all' ? undefined : territory;
+  const hasDateError = Boolean(startDate && endDate && startDate > endDate);
 
-  // Get data
-  const summaryStats = productionIntelligenceManager.getSummaryStats();
-  const cameraEquipmentTrends = productionIntelligenceManager.getCameraEquipmentTrends(territoryFilter, startDate, endDate);
-  const crewSizeTrends = productionIntelligenceManager.getCrewSizeTrends(territoryFilter, startDate, endDate);
-  const castDemandTrends = productionIntelligenceManager.getCastDemandTrends(territoryFilter, startDate, endDate);
-  const scaleDistribution = productionIntelligenceManager.getProductionScaleDistribution(territoryFilter);
-  const territoryForecasts = productionIntelligenceManager.getTerritoryDemandForecasts('Q2 2026');
+  const fetchSignals = useCallback(async (abortSignal?: AbortSignal) => {
+    setLoading(true);
+    setFetchError(null);
+
+    const { data, error } = await adminApi.getProductionSignals(
+      territoryFilter,
+      startDate || undefined,
+      endDate || undefined,
+      abortSignal,
+    );
+
+    if (abortSignal?.aborted) return;
+
+    if (error) {
+      setFetchError(error);
+      setSignals([]);
+    } else {
+      setSignals(data?.items ?? []);
+    }
+    setLoading(false);
+  }, [territoryFilter, startDate, endDate]);
+
+  useEffect(() => {
+    if (didFetchTerritories.current) return;
+    didFetchTerritories.current = true;
+
+    (async () => {
+      const { data, error } = await fetchTerritoryList();
+      if (error) {
+        setTerritoriesError(error);
+        return;
+      }
+
+      const labels = Array.from(
+        new Set(
+          (data?.territories ?? [])
+            .map((item) => item.label)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b));
+      setAvailableTerritories(labels);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (hasDateError) {
+      setFetchError('Start date must be on or before end date.');
+      setLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    void fetchSignals(controller.signal);
+    return () => controller.abort();
+  }, [fetchSignals, hasDateError]);
+
+  const territoryOptions = useMemo(() => {
+    if (territory === 'all' || availableTerritories.includes(territory)) {
+      return availableTerritories;
+    }
+    return [...availableTerritories, territory].sort((a, b) => a.localeCompare(b));
+  }, [availableTerritories, territory]);
+
+  const manager = useMemo(() => {
+    const nextManager = new ProductionIntelligenceManager();
+    nextManager.setSignals(signals);
+    return nextManager;
+  }, [signals]);
+
+  const summaryStats = manager.getSummaryStats();
+  const cameraEquipmentTrends = manager.getCameraEquipmentTrends(territoryFilter, startDate, endDate);
+  const crewSizeTrends = manager.getCrewSizeTrends(territoryFilter, startDate, endDate);
+  const castDemandTrends = manager.getCastDemandTrends(territoryFilter, startDate, endDate);
+  const scaleDistribution = manager.getProductionScaleDistribution(territoryFilter);
+  const territoryForecasts = manager.getTerritoryDemandForecasts('Q2 2026');
 
   return (
     <Box sx={{ bgcolor: '#000000', minHeight: '100vh', py: 4 }}>
@@ -129,7 +193,7 @@ function ProductionIntelligenceContent() {
         {/* Filters */}
         <Paper sx={{ p: 3, mb: 4, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel sx={{ color: '#a0a0a0' }}>Territory</InputLabel>
                 <Select
@@ -150,43 +214,75 @@ function ProductionIntelligenceContent() {
                   }}
                 >
                   <MenuItem value="all">All Territories</MenuItem>
-                  <MenuItem value="UK">UK</MenuItem>
-                  <MenuItem value="Canada">Canada</MenuItem>
-                  <MenuItem value="USA">USA</MenuItem>
-                  <MenuItem value="Malta">Malta</MenuItem>
-                  <MenuItem value="South Africa">South Africa</MenuItem>
+                  {territoryOptions.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel sx={{ color: '#a0a0a0' }}>Date Range</InputLabel>
-                <Select
-                  value={dateRange}
-                  label="Date Range"
-                  onChange={(e) => setDateRange(e.target.value)}
-                  sx={{
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Start Date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  '& .MuiInputLabel-root': { color: '#a0a0a0' },
+                  '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(212, 175, 55, 0.2)',
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#D4AF37',
-                    },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#D4AF37',
-                    },
-                  }}
-                >
-                  <MenuItem value="30days">Last 30 Days</MenuItem>
-                  <MenuItem value="90days">Last 90 Days</MenuItem>
-                  <MenuItem value="180days">Last 180 Days</MenuItem>
-                  <MenuItem value="all">All Time</MenuItem>
-                </Select>
-              </FormControl>
+                    '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
+                    '&:hover fieldset': { borderColor: '#D4AF37' },
+                    '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
+                  },
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                fullWidth
+                type="date"
+                label="End Date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  '& .MuiInputLabel-root': { color: '#a0a0a0' },
+                  '& .MuiOutlinedInput-root': {
+                    color: '#ffffff',
+                    '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
+                    '&:hover fieldset': { borderColor: '#D4AF37' },
+                    '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
+                  },
+                }}
+              />
             </Grid>
           </Grid>
         </Paper>
+
+        {territoriesError && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            Territory list unavailable: {territoriesError}
+          </Alert>
+        )}
+
+        {fetchError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {fetchError}
+          </Alert>
+        )}
+
+        {loading && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <CircularProgress size={20} sx={{ color: '#D4AF37' }} />
+            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+              Loading production signals...
+            </Typography>
+          </Box>
+        )}
 
         {/* Summary Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -333,7 +429,6 @@ function ProductionIntelligenceContent() {
                       <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Equipment</TableCell>
                       <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Demand Count</TableCell>
                       <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>% of Total</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>QoQ Growth</TableCell>
                       <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Top Territories</TableCell>
                     </TableRow>
                   </TableHead>
@@ -348,19 +443,6 @@ function ProductionIntelligenceContent() {
                         </TableCell>
                         <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
                           {trend.percentageOfTotal.toFixed(1)}%
-                        </TableCell>
-                        <TableCell sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }}>
-                          <Chip
-                            label={`${trend.quarterOverQuarterGrowth >= 0 ? '+' : ''}${trend.quarterOverQuarterGrowth.toFixed(1)}%`}
-                            size="small"
-                            icon={<TrendingUp />}
-                            sx={{
-                              bgcolor: trend.quarterOverQuarterGrowth >= 0
-                                ? 'rgba(76, 175, 80, 0.2)'
-                                : 'rgba(244, 67, 54, 0.2)',
-                              color: trend.quarterOverQuarterGrowth >= 0 ? '#4caf50' : '#f44336',
-                            }}
-                          />
                         </TableCell>
                         <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
                           {trend.topTerritories.map(t => t.territory).join(', ')}

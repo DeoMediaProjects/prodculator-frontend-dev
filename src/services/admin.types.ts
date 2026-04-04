@@ -16,6 +16,38 @@ export interface AdminMetrics {
   conversion_rate_percent: number;
 }
 
+// ── Production Intelligence ──────────────────────────────────────────────────
+export type ProductionScaleBand = 'small' | 'medium' | 'large' | 'extra_large';
+export type ProductionCameraEquipment =
+  | 'arri'
+  | 'red'
+  | 'sony'
+  | 'panavision'
+  | 'blackmagic'
+  | 'canon'
+  | 'other';
+
+export interface ProductionSignal {
+  id: string;
+  scriptId: string;
+  territory: string;
+  state?: string;
+  submissionDate: string;
+  cameraEquipment?: ProductionCameraEquipment;
+  crewSize?: ProductionScaleBand;
+  principalCast?: ProductionScaleBand;
+  supportingCast?: ProductionScaleBand;
+  backgroundExtras?: ProductionScaleBand;
+  budgetRange?: string;
+  format?: string;
+  genres?: string[];
+}
+
+export interface ProductionSignalsResponse {
+  items: ProductionSignal[];
+  total: number;
+}
+
 // ── Incentives ────────────────────────────────────────────────────────────────
 export interface IncentiveData {
   id?: string;

@@ -3,35 +3,13 @@
  * Tracks camera equipment, crew size, cast size, and extras demand trends
  * Data source: Aggregated from user script uploads (anonymized)
  */
-
-export interface ProductionSignal {
-  id: string;
-  scriptId: string;
-  territory: string;
-  state?: string;
-  submissionDate: string;
-  
-  // Equipment
-  cameraEquipment?: 'arri' | 'red' | 'sony' | 'panavision' | 'blackmagic' | 'canon' | 'other';
-  
-  // Scale
-  crewSize?: 'small' | 'medium' | 'large' | 'extra_large';
-  principalCast?: 'small' | 'medium' | 'large' | 'extra_large';
-  supportingCast?: 'small' | 'medium' | 'large' | 'extra_large';
-  backgroundExtras?: 'small' | 'medium' | 'large' | 'extra_large';
-  
-  // Context
-  budgetRange?: string;
-  format?: string;
-  genres?: string[];
-}
+import type { ProductionSignal } from '@/services/admin.types';
 
 export interface CameraEquipmentTrend {
   equipment: string;
   displayName: string;
   demandCount: number;
   percentageOfTotal: number;
-  quarterOverQuarterGrowth: number;
   topTerritories: Array<{ territory: string; count: number }>;
 }
 
@@ -72,41 +50,15 @@ export interface TerritoryDemandForecast {
   topCameras: string[];
 }
 
-class ProductionIntelligenceManager {
+export class ProductionIntelligenceManager {
   private signals: ProductionSignal[] = [];
 
-  constructor() {
-    this.initializeMockData();
+  constructor(signals: ProductionSignal[] = []) {
+    this.signals = [...signals];
   }
 
-  private initializeMockData() {
-    // Mock production signals from script uploads
-    const territories = ['UK', 'Canada', 'USA', 'Malta', 'South Africa'];
-    const cameras: Array<ProductionSignal['cameraEquipment']> = ['arri', 'red', 'sony', 'blackmagic', 'canon', 'panavision'];
-    const crewSizes: Array<ProductionSignal['crewSize']> = ['small', 'medium', 'large', 'extra_large'];
-    const castSizes: Array<ProductionSignal['principalCast']> = ['small', 'medium', 'large', 'extra_large'];
-    
-    const today = new Date();
-    
-    for (let i = 0; i < 150; i++) {
-      const daysAgo = Math.floor(Math.random() * 180);
-      const submissionDate = new Date(today);
-      submissionDate.setDate(today.getDate() - daysAgo);
-      
-      this.signals.push({
-        id: `signal-${i + 1}`,
-        scriptId: `script-${i + 1}`,
-        territory: territories[Math.floor(Math.random() * territories.length)],
-        submissionDate: submissionDate.toISOString().split('T')[0],
-        cameraEquipment: Math.random() > 0.2 ? cameras[Math.floor(Math.random() * cameras.length)] : undefined,
-        crewSize: Math.random() > 0.1 ? crewSizes[Math.floor(Math.random() * crewSizes.length)] : undefined,
-        principalCast: Math.random() > 0.1 ? castSizes[Math.floor(Math.random() * castSizes.length)] : undefined,
-        supportingCast: Math.random() > 0.2 ? castSizes[Math.floor(Math.random() * castSizes.length)] : undefined,
-        backgroundExtras: Math.random() > 0.3 ? castSizes[Math.floor(Math.random() * castSizes.length)] : undefined,
-        budgetRange: ['micro', 'low', 'mid', 'high', 'studio'][Math.floor(Math.random() * 5)],
-        format: ['feature', 'series', 'pilot'][Math.floor(Math.random() * 3)],
-      });
-    }
+  setSignals(signals: ProductionSignal[]): void {
+    this.signals = [...signals];
   }
 
   // Camera Equipment Trends
@@ -163,7 +115,6 @@ class ProductionIntelligenceManager {
         displayName: equipmentNames[equipment] || equipment,
         demandCount: count,
         percentageOfTotal: (count / total) * 100,
-        quarterOverQuarterGrowth: Math.random() * 40 - 10, // Mock growth
         topTerritories,
       });
     });
@@ -475,14 +426,11 @@ class ProductionIntelligenceManager {
     
     return {
       totalSignals: total,
-      cameraDataCompleteness: (withCameraData / total) * 100,
-      crewDataCompleteness: (withCrewData / total) * 100,
-      castDataCompleteness: (withCastData / total) * 100,
-      extrasDataCompleteness: (withExtrasData / total) * 100,
+      cameraDataCompleteness: total > 0 ? (withCameraData / total) * 100 : 0,
+      crewDataCompleteness: total > 0 ? (withCrewData / total) * 100 : 0,
+      castDataCompleteness: total > 0 ? (withCastData / total) * 100 : 0,
+      extrasDataCompleteness: total > 0 ? (withExtrasData / total) * 100 : 0,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
   }
 }
-
-// Singleton instance
-export const productionIntelligenceManager = new ProductionIntelligenceManager();
