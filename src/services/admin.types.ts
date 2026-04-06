@@ -374,6 +374,42 @@ export interface UpdateAdminPayload {
 
 // Festival is defined in src/app/types/festival.ts — import from there directly.
 
+// ── Admin Overview — Activity feed ────────────────────────────────────────────
+export interface ActivityItem {
+  id: string;
+  type: 'report_generated' | 'user_registered' | 'subscription_activated';
+  description: string;
+  user_email: string | null;
+  timestamp: string | null;
+}
+
+export interface ActivityResponse {
+  items: ActivityItem[];
+}
+
+// ── Admin Overview — System status ────────────────────────────────────────────
+export interface ServiceStatusItem {
+  name: string;
+  status: 'operational' | 'degraded' | 'down' | 'unknown';
+  last_checked: string;
+}
+
+export interface SystemStatusResponse {
+  services: ServiceStatusItem[];
+  checked_at: string;
+}
+
+// ── Admin Overview — Derived tasks ────────────────────────────────────────────
+export interface TaskItem {
+  task: string;
+  priority: 'high' | 'medium' | 'low';
+  due: string;
+}
+
+export interface TasksResponse {
+  items: TaskItem[];
+}
+
 // ── Territories ───────────────────────────────────────────────────────────────
 /** One item from GET /api/territories */
 export interface Territory {

@@ -86,8 +86,8 @@ export function ScriptUpload() {
 
   // ✅ SECTION 2c: Format options - expanded list
   const formatOptions = [
-    'Feature Film', 'Short', 'TV Series', 'Limited Series', 'Mini-Series',
-    'Documentary', 'Docuseries', 'Animated Feature', 'Animation Series',
+    'Feature Film', 'Short Film', 'TV Series', 'Limited Series', 'Mini-Series',
+    'Documentary', 'Docuseries', 'Animation', 'Animated Feature', 'Animation Series',
     'Commercial', 'Music Video', 'Interactive', 'VR',
   ];
 

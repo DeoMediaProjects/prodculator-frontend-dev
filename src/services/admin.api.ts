@@ -57,6 +57,9 @@ import {
   adminPdfReportPreviewUrl,
   adminPdfReportDownloadUrl,
   adminPdfReportResendUrl,
+  ADMIN_ACTIVITY_URL,
+  ADMIN_SYSTEM_STATUS_URL,
+  ADMIN_TASKS_URL,
 } from './admin.apiurl';
 import type {
   AdminMetrics,
@@ -94,6 +97,12 @@ import type {
   CreateAdminPayload,
   CreateAdminResponse,
   UpdateAdminPayload,
+  ActivityItem,
+  ActivityResponse,
+  ServiceStatusItem,
+  SystemStatusResponse,
+  TaskItem,
+  TasksResponse,
 } from './admin.types';
 import type { Festival } from '@/app/types/festival';
 
@@ -950,6 +959,37 @@ async function deleteAdminUser(id: string): ApiResult<void> {
   }
 }
 
+// ── Admin Overview ────────────────────────────────────────────────────────────
+async function getActivity(limit = 10, signal?: AbortSignal): ApiResult<ActivityResponse> {
+  try {
+    const data = await apiClient.get<ActivityResponse>(
+      `${ADMIN_ACTIVITY_URL}?limit=${limit}`,
+      { auth: true, signal },
+    );
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch activity' };
+  }
+}
+
+async function getSystemStatus(signal?: AbortSignal): ApiResult<SystemStatusResponse> {
+  try {
+    const data = await apiClient.get<SystemStatusResponse>(ADMIN_SYSTEM_STATUS_URL, { auth: true, signal });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch system status' };
+  }
+}
+
+async function getTasks(signal?: AbortSignal): ApiResult<TasksResponse> {
+  try {
+    const data = await apiClient.get<TasksResponse>(ADMIN_TASKS_URL, { auth: true, signal });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch tasks' };
+  }
+}
+
 // ── Named export ──────────────────────────────────────────────────────────────
 export const adminApi = {
   getAdminUsers,
@@ -1026,4 +1066,7 @@ export const adminApi = {
   getPdfReportPreviewUrl,
   downloadPdfReport,
   resendPdfReport,
+  getActivity,
+  getSystemStatus,
+  getTasks,
 };
