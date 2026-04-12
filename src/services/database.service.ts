@@ -115,8 +115,10 @@ export class DatabaseService {
     try {
       const data = await apiClient.get<{ can_generate: boolean; reason: string }>('/api/subscriptions/can-generate', { auth: true });
       return { canGenerate: data.can_generate, reason: data.reason };
-    } catch (error) {
-      return { canGenerate: false, reason: error instanceof Error ? error.message : 'Failed to check report limit' };
+    } catch (_error) {
+      // Fail open: if the check endpoint is unreachable, let the backend
+      // enforce at report creation time rather than silently blocking the user.
+      return { canGenerate: true, reason: '' };
     }
   }
 

@@ -18,7 +18,6 @@ import {
   Tabs,
   Tab,
   IconButton,
-  Alert,
   LinearProgress,
   CircularProgress,
   Divider,
@@ -28,12 +27,9 @@ import {
 import {
   Download,
   Settings,
-  Help,
   FileDownload,
   Visibility,
   Delete,
-  Lock,
-  Notifications,
   Movie,
   Home,
   Compare,
@@ -42,8 +38,6 @@ import {
   Visibility as VisibilityIcon,
   BarChart,
   CreditCard,
-  CheckCircle,
-  Cancel,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';

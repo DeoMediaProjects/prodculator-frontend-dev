@@ -10,7 +10,6 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  LinearProgress,
   CircularProgress,
   Alert,
 } from '@mui/material';
@@ -22,52 +21,84 @@ import {
   CheckCircle,
   Warning,
   Info,
+  HelpOutline,
 } from '@mui/icons-material';
 import { adminApi } from '@/services/admin.api';
-import type { AdminMetrics } from '@/services/admin.types';
+import type { AdminMetrics, ActivityItem, ServiceStatusItem, TaskItem } from '@/services/admin.types';
+
+function formatTimestamp(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export function AdminOverview() {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [metricsError, setMetricsError] = useState<string | null>(null);
+
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+
+  const [systemStatus, setSystemStatus] = useState<ServiceStatusItem[]>([]);
+  const [statusLoading, setStatusLoading] = useState(true);
+
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+
   const didFetch = useRef(false);
 
   useEffect(() => {
     if (didFetch.current) return;
     didFetch.current = true;
+
     (async () => {
-      const { data, error } = await adminApi.getMetrics();
-      if (error) {
-        setMetricsError(error);
-      } else {
-        setMetrics(data);
-      }
+      const [metricsResult, activityResult, statusResult, tasksResult] = await Promise.all([
+        adminApi.getMetrics(),
+        adminApi.getActivity(10),
+        adminApi.getSystemStatus(),
+        adminApi.getTasks(),
+      ]);
+
+      if (metricsResult.error) setMetricsError(metricsResult.error);
+      else setMetrics(metricsResult.data);
       setMetricsLoading(false);
+
+      setActivity(activityResult.data?.items ?? []);
+      setActivityLoading(false);
+
+      setSystemStatus(statusResult.data?.services ?? []);
+      setStatusLoading(false);
+
+      setTasks(tasksResult.data?.items ?? []);
+      setTasksLoading(false);
     })();
   }, []);
 
-  const recentActivity = [
-    { time: '5 mins ago', action: 'New script analysis completed', user: 'user@example.com' },
-    { time: '12 mins ago', action: 'Studio Plan subscription activated', user: 'studio@example.com' },
-    { time: '1 hour ago', action: 'B2B client inquiry submitted', user: 'filmcommission@example.com' },
-    { time: '2 hours ago', action: 'Free report generated', user: 'producer@example.com' },
-    { time: '3 hours ago', action: 'Report downloaded (PDF)', user: 'director@example.com' },
-  ];
+  function statusChipProps(status: ServiceStatusItem['status']) {
+    switch (status) {
+      case 'operational':
+        return { icon: <CheckCircle />, bgcolor: 'rgba(102, 187, 106, 0.2)', color: '#66bb6a' };
+      case 'degraded':
+        return { icon: <Warning />, bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ffa726' };
+      case 'down':
+        return { icon: <Warning />, bgcolor: 'rgba(244, 67, 54, 0.2)', color: '#f44336' };
+      default:
+        return { icon: <HelpOutline />, bgcolor: 'rgba(160, 160, 160, 0.2)', color: '#a0a0a0' };
+    }
+  }
 
-  const systemStatus = [
-    { name: 'OpenAI API', status: 'operational', lastCheck: '2 mins ago' },
-    { name: 'Primary Database', status: 'operational', lastCheck: '2 mins ago' },
-    { name: 'Stripe Payment Processing', status: 'operational', lastCheck: '5 mins ago' },
-    { name: 'SendGrid Email Delivery', status: 'operational', lastCheck: '10 mins ago' },
-    { name: 'PDF Generation Service', status: 'degraded', lastCheck: '15 mins ago' },
-  ];
-
-  const upcomingTasks = [
-    { task: 'Update UK tax incentive rates', priority: 'high', due: 'Today' },
-    { task: 'Review B2B client proposals', priority: 'high', due: 'Tomorrow' },
-    { task: 'Verify Canadian crew costs', priority: 'medium', due: 'This week' },
-    { task: 'Sync festival database', priority: 'low', due: 'Next week' },
-  ];
+  function priorityChipColors(priority: TaskItem['priority']) {
+    switch (priority) {
+      case 'high':   return { bgcolor: 'rgba(244, 67, 54, 0.2)', color: '#f44336' };
+      case 'medium': return { bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ffa726' };
+      default:       return { bgcolor: 'rgba(66, 165, 245, 0.2)', color: '#42a5f5' };
+    }
+  }
 
   return (
     <Box>
@@ -197,26 +228,32 @@ export function AdminOverview() {
               <Typography variant="h6" sx={{ fontWeight: 700, color: '#D4AF37', mb: 2 }}>
                 Recent Activity
               </Typography>
-              <List>
-                {recentActivity.map((activity, index) => (
-                  <Box key={index}>
-                    <ListItem disablePadding sx={{ py: 1 }}>
-                      <ListItemText
-                        primary={activity.action}
-                        secondary={
-                          <>
+              {activityLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                  <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
+                </Box>
+              ) : activity.length === 0 ? (
+                <Typography sx={{ color: '#a0a0a0', fontSize: '0.9rem' }}>No recent activity.</Typography>
+              ) : (
+                <List>
+                  {activity.map((item, index) => (
+                    <Box key={item.id}>
+                      <ListItem disablePadding sx={{ py: 1 }}>
+                        <ListItemText
+                          primary={item.description}
+                          secondary={
                             <Typography component="span" variant="caption" sx={{ color: '#a0a0a0' }}>
-                              {activity.time} • {activity.user}
+                              {formatTimestamp(item.timestamp)}{item.user_email ? ` • ${item.user_email}` : ''}
                             </Typography>
-                          </>
-                        }
-                        primaryTypographyProps={{ color: '#ffffff', fontSize: '0.9rem' }}
-                      />
-                    </ListItem>
-                    {index < recentActivity.length - 1 && <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />}
-                  </Box>
-                ))}
-              </List>
+                          }
+                          slotProps={{ primary: { sx: { color: '#ffffff', fontSize: '0.9rem' } } }}
+                        />
+                      </ListItem>
+                      {index < activity.length - 1 && <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />}
+                    </Box>
+                  ))}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -228,49 +265,46 @@ export function AdminOverview() {
               <Typography variant="h6" sx={{ fontWeight: 700, color: '#D4AF37', mb: 2 }}>
                 System Status
               </Typography>
-              <List>
-                {systemStatus.map((service, index) => (
-                  <Box key={index}>
-                    <ListItem disablePadding sx={{ py: 1 }}>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography sx={{ color: '#ffffff', fontSize: '0.9rem' }}>
-                              {service.name}
-                            </Typography>
-                            <Chip
-                              label={service.status}
-                              size="small"
-                              icon={
-                                service.status === 'operational' ? <CheckCircle /> : 
-                                service.status === 'degraded' ? <Warning /> : 
-                                <Info />
-                              }
-                              sx={{
-                                bgcolor: 
-                                  service.status === 'operational' ? 'rgba(102, 187, 106, 0.2)' :
-                                  service.status === 'degraded' ? 'rgba(255, 152, 0, 0.2)' :
-                                  'rgba(244, 67, 54, 0.2)',
-                                color:
-                                  service.status === 'operational' ? '#66bb6a' :
-                                  service.status === 'degraded' ? '#ffa726' :
-                                  '#f44336',
-                                fontSize: '0.75rem',
-                              }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                            Last checked: {service.lastCheck}
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
-                    {index < systemStatus.length - 1 && <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />}
-                  </Box>
-                ))}
-              </List>
+              {statusLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                  <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
+                </Box>
+              ) : systemStatus.length === 0 ? (
+                <Typography sx={{ color: '#a0a0a0', fontSize: '0.9rem' }}>Status unavailable.</Typography>
+              ) : (
+                <List>
+                  {systemStatus.map((service, index) => {
+                    const chip = statusChipProps(service.status);
+                    return (
+                      <Box key={service.name}>
+                        <ListItem disablePadding sx={{ py: 1 }}>
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography sx={{ color: '#ffffff', fontSize: '0.9rem' }}>
+                                  {service.name}
+                                </Typography>
+                                <Chip
+                                  label={service.status}
+                                  size="small"
+                                  icon={chip.icon}
+                                  sx={{ bgcolor: chip.bgcolor, color: chip.color, fontSize: '0.75rem' }}
+                                />
+                              </Box>
+                            }
+                            secondary={
+                              <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+                                Last checked: {formatTimestamp(service.last_checked)}
+                              </Typography>
+                            }
+                          />
+                        </ListItem>
+                        {index < systemStatus.length - 1 && <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />}
+                      </Box>
+                    );
+                  })}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -282,44 +316,47 @@ export function AdminOverview() {
               <Typography variant="h6" sx={{ fontWeight: 700, color: '#D4AF37', mb: 2 }}>
                 Upcoming Data Maintenance Tasks
               </Typography>
-              <List>
-                {upcomingTasks.map((item, index) => (
-                  <Box key={index}>
-                    <ListItem disablePadding sx={{ py: 1 }}>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography sx={{ color: '#ffffff', fontSize: '0.9rem' }}>
-                              {item.task}
-                            </Typography>
-                            <Chip
-                              label={item.priority}
-                              size="small"
-                              sx={{
-                                bgcolor:
-                                  item.priority === 'high' ? 'rgba(244, 67, 54, 0.2)' :
-                                  item.priority === 'medium' ? 'rgba(255, 152, 0, 0.2)' :
-                                  'rgba(66, 165, 245, 0.2)',
-                                color:
-                                  item.priority === 'high' ? '#f44336' :
-                                  item.priority === 'medium' ? '#ffa726' :
-                                  '#42a5f5',
-                                fontSize: '0.75rem',
-                              }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                            Due: {item.due}
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
-                    {index < upcomingTasks.length - 1 && <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />}
-                  </Box>
-                ))}
-              </List>
+              {tasksLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                  <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
+                </Box>
+              ) : tasks.length === 0 ? (
+                <Typography sx={{ color: '#a0a0a0', fontSize: '0.9rem' }}>
+                  All data sources are up to date.
+                </Typography>
+              ) : (
+                <List>
+                  {tasks.map((item, index) => {
+                    const colors = priorityChipColors(item.priority);
+                    return (
+                      <Box key={index}>
+                        <ListItem disablePadding sx={{ py: 1 }}>
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography sx={{ color: '#ffffff', fontSize: '0.9rem' }}>
+                                  {item.task}
+                                </Typography>
+                                <Chip
+                                  label={item.priority}
+                                  size="small"
+                                  sx={{ bgcolor: colors.bgcolor, color: colors.color, fontSize: '0.75rem' }}
+                                />
+                              </Box>
+                            }
+                            secondary={
+                              <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+                                Due: {item.due}
+                              </Typography>
+                            }
+                          />
+                        </ListItem>
+                        {index < tasks.length - 1 && <Divider sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }} />}
+                      </Box>
+                    );
+                  })}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>

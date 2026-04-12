@@ -14,7 +14,6 @@ import {
   OutlinedInput,
   Chip,
   LinearProgress,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -34,14 +33,17 @@ import {
 import { useScript, ScriptMetadata } from '@/app/contexts/ScriptContext';
 import { ReportTimeoutError } from '@/app/contexts/ScriptContext';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { databaseService } from '@/services/database.service';
 import { InfoTip, TOOLTIP_TEXTS } from '@/app/components/common/InfoTip';
+import { useToast } from '@/app/hooks/useToast';
 import { useTerritories } from '@/app/hooks/useTerritories';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
 export function ScriptUpload() {
   const navigate = useNavigate();
   const { generateAnalysis, generatePreview } = useScript();
-  const { isAuthenticated, user, hasUsedFreeReport, markFreeReportUsed } = useAuth();
+  const { isAuthenticated, hasUsedFreeReport, markFreeReportUsed } = useAuth();
+  const { showError } = useToast();
   const { countries: countryOptions, territories: allTerritories } = useTerritories();
 
   const [file, setFile] = useState<File | null>(null);
@@ -62,7 +64,6 @@ export function ScriptUpload() {
   
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Timeout modal — shown when report generation is still running after the polling window
@@ -86,8 +87,8 @@ export function ScriptUpload() {
 
   // ✅ SECTION 2c: Format options - expanded list
   const formatOptions = [
-    'Feature Film', 'Short', 'TV Series', 'Limited Series', 'Mini-Series',
-    'Documentary', 'Docuseries', 'Animated Feature', 'Animation Series',
+    'Feature Film', 'Short Film', 'TV Series', 'Limited Series', 'Mini-Series',
+    'Documentary', 'Docuseries', 'Animation', 'Animated Feature', 'Animation Series',
     'Commercial', 'Music Video', 'Interactive', 'VR',
   ];
 
@@ -137,16 +138,15 @@ export function ScriptUpload() {
     if (selectedFile) {
       const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
       if (!validTypes.includes(selectedFile.type)) {
-        setError('Please upload a PDF, DOCX, or TXT file');
+        showError('Please upload a PDF, DOCX, or TXT file');
         return;
       }
       if (selectedFile.size > 10 * 1024 * 1024) {
-        setError('File size must be under 10MB');
+        showError('File size must be under 10MB');
         return;
       }
       setFile(selectedFile);
       if (!title) setTitle(selectedFile.name.replace(/\.[^/.]+$/, ""));
-      setError('');
     }
   };
 
@@ -160,12 +160,12 @@ export function ScriptUpload() {
     return null;
   };
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (!isAuthenticated) {
       // Preview — file not required
       const validationError = validateForm(false);
       if (validationError) {
-        setError(validationError);
+        showError(validationError);
         return;
       }
       setEmailModalOpen(true);
@@ -173,12 +173,20 @@ export function ScriptUpload() {
       // Full report — file required
       const validationError = validateForm(true);
       if (validationError) {
-        setError(validationError);
+        showError(validationError);
         return;
       }
-      if (!user || (user.plan === 'free' && user.reportsUsed >= 1)) {
-        setError('You have used your free report. Please upgrade to continue.');
-        navigate('/pricing');
+      // Check with the backend whether this user can generate a report.
+      const { canGenerate, reason } = await databaseService.canGenerateReport('');
+      if (!canGenerate) {
+        showError(reason || 'Please upgrade your plan to generate more reports.', {
+          action: (
+            <Button size="small" sx={{ color: '#fff', fontWeight: 600 }} onClick={() => navigate('/pricing')}>
+              View Plans
+            </Button>
+          ),
+          duration: 10000,
+        });
         return;
       }
       runFullAnalysis();
@@ -187,7 +195,6 @@ export function ScriptUpload() {
 
   const runFullAnalysis = async () => {
     setProcessing(true);
-    setError('');
 
     try {
       const metadata: ScriptMetadata = {
@@ -218,7 +225,19 @@ export function ScriptUpload() {
         setTimedOutReportId(err.reportId);
         setTimeoutModalOpen(true);
       } else {
-        setError(err.message || 'Failed to generate report. Please try again.');
+        const msg: string = err.message || 'Failed to generate report. Please try again.';
+        const isLimit =
+          msg.toLowerCase().includes('upgrade') ||
+          msg.toLowerCase().includes('limit reached') ||
+          msg.toLowerCase().includes('free report already used');
+        showError(msg, isLimit ? {
+          action: (
+            <Button size="small" sx={{ color: '#fff', fontWeight: 600 }} onClick={() => navigate('/pricing')}>
+              View Plans
+            </Button>
+          ),
+          duration: 10000,
+        } : undefined);
       }
       setProcessing(false);
     }
@@ -226,23 +245,22 @@ export function ScriptUpload() {
 
   const handleFreePreview = async () => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      showError('Please enter a valid email address');
       return;
     }
 
     if (!acceptedTerms) {
-      setError('Please accept the Terms of Service and Privacy Policy to continue');
+      showError('Please accept the Terms of Service and Privacy Policy to continue');
       return;
     }
 
     if (hasUsedFreeReport(email)) {
-      setError('This email has already been used for a free preview. Please sign up to continue.');
+      showError('This email has already been used for a free preview. Please sign up to continue.');
       return;
     }
 
     setEmailModalOpen(false);
     setProcessing(true);
-    setError('');
 
     try {
       const metadata: ScriptMetadata = {
@@ -271,7 +289,7 @@ export function ScriptUpload() {
       navigate('/report/preview');
     } catch (err: any) {
       console.error('Preview generation failed:', err);
-      setError(err.message || 'Failed to generate preview. Please try again.');
+      showError(err.message || 'Failed to generate preview. Please try again.');
       setProcessing(false);
     }
   };
@@ -340,12 +358,6 @@ export function ScriptUpload() {
         {!processing && (
           <Grid container spacing={3}>
             <Grid size={{ xs: 12 }}>
-              {error && (
-                <Alert severity="error" sx={{ mb: 3, bgcolor: 'rgba(212, 24, 61, 0.1)', color: '#ff5555' }}>
-                  {error}
-                </Alert>
-              )}
-
               {/* File Upload Section */}
               <Paper sx={{ p: 4, mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
                 <Box
