@@ -406,7 +406,7 @@ function FestivalsManagerContent() {
             sx={{
               borderColor: '#D4AF37',
               color: '#D4AF37',
-              '&:hover': { borderColor: '#E5C158', bgcolor: 'rgba(212, 175, 55, 0.1)' },
+              '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
             }}
           >
             Auto-Sync Settings
@@ -419,7 +419,7 @@ function FestivalsManagerContent() {
               bgcolor: '#D4AF37',
               color: '#000000',
               fontWeight: 600,
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             Add Festival
@@ -512,7 +512,7 @@ function FestivalsManagerContent() {
                 bgcolor: '#D4AF37',
                 color: '#000000',
                 fontWeight: 600,
-                '&:hover': { bgcolor: '#E5C158' },
+                '&:hover': { bgcolor: '#D4AF37' },
               }}
             >
               {syncing ? 'Syncing...' : 'Run Sync Now'}
@@ -1144,7 +1144,7 @@ function FestivalsManagerContent() {
               bgcolor: '#D4AF37',
               color: '#000000',
               fontWeight: 600,
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             {editingFestival ? 'Save Changes' : 'Add Festival'}
@@ -1228,7 +1228,7 @@ function FestivalsManagerContent() {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             Save Settings

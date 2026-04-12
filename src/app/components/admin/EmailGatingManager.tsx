@@ -183,7 +183,7 @@ function EmailGatingManagerContent() {
             sx={{
               borderColor: '#D4AF37',
               color: '#D4AF37',
-              '&:hover': { borderColor: '#E5C158', bgcolor: 'rgba(212, 175, 55, 0.08)' },
+              '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.08)' },
             }}
           >
             Search

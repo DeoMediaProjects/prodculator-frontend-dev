@@ -510,7 +510,7 @@ function GrantsManagerContent() {
               borderColor: '#D4AF37',
               color: '#D4AF37',
               '&:hover': {
-                borderColor: '#E5C158',
+                borderColor: '#D4AF37',
                 bgcolor: 'rgba(212, 175, 55, 0.1)',
               },
             }}
@@ -525,7 +525,7 @@ function GrantsManagerContent() {
               borderColor: '#D4AF37',
               color: '#D4AF37',
               '&:hover': {
-                borderColor: '#E5C158',
+                borderColor: '#D4AF37',
                 bgcolor: 'rgba(212, 175, 55, 0.1)',
               },
             }}
@@ -541,7 +541,7 @@ function GrantsManagerContent() {
               color: '#000000',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
             }}
           >
@@ -658,7 +658,7 @@ function GrantsManagerContent() {
                 bgcolor: '#D4AF37',
                 color: '#000000',
                 fontWeight: 600,
-                '&:hover': { bgcolor: '#E5C158' },
+                '&:hover': { bgcolor: '#D4AF37' },
               }}
             >
               {syncing ? 'Syncing...' : 'Run Sync Now'}
@@ -1078,7 +1078,7 @@ function GrantsManagerContent() {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             Save Settings
@@ -1492,7 +1492,7 @@ function GrantFormDialog({
             bgcolor: '#D4AF37',
             color: '#000000',
             fontWeight: 600,
-            '&:hover': { bgcolor: '#E5C158' },
+            '&:hover': { bgcolor: '#D4AF37' },
             '&:disabled': {
               bgcolor: 'rgba(212, 175, 55, 0.3)',
               color: 'rgba(0, 0, 0, 0.5)',
@@ -1602,7 +1602,7 @@ function GrantPreviewDialog({ open, onClose, grant, formatCurrency, getStatusCol
               color: '#D4AF37',
               fontWeight: 600,
               '&:hover': {
-                borderColor: '#E5C158',
+                borderColor: '#D4AF37',
                 bgcolor: 'rgba(212, 175, 55, 0.1)',
               },
             }}
@@ -1705,7 +1705,7 @@ function BulkImportDialog({
             borderColor: '#D4AF37',
             color: '#D4AF37',
             '&:hover': {
-              borderColor: '#E5C158',
+              borderColor: '#D4AF37',
               bgcolor: 'rgba(212, 175, 55, 0.1)',
             },
           }}
@@ -1723,7 +1723,7 @@ function BulkImportDialog({
             bgcolor: '#D4AF37',
             color: '#000000',
             fontWeight: 600,
-            '&:hover': { bgcolor: '#E5C158' },
+            '&:hover': { bgcolor: '#D4AF37' },
             '&:disabled': { bgcolor: 'rgba(212, 175, 55, 0.4)' },
           }}
         >

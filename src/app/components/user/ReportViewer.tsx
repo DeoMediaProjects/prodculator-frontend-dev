@@ -491,7 +491,7 @@ export function ReportViewer() {
                       <Lock sx={{ fontSize: 40, color: '#D4AF37', mb: 1 }} />
                       <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>Upgrade for Full Details</Typography>
                       <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>Get detailed rebate calculations, eligibility requirements, and qualifying spend analysis.</Typography>
-                      <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#E5C158' } }}>Upgrade Now</Button>
+                      <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#D4AF37' } }}>Upgrade Now</Button>
                     </Paper>
                   </Box>
                 </Box>

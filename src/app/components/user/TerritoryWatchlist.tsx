@@ -144,7 +144,7 @@ export function TerritoryWatchlist({ userPlan }: TerritoryWatchlistProps) {
             color: '#000000',
             fontWeight: 600,
             '&:hover': {
-              bgcolor: '#E5C158',
+              bgcolor: '#D4AF37',
             },
             '&:disabled': {
               bgcolor: 'rgba(212, 175, 55, 0.3)',
@@ -349,7 +349,7 @@ export function TerritoryWatchlist({ userPlan }: TerritoryWatchlistProps) {
               borderColor: '#D4AF37',
               color: '#D4AF37',
               '&:hover': {
-                borderColor: '#E5C158',
+                borderColor: '#D4AF37',
                 bgcolor: 'rgba(212, 175, 55, 0.1)',
               },
             }}
@@ -487,7 +487,7 @@ export function TerritoryWatchlist({ userPlan }: TerritoryWatchlistProps) {
               color: '#000000',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
               '&:disabled': {
                 bgcolor: 'rgba(212, 175, 55, 0.3)',

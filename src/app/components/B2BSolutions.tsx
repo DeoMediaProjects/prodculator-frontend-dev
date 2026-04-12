@@ -5,7 +5,6 @@ import {
   Container,
   Typography,
   Card,
-  CardContent,
   Button,
   TextField,
   MenuItem,
@@ -22,12 +21,11 @@ import {
   Grid,
 } from '@mui/material';
 import {
+  ArrowBack,
   Business,
   CheckCircle,
-  ArrowBack,
 } from '@mui/icons-material';
-import logoBlack from '@/assets/ddbe9f875b0128308d18010a516a1a848d4b7b77.png';
-
+import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 export function B2BSolutions() {
   const navigate = useNavigate();
   const [rfpDialogOpen, setRfpDialogOpen] = useState(false);
@@ -83,102 +81,36 @@ export function B2BSolutions() {
   };
 
   return (
-    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100vh', fontFamily: 'DM Sans, sans-serif' }}>
-      {/* Navigation Bar */}
-      <Box
-        sx={{
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
+    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100vh', fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      {/* Header */}
+     <Box 
+        sx={{ 
+          bgcolor: 'rgba(255, 255, 255, 0.98)', 
+          borderBottom: '1px solid rgba(0,0,0,0.1)',
           py: 2,
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <img
-                src={logoBlack}
-                alt="Prodculator"
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <img 
+                src={exampleLogo} 
+                alt="Prodculator" 
                 style={{ height: '32px', width: 'auto', cursor: 'pointer' }}
                 onClick={() => navigate('/')}
               />
-              <Box sx={{ display: 'flex', gap: 3 }}>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '15px',
-                    color: '#111111',
-                    fontWeight: 600,
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                  }}
-                >
-                  B2B Solutions
-                </Typography>
-                <Typography
-                  onClick={() => navigate('/pricing')}
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '15px',
-                    color: '#555555',
-                    cursor: 'pointer',
-                    '&:hover': { color: '#111111' },
-                  }}
-                >
-                  Pricing
-                </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '15px',
-                    color: '#555555',
-                    cursor: 'pointer',
-                    '&:hover': { color: '#111111' },
-                  }}
-                >
-                  FAQ
-                </Typography>
-              </Box>
             </Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                onClick={() => navigate('/login')}
-                sx={{
-                  border: '1px solid rgba(245,200,0,0.4)',
-                  color: '#C9A227',
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  px: 3,
-                  py: 1,
-                  borderRadius: '8px',
-                  textTransform: 'none',
-                  '&:hover': {
-                    bgcolor: 'rgba(245,200,0,0.08)',
-                  },
-                }}
-              >
-                Login
-              </Button>
-              <Button
-                onClick={() => navigate('/signup')}
-                sx={{
-                  bgcolor: '#F5C800',
-                  color: '#000000',
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  px: 3,
-                  py: 1,
-                  borderRadius: '8px',
-                  textTransform: 'none',
-                  '&:hover': {
-                    bgcolor: '#E5B800',
-                  },
-                }}
-              >
-                Sign Up
-              </Button>
-            </Box>
+            <Button 
+              startIcon={<ArrowBack />} 
+              onClick={() => navigate('/')}
+              sx={{
+                color: '#000000',
+                fontWeight: 500,
+                '&:hover': { bgcolor: 'transparent' }
+              }}
+            >
+              Back to Home
+            </Button>
           </Box>
         </Container>
       </Box>
@@ -186,8 +118,7 @@ export function B2BSolutions() {
       {/* Page Hero */}
       <Box
         sx={{
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          bgcolor: '#000000',
           py: 6,
         }}
       >
@@ -195,10 +126,10 @@ export function B2BSolutions() {
           <Box sx={{ textAlign: 'center' }}>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontWeight: 700,
                 fontSize: '42px',
-                color: '#111111',
+                color: '#ffffff',
                 mb: 2,
               }}
             >
@@ -206,10 +137,10 @@ export function B2BSolutions() {
             </Typography>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontWeight: 400,
                 fontSize: '18px',
-                color: '#555555',
+                color: '#a0a0a0',
                 mb: 4,
               }}
             >
@@ -217,7 +148,7 @@ export function B2BSolutions() {
             </Typography>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontWeight: 400,
                 fontSize: '14px',
                 color: '#777777',
@@ -239,7 +170,7 @@ export function B2BSolutions() {
       <Container maxWidth="xl" sx={{ py: 6 }}>
         <Typography
           sx={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             fontWeight: 700,
             fontSize: '11px',
             color: '#999999',
@@ -270,7 +201,7 @@ export function B2BSolutions() {
               <Typography sx={{ fontSize: '32px', mb: 2 }}></Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '20px',
                   color: '#111111',
@@ -281,7 +212,7 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
                   color: '#1A8C4E',
@@ -292,7 +223,7 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontSize: '14px',
                   color: '#555555',
                   mb: 2,
@@ -304,10 +235,10 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
-                  color: '#C9A227',
+                  color: '#D4AF37',
                   mb: 1,
                 }}
               >
@@ -329,7 +260,7 @@ export function B2BSolutions() {
                     <ListItemText
                       primary={feature}
                       primaryTypographyProps={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         fontSize: '14px',
                         color: '#333333',
                       }}
@@ -348,7 +279,7 @@ export function B2BSolutions() {
               >
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#6B86A8',
                     fontStyle: 'italic',
@@ -360,7 +291,7 @@ export function B2BSolutions() {
               <Box sx={{ mb: 2 }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#999999',
                     mb: 1,
@@ -374,7 +305,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -385,7 +316,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -396,7 +327,7 @@ export function B2BSolutions() {
               <Box sx={{ mt: 'auto' }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '28px',
                     color: '#111111',
@@ -412,8 +343,8 @@ export function B2BSolutions() {
                   sx={{
                     bgcolor: 'transparent',
                     border: '2px solid rgba(245,200,0,0.4)',
-                    color: '#C9A227',
-                    fontFamily: 'DM Sans, sans-serif',
+                    color: '#D4AF37',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '15px',
                     height: '48px',
@@ -430,7 +361,7 @@ export function B2BSolutions() {
                 </Button>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '11px',
                     color: '#999999',
                     fontStyle: 'italic',
@@ -460,7 +391,7 @@ export function B2BSolutions() {
               <Typography sx={{ fontSize: '32px', mb: 2 }}></Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '20px',
                   color: '#111111',
@@ -471,7 +402,7 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
                   color: '#1A8C4E',
@@ -482,7 +413,7 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontSize: '14px',
                   color: '#555555',
                   mb: 2,
@@ -494,10 +425,10 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
-                  color: '#C9A227',
+                  color: '#D4AF37',
                   mb: 1,
                 }}
               >
@@ -519,7 +450,7 @@ export function B2BSolutions() {
                     <ListItemText
                       primary={feature}
                       primaryTypographyProps={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         fontSize: '14px',
                         color: '#333333',
                       }}
@@ -538,7 +469,7 @@ export function B2BSolutions() {
               >
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#6B86A8',
                     fontStyle: 'italic',
@@ -550,7 +481,7 @@ export function B2BSolutions() {
               <Box sx={{ mb: 2 }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#999999',
                     mb: 1,
@@ -564,7 +495,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -575,7 +506,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -586,7 +517,7 @@ export function B2BSolutions() {
               <Box sx={{ mt: 'auto' }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '28px',
                     color: '#111111',
@@ -602,8 +533,8 @@ export function B2BSolutions() {
                   sx={{
                     bgcolor: 'transparent',
                     border: '2px solid rgba(245,200,0,0.4)',
-                    color: '#C9A227',
-                    fontFamily: 'DM Sans, sans-serif',
+                    color: '#D4AF37',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '15px',
                     height: '48px',
@@ -620,7 +551,7 @@ export function B2BSolutions() {
                 </Button>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '11px',
                     color: '#999999',
                     fontStyle: 'italic',
@@ -650,7 +581,7 @@ export function B2BSolutions() {
               <Typography sx={{ fontSize: '32px', mb: 2 }}></Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '20px',
                   color: '#111111',
@@ -661,7 +592,7 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
                   color: '#1A8C4E',
@@ -672,7 +603,7 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontSize: '14px',
                   color: '#555555',
                   mb: 2,
@@ -684,10 +615,10 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
-                  color: '#C9A227',
+                  color: '#D4AF37',
                   mb: 1,
                 }}
               >
@@ -709,7 +640,7 @@ export function B2BSolutions() {
                     <ListItemText
                       primary={feature}
                       primaryTypographyProps={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         fontSize: '14px',
                         color: '#333333',
                       }}
@@ -728,7 +659,7 @@ export function B2BSolutions() {
               >
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#6B86A8',
                     fontStyle: 'italic',
@@ -740,7 +671,7 @@ export function B2BSolutions() {
               <Box sx={{ mb: 2 }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#999999',
                     mb: 1,
@@ -754,7 +685,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -765,7 +696,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -776,7 +707,7 @@ export function B2BSolutions() {
               <Box sx={{ mt: 'auto' }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '28px',
                     color: '#111111',
@@ -792,8 +723,8 @@ export function B2BSolutions() {
                   sx={{
                     bgcolor: 'transparent',
                     border: '2px solid rgba(245,200,0,0.4)',
-                    color: '#C9A227',
-                    fontFamily: 'DM Sans, sans-serif',
+                    color: '#D4AF37',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '15px',
                     height: '48px',
@@ -810,7 +741,7 @@ export function B2BSolutions() {
                 </Button>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '11px',
                     color: '#999999',
                     fontStyle: 'italic',
@@ -827,7 +758,7 @@ export function B2BSolutions() {
         {/* Tier 2: Strategic Intelligence */}
         <Typography
           sx={{
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             fontWeight: 700,
             fontSize: '11px',
             color: '#999999',
@@ -841,9 +772,9 @@ export function B2BSolutions() {
           Strategic Intelligence
         </Typography>
 
-        <Grid container spacing={3} sx={{ mb: 6 }}>
+        <Grid container spacing={3} sx={{ mb: 6, justifyContent: 'center' }}>
           {/* Card 4: Territory Intelligence */}
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Card
               sx={{
                 bgcolor: '#FFFFFF',
@@ -856,32 +787,31 @@ export function B2BSolutions() {
                 flexDirection: 'column',
               }}
             >
-              <Typography sx={{ fontSize: '32px', mb: 2 }}>🏛️</Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '20px',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                  fontWeight: 800,
+                  fontSize: '25px',
                   color: '#111111',
                   mb: 1,
                 }}
               >
-                Territory Intelligence for Film Commissions
+                Production Trend Intelligence
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
                   color: '#1A8C4E',
-                  mb: 2,
+                  mb: 5,
                 }}
               >
                 Film Commissions & Tourism Boards
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontSize: '14px',
                   color: '#555555',
                   mb: 2,
@@ -893,10 +823,10 @@ export function B2BSolutions() {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   fontSize: '13px',
-                  color: '#C9A227',
+                  color: '#D4AF37',
                   mb: 1,
                 }}
               >
@@ -918,7 +848,7 @@ export function B2BSolutions() {
                     <ListItemText
                       primary={feature}
                       primaryTypographyProps={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                         fontSize: '14px',
                         color: '#333333',
                       }}
@@ -937,7 +867,7 @@ export function B2BSolutions() {
               >
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#6B86A8',
                     fontStyle: 'italic',
@@ -949,7 +879,7 @@ export function B2BSolutions() {
               <Box sx={{ mb: 2 }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     color: '#999999',
                     mb: 1,
@@ -963,7 +893,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -974,7 +904,7 @@ export function B2BSolutions() {
                     sx={{
                       bgcolor: 'rgba(0,0,0,0.06)',
                       color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
+                      fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                       fontSize: '12px',
                       height: '24px',
                       borderRadius: '12px',
@@ -985,7 +915,7 @@ export function B2BSolutions() {
               <Box sx={{ mt: 'auto' }}>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '28px',
                     color: '#111111',
@@ -997,11 +927,11 @@ export function B2BSolutions() {
                 </Typography>
                 <Button
                   fullWidth
-                  onClick={() => handleOpenRfpDialog('Territory Intelligence for Film Commissions')}
+                  // onClick={() => handleOpenRfpDialog('Territory Intelligence for Film Commissions')}
                   sx={{
                     bgcolor: '#F5C800',
                     color: '#000000',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontWeight: 700,
                     fontSize: '15px',
                     height: '48px',
@@ -1013,11 +943,11 @@ export function B2BSolutions() {
                     },
                   }}
                 >
-                  Request Proposal
+                 Coming Soon
                 </Button>
                 <Typography
                   sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '11px',
                     color: '#1A8C4E',
                     fontStyle: 'italic',
@@ -1025,361 +955,6 @@ export function B2BSolutions() {
                   }}
                 >
                   Currently onboarding founding commission partners
-                </Typography>
-              </Box>
-            </Card>
-          </Grid>
-
-          {/* Card 5: Professional Advisory */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card
-              sx={{
-                bgcolor: '#FFFFFF',
-                borderRadius: '12px',
-                border: '1px solid rgba(0,0,0,0.06)',
-                boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
-                p: 3.5,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <Typography sx={{ fontSize: '32px', mb: 2 }}></Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '20px',
-                  color: '#111111',
-                  mb: 1,
-                }}
-              >
-                Professional Advisory Platform
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  color: '#1A8C4E',
-                  mb: 2,
-                }}
-              >
-                Entertainment Accountants & Legal
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '14px',
-                  color: '#555555',
-                  mb: 2,
-                  lineHeight: 1.6,
-                }}
-              >
-                Always-current territory programme data, multi-client report generation, and programme change alerts —
-                so you spend less time researching and more time advising.
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  color: '#C9A227',
-                  mb: 1,
-                }}
-              >
-                Key Features:
-              </Typography>
-              <List dense sx={{ mb: 2 }}>
-                {[
-                  'Programme reliability scoring with historic context',
-                  'Multi-client report generation — produce reports for multiple productions simultaneously',
-                  'Alert system — notified when a programme you are monitoring changes',
-                  'White-label PDF output with your firm\'s branding',
-                  'Bulk Excel export for your own analysis',
-                ].map((feature, idx) => (
-                  <ListItem key={idx} sx={{ py: 0.5, px: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 28 }}>
-                      <CheckCircle sx={{ color: '#1A8C4E', fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={feature}
-                      primaryTypographyProps={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '14px',
-                        color: '#333333',
-                      }}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              <Box
-                sx={{
-                  bgcolor: 'rgba(59,130,246,0.06)',
-                  border: '1px solid rgba(59,130,246,0.15)',
-                  borderRadius: '8px',
-                  p: 1.5,
-                  mb: 2,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '12px',
-                    color: '#6B86A8',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Territory data cross-referenced with published film commission and government sources
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '12px',
-                    color: '#999999',
-                    mb: 1,
-                  }}
-                >
-                  Delivery Options:
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip
-                    label="Dashboard access"
-                    sx={{
-                      bgcolor: 'rgba(0,0,0,0.06)',
-                      color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
-                      fontSize: '12px',
-                      height: '24px',
-                      borderRadius: '12px',
-                    }}
-                  />
-                </Box>
-              </Box>
-              <Box sx={{ mt: 'auto' }}>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '28px',
-                    color: '#111111',
-                    textAlign: 'right',
-                    mb: 2,
-                  }}
-                >
-                  from £400/month
-                </Typography>
-                <Button
-                  fullWidth
-                  onClick={() => handleOpenRfpDialog('Professional Advisory Platform')}
-                  sx={{
-                    bgcolor: '#F5C800',
-                    color: '#000000',
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    height: '48px',
-                    borderRadius: '8px',
-                    textTransform: 'none',
-                    mb: 1,
-                    '&:hover': {
-                      bgcolor: '#E5B800',
-                    },
-                  }}
-                >
-                  Start Free Trial
-                </Button>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '11px',
-                    color: '#1A8C4E',
-                    fontStyle: 'italic',
-                    textAlign: 'center',
-                  }}
-                >
-                  14-day free trial — no credit card required
-                </Typography>
-              </Box>
-            </Card>
-          </Grid>
-
-          {/* Card 6: White-Label */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card
-              sx={{
-                bgcolor: '#FFFFFF',
-                borderRadius: '12px',
-                border: '1px solid rgba(0,0,0,0.06)',
-                boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
-                p: 3.5,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <Typography sx={{ fontSize: '32px', mb: 2 }}>🏷️</Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '20px',
-                  color: '#111111',
-                  mb: 1,
-                }}
-              >
-                White-Label Intelligence Platform
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  color: '#1A8C4E',
-                  mb: 2,
-                }}
-              >
-                Production Companies
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '14px',
-                  color: '#555555',
-                  mb: 2,
-                  lineHeight: 1.6,
-                }}
-              >
-                Deliver production intelligence reports to your filmmaker clients under your own brand. Your logo, your
-                reports, your client relationships.
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  color: '#C9A227',
-                  mb: 1,
-                }}
-              >
-                Key Features:
-              </Typography>
-              <List dense sx={{ mb: 2 }}>
-                {[
-                  'Your logo and branding on every report',
-                  'Custom company name in all headers',
-                  '"Prepared by [Your Company]" — not Prodculator',
-                  'Permanent client share links',
-                  'Multiple team seats',
-                  '10 scripts per month',
-                  'What-If scenario saving and comparison',
-                  'Excel export for client presentations',
-                ].map((feature, idx) => (
-                  <ListItem key={idx} sx={{ py: 0.5, px: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 28 }}>
-                      <CheckCircle sx={{ color: '#1A8C4E', fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={feature}
-                      primaryTypographyProps={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '14px',
-                        color: '#333333',
-                      }}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-              <Box
-                sx={{
-                  bgcolor: 'rgba(59,130,246,0.06)',
-                  border: '1px solid rgba(59,130,246,0.15)',
-                  borderRadius: '8px',
-                  p: 1.5,
-                  mb: 2,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '12px',
-                    color: '#6B86A8',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Powered by Prodculator's production intelligence engine
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '12px',
-                    color: '#999999',
-                    mb: 1,
-                  }}
-                >
-                  Delivery Options:
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip
-                    label="Dashboard access"
-                    sx={{
-                      bgcolor: 'rgba(0,0,0,0.06)',
-                      color: '#555555',
-                      fontFamily: 'DM Sans, sans-serif',
-                      fontSize: '12px',
-                      height: '24px',
-                      borderRadius: '12px',
-                    }}
-                  />
-                </Box>
-              </Box>
-              <Box sx={{ mt: 'auto' }}>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '28px',
-                    color: '#111111',
-                    textAlign: 'right',
-                    mb: 2,
-                  }}
-                >
-                  from £500/month
-                </Typography>
-                <Button
-                  fullWidth
-                  onClick={() => handleOpenRfpDialog('White-Label Intelligence Platform')}
-                  sx={{
-                    bgcolor: '#F5C800',
-                    color: '#000000',
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    height: '48px',
-                    borderRadius: '8px',
-                    textTransform: 'none',
-                    mb: 1,
-                    '&:hover': {
-                      bgcolor: '#E5B800',
-                    },
-                  }}
-                >
-                  Request Proposal
-                </Button>
-                <Typography
-                  sx={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '11px',
-                    color: '#1A8C4E',
-                    fontStyle: 'italic',
-                    textAlign: 'center',
-                  }}
-                >
-                  Currently onboarding production company partners
                 </Typography>
               </Box>
             </Card>
@@ -1401,7 +976,7 @@ export function B2BSolutions() {
           <Box sx={{ flex: 1 }}>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontWeight: 700,
                 fontSize: '11px',
                 color: '#F5C800',
@@ -1414,7 +989,7 @@ export function B2BSolutions() {
             </Typography>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontWeight: 700,
                 fontSize: '26px',
                 color: '#FFFFFF',
@@ -1425,7 +1000,7 @@ export function B2BSolutions() {
             </Typography>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontSize: '16px',
                 color: '#888888',
                 mb: 3,
@@ -1448,7 +1023,7 @@ export function B2BSolutions() {
                     bgcolor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.15)',
                     color: '#FFFFFF',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                     fontSize: '12px',
                     height: '28px',
                     borderRadius: '14px',
@@ -1460,7 +1035,7 @@ export function B2BSolutions() {
           <Box sx={{ textAlign: 'right', ml: 4 }}>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontWeight: 700,
                 fontSize: '28px',
                 color: '#FFFFFF',
@@ -1471,7 +1046,7 @@ export function B2BSolutions() {
             </Typography>
             <Typography
               sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontSize: '12px',
                 color: '#888888',
                 mb: 3,
@@ -1484,7 +1059,7 @@ export function B2BSolutions() {
               sx={{
                 bgcolor: '#F5C800',
                 color: '#000000',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 fontWeight: 700,
                 fontSize: '15px',
                 height: '52px',
@@ -1505,7 +1080,7 @@ export function B2BSolutions() {
         <Box sx={{ textAlign: 'center', maxWidth: '680px', mx: 'auto', py: 4 }}>
           <Typography
             sx={{
-              fontFamily: 'DM Sans, sans-serif',
+              fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
               fontSize: '13px',
               color: '#999999',
               fontStyle: 'italic',
@@ -1537,7 +1112,7 @@ export function B2BSolutions() {
           sx={{
             color: '#111111',
             borderBottom: '1px solid rgba(0,0,0,0.06)',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1545,7 +1120,11 @@ export function B2BSolutions() {
             Request for Proposal
           </Box>
         </DialogTitle>
-        <DialogContent sx={{ mt: 3 }}>
+        <DialogContent sx={{
+          mt: 3,
+          '& .MuiInputLabel-root': { color: '#111111' },
+          '& .MuiInputLabel-root.Mui-focused': { color: '#111111' },
+        }}>
           {formSubmitted ? (
             <Alert severity="success" sx={{ bgcolor: 'rgba(26,140,78,0.1)', color: '#1A8C4E' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
@@ -1637,7 +1216,7 @@ export function B2BSolutions() {
                 onClick={() => setRfpDialogOpen(false)}
                 sx={{
                   color: '#555555',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   textTransform: 'none',
                 }}
               >
@@ -1649,7 +1228,7 @@ export function B2BSolutions() {
                 sx={{
                   bgcolor: '#F5C800',
                   color: '#000000',
-                  fontFamily: 'DM Sans, sans-serif',
+                  fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                   fontWeight: 700,
                   textTransform: 'none',
                   '&:hover': { bgcolor: '#E5B800' },

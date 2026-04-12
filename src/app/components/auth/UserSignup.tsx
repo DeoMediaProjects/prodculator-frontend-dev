@@ -363,7 +363,7 @@ export function UserSignup() {
                 py: 1.5,
                 fontSize: '1.1rem',
                 '&:hover': {
-                  bgcolor: '#E5C158',
+                  bgcolor: '#D4AF37',
                 },
                 '&:disabled': {
                   bgcolor: '#666',
@@ -431,7 +431,7 @@ export function UserSignup() {
                 fontWeight: 600,
                 py: 1.2,
                 '&:hover': {
-                  borderColor: '#E5C158',
+                  borderColor: '#D4AF37',
                   bgcolor: 'rgba(212, 175, 55, 0.1)',
                 },
               }}

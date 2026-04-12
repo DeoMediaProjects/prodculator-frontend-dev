@@ -62,7 +62,7 @@ export function Pricing() {
           ? STRIPE_PRICES.singleReportGBP.priceId 
           : STRIPE_PRICES.singleReportUSD.priceId;
         
-        const { sessionId, url, error } = await createCheckoutSession(priceId, userEmail);
+        const { url, error } = await createCheckoutSession(priceId, userEmail);
         
         if (error) {
           enqueueSnackbar(`Payment error: ${error}`, { variant: 'error' });
@@ -82,10 +82,10 @@ export function Pricing() {
           ? STRIPE_PRICES.studioMonthlyGBP.priceId 
           : STRIPE_PRICES.studioMonthlyUSD.priceId;
         
-        const { sessionId, url, error } = await createSubscriptionCheckout(
+        const { url, error } = await createSubscriptionCheckout(
           priceId, 
           userEmail, 
-          user?.id || ''
+          user?.email || ''
         );
         
         if (error) {
@@ -121,7 +121,7 @@ export function Pricing() {
         'Basic incentive summary',
         'Sample report download',
       ],
-      cta: 'Create Account — One Free Analysis', // Updated CTA copy
+      cta: 'Continue for Free', // Updated CTA copy
       ctaSubtext: 'No credit card required', // New sub-copy
       popular: false,
       planType: 'free' as const,
@@ -180,33 +180,6 @@ export function Pricing() {
       popular: false,
       planType: 'studio' as const,
     },
-    {
-      name: 'Production Services Intelligence',
-      priceUSD: 938,
-      priceGBP: 750,
-      period: 'month',
-      description: 'For Entertainment Accountants & Legal',
-      badge: 'FOR ADVISORS',
-      cancellable: true,
-      b2bOnly: true, // ✅ ANNOTATION: B2B/advisor-facing only. Hidden on consumer /pricing route. Only visible on /b2b or for B2B client logins.
-      sections: [
-        {
-          title: 'KEY FEATURES',
-          features: [
-            'Always-current incentive programme data (updated within 30 days)',
-            'Programme reliability scoring with historic context',
-            'Multi-client report generation — produce reports for multiple productions simultaneously',
-            'Alert system — notified when a programme you are monitoring changes',
-            'White-label PDF output with your firm\'s branding',
-            'Bulk Excel export for your own analysis',
-          ],
-        },
-      ],
-      footerNote: 'Territory data cross-referenced with published film commission and government sources',
-      cta: 'Start Free Trial',
-      popular: false,
-      planType: 'studio' as const,
-    },
   ];
 
   return (
@@ -219,7 +192,7 @@ export function Pricing() {
           py: 2,
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <img 
@@ -244,7 +217,7 @@ export function Pricing() {
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Container maxWidth="xl" sx={{ py: 8 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography 
             variant="h3" 
@@ -265,9 +238,9 @@ export function Pricing() {
           </Typography>
         </Box>
 
-        <Grid container spacing={4} sx={{ mb: 8 }}>
+        <Grid container spacing={3} sx={{ mb: 8 }}>
           {plans.map((plan, index) => (
-            <Grid size={{ xs: 12, md: 3 }} key={index}>
+            <Grid size={{ xs: 12, md: 4 }} key={index}>
               <Card
                 sx={{
                   height: '100%',
@@ -298,7 +271,7 @@ export function Pricing() {
                       fontWeight: 800,
                       fontSize: '0.95rem',
                       px: 2,
-                      py: 0.5,
+                      py: 4,
                       height: 32,
                       boxShadow: '0 4px 12px rgba(212, 175, 55, 0.5)',
                       animation: 'pulse 2s ease-in-out infinite',
@@ -314,6 +287,7 @@ export function Pricing() {
                     variant="h6" 
                     gutterBottom 
                     sx={{ 
+                      py:3,
                       fontWeight: 600,
                       color: '#ffffff',
                     }}
@@ -465,13 +439,13 @@ export function Pricing() {
                         color: '#000000',
                         fontWeight: 600,
                         '&:hover': {
-                          bgcolor: '#E5C158',
+                          bgcolor: '#D4AF37',
                         }
                       } : {
                         borderColor: '#D4AF37',
                         color: '#D4AF37',
                         '&:hover': {
-                          borderColor: '#E5C158',
+                          borderColor: '#D4AF37',
                           bgcolor: 'rgba(212, 175, 55, 0.1)',
                         }
                       })
@@ -665,7 +639,7 @@ export function Pricing() {
               color: '#000000',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               }
             }}
           >

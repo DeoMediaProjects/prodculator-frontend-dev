@@ -64,13 +64,13 @@ function valueColor(value: number): string {
 }
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
-const font = 'DM Sans, sans-serif';
+const font = "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 const headerCellSx = {
   fontFamily: font,
   fontWeight: 700,
   fontSize: '11px',
-  color: '#C9A227',
+  color: '#D4AF37',
   textTransform: 'uppercase' as const,
   letterSpacing: '0.08em',
 };
@@ -220,7 +220,7 @@ export function WhatIfCalculator() {
               sx={{
                 bgcolor: 'transparent',
                 border: '1px solid rgba(245,200,0,0.4)',
-                color: '#C9A227',
+                color: '#D4AF37',
                 fontFamily: font, fontWeight: 700, fontSize: '13px',
                 height: '36px', px: 2.5, borderRadius: '8px', textTransform: 'none',
                 '&:hover': { bgcolor: 'rgba(245,200,0,0.08)', border: '1px solid rgba(245,200,0,0.6)' },
@@ -551,7 +551,7 @@ export function WhatIfCalculator() {
 
                     {/* Net Saving */}
                     <Box sx={{ width: '140px' }}>
-                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '16px', color: '#C9A227' }}>
+                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '16px', color: '#D4AF37' }}>
                         {t.net_saving_display}
                       </Typography>
                     </Box>
@@ -575,7 +575,7 @@ export function WhatIfCalculator() {
                       <Typography
                         sx={{
                           fontFamily: font, fontWeight: 700, fontSize: '14px',
-                          color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#C9A227' : '#999',
+                          color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999',
                         }}
                       >
                         {t.overall_score}
@@ -638,7 +638,7 @@ export function WhatIfCalculator() {
                   <Chip
                     label="For INT-heavy scripts"
                     sx={{
-                      bgcolor: 'rgba(245,200,0,0.15)', color: '#C9A227',
+                      bgcolor: 'rgba(245,200,0,0.15)', color: '#D4AF37',
                       fontFamily: font, fontWeight: 700, fontSize: '10px',
                       height: '22px', textTransform: 'uppercase', borderRadius: '11px',
                     }}
@@ -667,7 +667,7 @@ export function WhatIfCalculator() {
                       <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#777777', mb: 0.5 }}>
                         {topByRate.territory}
                       </Typography>
-                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#C9A227' }}>
+                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#D4AF37' }}>
                         {topByRate.rate_display} {topByRate.rate_type === 'cash_rebate' ? 'cash rebate' : 'incentive'}
                       </Typography>
                     </Box>

@@ -198,7 +198,7 @@ export function VerifyEmail() {
                 fontWeight: 600,
                 py: 1.2,
                 '&:hover': {
-                  borderColor: '#E5C158',
+                  borderColor: '#D4AF37',
                   bgcolor: 'rgba(212, 175, 55, 0.1)',
                 },
                 '&:disabled': {

@@ -63,7 +63,7 @@ export function PDFReportPreview() {
               color: '#000000',
               fontWeight: 700,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
             }}
           >

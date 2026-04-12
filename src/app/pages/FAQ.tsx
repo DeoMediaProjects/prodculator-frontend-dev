@@ -11,6 +11,10 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
+import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+import { useNavigate } from 'react-router';
+
 
 interface FAQItem {
   question: string;
@@ -24,6 +28,7 @@ interface FAQSection {
 }
 
 export default function FAQ() {
+    const navigate = useNavigate();
   const [openSection, setOpenSection] = useState<number | null>(0);
   const [openQuestion, setOpenQuestion] = useState<{ [key: string]: boolean }>({
     '0-0': true, // First question open by default
@@ -625,38 +630,54 @@ export default function FAQ() {
   ];
 
   const richTextSx = {
-    '& p': { color: '#d1d5db', margin: 0 },
+    '& p': { color: '#000000', margin: 0 },
     '& p + p': { marginTop: 1.5 },
-    '& ul, & ol': { margin: 0, paddingLeft: '1.5rem', color: '#d1d5db' },
+    '& ul, & ol': { margin: 0, paddingLeft: '1.5rem', color: '#000000' },
     '& li + li': { marginTop: 0.75 },
     '& a': { color: '#D4AF37', textDecoration: 'none' },
-    '& a:hover': { color: '#F4CF67', textDecoration: 'underline' },
-    '& strong': { color: '#fff' },
+    '& a:hover': { color: '#D4AF37', textDecoration: 'underline' },
+    '& strong': { color: '#000000' },
   };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#000', color: '#fff' }}>
-      <Box sx={{ borderBottom: '1px solid #1f2937', position: 'sticky', top: 0, zIndex: 50, bgcolor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-        <Container maxWidth="lg" sx={{ py: 3 }}>
+        <Box 
+        sx={{ 
+          bgcolor: 'rgba(255, 255, 255, 0.98)', 
+          borderBottom: '1px solid rgba(0,0,0,0.1)',
+          py: 2,
+        }}
+      >
+        <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Link href="/" underline="none" sx={{ fontSize: '1.5rem', fontWeight: 700, color: '#D4AF37', '&:hover': { color: '#F4CF67' } }}>
-              Prodculator
-            </Link>
-            <Stack direction="row" spacing={3}>
-              <Link href="/" underline="none" sx={{ color: '#d1d5db', '&:hover': { color: '#fff' } }}>Home</Link>
-              <Link href="/pricing" underline="none" sx={{ color: '#d1d5db', '&:hover': { color: '#fff' } }}>Pricing</Link>
-              <Link href="/dashboard" underline="none" sx={{ color: '#d1d5db', '&:hover': { color: '#fff' } }}>Dashboard</Link>
-              <Link href="/login" underline="none" sx={{ color: '#d1d5db', '&:hover': { color: '#fff' } }}>Login</Link>
-            </Stack>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <img 
+                src={exampleLogo} 
+                alt="Prodculator" 
+                style={{ height: '32px', width: 'auto', cursor: 'pointer' }}
+                onClick={() => navigate('/')}
+              />
+            </Box>
+            <Button 
+              startIcon={<ArrowBack />} 
+              onClick={() => navigate('/')}
+              sx={{
+                color: '#000000',
+                fontWeight: 500,
+                '&:hover': { bgcolor: 'transparent' }
+              }}
+            >
+              Back to Home
+            </Button>
           </Box>
         </Container>
       </Box>
 
-      <Box sx={{ borderBottom: '1px solid #1f2937', background: 'linear-gradient(to bottom, #000, #111827)' }}>
+      <Box sx={{ bgcolor: '#000000', borderBottom: '1px solid #1f2937' }}>
         <Container maxWidth="lg" sx={{ py: 10, textAlign: 'center' }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'center', mb: 3 }}>
             <HelpCircle size={32} color="#D4AF37" />
-            <Typography variant="h3" sx={{ fontWeight: 700 }}>Frequently Asked Questions</Typography>
+            <Typography variant="h3" sx={{ fontWeight: 700, color: '#ffffff' }}>Frequently Asked Questions</Typography>
           </Stack>
           <Typography sx={{ color: '#d1d5db', maxWidth: 900, mx: 'auto', fontSize: '1.25rem' }}>
             Everything you need to know about Prodculator's Scripteligence AI, from getting started to advanced
@@ -669,65 +690,67 @@ export default function FAQ() {
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Stack spacing={3}>
-          {faqSections.map((section, sectionIndex) => (
-            <Accordion
-              key={sectionIndex}
-              expanded={openSection === sectionIndex}
-              onChange={() => setOpenSection(openSection === sectionIndex ? null : sectionIndex)}
-              disableGutters
-              sx={{ bgcolor: 'transparent', border: '1px solid #1f2937', borderRadius: 2, '&:before': { display: 'none' } }}
-            >
-              <AccordionSummary
-                expandIcon={<ChevronDown size={20} color="#9ca3af" />}
-                sx={{ bgcolor: '#111827', '&:hover': { bgcolor: '#1f2937' } }}
+      <Box sx={{ bgcolor: '#ffffff' }}>
+        <Container maxWidth="lg" sx={{ py: 8 }}>
+          <Stack spacing={3}>
+            {faqSections.map((section, sectionIndex) => (
+              <Accordion
+                key={sectionIndex}
+                expanded={openSection === sectionIndex}
+                onChange={() => setOpenSection(openSection === sectionIndex ? null : sectionIndex)}
+                disableGutters
+                sx={{ bgcolor: '#ffffff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 2, '&:before': { display: 'none' } }}
               >
-                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                  <Box sx={{ color: '#D4AF37', display: 'inline-flex' }}>{section.icon}</Box>
-                  <Typography sx={{ fontWeight: 600 }}>{section.title}</Typography>
-                  <Typography variant="body2" sx={{ color: '#9ca3af' }}>
-                    ({section.items.length})
-                  </Typography>
-                </Stack>
-              </AccordionSummary>
-              <AccordionDetails sx={{ p: 0 }}>
-                {section.items.map((item, itemIndex) => {
-                  const questionKey = `${sectionIndex}-${itemIndex}`;
-                  const isOpen = openQuestion[questionKey];
+                <AccordionSummary
+                  expandIcon={<ChevronDown size={20} color="#000000" />}
+                  sx={{ bgcolor: '#f5f5f5', '&:hover': { bgcolor: '#eeeeee' } }}
+                >
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                    <Box sx={{ color: '#D4AF37', display: 'inline-flex' }}>{section.icon}</Box>
+                    <Typography sx={{ fontWeight: 600, color: '#111111' }}>{section.title}</Typography>
+                    <Typography variant="body2" sx={{ color: '#777777' }}>
+                      ({section.items.length})
+                    </Typography>
+                  </Stack>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 0 }}>
+                  {section.items.map((item, itemIndex) => {
+                    const questionKey = `${sectionIndex}-${itemIndex}`;
+                    const isOpen = openQuestion[questionKey];
 
-                  return (
-                    <Accordion
-                      key={itemIndex}
-                      expanded={!!isOpen}
-                      onChange={() => toggleQuestion(sectionIndex, itemIndex)}
-                      disableGutters
-                      sx={{ bgcolor: 'transparent', borderTop: '1px solid #1f2937', '&:before': { display: 'none' } }}
-                    >
-                      <AccordionSummary expandIcon={<ChevronDown size={16} color="#9ca3af" />} sx={{ '&:hover': { bgcolor: 'rgba(31,41,55,0.3)' } }}>
-                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', mt: 1, bgcolor: isOpen ? '#D4AF37' : '#4b5563' }} />
-                          <Typography sx={{ color: '#f3f4f6', fontWeight: 500 }}>{item.question}</Typography>
-                        </Stack>
-                      </AccordionSummary>
-                      <AccordionDetails sx={{ pl: 6, pr: 3, pb: 3 }}>
-                        <Box sx={richTextSx}>
-                          {typeof item.answer === 'string' ? <Typography>{item.answer}</Typography> : item.answer}
-                        </Box>
-                      </AccordionDetails>
-                    </Accordion>
-                  );
-                })}
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        </Stack>
-      </Container>
+                    return (
+                      <Accordion
+                        key={itemIndex}
+                        expanded={!!isOpen}
+                        onChange={() => toggleQuestion(sectionIndex, itemIndex)}
+                        disableGutters
+                        sx={{ bgcolor: '#ffffff', borderTop: '1px solid rgba(0,0,0,0.08)', '&:before': { display: 'none' } }}
+                      >
+                        <AccordionSummary expandIcon={<ChevronDown size={16} color="#555555" />} sx={{ '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' } }}>
+                          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', mt: 1, bgcolor: isOpen ? '#D4AF37' : '#bbbbbb' }} />
+                            <Typography sx={{ color: '#111111', fontWeight: 500 }}>{item.question}</Typography>
+                          </Stack>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ pl: 6, pr: 3, pb: 3 }}>
+                          <Box sx={richTextSx}>
+                            {typeof item.answer === 'string' ? <Typography>{item.answer}</Typography> : item.answer}
+                          </Box>
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  })}
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </Stack>
+        </Container>
+      </Box>
 
-      <Box sx={{ borderTop: '1px solid #1f2937', background: 'linear-gradient(to bottom, #111827, #000)' }}>
+      <Box sx={{ bgcolor: '#000000', borderTop: '1px solid #1f2937' }}>
         <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
           <Mail size={48} color="#D4AF37" />
-          <Typography variant="h4" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>Still Have Questions?</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700, mt: 2, mb: 1, color: '#ffffff' }}>Still Have Questions?</Typography>
           <Typography sx={{ color: '#d1d5db', mb: 4, fontSize: '1.25rem' }}>
             Our team is here to help. Get in touch and we'll respond within 24 hours.
           </Typography>
@@ -740,39 +763,8 @@ export default function FAQ() {
             >
               Email Support
             </Button>
-            <Button
-              href="/dashboard"
-              variant="outlined"
-              sx={{ borderColor: '#D4AF37', color: '#D4AF37', '&:hover': { bgcolor: '#D4AF37', color: '#000', borderColor: '#D4AF37' } }}
-            >
-              Go to Dashboard
-            </Button>
           </Stack>
-          <Typography sx={{ color: '#9ca3af', mt: 5, pt: 3, borderTop: '1px solid #1f2937', whiteSpace: 'pre-line' }}>
-            <strong>Email Support:</strong> support@prodculator.com{'\n'}
-            <strong>Privacy:</strong> privacyprod@deomedia.net{'\n'}
-            <strong>Response Time:</strong> Within 24 hours (business days){'\n'}
-            <strong>Company:</strong> Deo Media Limited (15426752){'\n'}
-            Springhead Road, Northfleet, Kent, DA11 8HN, United Kingdom
-          </Typography>
-        </Container>
-      </Box>
-
-      <Box sx={{ borderTop: '1px solid #1f2937', bgcolor: '#000' }}>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" sx={{ color: '#9ca3af' }}>
-              © 2025 Deo Media Limited. All rights reserved.
-            </Typography>
-            <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Link href="/terms-of-service" underline="none" sx={{ color: '#9ca3af', '&:hover': { color: '#fff' } }}>Terms of Service</Link>
-              <Link href="/privacy-policy" underline="none" sx={{ color: '#9ca3af', '&:hover': { color: '#fff' } }}>Privacy Policy</Link>
-              <Link href="/acceptable-use" underline="none" sx={{ color: '#9ca3af', '&:hover': { color: '#fff' } }}>Acceptable Use</Link>
-              <Link href="/b2b-solutions" underline="none" sx={{ color: '#9ca3af', '&:hover': { color: '#fff' } }}>B2B Solutions</Link>
-              <Link href="/faq" underline="none" sx={{ color: '#9ca3af', '&:hover': { color: '#fff' } }}>FAQ</Link>
-              <Link href="mailto:info@prodculator.com" underline="none" sx={{ color: '#9ca3af', '&:hover': { color: '#fff' } }}>Contact</Link>
-            </Stack>
-          </Stack>
+        
         </Container>
       </Box>
     </Box>

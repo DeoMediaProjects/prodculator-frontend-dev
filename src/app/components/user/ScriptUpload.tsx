@@ -70,12 +70,12 @@ export function ScriptUpload() {
   const [timeoutModalOpen, setTimeoutModalOpen] = useState(false);
   const [_timedOutReportId, setTimedOutReportId] = useState<string | null>(null);
 
-  const [targetAudience, setTargetAudience] = useState('');
-  const [language, setLanguage] = useState('');
+  const [targetAudience, _setTargetAudience] = useState('');
+  const [language, _setLanguage] = useState('');
 
   // Production strategy fields
-  const [locationStrategy, setLocationStrategy] = useState('open');
-  const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>(['United Kingdom', 'Malta', 'Hungary']);
+  const [locationStrategy, setLocationStrategy] = useState('');
+  const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>([]);
   const [productionPriority, setProductionPriority] = useState('full');
 
   // ✅ SECTION 2a: Genre options - expanded list (no pre-selection)
@@ -304,7 +304,7 @@ export function ScriptUpload() {
           py: 2,
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <img 
@@ -329,11 +329,11 @@ export function ScriptUpload() {
         </Container>
       </Box>
 
-      <Container maxWidth="md" sx={{ py: 6 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 1, color: '#ffffff' }}>
+      <Container maxWidth="xl" sx={{ py: 6 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 1, color: '#ffffff', textAlign: 'center' }}>
           Production Analysis Engine
         </Typography>
-        <Typography variant="body1" sx={{ mb: 4, color: '#a0a0a0' }}>
+        <Typography variant="body1" sx={{ mb: 4, color: '#a0a0a0', textAlign: 'center' }}>
           Upload your script to receive investor-ready intelligence reports on locations, incentives, and costs.
         </Typography>
 
@@ -396,15 +396,15 @@ export function ScriptUpload() {
                 <Typography variant="h6" sx={{ color: '#ffffff', mb: 3, fontWeight: 600 }}>Production Intelligence Inputs</Typography>
                 
                 <Grid container spacing={2}>
-                  <Grid size={{ xs: 12 }}>
-                    <TextField 
-                      fullWidth 
-                      label="Project Title" 
-                      value={title} 
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Project Title"
+                      value={title}
                       onChange={(e) => setTitle(e.target.value)}
                     />
                   </Grid>
-                  
+
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Genre(s)</InputLabel>
@@ -426,7 +426,37 @@ export function ScriptUpload() {
                     </FormControl>
                   </Grid>
 
-                  <Grid size={{ xs: 12, sm: 4 }}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Format</InputLabel>
+                      <Select
+                        value={format}
+                        label="Format"
+                        onChange={(e) => setFormat(e.target.value)}
+                      >
+                        {formatOptions.map(f => (
+                          <MenuItem key={f} value={f}>{f}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Production Country</InputLabel>
+                      <Select
+                        value={country}
+                        label="Production Country"
+                        onChange={(e) => setCountry(e.target.value)}
+                      >
+                        {countryOptions.map((t) => (
+                          <MenuItem key={t.iso} value={t.label}>{t.label}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Currency</InputLabel>
                       <Select
@@ -456,7 +486,7 @@ export function ScriptUpload() {
                     </FormControl>
                   </Grid>
 
-                  <Grid size={{ xs: 12, sm: 8 }}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       type="number"
@@ -473,35 +503,7 @@ export function ScriptUpload() {
                     />
                   </Grid>
 
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <FormControl fullWidth>
-                      <InputLabel>Format</InputLabel>
-                      <Select 
-                        value={format} 
-                        label="Format" 
-                        onChange={(e) => setFormat(e.target.value)}
-                      >
-                        {formatOptions.map(f => (
-                          <MenuItem key={f} value={f}>{f}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
 
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <FormControl fullWidth>
-                      <InputLabel>Production Country</InputLabel>
-                      <Select 
-                        value={country} 
-                        label="Production Country" 
-                        onChange={(e) => setCountry(e.target.value)}
-                      >
-                        {countryOptions.map((t) => (
-                          <MenuItem key={t.iso} value={t.label}>{t.label}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
 
                   {showStateProvince && (
                     <Grid size={{ xs: 12, sm: 6 }}>
@@ -547,7 +549,7 @@ export function ScriptUpload() {
                                 bgcolor: '#D4AF37',
                                 color: '#000000',
                                 border: 'none',
-                                '&:hover': { bgcolor: '#E5C158' },
+                                '&:hover': { bgcolor: '#D4AF37' },
                               } : {
                                 borderColor: 'rgba(212, 175, 55, 0.5)',
                                 color: '#D4AF37',
@@ -593,7 +595,7 @@ export function ScriptUpload() {
                               ...(territoriesConsidering.includes(territory.label) ? {
                                 bgcolor: '#D4AF37',
                                 color: '#000000',
-                                '&:hover': { bgcolor: '#E5C158' },
+                                '&:hover': { bgcolor: '#D4AF37' },
                               } : {
                                 bgcolor: 'rgba(212, 175, 55, 0.1)',
                                 color: '#D4AF37',
@@ -743,7 +745,7 @@ export function ScriptUpload() {
                       onChange={(e) => setSupportingCast(e.target.value)}
                     />
                   </Grid>
-
+{/* 
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
@@ -752,9 +754,9 @@ export function ScriptUpload() {
                       value={targetAudience}
                       onChange={(e) => setTargetAudience(e.target.value)}
                     />
-                  </Grid>
+                  </Grid> */}
 
-                  <Grid size={{ xs: 12, sm: 6 }}>
+                  {/* <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Primary Language"
@@ -762,7 +764,7 @@ export function ScriptUpload() {
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
                     />
-                  </Grid>
+                  </Grid> */}
                 </Grid>
               </Paper>
 
@@ -779,7 +781,7 @@ export function ScriptUpload() {
                     bgcolor: '#D4AF37',
                     color: '#000000',
                     fontWeight: 600,
-                    '&:hover': { bgcolor: '#E5C158' }
+                    '&:hover': { bgcolor: '#D4AF37' }
                   }}
                 >
                   {isAuthenticated ? 'Generate Intelligence Report' : 'See Free Preview Analysis'}
@@ -900,7 +902,7 @@ export function ScriptUpload() {
               fontWeight: 700,
               py: 1.5,
               fontSize: '1rem',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             Go to Dashboard
