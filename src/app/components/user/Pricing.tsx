@@ -30,13 +30,14 @@ import {
   createSubscriptionCheckout, 
   redirectToCheckout 
 } from '@/services/stripe.service';
-import { toast } from 'sonner';
+import { useSnackbar } from 'notistack';
 
 export function Pricing() {
   const navigate = useNavigate();
   const { hasAdminPermission, user } = useAuth();
   const { symbol, isUK } = useGeoCurrency();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
 
   const handlePlanClick = async (planName: string, planType: 'free' | 'single' | 'studio') => {
     // Free plan - just navigate to upload
@@ -48,7 +49,7 @@ export function Pricing() {
     // Check if user has email
     const userEmail = user?.email || prompt('Please enter your email address:');
     if (!userEmail) {
-      toast.error('Email is required to proceed with payment');
+      enqueueSnackbar('Email is required to proceed with payment', { variant: 'error' });
       return;
     }
 
@@ -64,7 +65,7 @@ export function Pricing() {
         const { sessionId, url, error } = await createCheckoutSession(priceId, userEmail);
         
         if (error) {
-          toast.error(`Payment error: ${error}`);
+          enqueueSnackbar(`Payment error: ${error}`, { variant: 'error' });
           console.error('Checkout error:', error);
           return;
         }
@@ -73,7 +74,7 @@ export function Pricing() {
         if (url) {
           await redirectToCheckout(url);
         } else {
-          toast.error('No checkout URL received');
+          enqueueSnackbar('No checkout URL received', { variant: 'error' });
         }
       } else if (planType === 'studio') {
         // Subscription for Studio Plan
@@ -88,7 +89,7 @@ export function Pricing() {
         );
         
         if (error) {
-          toast.error(`Payment error: ${error}`);
+          enqueueSnackbar(`Payment error: ${error}`, { variant: 'error' });
           console.error('Subscription error:', error);
           return;
         }
@@ -97,12 +98,12 @@ export function Pricing() {
         if (url) {
           await redirectToCheckout(url);
         } else {
-          toast.error('No checkout URL received');
+          enqueueSnackbar('No checkout URL received', { variant: 'error' });
         }
       }
     } catch (error: any) {
       console.error('Payment flow error:', error);
-      toast.error(`Failed to start payment: ${error.message || 'Unknown error'}`);
+      enqueueSnackbar(`Failed to start payment: ${error.message || 'Unknown error'}`, { variant: 'error' });
     } finally {
       setLoadingPlan(null);
     }

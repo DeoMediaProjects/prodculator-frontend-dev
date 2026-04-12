@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, createTheme } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
+import { Toast } from '@/app/components/common/Toast';
 import { HelmetProvider } from 'react-helmet-async';
 import React from 'react';
 
@@ -196,7 +197,11 @@ function AppContent() {
     <HelmetProvider>
       <SafeThemeProvider>
         <CssBaseline />
-        <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <SnackbarProvider
+          maxSnack={3}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          Components={{ default: Toast, error: Toast, success: Toast, info: Toast, warning: Toast }}
+        >
           <AuthProvider>
             <ScriptProvider>
               <BrowserRouter>
@@ -257,7 +262,7 @@ function AppContent() {
   );
 }
 
-export default function App(props: any) {
+export default function App(_props: any) {
   // Explicitly ignore all props to prevent Figma data attributes from being passed down
   return <AppContent />;
 }
