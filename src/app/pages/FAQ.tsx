@@ -674,12 +674,12 @@ export default function FAQ() {
       </Box>
 
       <Box sx={{ bgcolor: '#000000', borderBottom: '1px solid #1f2937' }}>
-        <Container maxWidth="lg" sx={{ py: 10, textAlign: 'center' }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'center', mb: 3 }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 }, textAlign: 'center' }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
             <HelpCircle size={32} color="#D4AF37" />
-            <Typography variant="h3" sx={{ fontWeight: 700, color: '#ffffff' }}>Frequently Asked Questions</Typography>
+            <Typography sx={{ fontWeight: 700, color: '#ffffff', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>Frequently Asked Questions</Typography>
           </Stack>
-          <Typography sx={{ color: '#d1d5db', maxWidth: 900, mx: 'auto', fontSize: '1.25rem' }}>
+          <Typography sx={{ color: '#d1d5db', maxWidth: 900, mx: 'auto', fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Everything you need to know about Prodculator's Scripteligence AI, from getting started to advanced
             features. Can't find what you're looking for?{' '}
             <Link href="mailto:support@prodculator.com" underline="none" sx={{ color: '#D4AF37', '&:hover': { color: '#F4CF67' } }}>
@@ -732,7 +732,7 @@ export default function FAQ() {
                             <Typography sx={{ color: '#111111', fontWeight: 500 }}>{item.question}</Typography>
                           </Stack>
                         </AccordionSummary>
-                        <AccordionDetails sx={{ pl: 6, pr: 3, pb: 3 }}>
+                        <AccordionDetails sx={{ pl: { xs: 2, sm: 6 }, pr: { xs: 2, sm: 3 }, pb: 3 }}>
                           <Box sx={richTextSx}>
                             {typeof item.answer === 'string' ? <Typography>{item.answer}</Typography> : item.answer}
                           </Box>
@@ -748,10 +748,10 @@ export default function FAQ() {
       </Box>
 
       <Box sx={{ bgcolor: '#000000', borderTop: '1px solid #1f2937' }}>
-        <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
+        <Container maxWidth="md" sx={{ py: { xs: 5, md: 8 }, textAlign: 'center' }}>
           <Mail size={48} color="#D4AF37" />
-          <Typography variant="h4" sx={{ fontWeight: 700, mt: 2, mb: 1, color: '#ffffff' }}>Still Have Questions?</Typography>
-          <Typography sx={{ color: '#d1d5db', mb: 4, fontSize: '1.25rem' }}>
+          <Typography sx={{ fontWeight: 700, mt: 2, mb: 1, color: '#ffffff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>Still Have Questions?</Typography>
+          <Typography sx={{ color: '#d1d5db', mb: 4, fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Our team is here to help. Get in touch and we'll respond within 24 hours.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>

@@ -135,7 +135,7 @@ export function UserSignup() {
         <Paper
           elevation={0}
           sx={{
-            p: 6,
+            p: { xs: 3, sm: 6 },
             bgcolor: '#0a0a0a',
             border: '2px solid rgba(212, 175, 55, 0.3)',
             borderRadius: 3,

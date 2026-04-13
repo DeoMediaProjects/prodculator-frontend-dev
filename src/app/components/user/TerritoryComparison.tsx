@@ -215,7 +215,7 @@ export function TerritoryComparison() {
           <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
             Compare up to <strong style={{ color: '#D4AF37' }}>4 territories</strong> side-by-side
           </Typography>
-          <FormControl size="small" sx={{ minWidth: 300, flex: '1 1 300px', maxWidth: 400 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 300 }, flex: '1 1 200px', maxWidth: { xs: '100%', sm: 400 } }}>
             <InputLabel sx={{ color: '#a0a0a0' }}>Add Territory</InputLabel>
             <Select
               label="Add Territory"
@@ -272,9 +272,10 @@ export function TerritoryComparison() {
               bgcolor: '#0a0a0a',
               border: '1px solid rgba(212, 175, 55, 0.2)',
               borderRadius: 2,
+              overflowX: 'auto',
             }}
           >
-            <Table>
+            <Table sx={{ minWidth: 480 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'rgba(212, 175, 55, 0.1)' }}>
                   <TableCell sx={{ color: '#D4AF37', fontWeight: 700, fontSize: '0.95rem' }}>

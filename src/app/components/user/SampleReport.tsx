@@ -1040,12 +1040,12 @@ export function SampleReport() {
                 style={{ height: '32px', width: 'auto', cursor: 'pointer' }}
                 onClick={() => navigate('/')}
               />
-              <Chip 
+              {/* <Chip 
                 label="SAMPLE REPORT" 
                 color="warning" 
                 size="small"
                 sx={{ fontWeight: 700 }}
-              />
+              /> */}
             </Box>
             <Button startIcon={<ArrowBack />} onClick={() => navigate('/')} sx={{ color: '#000' }}>
               Back to Home
@@ -1096,26 +1096,6 @@ export function SampleReport() {
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               Page {currentPage + 1} of {totalPages}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {Array.from({ length: Math.min(totalPages, 10) }).map((_, i) => (
-                <Box
-                  key={i}
-                  onClick={() => goToPage(i)}
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    bgcolor: currentPage === i ? '#D4AF37' : 'rgba(0,0,0,0.2)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      bgcolor: currentPage === i ? '#D4AF37' : 'rgba(0,0,0,0.4)',
-                      transform: 'scale(1.2)'
-                    }
-                  }}
-                />
-              ))}
-            </Box>
           </Box>
 
           <Button
