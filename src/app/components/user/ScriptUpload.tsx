@@ -21,6 +21,7 @@ import {
   Grid,
   Checkbox,
   FormControlLabel,
+  Skeleton,
 } from '@mui/material';
 import {
   CloudUpload,
@@ -44,7 +45,7 @@ export function ScriptUpload() {
   const { generateAnalysis, generatePreview } = useScript();
   const { isAuthenticated, hasUsedFreeReport, markFreeReportUsed } = useAuth();
   const { showError } = useToast();
-  const { countries: countryOptions, territories: allTerritories } = useTerritories();
+  const { countries: countryOptions, territories: allTerritories, loading: territoriesLoading } = useTerritories();
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -359,7 +360,7 @@ export function ScriptUpload() {
           <Grid container spacing={3}>
             <Grid size={{ xs: 12 }}>
               {/* File Upload Section */}
-              <Paper sx={{ p: 4, mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+              <Paper sx={{ p: { xs: 2, sm: 4 }, mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
                 <Box
                   sx={{
                     border: 2,
@@ -392,7 +393,7 @@ export function ScriptUpload() {
               </Paper>
 
               {/* Production Intelligence Inputs */}
-              <Paper sx={{ p: 4, mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+              <Paper sx={{ p: { xs: 2, sm: 4 }, mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
                 <Typography variant="h6" sx={{ color: '#ffffff', mb: 3, fontWeight: 600 }}>Production Intelligence Inputs</Typography>
                 
                 <Grid container spacing={2}>
@@ -572,40 +573,51 @@ export function ScriptUpload() {
                         <InfoTip text={TOOLTIP_TEXTS.territoriesConsidering} />
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        {/* All 41 territories from API (countries + sub-territories) + "Open to all" sentinel */}
-                        {[...allTerritories, { label: 'Open to all', iso: 'ALL', parent: null, isSubTerritory: false }].map((territory) => (
-                          <Chip
-                            key={territory.iso}
-                            label={territory.label}
-                            onClick={() => {
-                              if (territory.label === 'Open to all') {
-                                setTerritoriesConsidering(['Open to all']);
-                              } else if (territoriesConsidering.includes(territory.label)) {
-                                setTerritoriesConsidering(territoriesConsidering.filter(t => t !== territory.label));
-                              } else {
-                                setTerritoriesConsidering([...territoriesConsidering.filter(t => t !== 'Open to all'), territory.label]);
-                              }
-                            }}
-                            sx={{
-                              px: 1.5,
-                              height: 32,
-                              fontSize: '0.875rem',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              ...(territoriesConsidering.includes(territory.label) ? {
-                                bgcolor: '#D4AF37',
-                                color: '#000000',
-                                '&:hover': { bgcolor: '#D4AF37' },
-                              } : {
-                                bgcolor: 'rgba(212, 175, 55, 0.1)',
-                                color: '#D4AF37',
-                                border: '1px solid rgba(212, 175, 55, 0.5)',
-                                opacity: territoriesConsidering.includes('Open to all') ? 0.5 : 1,
-                                '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.2)' },
-                              }),
-                            }}
-                          />
-                        ))}
+                        {territoriesLoading ? (
+                          Array.from({ length: 10 }).map((_, i) => (
+                            <Skeleton
+                              key={i}
+                              variant="rounded"
+                              width={80 + (i % 3) * 24}
+                              height={32}
+                              sx={{ bgcolor: 'rgba(212, 175, 55, 0.08)', borderRadius: '16px' }}
+                            />
+                          ))
+                        ) : (
+                          [...allTerritories, { label: 'Open to all', iso: 'ALL', parent: null, isSubTerritory: false }].map((territory) => (
+                            <Chip
+                              key={territory.iso}
+                              label={territory.label}
+                              onClick={() => {
+                                if (territory.label === 'Open to all') {
+                                  setTerritoriesConsidering(['Open to all']);
+                                } else if (territoriesConsidering.includes(territory.label)) {
+                                  setTerritoriesConsidering(territoriesConsidering.filter(t => t !== territory.label));
+                                } else {
+                                  setTerritoriesConsidering([...territoriesConsidering.filter(t => t !== 'Open to all'), territory.label]);
+                                }
+                              }}
+                              sx={{
+                                px: 1.5,
+                                height: 32,
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                ...(territoriesConsidering.includes(territory.label) ? {
+                                  bgcolor: '#D4AF37',
+                                  color: '#000000',
+                                  '&:hover': { bgcolor: '#D4AF37' },
+                                } : {
+                                  bgcolor: 'rgba(212, 175, 55, 0.1)',
+                                  color: '#D4AF37',
+                                  border: '1px solid rgba(212, 175, 55, 0.5)',
+                                  opacity: territoriesConsidering.includes('Open to all') ? 0.5 : 1,
+                                  '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.2)' },
+                                }),
+                              }}
+                            />
+                          ))
+                        )}
                       </Box>
                       {territoriesConsidering.includes('Open to all') && (
                         <Typography variant="caption" sx={{ color: '#4caf50', display: 'block', mt: 1 }}>
@@ -769,7 +781,7 @@ export function ScriptUpload() {
               </Paper>
 
               {/* Generate Report Button */}
-              <Paper sx={{ p: 4, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+              <Paper sx={{ p: { xs: 2, sm: 4 }, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
                 <Button 
                   fullWidth 
                   variant="contained" 
@@ -793,7 +805,7 @@ export function ScriptUpload() {
       </Container>
 
       {/* Email Modal for Free Preview */}
-      <Dialog open={emailModalOpen} onClose={() => setEmailModalOpen(false)} PaperProps={{ sx: { bgcolor: '#1a1a1a', border: '1px solid #D4AF37' } }}>
+      <Dialog open={emailModalOpen} onClose={() => setEmailModalOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { bgcolor: '#1a1a1a', border: '1px solid #D4AF37', mx: { xs: 2, sm: 'auto' } } }}>
         <DialogTitle sx={{ color: '#D4AF37' }}>Free Production Preview</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>

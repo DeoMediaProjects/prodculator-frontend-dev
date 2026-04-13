@@ -14,7 +14,12 @@ import { useAuth } from '@/app/contexts/AuthContext';
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userLogout } = useAuth();
+
+  const handleLogout = async () => {
+    await userLogout();
+    // page stays on '/', auth state clears
+  };
 
   return (
     <Box sx={{ bgcolor: '#000000', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}  >
@@ -99,10 +104,10 @@ export function LandingPage() {
               </Box>
               {isAuthenticated ? (
                 <>
-                  <Button 
+                  <Button
                     variant="outlined"
                     onClick={() => navigate('/dashboard')}
-                    sx={{ 
+                    sx={{
                       borderColor: '#D4AF37',
                       color: '#D4AF37',
                       fontWeight: 600,
@@ -127,13 +132,13 @@ export function LandingPage() {
                       Plan: <Box component="span" sx={{ fontWeight: 600 }}>Free</Box>
                     </Typography>
                   </Box>
-                  <Button 
+                  <Button
                     variant="contained"
                     onClick={() => navigate('/pricing')}
-                    sx={{ 
+                    sx={{
                       bgcolor: '#D4AF37',
                       color: '#000000',
-                      fontWeight: 700,
+                      fontWeight: 400,
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
@@ -142,6 +147,21 @@ export function LandingPage() {
                     }}
                   >
                     Upgrade
+                  </Button>
+                  <Button
+                    onClick={handleLogout}
+                     sx={{
+                      bgcolor: '#D4AF37',
+                      color: '#000000',
+                      fontWeight: 400,
+                      px: { xs: 2, md: 3 },
+                      textTransform: 'none',
+                      '&:hover': {
+                        bgcolor: '#D4AF37',
+                      }
+                    }}
+                  >
+                    Logout
                   </Button>
                 </>
               ) : (
@@ -152,7 +172,7 @@ export function LandingPage() {
                     sx={{ 
                       borderColor: '#D4AF37',
                       color: '#D4AF37',
-                      fontWeight: 600,
+                      fontWeight: 400,
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
@@ -169,7 +189,7 @@ export function LandingPage() {
                     sx={{ 
                       bgcolor: '#D4AF37',
                       color: '#000000',
-                      fontWeight: 600,
+                      fontWeight: 400,
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
@@ -187,7 +207,7 @@ export function LandingPage() {
                     sx={{ 
                       bgcolor: '#D4AF37',
                       color: '#000000',
-                      fontWeight: 600,
+                      fontWeight: 400,
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
@@ -349,10 +369,11 @@ export function LandingPage() {
                 alt="Prodculator"
                 style={{ height: '40px', width: 'auto',  }}
               />
-              <img
+              <Box
+                component="img"
                 src={grantifyBanner}
                 alt="In partnership with Grantify"
-                style={{ height: '60px', width: '250px', marginTop: '90px' }}
+                sx={{ height: '60px', width: { xs: '200px', sm: '250px' }, mt: { xs: 2, md: '90px' } }}
               />
             </Box>
 

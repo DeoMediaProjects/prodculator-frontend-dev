@@ -234,13 +234,13 @@ export function WhatIfCalculator() {
       </Box>
 
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ py: 5 }}>
+      <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 5 } }}>
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '28px', color: '#111111', mb: 1 }}>
+          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: '#111111', mb: 1 }}>
             What-If Calculator
           </Typography>
-          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '15px', color: '#555555' }}>
+          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: '#555555' }}>
             Compare financial returns across {territories.length || '...'} territories at your budget
           </Typography>
         </Box>
@@ -251,10 +251,10 @@ export function WhatIfCalculator() {
             bgcolor: '#FFFFFF', borderRadius: '12px',
             border: '1px solid rgba(0,0,0,0.06)',
             boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-            p: 4, mb: 3,
+            p: { xs: 2, sm: 4 }, mb: 3,
           }}
         >
-          <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>
             {/* Budget Slider */}
             <Box sx={{ flex: 1, minWidth: '240px' }}>
               <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
@@ -325,7 +325,7 @@ export function WhatIfCalculator() {
         </Box>
 
         {/* Production Priority Toggle */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1.5, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', sm: 'flex-end' }, alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
           <Tooltip
             title={
               <Box sx={{ p: 1 }}>
@@ -433,6 +433,8 @@ export function WhatIfCalculator() {
               </Box>
             )}
 
+            {/* Scrollable table — header + body scroll together */}
+            <Box sx={{ overflowX: 'auto' }}>
             {/* Header Row */}
             <Box
               sx={{
@@ -454,8 +456,8 @@ export function WhatIfCalculator() {
               <Box sx={{ width: '80px' }}><Typography sx={headerCellSx}>Score</Typography></Box>
             </Box>
 
-            {/* Scrollable body */}
-            <Box sx={{ overflowX: 'auto' }}>
+            {/* Body rows */}
+            <Box>
               {/* Data Rows */}
               {territories.map((t, index) => {
                 const caVal = caValue(t);
@@ -616,6 +618,7 @@ export function WhatIfCalculator() {
                   </Box>
                 ))}
               </Box>
+            </Box>
             </Box>
           </Box>
         )}

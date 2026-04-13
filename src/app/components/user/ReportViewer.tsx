@@ -243,37 +243,39 @@ export function ReportViewer() {
       {/* Header */}
       <Box sx={{ bgcolor: 'rgba(255, 255, 255, 0.98)', borderBottom: '1px solid rgba(0,0,0,0.1)', py: 2 }}>
         <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <img src={exampleLogo} alt="Prodculator" style={{ height: '32px', cursor: 'pointer' }} onClick={() => navigate('/')} />
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#000000' }}>{analysis.scriptTitle}</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+              <img src={exampleLogo} alt="Prodculator" style={{ height: '32px', cursor: 'pointer', flexShrink: 0 }} onClick={() => navigate('/')} />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#000000', fontSize: { xs: '0.9rem', sm: '1.25rem' }, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{analysis.scriptTitle}</Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)', display: { xs: 'none', sm: 'block' } }}>
                   {isPreview ? 'Free Intelligence Preview' : 'Professional Intelligence Report'} • {new Date(analysis.generatedAt).toLocaleDateString()}
                 </Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               {isPreview && (
-                <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' } }}>
-                  Upgrade to Full
+                <Button size="small" variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                  Upgrade
                 </Button>
               )}
               {!isPreview && pdfUrl && (
                 <>
                   <Button
+                    size="small"
                     variant="outlined"
-                    startIcon={isDownloading ? <CircularProgress size={16} /> : <Download />}
-                    sx={{ color: '#000', borderColor: '#000' }}
+                    startIcon={isDownloading ? <CircularProgress size={14} /> : <Download />}
+                    sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', sm: 'flex' } }}
                     onClick={handleViewPDF}
                     disabled={isDownloading}
                   >
                     View PDF
                   </Button>
                   <Button
+                    size="small"
                     variant="contained"
-                    startIcon={isDownloading ? <CircularProgress size={16} sx={{ color: '#000' }} /> : <Download />}
-                    sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' } }}
+                    startIcon={isDownloading ? <CircularProgress size={14} sx={{ color: '#000' }} /> : <Download />}
+                    sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     onClick={handleDownloadPDF}
                     disabled={isDownloading}
                   >
@@ -283,16 +285,17 @@ export function ReportViewer() {
               )}
               {!isPreview && !pdfUrl && (
                 <Button
+                  size="small"
                   variant="outlined"
-                  startIcon={isGeneratingPDF ? <CircularProgress size={16} /> : <Download />}
-                  sx={{ color: '#000', borderColor: '#000' }}
+                  startIcon={isGeneratingPDF ? <CircularProgress size={14} /> : <Download />}
+                  sx={{ color: '#000', borderColor: '#000', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                   onClick={handleExportPDF}
                   disabled={isGeneratingPDF}
                 >
-                  {isGeneratingPDF ? 'Preparing...' : 'Print/Save PDF'}
+                  {isGeneratingPDF ? 'Preparing...' : 'Save PDF'}
                 </Button>
               )}
-              <Button startIcon={<ArrowBack />} onClick={() => navigate(isPreview ? '/upload' : '/dashboard')} sx={{ color: '#000' }}>
+              <Button size="small" startIcon={<ArrowBack />} onClick={() => navigate(isPreview ? '/upload' : '/dashboard')} sx={{ color: '#000' }}>
                 Back
               </Button>
             </Box>
@@ -300,7 +303,7 @@ export function ReportViewer() {
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
         {isPreview && (
           <Alert severity="warning" sx={{ mb: 4, bgcolor: '#D4AF37', color: '#000', '& .MuiAlert-icon': { color: '#000' } }}>
             This is a <strong>Free Preview</strong>. Access to technical crew costs, comparable production data, and weather logistics is restricted.
@@ -330,7 +333,7 @@ export function ReportViewer() {
             </Tabs>
           </Box>
 
-          <Box sx={{ p: 4 }}>
+          <Box sx={{ p: { xs: 2, sm: 4 } }}>
             {/* Tab 1: Script Summary */}
             <TabPanel value={tabValue} index={0}>
               <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Script Intelligence Summary</Typography>
