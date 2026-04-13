@@ -189,7 +189,7 @@ export function TerritoryComparison() {
           sx={{
             borderColor: '#D4AF37',
             color: '#D4AF37',
-            '&:hover': { borderColor: '#E5C158', color: '#E5C158' },
+            '&:hover': { borderColor: '#D4AF37', color: '#D4AF37' },
             '&.Mui-disabled': { opacity: 0.4 },
           }}
         >

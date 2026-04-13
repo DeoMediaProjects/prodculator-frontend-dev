@@ -333,7 +333,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
             sx={{
               borderColor: '#D4AF37',
               color: '#D4AF37',
-              '&:hover': { borderColor: '#E5C158', bgcolor: 'rgba(212, 175, 55, 0.1)' },
+              '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
               '&.Mui-disabled': { opacity: 0.4 },
             }}
           >
@@ -349,7 +349,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                 bgcolor: '#D4AF37',
                 color: '#000000',
                 fontWeight: 600,
-                '&:hover': { bgcolor: '#E5C158' },
+                '&:hover': { bgcolor: '#D4AF37' },
               }}
             >
               Add Milestone
@@ -393,7 +393,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                   sx={{
                     borderColor: '#D4AF37',
                     color: '#D4AF37',
-                    '&:hover': { borderColor: '#E5C158', bgcolor: 'rgba(212, 175, 55, 0.1)' },
+                    '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
                   }}
                 >
                   Generate from "{r.title}"
@@ -653,7 +653,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
             disabled={!newMilestoneTitle.trim()}
             sx={{
               bgcolor: '#D4AF37', color: '#000000', fontWeight: 600,
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
               '&:disabled': { bgcolor: 'rgba(212, 175, 55, 0.3)', color: 'rgba(0,0,0,0.5)' },
             }}
           >
@@ -705,7 +705,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
             disabled={!newTaskText.trim()}
             sx={{
               bgcolor: '#D4AF37', color: '#000000', fontWeight: 600,
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
               '&:disabled': { bgcolor: 'rgba(212, 175, 55, 0.3)', color: 'rgba(0,0,0,0.5)' },
             }}
           >

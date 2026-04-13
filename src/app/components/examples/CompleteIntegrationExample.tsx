@@ -155,7 +155,7 @@ export function CompleteIntegrationExample() {
               py: 1.5,
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
               '&:disabled': {
                 bgcolor: '#666666',
@@ -182,7 +182,7 @@ export function CompleteIntegrationExample() {
                 py: 1.5,
                 fontWeight: 600,
                 '&:hover': {
-                  borderColor: '#E5C158',
+                  borderColor: '#D4AF37',
                   bgcolor: 'rgba(212, 175, 55, 0.1)',
                 },
               }}

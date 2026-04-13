@@ -206,7 +206,7 @@ function IncentiveDataManagerContent(_props?: any) {
               borderColor: '#D4AF37',
               color: '#D4AF37',
               '&:hover': {
-                borderColor: '#E5C158',
+                borderColor: '#D4AF37',
                 bgcolor: 'rgba(212, 175, 55, 0.08)',
               },
             }}
@@ -222,7 +222,7 @@ function IncentiveDataManagerContent(_props?: any) {
               color: '#000000',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
             }}
           >
@@ -263,7 +263,7 @@ function IncentiveDataManagerContent(_props?: any) {
               sx={{
                 bgcolor: '#D4AF37',
                 color: '#000000',
-                '&:hover': { bgcolor: '#E5C158' },
+                '&:hover': { bgcolor: '#D4AF37' },
               }}
             >
               {syncing ? 'Syncing...' : 'Run Sync Now'}
@@ -544,7 +544,7 @@ function IncentiveDataManagerContent(_props?: any) {
                             alignItems: 'center',
                             gap: 0.5,
                             fontSize: '0.875rem',
-                            '&:hover': { color: '#E5C158' },
+                            '&:hover': { color: '#D4AF37' },
                           }}
                         >
                           Official Source
@@ -659,7 +659,7 @@ function IncentiveDataManagerContent(_props?: any) {
                             alignItems: 'center',
                             gap: 0.5,
                             textDecoration: 'none',
-                            '&:hover': { color: '#E5C158' },
+                            '&:hover': { color: '#D4AF37' },
                           }}
                         >
                           {incentive.sourceUrl}
@@ -702,7 +702,7 @@ function IncentiveDataManagerContent(_props?: any) {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             Save Settings
@@ -781,7 +781,7 @@ function IncentiveDataManagerContent(_props?: any) {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             Save

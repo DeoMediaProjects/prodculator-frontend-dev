@@ -171,7 +171,7 @@ export function AdminLogin() {
                 py: 1.5,
                 fontSize: '1.1rem',
                 '&:hover': {
-                  bgcolor: '#E5C158',
+                  bgcolor: '#D4AF37',
                 },
                 '&:disabled': {
                   bgcolor: '#666',

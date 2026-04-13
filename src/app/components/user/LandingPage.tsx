@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router';
 import {
   CloudUpload,
   Assignment,
+  Instagram,
+  Facebook,
+  LinkedIn,
+  Twitter,
 } from '@mui/icons-material';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import grantifyBanner from '@/assets/524910a57dfd11f1e00b5b105577b194b5ba8e33.png';
-const instagramIcon = '';
-const linkedinIcon = '';
-const facebookIcon = '';
-const xIcon = '';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export function LandingPage() {
@@ -38,13 +38,13 @@ export function LandingPage() {
         sx={{ 
           bgcolor: '#ffffff',
           borderBottom: '1px solid rgba(0,0,0,0.1)',
-          py: 2,
+          py: 3,
           position: 'relative',
           zIndex: 10,
         }}
       >
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Container maxWidth="xl" >
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <img 
                 src={exampleLogo} 
@@ -109,7 +109,7 @@ export function LandingPage() {
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
-                        borderColor: '#E5C158',
+                        borderColor: '#D4AF37',
                         bgcolor: 'rgba(212, 175, 55, 0.08)',
                       }
                     }}
@@ -137,7 +137,7 @@ export function LandingPage() {
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
-                        bgcolor: '#E5C158',
+                        bgcolor: '#D4AF37',
                       }
                     }}
                   >
@@ -156,7 +156,7 @@ export function LandingPage() {
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
-                        borderColor: '#E5C158',
+                        borderColor: '#D4AF37',
                         bgcolor: 'rgba(212, 175, 55, 0.08)',
                       }
                     }}
@@ -173,7 +173,7 @@ export function LandingPage() {
                       px: { xs: 2, md: 3 },
                       textTransform: 'none',
                       '&:hover': {
-                        bgcolor: '#E5C158',
+                        bgcolor: '#D4AF37',
                       }
                     }}
                   >
@@ -182,21 +182,20 @@ export function LandingPage() {
                 </>
               )}
               <Button
-                variant="text"
-                size="small"
-                onClick={() => navigate('/admin/login')}
-                sx={{
-                  color: '#888888',
-                  fontSize: '0.75rem',
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  '&:hover': {
-                    color: '#000000',
-                    bgcolor: 'rgba(0,0,0,0.05)',
-                  },
-                }}
+                variant="contained"
+                    onClick={() => navigate('/signup')}
+                    sx={{ 
+                      bgcolor: '#D4AF37',
+                      color: '#000000',
+                      fontWeight: 600,
+                      px: { xs: 2, md: 3 },
+                      textTransform: 'none',
+                      '&:hover': {
+                        bgcolor: '#D4AF37',
+                      }
+                    }}
               >
-                Admin Login
+                Admin 
               </Button>
             </Box>
           </Box>
@@ -316,55 +315,7 @@ export function LandingPage() {
                 See Sample Report
               </Button>
             </Box>
-
-            {/* Grantify Partnership Banner */}
-            <Box
-              sx={{
-                mt: 6,
-                p: '16px 24px',
-                bgcolor: '#FDB913',
-                border: '1px solid rgba(0,0,0,0.2)',
-                borderRadius: '8px',
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 2,
-                maxWidth: '700px',
-                mx: 'auto',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                <img 
-                  src={grantifyBanner}
-                  alt="In partnership with Grantify" 
-                  style={{ 
-                    height: '30px',
-                    width: 'auto',
-                  }} 
-                />
-              </Box>
-              <Box sx={{ textAlign: { xs: 'center', sm: 'right' } }}>
-                <Typography sx={{ fontSize: 12, color: '#000000' }}>
-                  To partner with us email{' '}
-                  <Typography 
-                    component="a" 
-                    href="mailto:partners@prodculator.com"
-                    sx={{ 
-                      fontSize: 12,
-                      fontWeight: 600, 
-                      color: '#D4AF37',
-                      textDecoration: 'none',
-                      '&:hover': {
-                        textDecoration: 'underline',
-                      }
-                    }}
-                  >
-                    partners@prodculator.com
-                  </Typography>
-                </Typography>
-              </Box>
-            </Box>
+      
           </Box>
         </Container>
       </Box>
@@ -374,143 +325,143 @@ export function LandingPage() {
         sx={{
           position: 'relative',
           zIndex: 1,
-          bgcolor: '#1a1a1a',
-          borderTop: '1px solid rgba(212, 175, 55, 0.2)',
-          py: 4,
+          bgcolor: '#c8a327ff',
+          py: 3,
+          mt: 1,
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
+          {/* Main footer row */}
           <Box
             sx={{
               display: 'flex',
               flexDirection: { xs: 'column', md: 'row' },
               justifyContent: 'space-between',
               alignItems: { xs: 'center', md: 'flex-start' },
-              gap: 3,
+              gap: 4,
+              mb: 2,
             }}
           >
-            {/* Logo & Copyright */}
-            <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-              <img 
-                src={exampleLogo} 
-                alt="Prodculator" 
-                style={{ height: '35px', width: 'auto', marginBottom: '12px' }}
+            {/* Logo + Partnership */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: { xs: 'center', md: 'flex-start' } }}>
+              <img
+                src={exampleLogo}
+                alt="Prodculator"
+                style={{ height: '40px', width: 'auto',  }}
               />
-              <Typography sx={{ fontSize: 13, color: '#a0a0a0' }}>
-                © 2026 Prodculator. All rights reserved.
-              </Typography>
+              <img
+                src={grantifyBanner}
+                alt="In partnership with Grantify"
+                style={{ height: '60px', width: '250px', marginTop: '90px' }}
+              />
             </Box>
 
             {/* Contact & Social */}
             <Box sx={{ textAlign: { xs: 'center', md: 'right' } }}>
-              <Typography sx={{ fontSize: 14, color: '#D4AF37', fontWeight: 600, mb: 1.5 }}>
-                Get in Touch
+              <Typography sx={{ fontSize: 13, fontWeight: 800, color: '#000000', mb: 1.5, letterSpacing: '0.08em' }}>
+                GET IN TOUCH
               </Typography>
-              <Typography sx={{ fontSize: 13, color: '#ffffff', mb: 0.5 }}>
-                General:{' '}
-                <Typography
+              <Typography sx={{ fontSize: 13, color: '#000000', mb: 0.5 }}>
+                <Box component="span" sx={{ fontWeight: 700 }}>General:</Box>{' '}
+                <Box
                   component="a"
                   href="mailto:contact@prodculator.com"
                   sx={{
-                    color: '#D4AF37',
+                    color: '#000000',
+                    fontWeight: 700,
                     textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' }
+                    '&:hover': { textDecoration: 'underline' },
                   }}
                 >
                   contact@prodculator.com
-                </Typography>
+                </Box>
               </Typography>
-              <Typography sx={{ fontSize: 13, color: '#ffffff', mb: 2 }}>
-                Partnerships:{' '}
-                <Typography
+              <Typography sx={{ fontSize: 13, color: '#000000', mb: 1.5 }}>
+                <Box component="span" sx={{ fontWeight: 700 }}>Partnerships:</Box>{' '}
+                <Box
                   component="a"
                   href="mailto:partners@prodculator.com"
                   sx={{
-                    color: '#D4AF37',
+                    color: '#000000',
+                    fontWeight: 700,
                     textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' }
+                    '&:hover': { textDecoration: 'underline' },
                   }}
                 >
                   partners@prodculator.com
-                </Typography>
+                </Box>
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: '#000000', lineHeight: 1.7 }}>
+                Springhead Road<br />
+                Northfleet, Kent<br />
+                United Kingdom, DA11 8HN
               </Typography>
 
               {/* Social Media Icons */}
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: { xs: 'center', md: 'flex-end' } }}>
+              <Box sx={{ display: 'flex', gap: 1.5, justifyContent: { xs: 'center', md: 'flex-end' }, mt: 2 }}>
+                {[
+                  { href: 'https://www.instagram.com/prodculator/', icon: <Instagram sx={{ fontSize: 28, color: '#000000' }} />, label: 'Instagram' },
+                  { href: 'https://www.facebook.com/prodculator', icon: <Facebook sx={{ fontSize: 28, color: '#000000' }} />, label: 'Facebook' },
+                  { href: 'https://www.linkedin.com/company/prodculator/', icon: <LinkedIn sx={{ fontSize: 28, color: '#000000' }} />, label: 'LinkedIn' },
+                  { href: 'https://x.com/prodculator', icon: <Twitter sx={{ fontSize: 28, color: '#000000' }} />, label: 'X' },
+                ].map(({ href, icon, label }) => (
+                  <Box
+                    key={label}
+                    component="a"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      '&:hover': { opacity: 0.6 },
+                      transition: 'opacity 0.2s',
+                    }}
+                  >
+                    {icon}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Sub-footer row */}
+          <Box
+            sx={{
+              borderTop: '1px solid rgba(0,0,0,0.15)',
+              pt: 3,
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+            }}
+          >
+            {/* Terms */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: { xs: 'center', sm: 'flex-start' } }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box
                   component="a"
-                  href="https://www.instagram.com/prodculator/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    '&:hover': { opacity: 0.7 },
-                    transition: 'opacity 0.2s',
-                  }}
+                  href="/terms"
+                  sx={{ fontSize: 13, color: '#000000', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                 >
-                  <img 
-                    src={instagramIcon}
-                    alt="Instagram" 
-                    style={{ height: '24px', width: 'auto' }} 
-                  />
+                  Terms of Service
                 </Box>
                 <Box
                   component="a"
-                  href="https://www.facebook.com/prodculator"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    '&:hover': { opacity: 0.7 },
-                    transition: 'opacity 0.2s',
-                  }}
+                  href="/privacy"
+                  sx={{ fontSize: 13, color: '#000000', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                 >
-                  <img 
-                    src={facebookIcon}
-                    alt="Facebook" 
-                    style={{ height: '24px', width: 'auto' }} 
-                  />
-                </Box>
-                <Box
-                  component="a"
-                  href="https://www.linkedin.com/company/prodculator/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    '&:hover': { opacity: 0.7 },
-                    transition: 'opacity 0.2s',
-                  }}
-                >
-                  <img 
-                    src={linkedinIcon}
-                    alt="LinkedIn" 
-                    style={{ height: '24px', width: 'auto' }} 
-                  />
-                </Box>
-                <Box
-                  component="a"
-                  href="https://x.com/prodculator"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    '&:hover': { opacity: 0.7 },
-                    transition: 'opacity 0.2s',
-                  }}
-                >
-                  <img 
-                    src={xIcon}
-                    alt="X" 
-                    style={{ height: '24px', width: 'auto' }} 
-                  />
+                  Privacy Policy
                 </Box>
               </Box>
             </Box>
+
+            {/* Copyright */}
+            <Typography sx={{ fontSize: 13, color: '#000000', textAlign: { xs: 'center', sm: 'right' } }}>
+              © 2026 PRODCULATOR. All rights reserved.
+            </Typography>
           </Box>
         </Container>
       </Box>

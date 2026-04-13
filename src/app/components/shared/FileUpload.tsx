@@ -368,7 +368,7 @@ export function CompactFileUpload({
           opacity: disabled ? 0.5 : 1,
           transition: 'all 0.2s',
           '&:hover': {
-            bgcolor: variant === 'contained' ? '#E5C158' : 'rgba(212, 175, 55, 0.1)',
+            bgcolor: variant === 'contained' ? '#D4AF37' : 'rgba(212, 175, 55, 0.1)',
           },
         }}
       >

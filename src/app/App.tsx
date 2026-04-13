@@ -66,7 +66,7 @@ const theme = createTheme({
       contrastText: '#000000',
     },
     secondary: {
-      main: '#FFD700', // Bright gold
+      main: '#D4AF37', // Bright gold
       light: '#FFE55C',
       dark: '#CCAC00',
       contrastText: '#000000',
@@ -81,7 +81,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     h1: {
       fontSize: '3.5rem',
       fontWeight: 700,
@@ -143,7 +143,7 @@ const theme = createTheme({
           borderColor: '#D4AF37',
           color: '#D4AF37',
           '&:hover': {
-            borderColor: '#FFD700',
+            borderColor: '#D4AF37',
             backgroundColor: 'rgba(212, 175, 55, 0.08)',
           },
         },

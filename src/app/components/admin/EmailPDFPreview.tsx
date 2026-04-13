@@ -18,7 +18,6 @@ import {
   Download,
   Visibility,
   CheckCircle,
-  Warning,
 } from '@mui/icons-material';
 
 /**
@@ -48,7 +47,7 @@ export function EmailPDFPreview() {
         {/* Main Tabs */}
         <Tabs
           value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
+          onChange={(_e, newValue) => setActiveTab(newValue)}
           sx={{
             mb: 3,
             '& .MuiTab-root': {
@@ -94,7 +93,7 @@ export function EmailPDFPreview() {
                       fontWeight: 600,
                       cursor: 'pointer',
                       '&:hover': {
-                        bgcolor: emailPreview === type.id ? '#E5C158' : 'rgba(212, 175, 55, 0.2)',
+                        bgcolor: emailPreview === type.id ? '#D4AF37' : 'rgba(212, 175, 55, 0.2)',
                       },
                     }}
                   />
@@ -188,7 +187,7 @@ export function EmailPDFPreview() {
                         px: 4,
                         py: 1.5,
                         '&:hover': {
-                          bgcolor: '#E5C158',
+                          bgcolor: '#D4AF37',
                         },
                       }}
                     >
@@ -542,7 +541,7 @@ export function EmailPDFPreview() {
               borderColor: '#D4AF37',
               color: '#D4AF37',
               '&:hover': {
-                borderColor: '#E5C158',
+                borderColor: '#D4AF37',
                 bgcolor: 'rgba(212, 175, 55, 0.08)',
               },
             }}
@@ -557,7 +556,7 @@ export function EmailPDFPreview() {
               color: '#000000',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
             }}
           >

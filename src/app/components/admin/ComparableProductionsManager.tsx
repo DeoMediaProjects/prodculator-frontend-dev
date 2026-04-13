@@ -160,7 +160,7 @@ function ComparableProductionsManagerContent() {
               borderColor: '#D4AF37',
               color: '#D4AF37',
               '&:hover': {
-                borderColor: '#E5C158',
+                borderColor: '#D4AF37',
                 bgcolor: 'rgba(212, 175, 55, 0.08)',
               },
             }}
@@ -176,7 +176,7 @@ function ComparableProductionsManagerContent() {
               color: '#000000',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
             }}
           >
@@ -366,7 +366,7 @@ function ComparableProductionsManagerContent() {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             {editingProduction ? 'Update' : 'Add'} Production

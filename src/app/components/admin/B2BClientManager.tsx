@@ -245,7 +245,7 @@ export function B2BClientManager() {
   const getPlanColor = (plan: B2BClient['plan']) => {
     switch (plan) {
       case 'enterprise':
-        return '#FFD700';
+        return '#D4AF37';
       case 'professional':
         return '#d4af37';
       case 'starter':
@@ -259,7 +259,7 @@ export function B2BClientManager() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: '#FFD700' }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37' }}>
           B2B Client Management
         </Typography>
         <Button
@@ -267,7 +267,7 @@ export function B2BClientManager() {
           startIcon={<Add />}
           onClick={() => handleOpenDialog()}
           sx={{
-            bgcolor: '#FFD700',
+            bgcolor: '#D4AF37',
             color: '#000',
             '&:hover': { bgcolor: '#d4af37' },
           }}
@@ -298,7 +298,7 @@ export function B2BClientManager() {
           <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
             <CardContent>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ color: '#FFD700' }}><MonetizationOn /></Box>
+                <Box sx={{ color: '#D4AF37' }}><MonetizationOn /></Box>
                 <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
                   ${stats.totalRevenue.toLocaleString()}/mo
                 </Typography>
@@ -351,8 +351,8 @@ export function B2BClientManager() {
           sx={{
             borderBottom: '1px solid #333',
             '& .MuiTab-root': { color: '#999' },
-            '& .Mui-selected': { color: '#FFD700' },
-            '& .MuiTabs-indicator': { bgcolor: '#FFD700' },
+            '& .Mui-selected': { color: '#D4AF37' },
+            '& .MuiTabs-indicator': { bgcolor: '#D4AF37' },
           }}
         >
           <Tab label="All Clients" />
@@ -410,7 +410,7 @@ export function B2BClientManager() {
         fullWidth
         PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid #333' } }}
       >
-        <DialogTitle sx={{ color: '#FFD700', fontWeight: 700 }}>
+        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>
           {selectedClient ? 'Edit Client' : 'Add New Client'}
         </DialogTitle>
         <DialogContent>
@@ -536,7 +536,7 @@ export function B2BClientManager() {
           <Button
             onClick={handleSaveClient}
             variant="contained"
-            sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
+            sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
           >
             Save
           </Button>
@@ -551,7 +551,7 @@ export function B2BClientManager() {
         fullWidth
         PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid #333' } }}
       >
-        <DialogTitle sx={{ color: '#FFD700', fontWeight: 700 }}>API Access</DialogTitle>
+        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>API Access</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
             <Alert severity="info" sx={{ bgcolor: 'rgba(33, 150, 243, 0.1)' }}>
@@ -587,7 +587,7 @@ export function B2BClientManager() {
           </Button>
           <Button
             variant="contained"
-            sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
+            sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
           >
             Regenerate Key
           </Button>
@@ -602,7 +602,7 @@ export function B2BClientManager() {
         fullWidth
         PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid #333' } }}
       >
-        <DialogTitle sx={{ color: '#FFD700', fontWeight: 700 }}>Send Test Report</DialogTitle>
+        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>Send Test Report</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
             <Typography sx={{ color: '#999' }}>
@@ -631,7 +631,7 @@ export function B2BClientManager() {
           <Button
             variant="contained"
             startIcon={<Send />}
-            sx={{ bgcolor: '#FFD700', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
+            sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
           >
             Send Report
           </Button>
@@ -694,15 +694,15 @@ function ClientsTable({
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Company</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Contact</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Plan</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Usage</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Auto-Delivery</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Territory</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Last Active</TableCell>
-            <TableCell sx={{ color: '#FFD700', fontWeight: 700 }}>Actions</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Company</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Contact</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Plan</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Status</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Usage</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Auto-Delivery</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Territory</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Last Active</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -789,7 +789,7 @@ function ClientsTable({
               <TableCell>
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                   <Tooltip title="View API Key">
-                    <IconButton size="small" onClick={() => onViewApiKey(client)} sx={{ color: '#FFD700' }}>
+                    <IconButton size="small" onClick={() => onViewApiKey(client)} sx={{ color: '#D4AF37' }}>
                       <VpnKey fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -822,7 +822,7 @@ function ClientsTable({
 function ApiAccessPanel({ clients }: { clients: B2BClient[] }) {
   return (
     <Box>
-      <Typography variant="h6" sx={{ color: '#FFD700', mb: 2 }}>
+      <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2 }}>
         API Documentation & Access
       </Typography>
       <Grid container spacing={3}>
@@ -830,7 +830,7 @@ function ApiAccessPanel({ clients }: { clients: B2BClient[] }) {
           <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid #333' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Api sx={{ color: '#FFD700' }} />
+                <Api sx={{ color: '#D4AF37' }} />
                 <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>
                   API Endpoints
                 </Typography>
@@ -880,7 +880,7 @@ function ApiAccessPanel({ clients }: { clients: B2BClient[] }) {
           <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid #333' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Assessment sx={{ color: '#FFD700' }} />
+                <Assessment sx={{ color: '#D4AF37' }} />
                 <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>
                   Usage Statistics
                 </Typography>
@@ -910,7 +910,7 @@ function ApiAccessPanel({ clients }: { clients: B2BClient[] }) {
           <strong>API Authentication:</strong>
         </Typography>
         <Typography variant="body2" sx={{ color: '#999' }}>
-          All API requests must include the header: <code style={{ color: '#FFD700' }}>Authorization: Bearer YOUR_API_KEY</code>
+          All API requests must include the header: <code style={{ color: '#D4AF37' }}>Authorization: Bearer YOUR_API_KEY</code>
         </Typography>
       </Alert>
     </Box>

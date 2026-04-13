@@ -245,7 +245,7 @@ export function AdminUsersManager() {
             bgcolor: '#D4AF37',
             color: '#000000',
             fontWeight: 600,
-            '&:hover': { bgcolor: '#E5C158' },
+            '&:hover': { bgcolor: '#D4AF37' },
           }}
         >
           Add Admin
@@ -511,7 +511,7 @@ export function AdminUsersManager() {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             {saving ? <CircularProgress size={20} sx={{ color: '#000' }} /> : 'Add Admin'}
@@ -583,7 +583,7 @@ export function AdminUsersManager() {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             Done
@@ -665,7 +665,7 @@ export function AdminUsersManager() {
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
-              '&:hover': { bgcolor: '#E5C158' },
+              '&:hover': { bgcolor: '#D4AF37' },
             }}
           >
             {saving ? <CircularProgress size={20} sx={{ color: '#000' }} /> : 'Save Changes'}

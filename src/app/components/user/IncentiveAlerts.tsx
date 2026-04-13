@@ -264,7 +264,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
             borderColor: '#D4AF37',
             color: '#D4AF37',
             '&:hover': {
-              borderColor: '#E5C158',
+              borderColor: '#D4AF37',
               bgcolor: 'rgba(212, 175, 55, 0.1)',
             },
           }}
@@ -722,7 +722,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
                             color: '#D4AF37',
                             fontWeight: 600,
                             '&:hover': {
-                              borderColor: '#E5C158',
+                              borderColor: '#D4AF37',
                               bgcolor: 'rgba(212, 175, 55, 0.1)',
                             },
                           }}
@@ -881,7 +881,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
               color: '#000000',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#E5C158',
+                bgcolor: '#D4AF37',
               },
             }}
           >
@@ -1210,7 +1210,7 @@ function FestivalDeadlinesSection({ userPlan }: { userPlan: 'free' | 'profession
                             color: '#D4AF37',
                             fontWeight: 600,
                             '&:hover': {
-                              borderColor: '#E5C158',
+                              borderColor: '#D4AF37',
                               bgcolor: 'rgba(212, 175, 55, 0.1)',
                             },
                           }}
@@ -1238,7 +1238,7 @@ function FestivalDeadlinesSection({ userPlan }: { userPlan: 'free' | 'profession
                             color: '#D4AF37',
                             fontWeight: 600,
                             '&:hover': {
-                              borderColor: '#E5C158',
+                              borderColor: '#D4AF37',
                               bgcolor: 'rgba(212, 175, 55, 0.1)',
                             },
                           }}

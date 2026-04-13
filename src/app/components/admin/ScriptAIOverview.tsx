@@ -243,8 +243,8 @@ export function ScriptAIOverview() {
                   color: currencyView === cv ? '#000000' : '#D4AF37',
                   bgcolor: currencyView === cv ? '#D4AF37' : 'transparent',
                   '&:hover': {
-                    borderColor: '#E5C158',
-                    bgcolor: currencyView === cv ? '#E5C158' : 'rgba(212, 175, 55, 0.08)',
+                    borderColor: '#D4AF37',
+                    bgcolor: currencyView === cv ? '#D4AF37' : 'rgba(212, 175, 55, 0.08)',
                   },
                 }}
               >
@@ -380,7 +380,7 @@ export function ScriptAIOverview() {
                 borderColor: '#D4AF37',
                 color: '#D4AF37',
                 '&:hover': {
-                  borderColor: '#E5C158',
+                  borderColor: '#D4AF37',
                   bgcolor: 'rgba(212, 175, 55, 0.08)',
                 },
               }}
