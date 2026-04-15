@@ -20,6 +20,7 @@ import { SampleReport } from '../app/components/user/SampleReport';
 import { UserDashboard } from '../app/components/user/UserDashboard';
 import { TerritoryComparison } from '../app/components/user/TerritoryComparison';
 import { WhatIfCalculator } from '../app/components/user/WhatIfCalculator';
+import { PublicWhatIfCalculator } from '../app/components/user/PublicWhatIfCalculator';
 
 // Static Pages
 import { FAQ } from '../app/pages/FAQ';
@@ -223,6 +224,7 @@ function AppContent() {
                   <Route path="/b2b" element={<B2BSolutions />} />
                   <Route path="/tools/comparison" element={<TerritoryComparison />} />
                   <Route path="/tools/what-if" element={<WhatIfCalculator />} />
+                  <Route path="/what-if" element={<PublicWhatIfCalculator />} />
 
                   {/* Admin Routes */}
                   <Route path="/admin/login" element={<AdminLogin />} />

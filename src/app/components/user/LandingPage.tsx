@@ -313,12 +313,12 @@ export function LandingPage() {
               >
                 Upload Script
               </Button>
-              <Button 
+              <Button
                 variant="contained"
                 size="large"
                 onClick={() => navigate('/sample')}
                 startIcon={<Assignment />}
-                sx={{ 
+                sx={{
                   bgcolor: '#ffffff',
                   color: '#000000',
                   fontWeight: 600,
@@ -334,6 +334,36 @@ export function LandingPage() {
               >
                 See Sample Report
               </Button>
+              {!isAuthenticated && (
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate('/what-if')}
+                  sx={{
+                    borderColor: '#D4AF37',
+                    color: '#D4AF37',
+                    fontWeight: 600,
+                    px: 4,
+                    py: 1.5,
+                    fontSize: { xs: '0.9rem', md: '1rem' },
+                    textTransform: 'none',
+                    borderRadius: '4px',
+                    animation: 'ctaGlow 2s ease-in-out infinite',
+                    '@keyframes ctaGlow': {
+                      '0%, 100%': { boxShadow: '0 0 6px 1px rgba(212, 175, 55, 0.2)', borderColor: '#D4AF37' },
+                      '50%': { boxShadow: '0 0 22px 8px rgba(212, 175, 55, 0.65)', borderColor: '#F5D76E' },
+                    },
+                    '&:hover': {
+                      borderColor: '#F5D76E',
+                      bgcolor: 'rgba(212, 175, 55, 0.1)',
+                      animation: 'none',
+                      boxShadow: '0 0 26px 10px rgba(212, 175, 55, 0.7)',
+                    }
+                  }}
+                >
+                  Try What-If Calculator
+                </Button>
+              )}
             </Box>
       
           </Box>
