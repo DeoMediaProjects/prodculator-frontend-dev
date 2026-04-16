@@ -83,8 +83,9 @@ export function convertPrice(usdPrice: number, isUK: boolean): number {
   // Conversion rates (approximate)
   const conversionMap: { [key: number]: number } = {
     0: 0,
-    71: 57,   // $71 USD → £57 GBP
-    299: 239, // $299 USD → £239 GBP
+    61: 49,   // $61 USD → £49 GBP (Professional monthly)
+    71: 57,   // $71 USD → £57 GBP (legacy single report)
+    299: 239, // $299 USD → £239 GBP (Studio monthly)
   };
   
   return conversionMap[usdPrice] || Math.round(usdPrice * 0.79);

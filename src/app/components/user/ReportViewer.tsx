@@ -45,6 +45,7 @@ import { useScript, mapReportToAnalysis } from '@/app/contexts/ScriptContext';
 import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/report-pdf.service';
 import { apiClient } from '@/services/api';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+import { usePlanGate } from '@/app/hooks/usePlanGate';
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   return <div hidden={value !== index} style={{ height: '100%' }}>{value === index && <Box sx={{ py: 3 }}>{children}</Box>}</div>;
@@ -62,7 +63,8 @@ export function ReportViewer() {
   const [isFetchingReport, setIsFetchingReport] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const isPreview = location.pathname.includes('preview');
+  const { isFree } = usePlanGate();
+  const isPreview = isFree || location.pathname.includes('preview');
 
   useEffect(() => {
     window.scrollTo(0, 0);

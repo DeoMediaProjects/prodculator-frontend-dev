@@ -17,6 +17,7 @@ export const getStripe = () => {
 };
 
 export const STRIPE_PRICES = {
+  // Legacy one-time prices — kept for backwards compat, no longer used in UI
   singleReportUSD: {
     priceId: 'price_1Sx84yLcLlewla5EUHVXBQY',
     amount: 7100,
@@ -29,6 +30,22 @@ export const STRIPE_PRICES = {
     currency: 'gbp',
     name: 'Single Script Report (GBP)',
   },
+  // Professional monthly subscription
+  professionalMonthlyUSD: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_USD || '',
+    amount: 6100,
+    currency: 'usd',
+    name: 'Professional Monthly (USD)',
+    reportLimit: 3,
+  },
+  professionalMonthlyGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_GBP || '',
+    amount: 4900,
+    currency: 'gbp',
+    name: 'Professional Monthly (GBP)',
+    reportLimit: 3,
+  },
+  // Studio monthly subscription
   studioMonthlyUSD: {
     priceId: 'price_1Sx8AfLcLlewla5Exif5R15n',
     amount: 29900,
@@ -75,12 +92,13 @@ export async function redirectToCheckout(checkoutUrl: string) {
 export async function createSubscriptionCheckout(
   priceId: string,
   _userEmail: string,
-  _userId: string
+  _userId: string,
+  planType: string = 'professional'
 ): Promise<{ sessionId: string; url?: string; error?: string }> {
   try {
     const data = await apiClient.post<{ session_id: string; url: string }>(
       '/api/payments/subscription-checkout',
-      { price_id: priceId },
+      { price_id: priceId, plan_type: planType },
       { auth: true }
     );
     return { sessionId: data.session_id, url: data.url };

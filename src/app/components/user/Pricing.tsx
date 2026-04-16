@@ -24,11 +24,10 @@ import {
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useGeoCurrency, convertPrice } from '@/app/hooks/useGeoCurrency';
-import { 
-  STRIPE_PRICES, 
-  createCheckoutSession, 
-  createSubscriptionCheckout, 
-  redirectToCheckout 
+import {
+  STRIPE_PRICES,
+  createSubscriptionCheckout,
+  redirectToCheckout
 } from '@/services/stripe.service';
 import { useSnackbar } from 'notistack';
 
@@ -39,7 +38,7 @@ export function Pricing() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
 
-  const handlePlanClick = async (planName: string, planType: 'free' | 'single' | 'studio') => {
+  const handlePlanClick = async (planName: string, planType: 'free' | 'professional' | 'studio') => {
     // Free plan - just navigate to upload
     if (planType === 'free') {
       navigate('/upload');
@@ -56,21 +55,25 @@ export function Pricing() {
     setLoadingPlan(planName);
 
     try {
-      if (planType === 'single') {
-        // One-time payment for Single Script Report
-        const priceId = isUK 
-          ? STRIPE_PRICES.singleReportGBP.priceId 
-          : STRIPE_PRICES.singleReportUSD.priceId;
-        
-        const { url, error } = await createCheckoutSession(priceId, userEmail);
-        
+      if (planType === 'professional') {
+        // Subscription for Professional Plan
+        const priceId = isUK
+          ? STRIPE_PRICES.professionalMonthlyGBP.priceId
+          : STRIPE_PRICES.professionalMonthlyUSD.priceId;
+
+        const { url, error } = await createSubscriptionCheckout(
+          priceId,
+          userEmail,
+          user?.email || '',
+          'professional'
+        );
+
         if (error) {
           enqueueSnackbar(`Payment error: ${error}`, { variant: 'error' });
           console.error('Checkout error:', error);
           return;
         }
 
-        // Redirect to Stripe Checkout
         if (url) {
           await redirectToCheckout(url);
         } else {
@@ -78,23 +81,23 @@ export function Pricing() {
         }
       } else if (planType === 'studio') {
         // Subscription for Studio Plan
-        const priceId = isUK 
-          ? STRIPE_PRICES.studioMonthlyGBP.priceId 
+        const priceId = isUK
+          ? STRIPE_PRICES.studioMonthlyGBP.priceId
           : STRIPE_PRICES.studioMonthlyUSD.priceId;
-        
+
         const { url, error } = await createSubscriptionCheckout(
-          priceId, 
-          userEmail, 
-          user?.email || ''
+          priceId,
+          userEmail,
+          user?.email || '',
+          'studio'
         );
-        
+
         if (error) {
           enqueueSnackbar(`Payment error: ${error}`, { variant: 'error' });
           console.error('Subscription error:', error);
           return;
         }
 
-        // Redirect to Stripe Checkout
         if (url) {
           await redirectToCheckout(url);
         } else {
@@ -145,7 +148,7 @@ export function Pricing() {
       ],
       cta: 'Start Professional',
       popular: true,
-      planType: 'single' as const,
+      planType: 'professional' as const,
     },
     {
       name: 'Studio',

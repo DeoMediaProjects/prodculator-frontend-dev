@@ -49,6 +49,9 @@ import { BusinessMetrics } from '../app/components/admin/BusinessMetrics';
 import { ScriptAIOverview } from '../app/components/admin/ScriptAIOverview';
 import { ProductionIntelligence } from '../app/components/admin/ProductionIntelligence';
 
+// Route Protection
+import { ProtectedRoute } from '../app/components/common/ProtectedRoute';
+
 // Test Pages
 import { ScriptAnalysisTester } from '../app/pages/ScriptAnalysisTester';
 import { PDFReportPreview } from '../app/pages/PDFReportPreview';
@@ -223,7 +226,7 @@ function AppContent() {
                   <Route path="/acceptable-use" element={<AcceptableUse />} />
                   <Route path="/b2b" element={<B2BSolutions />} />
                   <Route path="/tools/comparison" element={<TerritoryComparison />} />
-                  <Route path="/tools/what-if" element={<WhatIfCalculator />} />
+                  <Route path="/tools/what-if" element={<ProtectedRoute plan="professional"><WhatIfCalculator /></ProtectedRoute>} />
                   <Route path="/what-if" element={<PublicWhatIfCalculator />} />
 
                   {/* Admin Routes */}

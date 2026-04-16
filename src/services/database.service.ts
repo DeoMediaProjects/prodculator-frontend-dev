@@ -22,7 +22,7 @@ export interface Subscription {
   id: string;
   user_id: string;
   status: string;
-  plan_type?: 'free' | 'single' | 'studio';
+  plan_type?: 'free' | 'single' | 'professional' | 'studio';
   report_limit?: number;
   current_period_start?: string;
   current_period_end?: string;

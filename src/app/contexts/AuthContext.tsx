@@ -17,9 +17,17 @@ export interface AdminPermissions {
   canViewPlatformEconomics: boolean;
 }
 
+type PlanType = 'free' | 'single' | 'professional' | 'studio';
+
+/** Normalize legacy 'single' plan name to 'professional'. */
+function normalizePlan(plan: string | undefined): PlanType {
+  if (plan === 'single') return 'professional';
+  return (plan as PlanType) || 'free';
+}
+
 interface User {
   email: string;
-  plan: 'free' | 'single' | 'studio';
+  plan: PlanType;
   reportsUsed: number;
   reportsLimit: number;
 }
@@ -128,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUser && currentUser.user_type !== 'admin') {
         setUser({
           email: currentUser.email,
-          plan: currentUser.plan || 'free',
+          plan: normalizePlan(currentUser.plan),
           reportsUsed: 0,
           reportsLimit: currentUser.credits_remaining || 0,
         });
@@ -158,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user) {
         setUser({
           email: user.email,
-          plan: user.plan || 'free',
+          plan: normalizePlan(user.plan),
           reportsUsed: 0,
           reportsLimit: user.credits_remaining || 0,
         });
@@ -190,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser({
       email: authUser.email,
-      plan: authUser.plan || 'free',
+      plan: normalizePlan(authUser.plan),
       reportsUsed: 0,
       reportsLimit: authUser.credits_remaining || 0,
     });
@@ -208,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser({
       email: authUser.email,
-      plan: authUser.plan || 'free',
+      plan: normalizePlan(authUser.plan),
       reportsUsed: 0,
       reportsLimit: authUser.credits_remaining || 0,
     });
@@ -234,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser({
       email: authUser.email,
-      plan: authUser.plan || 'free',
+      plan: normalizePlan(authUser.plan),
       reportsUsed: 0,
       reportsLimit: authUser.credits_remaining || 0,
     });

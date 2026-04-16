@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import {
   Box,
   Typography,
@@ -43,9 +43,14 @@ import {
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
 import { downloadReportPDF } from '@/services/report-pdf.service';
+import { getCustomerPortalUrl } from '@/services/stripe.service';
+import { databaseService } from '@/services/database.service';
+import { authService } from '@/services/auth.service';
 import { WhatIfCalculator } from '@/app/components/user/WhatIfCalculator';
 import { TerritoryComparison } from '@/app/components/user/TerritoryComparison';
 import { ProductionTimeline } from '@/app/components/user/ProductionTimeline';
+import { PlanGate } from '@/app/components/common/PlanGate';
+import { useSnackbar } from 'notistack';
 
 interface ReportSummary {
   id: string;
@@ -153,9 +158,12 @@ function getStatusChipSx(status: ReportSummary['status']) {
 
 export function UserDashboard() {
   const navigate = useNavigate();
-  const { user, userLogout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, setUser, userLogout } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [currentTab, setCurrentTab] = useState(0);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [managingSubscription, setManagingSubscription] = useState(false);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -165,6 +173,46 @@ export function UserDashboard() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // Handle payment success redirect
+  useEffect(() => {
+    if (searchParams.get('subscription') === 'success') {
+      enqueueSnackbar('Subscription activated! Welcome to Professional.', { variant: 'success' });
+      searchParams.delete('subscription');
+      setSearchParams(searchParams, { replace: true });
+      // Refresh user profile to pick up new plan
+      authService.getCurrentUser().then((currentUser) => {
+        if (currentUser) {
+          setUser({
+            email: currentUser.email,
+            plan: currentUser.plan === 'single' ? 'professional' : (currentUser.plan || 'free') as any,
+            reportsUsed: 0,
+            reportsLimit: currentUser.credits_remaining || 0,
+          });
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleManageSubscription = async () => {
+    setManagingSubscription(true);
+    try {
+      const { subscription } = await databaseService.getActiveSubscription('');
+      if (subscription && (subscription as any).stripe_customer_id) {
+        const { url } = await getCustomerPortalUrl((subscription as any).stripe_customer_id);
+        if (url) {
+          window.location.href = url;
+          return;
+        }
+      }
+      enqueueSnackbar('Unable to open subscription management. Please try again.', { variant: 'error' });
+    } catch {
+      enqueueSnackbar('Failed to load subscription details.', { variant: 'error' });
+    } finally {
+      setManagingSubscription(false);
+    }
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -378,7 +426,7 @@ export function UserDashboard() {
         </TabPanel>
 
         <TabPanel value={currentTab} index={1}><TerritoryComparison /></TabPanel>
-        <TabPanel value={currentTab} index={2}><WhatIfCalculator /></TabPanel>
+        <TabPanel value={currentTab} index={2}><PlanGate plan="professional" featureName="What-If Calculator"><WhatIfCalculator /></PlanGate></TabPanel>
         <TabPanel value={currentTab} index={3}>
           <ProductionTimeline
             userPlan={(user?.plan as 'free' | 'professional' | 'studio') || 'free'}
@@ -396,7 +444,28 @@ export function UserDashboard() {
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="caption" sx={{ color: '#666' }}>Active Subscription</Typography>
-                <Typography variant="body1" sx={{ color: '#fff' }}>{user?.plan?.toUpperCase() || 'FREE'}</Typography>
+                <Typography variant="body1" sx={{ color: '#fff', mb: 1.5 }}>{user?.plan?.toUpperCase() || 'FREE'}</Typography>
+                {user?.plan !== 'free' ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={managingSubscription ? <CircularProgress size={14} sx={{ color: '#D4AF37' }} /> : <CreditCard />}
+                    onClick={handleManageSubscription}
+                    disabled={managingSubscription}
+                    sx={{ borderColor: '#D4AF37', color: '#D4AF37', '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.08)' } }}
+                  >
+                    {managingSubscription ? 'Loading...' : 'Manage Subscription'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => navigate('/pricing')}
+                    sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, '&:hover': { bgcolor: '#B8941F' } }}
+                  >
+                    Upgrade to Professional
+                  </Button>
+                )}
               </Grid>
             </Grid>
             <Divider sx={{ my: 4, borderColor: '#222' }} />
