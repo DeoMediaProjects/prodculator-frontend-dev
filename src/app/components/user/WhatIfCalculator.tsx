@@ -99,6 +99,34 @@ const selectSx = {
 // ── Debounce interval (ms) ────────────────────────────────────────────────────
 const DEBOUNCE_MS = 500;
 
+// ── Score weights by priority ─────────────────────────────────────────────────
+const SCORE_WEIGHTS_INFO = {
+  full: [
+    { label: 'Cost Efficiency', pct: '25%', noteKey: 'crew' as const },
+    { label: 'Crew Depth', pct: '20%', estimated: true },
+    { label: 'Infrastructure', pct: '20%', estimated: true },
+    { label: 'Incentive Strength', pct: '20%', note: 'rebate/credit %' },
+    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
+    { label: 'Programme Reliability', pct: '5%' },
+  ],
+  incentive: [
+    { label: 'Incentive Strength', pct: '40%', note: 'rebate/credit %' },
+    { label: 'Cost Efficiency', pct: '15%', noteKey: 'crew' as const },
+    { label: 'Crew Depth', pct: '15%', estimated: true },
+    { label: 'Infrastructure', pct: '15%', estimated: true },
+    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
+    { label: 'Programme Reliability', pct: '5%' },
+  ],
+  location: [
+    { label: 'Crew Depth', pct: '25%', estimated: true },
+    { label: 'Infrastructure', pct: '25%', estimated: true },
+    { label: 'Cost Efficiency', pct: '17%', noteKey: 'crew' as const },
+    { label: 'Incentive Strength', pct: '13%', note: 'rebate/credit %' },
+    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
+    { label: 'Programme Reliability', pct: '10%' },
+  ],
+} as const;
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export function WhatIfCalculator() {
 
@@ -108,6 +136,7 @@ export function WhatIfCalculator() {
   const [vfxAllocation, setVfxAllocation] = useState(0);
   const [priority, setPriority] = useState<'incentive' | 'full' | 'location'>('full');
   const [format, setFormat] = useState('Feature Film');
+  const [baseline, setBaseline] = useState<'GB' | 'US'>('GB');
 
   // API response
   const [scenario, setScenario] = useState<ScenarioResponse | null>(null);
@@ -134,6 +163,7 @@ export function WhatIfCalculator() {
         vfx_pct: vfxAllocation,
         production_format: format,
         production_priority: priority,
+        baseline,
       });
 
       if (err) {
@@ -144,7 +174,7 @@ export function WhatIfCalculator() {
       setLoading(false);
       setStale(false);
     }, DEBOUNCE_MS);
-  }, [budget, budgetCurrency, vfxAllocation, priority, format]);
+  }, [budget, budgetCurrency, vfxAllocation, priority, format, baseline]);
 
   // Trigger fetch on any input change
   useEffect(() => {
@@ -157,16 +187,6 @@ export function WhatIfCalculator() {
   // ── Derived data ──────────────────────────────────────────────────────────
   const territories: TerritoryScenario[] = scenario?.territories ?? [];
 
-  // Top territory stats for the Studio-Flexible panel
-  const topByCrewIndex = [...territories]
-    .filter((t) => t.crew_cost_index !== null)
-    .sort((a, b) => (b.crew_cost_index ?? 0) - (a.crew_cost_index ?? 0))[0];
-  const topByRate = [...territories].sort(
-    (a, b) => (b.rate_gross ?? 0) - (a.rate_gross ?? 0),
-  )[0];
-  const topByCurrency = [...territories].sort(
-    (a, b) => b.currency_advantage_score - a.currency_advantage_score,
-  )[0];
 
   // ── Export ────────────────────────────────────────────────────────────────
   const handleExport = useCallback(() => {
@@ -195,15 +215,50 @@ export function WhatIfCalculator() {
   }, [territories, budget, budgetCurrency]);
 
   // ── Currency advantage as monetary value ──────────────────────────────────
+  // Uses `budget` (original amount in budget currency) — not budget_gbp —
+  // so the result is already in the user's currency and can be shown with `sym`.
+  // This mirrors the backend: ca_value_gbp / budget_gbp * budget_original_amount.
   function caValue(t: TerritoryScenario): number {
-    return (scenario?.budget_gbp ?? budget) * (t.currency_advantage_score - 50) / 200;
+    return budget * (t.currency_advantage_score - 50) / 200;
   }
 
   // ── Crew saving as monetary value ─────────────────────────────────────────
   function crewValue(t: TerritoryScenario): number {
     if (t.crew_cost_index == null) return 0;
-    return (scenario?.budget_gbp ?? budget) * (t.crew_cost_index - 50) / 200;
+    return budget * (t.crew_cost_index - 50) / 200;
   }
+
+  // ── Score tooltip content ─────────────────────────────────────────────────
+  const scoreWeights = SCORE_WEIGHTS_INFO[priority];
+  const scoreTooltipContent = (
+    <Box sx={{ p: 1 }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '12px', mb: 1.5, color: '#F5C800' }}>
+        Score out of 100
+      </Typography>
+      <Typography sx={{ fontSize: '11px', color: '#A0A7B8', mb: 1.5, lineHeight: 1.5 }}>
+        Weighted across 6 dimensions for <strong style={{ color: '#fff' }}>
+          {priority === 'incentive' ? 'Maximise Incentive' : priority === 'full' ? 'Full Picture' : 'Location First'}
+        </strong> mode:
+      </Typography>
+      {scoreWeights.map((w) => {
+        const note = 'noteKey' in w ? `crew day rates vs ${baseline === 'US' ? 'US' : 'UK'} baseline` : 'note' in w ? w.note : '';
+        return (
+          <Box key={w.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
+            <Typography sx={{ fontSize: '11px', color: 'estimated' in w ? '#777' : '#ccc' }}>
+              {w.label}{note ? ` (${note})` : ''}{'estimated' in w ? ' *' : ''}
+            </Typography>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#F5C800', flexShrink: 0 }}>
+              {w.pct}
+            </Typography>
+          </Box>
+        );
+      })}
+      <Typography sx={{ fontSize: '10px', color: '#666', mt: 1.5, lineHeight: 1.4 }}>
+        * Crew depth and infrastructure are estimated at industry average in this tool.
+        Upload your script for AI-scored values.
+      </Typography>
+    </Box>
+  );
 
   return (
     <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100vh', fontFamily: font }}>
@@ -324,68 +379,97 @@ export function WhatIfCalculator() {
           </Box>
         </Box>
 
-        {/* Production Priority Toggle */}
-        <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', sm: 'flex-end' }, alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
-          <Tooltip
-            title={
-              <Box sx={{ p: 1 }}>
-                <Typography sx={{ fontWeight: 700, fontSize: '13px', mb: 1, color: '#F5C800' }}>
-                  Production Priority Options:
-                </Typography>
-                <Box sx={{ mb: 1 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Maximise Incentive</Typography>
-                  <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
-                    Sorts territories by highest tax rebate/incentive percentage to maximize cash returns
+        {/* Production Priority & Baseline Toggle */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+          {/* Baseline toggle */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Baseline
+            </Typography>
+            <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
+              {(['US', 'GB'] as const).map((b) => (
+                <Button
+                  key={b}
+                  onClick={() => setBaseline(b)}
+                  sx={{
+                    bgcolor: baseline === b ? '#F5C800' : 'transparent',
+                    color: baseline === b ? '#000000' : '#999999',
+                    fontFamily: font,
+                    fontWeight: baseline === b ? 700 : 400,
+                    fontSize: '12px', px: 2, py: 0.5,
+                    borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
+                    '&:hover': { bgcolor: baseline === b ? '#F5C800' : 'rgba(0,0,0,0.04)' },
+                  }}
+                >
+                  {b === 'US' ? '\u{1F1FA}\u{1F1F8} US' : '\u{1F1EC}\u{1F1E7} UK'}
+                </Button>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Priority toggle */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Tooltip
+              title={
+                <Box sx={{ p: 1 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '13px', mb: 1, color: '#F5C800' }}>
+                    Production Priority Options:
                   </Typography>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Maximise Incentive</Typography>
+                    <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
+                      Sorts territories by highest tax rebate/incentive percentage to maximize cash returns
+                    </Typography>
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Full Picture</Typography>
+                    <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
+                      Balances incentives, currency advantages, and crew costs for total net savings
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Location First</Typography>
+                    <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
+                      Prioritizes territories with strong infrastructure and crew depth
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box sx={{ mb: 1 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Full Picture</Typography>
-                  <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
-                    Balances incentives, currency advantages, and crew costs for total net savings
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Location First</Typography>
-                  <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
-                    Prioritizes territories with strong infrastructure and crew depth
-                  </Typography>
-                </Box>
-              </Box>
-            }
-            placement="left"
-            arrow
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  bgcolor: '#1E2330', border: '1px solid rgba(245,200,0,0.3)',
-                  borderRadius: '8px', maxWidth: '350px',
-                  '& .MuiTooltip-arrow': { color: '#1E2330', '&::before': { border: '1px solid rgba(245,200,0,0.3)' } },
+              }
+              placement="left"
+              arrow
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: '#1E2330', border: '1px solid rgba(245,200,0,0.3)',
+                    borderRadius: '8px', maxWidth: '350px',
+                    '& .MuiTooltip-arrow': { color: '#1E2330', '&::before': { border: '1px solid rgba(245,200,0,0.3)' } },
+                  },
                 },
-              },
-            }}
-          >
-            <IconButton sx={{ color: '#F5C800', width: '32px', height: '32px', '&:hover': { bgcolor: 'rgba(245,200,0,0.1)' } }}>
-              <InfoOutlined sx={{ fontSize: '18px' }} />
-            </IconButton>
-          </Tooltip>
-          <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
-            {(['incentive', 'full', 'location'] as const).map((p) => (
-              <Button
-                key={p}
-                onClick={() => setPriority(p)}
-                sx={{
-                  bgcolor: priority === p ? '#F5C800' : 'transparent',
-                  color: priority === p ? '#000000' : '#999999',
-                  fontFamily: font,
-                  fontWeight: priority === p ? 700 : 400,
-                  fontSize: '13px', px: 3, py: 1,
-                  borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
-                  '&:hover': { bgcolor: priority === p ? '#F5C800' : 'rgba(0,0,0,0.04)' },
-                }}
-              >
-                {p === 'incentive' ? 'Maximise Incentive' : p === 'full' ? 'Full Picture' : 'Location First'}
-              </Button>
-            ))}
+              }}
+            >
+              <IconButton sx={{ color: '#F5C800', width: '32px', height: '32px', '&:hover': { bgcolor: 'rgba(245,200,0,0.1)' } }}>
+                <InfoOutlined sx={{ fontSize: '18px' }} />
+              </IconButton>
+            </Tooltip>
+            <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
+              {(['incentive', 'full', 'location'] as const).map((p) => (
+                <Button
+                  key={p}
+                  onClick={() => setPriority(p)}
+                  sx={{
+                    bgcolor: priority === p ? '#F5C800' : 'transparent',
+                    color: priority === p ? '#000000' : '#999999',
+                    fontFamily: font,
+                    fontWeight: priority === p ? 700 : 400,
+                    fontSize: '13px', px: 3, py: 1,
+                    borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
+                    '&:hover': { bgcolor: priority === p ? '#F5C800' : 'rgba(0,0,0,0.04)' },
+                  }}
+                >
+                  {p === 'incentive' ? 'Maximise Incentive' : p === 'full' ? 'Full Picture' : 'Location First'}
+                </Button>
+              ))}
+            </Box>
           </Box>
         </Box>
 
@@ -453,7 +537,27 @@ export function WhatIfCalculator() {
               <Box sx={{ width: '140px' }}><Typography sx={headerCellSx}>NET SAVING</Typography></Box>
               <Box sx={{ width: '110px' }}><Typography sx={headerCellSx}>Min Spend</Typography></Box>
               <Box sx={{ width: '120px' }}><Typography sx={headerCellSx}>Payment</Typography></Box>
-              <Box sx={{ width: '80px' }}><Typography sx={headerCellSx}>Score</Typography></Box>
+              <Box sx={{ width: '80px' }}>
+                <Tooltip
+                  title={scoreTooltipContent}
+                  placement="left"
+                  arrow
+                  componentsProps={{
+                    tooltip: {
+                      sx: {
+                        bgcolor: '#1E2330', border: '1px solid rgba(245,200,0,0.3)',
+                        borderRadius: '8px', maxWidth: '320px',
+                        '& .MuiTooltip-arrow': { color: '#1E2330', '&::before': { border: '1px solid rgba(245,200,0,0.3)' } },
+                      },
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'default' }}>
+                    <Typography sx={headerCellSx}>Score /100</Typography>
+                    <InfoOutlined sx={{ fontSize: '12px', color: '#D4AF37', opacity: 0.7 }} />
+                  </Box>
+                </Tooltip>
+              </Box>
             </Box>
 
             {/* Body rows */}
@@ -580,113 +684,13 @@ export function WhatIfCalculator() {
                           color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999',
                         }}
                       >
-                        {t.overall_score}
+                        {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>/100</Typography>
                       </Typography>
                     </Box>
                   </Box>
                 );
               })}
-
-              {/* Baseline Row */}
-              <Box
-                sx={{
-                  display: 'flex', bgcolor: '#F8F6F0',
-                  height: '52px', alignItems: 'center', px: 2,
-                  borderTop: '1px solid rgba(0,0,0,0.08)',
-                  minWidth: '1320px',
-                }}
-              >
-                <Box sx={{ width: '200px' }}>
-                  <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#CCCCCC' }}>
-                    No-incentive baseline
-                  </Typography>
-                  <Typography sx={{ fontFamily: font, fontSize: '10px', color: '#BBBBBB' }}>
-                    Comparison baseline — not a recommendation
-                  </Typography>
-                </Box>
-                {[160, 110, 140, 140, 120].map((w, i) => (
-                  <Box key={i} sx={{ width: `${w}px` }}>
-                    <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#CCCCCC' }}>{'\u2014'}</Typography>
-                  </Box>
-                ))}
-                <Box sx={{ width: '140px' }}>
-                  <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#CCCCCC' }}>{sym}0</Typography>
-                </Box>
-                {[110, 120, 80].map((w, i) => (
-                  <Box key={i} sx={{ width: `${w}px` }}>
-                    <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#CCCCCC' }}>{'\u2014'}</Typography>
-                  </Box>
-                ))}
-              </Box>
             </Box>
-            </Box>
-          </Box>
-        )}
-
-        {/* Studio Flexibility Panel */}
-        {territories.length > 0 && (
-          <Box
-            sx={{
-              bgcolor: '#FFFFFF', border: '1px solid rgba(245,200,0,0.3)',
-              borderRadius: '12px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', p: 3,
-            }}
-          >
-            <Box sx={{ display: 'flex', gap: 3 }}>
-              <Typography sx={{ fontSize: '28px' }}>📦</Typography>
-              <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                  <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '16px', color: '#111111' }}>
-                    Studio-Flexible Productions
-                  </Typography>
-                  <Chip
-                    label="For INT-heavy scripts"
-                    sx={{
-                      bgcolor: 'rgba(245,200,0,0.15)', color: '#D4AF37',
-                      fontFamily: font, fontWeight: 700, fontSize: '10px',
-                      height: '22px', textTransform: 'uppercase', borderRadius: '11px',
-                    }}
-                  />
-                </Box>
-
-                <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555', lineHeight: 1.7, mb: 3 }}>
-                  When 70%+ of your scenes are interior, location becomes a financial decision. Interiors can be
-                  built anywhere — meaning the best incentive return, currency advantage, and crew cost
-                  territories become your optimal choice.
-                </Typography>
-
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  {topByCrewIndex && (
-                    <Box sx={{ flex: 1, minWidth: '180px', bgcolor: '#F8F6F0', borderRadius: '8px', p: 2 }}>
-                      <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#777777', mb: 0.5 }}>
-                        {topByCrewIndex.territory} vs UK
-                      </Typography>
-                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#1A8C4E' }}>
-                        Cost efficiency: {topByCrewIndex.crew_cost_index}/100
-                      </Typography>
-                    </Box>
-                  )}
-                  {topByRate && (
-                    <Box sx={{ flex: 1, minWidth: '180px', bgcolor: '#F8F6F0', borderRadius: '8px', p: 2 }}>
-                      <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#777777', mb: 0.5 }}>
-                        {topByRate.territory}
-                      </Typography>
-                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#D4AF37' }}>
-                        {topByRate.rate_display} {topByRate.rate_type === 'cash_rebate' ? 'cash rebate' : 'incentive'}
-                      </Typography>
-                    </Box>
-                  )}
-                  {topByCurrency && topByCurrency.currency_advantage_score > 55 && (
-                    <Box sx={{ flex: 1, minWidth: '180px', bgcolor: '#F8F6F0', borderRadius: '8px', p: 2 }}>
-                      <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#777777', mb: 0.5 }}>
-                        {topByCurrency.territory}
-                      </Typography>
-                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#1A8C4E' }}>
-                        {budgetCurrency} purchasing power advantage
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
             </Box>
           </Box>
         )}

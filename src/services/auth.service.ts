@@ -24,7 +24,7 @@ export interface AuthUser {
   role?: string;
   user_type: 'free' | 'paid' | 'b2b' | 'admin';
   credits_remaining?: number;
-  plan?: 'free' | 'single' | 'studio';
+  plan?: 'free' | 'single' | 'professional' | 'producer' | 'studio';
 }
 
 interface TokenResponse {

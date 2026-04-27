@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import {
   Box,
   Typography,
@@ -43,9 +43,35 @@ import {
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
 import { downloadReportPDF } from '@/services/report-pdf.service';
+import { getCustomerPortalUrl } from '@/services/stripe.service';
+import { authService } from '@/services/auth.service';
 import { WhatIfCalculator } from '@/app/components/user/WhatIfCalculator';
 import { TerritoryComparison } from '@/app/components/user/TerritoryComparison';
 import { ProductionTimeline } from '@/app/components/user/ProductionTimeline';
+import { PlanGate } from '@/app/components/common/PlanGate';
+import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
+import { useSnackbar } from 'notistack';
+
+const PLAN_LABEL: Record<string, string> = {
+  free: 'Explorer',
+  professional: 'Professional',
+  producer: 'Producer',
+  studio: 'Studio',
+};
+
+function formatGraceDeadline(pastDueSinceIso: string): string {
+  const start = new Date(pastDueSinceIso);
+  if (Number.isNaN(start.getTime())) return '';
+  const deadline = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return deadline.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function formatRenewalDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 interface ReportSummary {
   id: string;
@@ -153,9 +179,12 @@ function getStatusChipSx(status: ReportSummary['status']) {
 
 export function UserDashboard() {
   const navigate = useNavigate();
-  const { user, userLogout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, setUser, userLogout } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [currentTab, setCurrentTab] = useState(0);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [managingSubscription, setManagingSubscription] = useState(false);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -165,6 +194,105 @@ export function UserDashboard() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const {
+    data: subscriptionData,
+    refetch: refetchSubscription,
+  } = useCurrentSubscription(!!user);
+  const subscription = subscriptionData?.subscription ?? null;
+  const pendingPlan = subscriptionData?.pending_plan ?? null;
+  const pastDueSince = subscriptionData?.past_due_since ?? null;
+  const subCancelAtPeriodEnd = !!subscriptionData?.cancel_at_period_end;
+
+  // Handle payment success redirect
+  useEffect(() => {
+    if (searchParams.get('credit') === 'success') {
+      searchParams.delete('credit');
+      setSearchParams(searchParams, { replace: true });
+      // Poll until credits_remaining increments (webhook lag)
+      const pollForCredit = async () => {
+        const MAX_ATTEMPTS = 6;
+        const DELAY_MS = 2000;
+        const initialCredits = user?.reportsLimit ?? 0;
+        for (let i = 0; i < MAX_ATTEMPTS; i++) {
+          await new Promise(res => setTimeout(res, DELAY_MS));
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser && (currentUser.credits_remaining ?? 0) > initialCredits) {
+            if (user) setUser({ ...user, reportsLimit: currentUser.credits_remaining ?? 0 });
+            enqueueSnackbar('Report credit added! Upload a script to generate your report.', { variant: 'success' });
+            return;
+          }
+        }
+        enqueueSnackbar('Payment received! Your credit will appear shortly — refresh if needed.', { variant: 'info' });
+      };
+      pollForCredit();
+    }
+
+    if (searchParams.get('subscription') === 'success') {
+      const expectedPlan = searchParams.get('plan');
+      searchParams.delete('subscription');
+      searchParams.delete('plan');
+      setSearchParams(searchParams, { replace: true });
+
+      // Stripe webhook lag is real (typically 200ms–10s). Poll /me until plan
+      // moves off 'free' (or matches the expected upgraded plan), then sync
+      // both auth context and the subscription card. Never claim success on
+      // a stale 'free' read — that produced the "Welcome to Free" bug.
+      enqueueSnackbar('Payment received! Activating your subscription…', { variant: 'info' });
+      const pollForActivation = async () => {
+        const MAX_ATTEMPTS = 15;
+        const DELAY_MS = 2000;
+        for (let i = 0; i < MAX_ATTEMPTS; i++) {
+          await new Promise((res) => setTimeout(res, DELAY_MS));
+          const currentUser = await authService.getCurrentUser();
+          if (!currentUser?.plan) continue;
+          const normalizedPlan = currentUser.plan === 'single' ? 'professional' : currentUser.plan;
+          const matched = expectedPlan
+            ? normalizedPlan === expectedPlan
+            : normalizedPlan !== 'free';
+          if (!matched) continue;
+
+          setUser({
+            email: currentUser.email,
+            plan: normalizedPlan as any,
+            reportsUsed: 0,
+            reportsLimit: currentUser.credits_remaining || 0,
+          });
+          await refetchSubscription();
+          const planLabel = normalizedPlan.charAt(0).toUpperCase() + normalizedPlan.slice(1);
+          enqueueSnackbar(`Welcome to ${planLabel}.`, { variant: 'success' });
+          return;
+        }
+        // Webhook didn't propagate within ~30s. Don't pretend it succeeded —
+        // tell the user payment landed and prompt a refresh.
+        enqueueSnackbar(
+          'Payment received! Your plan will update in a moment — refresh if needed.',
+          { variant: 'info' },
+        );
+      };
+      void pollForActivation();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleManageSubscription = async () => {
+    setManagingSubscription(true);
+    try {
+      const customerId = subscription?.stripe_customer_id;
+      if (customerId) {
+        const { url } = await getCustomerPortalUrl(customerId);
+        if (url) {
+          window.location.href = url;
+          return;
+        }
+      }
+      enqueueSnackbar('Unable to open subscription management. Please try again.', { variant: 'error' });
+    } catch {
+      enqueueSnackbar('Failed to load subscription details.', { variant: 'error' });
+    } finally {
+      setManagingSubscription(false);
+    }
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -220,7 +348,7 @@ export function UserDashboard() {
                 {user?.email?.substring(0, 2).toUpperCase() || 'U'}
               </Avatar>
               <Box>
-                <Typography sx={{ fontWeight: 700, color: '#D4AF37', mb: 0.5, fontSize: { xs: '1.1rem', sm: '1.5rem', md: '2rem' } }}>Producer Dashboard</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#D4AF37', mb: 0.5, fontSize: { xs: '1.1rem', sm: '1.5rem', md: '2rem' } }}>Dashboard</Typography>
                 <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1, display: { xs: 'none', sm: 'block' } }}>{user?.email}</Typography>
                 <Chip label={user?.plan?.toUpperCase() || 'FREE'} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37', fontWeight: 600 }} />
               </Box>
@@ -377,8 +505,8 @@ export function UserDashboard() {
           )}
         </TabPanel>
 
-        <TabPanel value={currentTab} index={1}><TerritoryComparison /></TabPanel>
-        <TabPanel value={currentTab} index={2}><WhatIfCalculator /></TabPanel>
+        <TabPanel value={currentTab} index={1}><PlanGate plan="professional" featureName="Territory Comparison"><TerritoryComparison /></PlanGate></TabPanel>
+        <TabPanel value={currentTab} index={2}><PlanGate plan="professional" featureName="What-If Calculator"><WhatIfCalculator /></PlanGate></TabPanel>
         <TabPanel value={currentTab} index={3}>
           <ProductionTimeline
             userPlan={(user?.plan as 'free' | 'professional' | 'studio') || 'free'}
@@ -396,7 +524,74 @@ export function UserDashboard() {
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="caption" sx={{ color: '#666' }}>Active Subscription</Typography>
-                <Typography variant="body1" sx={{ color: '#fff' }}>{user?.plan?.toUpperCase() || 'FREE'}</Typography>
+                <Typography variant="body1" sx={{ color: '#fff', mb: 0.5 }}>{user?.plan?.toUpperCase() || 'FREE'}</Typography>
+
+                {subscription?.current_period_end && (
+                  <Typography variant="caption" sx={{ color: '#888', display: 'block', mb: 1 }}>
+                    Renews {formatRenewalDate(String(subscription.current_period_end))}
+                  </Typography>
+                )}
+
+                {pendingPlan && (
+                  <Box sx={{ mb: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)' }}>
+                    <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>
+                      Switching to {PLAN_LABEL[pendingPlan] ?? pendingPlan}
+                      {subscription?.current_period_end ? ` on ${formatRenewalDate(String(subscription.current_period_end))}` : ' at next renewal'}
+                    </Typography>
+                  </Box>
+                )}
+
+                {subCancelAtPeriodEnd && !pendingPlan && (
+                  <Box sx={{ mb: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'rgba(255,193,7,0.08)', border: '1px solid rgba(255,193,7,0.3)' }}>
+                    <Typography variant="caption" sx={{ color: '#ffc247', fontWeight: 600 }}>
+                      Subscription ends
+                      {subscription?.current_period_end ? ` ${formatRenewalDate(String(subscription.current_period_end))}` : ' at the end of this period'}
+                    </Typography>
+                  </Box>
+                )}
+
+                {pastDueSince && (
+                  <Box sx={{ mb: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'rgba(244,67,54,0.1)', border: '1px solid rgba(244,67,54,0.4)' }}>
+                    <Typography variant="caption" sx={{ color: '#f6c6c4', fontWeight: 600, display: 'block' }}>
+                      Last payment failed
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#f6c6c4' }}>
+                      Update your payment method by {formatGraceDeadline(pastDueSince)} to keep your subscription.
+                    </Typography>
+                  </Box>
+                )}
+
+                {user?.plan !== 'free' ? (
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => navigate('/pricing')}
+                      sx={{ borderColor: '#D4AF37', color: '#D4AF37', '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.08)' } }}
+                    >
+                      Change plan
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={managingSubscription ? <CircularProgress size={14} sx={{ color: '#D4AF37' }} /> : <CreditCard />}
+                      onClick={handleManageSubscription}
+                      disabled={managingSubscription}
+                      sx={{ borderColor: '#D4AF37', color: '#D4AF37', '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.08)' } }}
+                    >
+                      {managingSubscription ? 'Loading...' : 'Manage billing'}
+                    </Button>
+                  </Box>
+                ) : (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => navigate('/pricing')}
+                    sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, '&:hover': { bgcolor: '#B8941F' } }}
+                  >
+                    Upgrade to Professional
+                  </Button>
+                )}
               </Grid>
             </Grid>
             <Divider sx={{ my: 4, borderColor: '#222' }} />

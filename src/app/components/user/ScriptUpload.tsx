@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import {
+  Alert,
   Box,
   Container,
   Paper,
@@ -66,6 +67,14 @@ export function ScriptUpload() {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [quotaBlocked, setQuotaBlocked] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    databaseService.canGenerateReport('').then(({ canGenerate }) => {
+      if (!canGenerate) setQuotaBlocked(true);
+    });
+  }, [isAuthenticated]);
 
   // Timeout modal — shown when report generation is still running after the polling window
   const [timeoutModalOpen, setTimeoutModalOpen] = useState(false);
@@ -158,6 +167,7 @@ export function ScriptUpload() {
     if (!budgetAmount || Number(budgetAmount) <= 0) return 'Please enter a budget amount greater than 0';
     if (!format) return 'Format is required';
     if (!country) return 'Primary production country is required';
+    if (!locationStrategy) return 'Please select a location strategy';
     return null;
   };
 
@@ -782,18 +792,33 @@ export function ScriptUpload() {
 
               {/* Generate Report Button */}
               <Paper sx={{ p: { xs: 2, sm: 4 }, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-                <Button 
-                  fullWidth 
-                  variant="contained" 
+                {isAuthenticated && quotaBlocked && (
+                  <Alert
+                    severity="warning"
+                    sx={{ mb: 2, bgcolor: 'rgba(212,175,55,0.08)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)', '& .MuiAlert-icon': { color: '#D4AF37' } }}
+                    action={
+                      <Button size="small" sx={{ color: '#D4AF37', fontWeight: 700, whiteSpace: 'nowrap' }} onClick={() => navigate('/pricing')}>
+                        View Plans
+                      </Button>
+                    }
+                  >
+                    You've used your report limit. Upgrade to generate more.
+                  </Alert>
+                )}
+                <Button
+                  fullWidth
+                  variant="contained"
                   size="large"
                   onClick={handleGenerateReport}
-                  sx={{ 
-                    py: 2, 
+                  disabled={isAuthenticated && quotaBlocked}
+                  sx={{
+                    py: 2,
                     fontSize: '1.1rem',
                     bgcolor: '#D4AF37',
                     color: '#000000',
                     fontWeight: 600,
-                    '&:hover': { bgcolor: '#D4AF37' }
+                    '&:hover': { bgcolor: '#D4AF37' },
+                    '&.Mui-disabled': { bgcolor: 'rgba(212,175,55,0.3)', color: 'rgba(0,0,0,0.4)' },
                   }}
                 >
                   {isAuthenticated ? 'Generate Intelligence Report' : 'See Free Preview Analysis'}

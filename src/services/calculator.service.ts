@@ -14,6 +14,7 @@ export interface ScenarioRequest {
   production_format: string | null;
   production_priority: 'incentive' | 'full' | 'location';
   territories?: string[] | null;
+  baseline?: 'GB' | 'US';
 }
 
 // ── Response ───────────────────────────────────────────────────────────────────

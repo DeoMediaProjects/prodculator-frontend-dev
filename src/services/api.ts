@@ -100,13 +100,34 @@ function logError(method: string | undefined, url: string, payload: unknown, err
   });
 }
 
+function humaniseValidationError(err: { loc?: unknown[]; msg?: string; input?: unknown }): string {
+  const field = Array.isArray(err.loc)
+    ? err.loc.filter((p) => p !== 'body' && p !== 'query').join(' → ')
+    : null;
+  const msg = err.msg ?? 'Invalid value';
+  return field ? `${field}: ${msg}` : msg;
+}
+
 function extractErrorDetail(payload: unknown, fallback: string): string {
   if (typeof payload === 'string' && payload.trim()) return payload;
   if (payload && typeof payload === 'object') {
-    const asObject = payload as { detail?: string; message?: string };
+    const asObject = payload as { detail?: unknown; message?: string };
+
+    // FastAPI 422: detail is an array of Pydantic validation errors.
+    if (Array.isArray(asObject.detail)) {
+      const lines = (asObject.detail as Array<{ loc?: unknown[]; msg?: string; input?: unknown }>)
+        .slice(0, 3)
+        .map(humaniseValidationError);
+      return lines.length === 1
+        ? lines[0]
+        : `Please fix the following: ${lines.join('; ')}`;
+    }
+
     if (typeof asObject.detail === 'string' && asObject.detail.trim()) return asObject.detail;
     if (typeof asObject.message === 'string' && asObject.message.trim()) return asObject.message;
-    return JSON.stringify(payload);
+
+    // Last resort — don't dump raw JSON at the user.
+    return fallback;
   }
   return fallback;
 }
