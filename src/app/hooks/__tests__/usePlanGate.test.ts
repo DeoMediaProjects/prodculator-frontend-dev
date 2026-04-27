@@ -22,6 +22,8 @@ describe('usePlanGate', () => {
     vi.clearAllMocks();
   });
 
+  // ── Basic access gates ───────────────────────────────────────────────────
+
   it('grants access when user plan meets required level', () => {
     mockUser('professional');
     const { result } = renderHook(() => usePlanGate('professional'));
@@ -40,9 +42,49 @@ describe('usePlanGate', () => {
     expect(result.current.hasAccess).toBe(true);
   });
 
+  // ── Producer tier ────────────────────────────────────────────────────────
+
+  it('producer user has access to professional features', () => {
+    mockUser('producer');
+    const { result } = renderHook(() => usePlanGate('professional'));
+    expect(result.current.hasAccess).toBe(true);
+  });
+
+  it('producer user has access to producer features', () => {
+    mockUser('producer');
+    const { result } = renderHook(() => usePlanGate('producer'));
+    expect(result.current.hasAccess).toBe(true);
+  });
+
+  it('professional user cannot access producer features', () => {
+    mockUser('professional');
+    const { result } = renderHook(() => usePlanGate('producer'));
+    expect(result.current.hasAccess).toBe(false);
+  });
+
+  it('producer user cannot access studio features', () => {
+    mockUser('producer');
+    const { result } = renderHook(() => usePlanGate('studio'));
+    expect(result.current.hasAccess).toBe(false);
+  });
+
+  // ── Studio tier ──────────────────────────────────────────────────────────
+
   it('studio user has access to professional features', () => {
     mockUser('studio');
     const { result } = renderHook(() => usePlanGate('professional'));
+    expect(result.current.hasAccess).toBe(true);
+  });
+
+  it('studio user has access to producer features', () => {
+    mockUser('studio');
+    const { result } = renderHook(() => usePlanGate('producer'));
+    expect(result.current.hasAccess).toBe(true);
+  });
+
+  it('studio user has access to studio features', () => {
+    mockUser('studio');
+    const { result } = renderHook(() => usePlanGate('studio'));
     expect(result.current.hasAccess).toBe(true);
   });
 
@@ -52,11 +94,14 @@ describe('usePlanGate', () => {
     expect(result.current.hasAccess).toBe(false);
   });
 
+  // ── Boolean flags ────────────────────────────────────────────────────────
+
   it('returns correct boolean flags for free user', () => {
     mockUser('free');
     const { result } = renderHook(() => usePlanGate());
     expect(result.current.isFree).toBe(true);
     expect(result.current.isProfessional).toBe(false);
+    expect(result.current.isProducer).toBe(false);
     expect(result.current.isStudio).toBe(false);
     expect(result.current.userPlan).toBe('free');
   });
@@ -66,8 +111,19 @@ describe('usePlanGate', () => {
     const { result } = renderHook(() => usePlanGate());
     expect(result.current.isFree).toBe(false);
     expect(result.current.isProfessional).toBe(true);
+    expect(result.current.isProducer).toBe(false);
     expect(result.current.isStudio).toBe(false);
     expect(result.current.userPlan).toBe('professional');
+  });
+
+  it('returns correct boolean flags for producer user', () => {
+    mockUser('producer');
+    const { result } = renderHook(() => usePlanGate());
+    expect(result.current.isFree).toBe(false);
+    expect(result.current.isProfessional).toBe(true);
+    expect(result.current.isProducer).toBe(true);
+    expect(result.current.isStudio).toBe(false);
+    expect(result.current.userPlan).toBe('producer');
   });
 
   it('returns correct boolean flags for studio user', () => {
@@ -75,9 +131,12 @@ describe('usePlanGate', () => {
     const { result } = renderHook(() => usePlanGate());
     expect(result.current.isFree).toBe(false);
     expect(result.current.isProfessional).toBe(true);
+    expect(result.current.isProducer).toBe(true);
     expect(result.current.isStudio).toBe(true);
     expect(result.current.userPlan).toBe('studio');
   });
+
+  // ── Edge cases ───────────────────────────────────────────────────────────
 
   it('defaults to free when user is null', () => {
     mockUseAuth.mockReturnValue({

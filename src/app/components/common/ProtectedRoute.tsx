@@ -3,7 +3,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 
 interface ProtectedRouteProps {
-  plan?: 'professional' | 'studio';
+  plan?: 'professional' | 'producer' | 'studio';
   requireAuth?: boolean;
   children: React.ReactNode;
 }

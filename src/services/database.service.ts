@@ -18,17 +18,6 @@ export interface Report {
   completed_at?: string;
 }
 
-export interface Subscription {
-  id: string;
-  user_id: string;
-  status: string;
-  plan_type?: 'free' | 'single' | 'professional' | 'studio';
-  report_limit?: number;
-  current_period_start?: string;
-  current_period_end?: string;
-  created_at?: string;
-}
-
 export interface GrantOpportunity {
   id: string;
   title: string;
@@ -99,15 +88,6 @@ export class DatabaseService {
       return { reports, error: null };
     } catch (error) {
       return { reports: [], error: error instanceof Error ? error.message : 'Failed to fetch reports' };
-    }
-  }
-
-  async getActiveSubscription(_userId: string): Promise<{ subscription: Subscription | null; error: string | null }> {
-    try {
-      const data = await apiClient.get<{ subscription: Subscription | null }>('/api/subscriptions/active', { auth: true });
-      return { subscription: data.subscription, error: null };
-    } catch (error) {
-      return { subscription: null, error: error instanceof Error ? error.message : 'Failed to fetch subscription' };
     }
   }
 

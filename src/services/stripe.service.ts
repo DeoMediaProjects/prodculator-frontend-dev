@@ -17,16 +17,16 @@ export const getStripe = () => {
 };
 
 export const STRIPE_PRICES = {
-  // Legacy one-time prices — kept for backwards compat, no longer used in UI
+  // Pay-per-report one-time prices
   singleReportUSD: {
-    priceId: 'price_1Sx84yLcLlewla5EUHVXBQY',
-    amount: 7100,
+    priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE_USD || '',
+    amount: 4000,
     currency: 'usd',
     name: 'Single Script Report (USD)',
   },
   singleReportGBP: {
-    priceId: 'price_1Sx5T8LcLlewla5EsQOLFBoy',
-    amount: 5700,
+    priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE_GBP || '',
+    amount: 3500,
     currency: 'gbp',
     name: 'Single Script Report (GBP)',
   },
@@ -36,29 +36,89 @@ export const STRIPE_PRICES = {
     amount: 6100,
     currency: 'usd',
     name: 'Professional Monthly (USD)',
-    reportLimit: 3,
+    reportLimit: 1,
   },
   professionalMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_GBP || '',
     amount: 4900,
     currency: 'gbp',
     name: 'Professional Monthly (GBP)',
+    reportLimit: 1,
+  },
+  // Professional annual subscription
+  professionalAnnualGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_GBP || '',
+    amount: 3900,  // £39/month billed annually = £468/year
+    currency: 'gbp',
+    name: 'Professional Annual (GBP)',
+    reportLimit: 1,
+  },
+  professionalAnnualUSD: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_USD || '',
+    amount: 4900,  // $49/month billed annually = $588/year (~20% off $61/mo)
+    currency: 'usd',
+    name: 'Professional Annual (USD)',
+    reportLimit: 1,
+  },
+  // Producer monthly subscription
+  producerMonthlyUSD: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_USD || '',
+    amount: 14900,  // $149.00
+    currency: 'usd',
+    name: 'Producer Monthly (USD)',
+    reportLimit: 3,
+  },
+  producerMonthlyGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_GBP || '',
+    amount: 11900,  // £119.00
+    currency: 'gbp',
+    name: 'Producer Monthly (GBP)',
+    reportLimit: 3,
+  },
+  // Producer annual subscription
+  producerAnnualGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_GBP || '',
+    amount: 9500,  // £95/month billed annually = £1,140/year
+    currency: 'gbp',
+    name: 'Producer Annual (GBP)',
+    reportLimit: 3,
+  },
+  producerAnnualUSD: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_USD || '',
+    amount: 11900,  // $119/month billed annually = $1,428/year (~20% off $149/mo)
+    currency: 'usd',
+    name: 'Producer Annual (USD)',
     reportLimit: 3,
   },
   // Studio monthly subscription
   studioMonthlyUSD: {
-    priceId: 'price_1Sx8AfLcLlewla5Exif5R15n',
+    priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_USD || '',
     amount: 29900,
     currency: 'usd',
     name: 'Studio Monthly (USD)',
-    reportLimit: -1,
+    reportLimit: 10,
   },
   studioMonthlyGBP: {
-    priceId: 'price_1Sx8CpLcLlewla5E42HQTVmg',
+    priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_GBP || '',
     amount: 23900,
     currency: 'gbp',
     name: 'Studio Monthly (GBP)',
-    reportLimit: -1,
+    reportLimit: 10,
+  },
+  // Studio annual subscription
+  studioAnnualGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_GBP || '',
+    amount: 19100,  // £191/month billed annually = £2,292/year (20% off £239/mo)
+    currency: 'gbp',
+    name: 'Studio Annual (GBP)',
+    reportLimit: 10,
+  },
+  studioAnnualUSD: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_USD || '',
+    amount: 23900,  // $239/month billed annually = $2,868/year (~20% off $299/mo)
+    currency: 'usd',
+    name: 'Studio Annual (USD)',
+    reportLimit: 10,
   },
 };
 
@@ -89,6 +149,21 @@ export async function redirectToCheckout(checkoutUrl: string) {
   window.location.href = checkoutUrl;
 }
 
+export async function createCreditCheckout(
+  priceId: string,
+): Promise<{ sessionId: string; url?: string; error?: string }> {
+  try {
+    const data = await apiClient.post<{ session_id: string; url: string }>(
+      '/api/payments/credit-checkout',
+      { price_id: priceId },
+      { auth: true }
+    );
+    return { sessionId: data.session_id, url: data.url };
+  } catch (error) {
+    return { sessionId: '', error: error instanceof Error ? error.message : 'Failed to create checkout session' };
+  }
+}
+
 export async function createSubscriptionCheckout(
   priceId: string,
   _userEmail: string,
@@ -104,15 +179,6 @@ export async function createSubscriptionCheckout(
     return { sessionId: data.session_id, url: data.url };
   } catch (error) {
     return { sessionId: '', error: error instanceof Error ? error.message : 'Failed to create subscription' };
-  }
-}
-
-export async function cancelSubscription(subscriptionId: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    await apiClient.post('/api/payments/cancel-subscription', { subscription_id: subscriptionId }, { auth: true });
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to cancel subscription' };
   }
 }
 
@@ -176,7 +242,6 @@ export default {
   createCheckoutSession,
   redirectToCheckout,
   createSubscriptionCheckout,
-  cancelSubscription,
   updatePaymentMethod,
   getCustomerPortalUrl,
   detectUserCurrency,

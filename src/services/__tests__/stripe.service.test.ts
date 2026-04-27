@@ -17,6 +17,8 @@ import { apiClient } from '../api';
 const mockPost = vi.mocked(apiClient.post);
 
 describe('STRIPE_PRICES', () => {
+  // ── Professional ─────────────────────────────────────────────────────────
+
   it('professional monthly USD has amount 6100 (= $61.00)', () => {
     expect(STRIPE_PRICES.professionalMonthlyUSD.amount).toBe(6100);
     expect(STRIPE_PRICES.professionalMonthlyUSD.currency).toBe('usd');
@@ -27,18 +29,55 @@ describe('STRIPE_PRICES', () => {
     expect(STRIPE_PRICES.professionalMonthlyGBP.currency).toBe('gbp');
   });
 
-  it('professional plans have reportLimit of 3', () => {
-    expect(STRIPE_PRICES.professionalMonthlyUSD.reportLimit).toBe(3);
-    expect(STRIPE_PRICES.professionalMonthlyGBP.reportLimit).toBe(3);
+  it('professional plans have reportLimit of 1', () => {
+    expect(STRIPE_PRICES.professionalMonthlyUSD.reportLimit).toBe(1);
+    expect(STRIPE_PRICES.professionalMonthlyGBP.reportLimit).toBe(1);
+    expect(STRIPE_PRICES.professionalAnnualGBP.reportLimit).toBe(1);
   });
+
+  it('professional annual GBP has amount 3900 (= £39.00/month)', () => {
+    expect(STRIPE_PRICES.professionalAnnualGBP.amount).toBe(3900);
+    expect(STRIPE_PRICES.professionalAnnualGBP.currency).toBe('gbp');
+  });
+
+  // ── Producer ──────────────────────────────────────────────────────────────
+
+  it('producer monthly USD has amount 14900 (= $149.00)', () => {
+    expect(STRIPE_PRICES.producerMonthlyUSD.amount).toBe(14900);
+    expect(STRIPE_PRICES.producerMonthlyUSD.currency).toBe('usd');
+  });
+
+  it('producer monthly GBP has amount 11900 (= £119.00)', () => {
+    expect(STRIPE_PRICES.producerMonthlyGBP.amount).toBe(11900);
+    expect(STRIPE_PRICES.producerMonthlyGBP.currency).toBe('gbp');
+  });
+
+  it('producer plans have reportLimit of 3', () => {
+    expect(STRIPE_PRICES.producerMonthlyUSD.reportLimit).toBe(3);
+    expect(STRIPE_PRICES.producerMonthlyGBP.reportLimit).toBe(3);
+    expect(STRIPE_PRICES.producerAnnualGBP.reportLimit).toBe(3);
+  });
+
+  it('producer annual GBP has amount 9500 (= £95.00/month)', () => {
+    expect(STRIPE_PRICES.producerAnnualGBP.amount).toBe(9500);
+    expect(STRIPE_PRICES.producerAnnualGBP.currency).toBe('gbp');
+  });
+
+  // ── Studio ───────────────────────────────────────────────────────────────
 
   it('studio monthly USD has amount 29900 (= $299.00)', () => {
     expect(STRIPE_PRICES.studioMonthlyUSD.amount).toBe(29900);
   });
 
-  it('studio plans have reportLimit of -1 (unlimited)', () => {
-    expect(STRIPE_PRICES.studioMonthlyUSD.reportLimit).toBe(-1);
-    expect(STRIPE_PRICES.studioMonthlyGBP.reportLimit).toBe(-1);
+  it('studio plans have reportLimit of 10', () => {
+    expect(STRIPE_PRICES.studioMonthlyUSD.reportLimit).toBe(10);
+    expect(STRIPE_PRICES.studioMonthlyGBP.reportLimit).toBe(10);
+    expect(STRIPE_PRICES.studioAnnualGBP.reportLimit).toBe(10);
+  });
+
+  it('studio annual GBP has amount 19900 (= ~£199/month)', () => {
+    expect(STRIPE_PRICES.studioAnnualGBP.amount).toBe(19900);
+    expect(STRIPE_PRICES.studioAnnualGBP.currency).toBe('gbp');
   });
 });
 
@@ -81,6 +120,18 @@ describe('createSubscriptionCheckout', () => {
     );
   });
 
+  it('sends producer plan_type for producer checkout', async () => {
+    mockPost.mockResolvedValueOnce({ session_id: 'cs_producer', url: 'https://checkout.stripe.com/producer' });
+
+    await createSubscriptionCheckout('price_producer_gbp', 'user@test.com', 'user-1', 'producer');
+
+    expect(mockPost).toHaveBeenCalledWith(
+      '/api/payments/subscription-checkout',
+      expect.objectContaining({ plan_type: 'producer' }),
+      { auth: true }
+    );
+  });
+
   it('sends studio plan_type for studio checkout', async () => {
     mockPost.mockResolvedValueOnce({ session_id: 'cs_studio', url: 'https://checkout.stripe.com/studio' });
 
@@ -110,6 +161,14 @@ describe('formatPrice', () => {
 
   it('formats GBP amount in pence to pound string', () => {
     expect(formatPrice(4900, 'gbp')).toBe('£49.00');
+  });
+
+  it('formats producer USD price', () => {
+    expect(formatPrice(14900, 'usd')).toBe('$149.00');
+  });
+
+  it('formats producer GBP price', () => {
+    expect(formatPrice(11900, 'gbp')).toBe('£119.00');
   });
 
   it('formats studio USD price', () => {

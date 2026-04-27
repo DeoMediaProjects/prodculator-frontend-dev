@@ -37,10 +37,13 @@ export interface WelcomeEmailData {
 export interface PaymentConfirmationEmailData {
   userName: string;
   planName: string;
-  amount: string;
+  /** Amount as a decimal string (e.g. "99.00") or integer cents (e.g. 9900) */
+  amount: string | number;
+  /** ISO currency code, e.g. "USD" or "GBP" */
   currency: string;
   scriptsIncluded: number;
   receiptUrl: string;
+  dashboardUrl: string;
   billingDate: string;
 }
 
@@ -106,6 +109,32 @@ export class EmailService {
   }
 
   /**
+   * Render transactional email HTML on backend (without sending).
+   * Ensures frontend previews match server-side email templates exactly.
+   */
+  async previewTransactionalEmail(
+    template: EmailTemplate,
+    data: EmailData
+  ): Promise<{ subject: string; html: string }> {
+    try {
+      return await apiClient.post('/api/emails/preview', {
+        template,
+        data,
+      });
+    } catch (error) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 404) {
+        // Backward-compatibility fallback for older backend instances.
+        return apiClient.post('/api/admin/email/preview', {
+          template_name: template,
+          context: data,
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Send report ready notification
    */
   async sendReportReadyEmail(to: string, data: ReportReadyEmailData): Promise<void> {
@@ -149,280 +178,84 @@ export class EmailService {
   async sendFestivalDeadlineReminder(to: string, data: FestivalDeadlineEmailData): Promise<void> {
     await this.sendEmail(EmailTemplate.FESTIVAL_DEADLINE, to, data);
   }
+
+  /**
+   * Send all four core email templates to a given address (for testing/preview purposes)
+   */
+  async sendAllTestEmails(to: string): Promise<{ template: string; success: boolean; error?: string }[]> {
+    const APP_URL = API_CONFIG.app.url.replace(/\/$/, '');
+
+    const jobs: Array<{ label: string; fn: () => Promise<void> }> = [
+      {
+        label: EmailTemplate.REPORT_READY,
+        fn: () =>
+          this.sendReportReadyEmail(to, {
+            userName: 'Test User',
+            scriptTitle: 'THE LAST FRONTIER',
+            reportUrl: `${APP_URL}/reports/rpt-test-001`,
+            pdfUrl: `${APP_URL}/downloads/rpt-test-001.pdf`,
+            processingTime: '2 minutes 34 seconds',
+            topRecommendation: 'British Columbia, Canada',
+            estimatedIncentive: '$450,000 – $650,000',
+          }),
+      },
+      {
+        label: EmailTemplate.WELCOME,
+        fn: () =>
+          this.sendWelcomeEmail(to, {
+            userName: 'Test User',
+            freeCredits: 1,
+            dashboardUrl: `${APP_URL}/dashboard`,
+          }),
+      },
+      {
+        label: EmailTemplate.PAYMENT_CONFIRMATION,
+        fn: () =>
+          this.sendPaymentConfirmation(to, {
+            userName: 'Test User',
+            planName: 'Professional Plan',
+            amount: '99.00',
+            currency: 'USD',
+            scriptsIncluded: 5,
+            receiptUrl: `${APP_URL}/receipts/inv-test-001`,
+            dashboardUrl: `${APP_URL}/dashboard`,
+            billingDate: new Date().toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            }),
+          }),
+      },
+      {
+        label: EmailTemplate.PROCESSING_STARTED,
+        fn: () =>
+          this.sendProcessingStartedEmail(to, {
+            userName: 'Test User',
+            scriptTitle: 'THE LAST FRONTIER',
+            estimatedTime: '3–5 minutes',
+            dashboardUrl: `${APP_URL}/dashboard`,
+          }),
+      },
+    ];
+
+    const results: { template: string; success: boolean; error?: string }[] = [];
+
+    for (const job of jobs) {
+      try {
+        await job.fn();
+        results.push({ template: job.label, success: true });
+      } catch (err) {
+        results.push({
+          template: job.label,
+          success: false,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    return results;
+  }
 }
 
 // Export singleton instance
 export const emailService = new EmailService();
-
-/**
- * SERVER-SIDE ONLY: SendGrid Email Templates
- * These functions should only be called from server-side code (backend functions, backend API)
- */
-
-/**
- * Generate HTML for Report Ready Email
- */
-export function generateReportReadyEmailHTML(data: ReportReadyEmailData): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #000000; padding: 40px 20px; text-align: center; }
-    .logo { color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 0; }
-    .subtitle { color: #D4AF37; font-size: 14px; margin-top: 10px; }
-    .content { padding: 40px 20px; }
-    .highlight-box { background-color: #FFF9E6; border-left: 4px solid #D4AF37; padding: 20px; margin: 20px 0; }
-    .gold-text { color: #D4AF37; font-weight: bold; }
-    .btn { display: inline-block; background-color: #D4AF37; color: #000000; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; margin: 10px 5px; }
-    .footer { background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
-    .badge { background-color: #D4AF37; color: #000000; padding: 5px 10px; border-radius: 3px; font-size: 11px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 class="logo">PRODCULATOR</h1>
-      <p class="subtitle">Scripteligence v6.8</p>
-    </div>
-    
-    <div class="content">
-      <h2>Your Scripteligence Report is Ready! 🎬</h2>
-      <p>Hi ${data.userName},</p>
-      <p>Great news! Your production intelligence report for <strong>"${data.scriptTitle}"</strong> has been completed.</p>
-      
-      <div class="highlight-box">
-        <p style="margin: 0 0 10px 0;"><span class="gold-text">TOP RECOMMENDATION</span></p>
-        <h3 style="margin: 0 0 10px 0; color: #000000;">${data.topRecommendation}</h3>
-        <p style="margin: 0;"><span class="gold-text">Estimated Incentive:</span> ${data.estimatedIncentive}</p>
-        <p style="margin: 10px 0 0 0; font-size: 12px; color: #666666;">Processing Time: ${data.processingTime}</p>
-      </div>
-      
-      <h3>Your Report Includes:</h3>
-      <ul style="line-height: 2;">
-        <li>✅ Script Analysis & Production Requirements</li>
-        <li>✅ Location Strategy (Top 5 Territories)</li>
-        <li>✅ Tax Incentives & Rebates</li>
-        <li>✅ Crew Cost Comparisons</li>
-        <li>✅ Comparable Productions</li>
-        <li>✅ Grant & Funding Opportunities</li>
-        <li>✅ Production Economics Analysis</li>
-        <li>✅ Next Steps & Recommendations</li>
-      </ul>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${data.reportUrl}" class="btn">View Full Report</a>
-        ${data.pdfUrl ? `<a href="${data.pdfUrl}" class="btn" style="background-color: #000000; color: #D4AF37;">Download PDF</a>` : ''}
-      </div>
-      
-      <div style="background-color: #f9f9f9; padding: 15px; margin-top: 30px; border-radius: 5px;">
-        <p style="margin: 0; font-size: 12px; color: #666666;">
-          <span class="badge">DATA VERIFIED</span> This report uses verified data from Film Commissions, KFTV, ProductionHUB, and government databases.
-        </p>
-      </div>
-      
-      <p style="margin-top: 30px; font-size: 14px; color: #666666;">
-        <strong>Need help?</strong> Contact our team at support@prodculator.com
-      </p>
-    </div>
-    
-    <div class="footer">
-      <p>© 2026 Prodculator. All rights reserved.</p>
-      <p>Professional production intelligence for film producers worldwide.</p>
-      <p><a href="${API_CONFIG.app.url}/dashboard" style="color: #D4AF37;">Dashboard</a> | <a href="${API_CONFIG.app.url}/faq" style="color: #D4AF37;">FAQ</a> | <a href="${API_CONFIG.app.url}/terms" style="color: #D4AF37;">Terms</a></p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
-}
-
-/**
- * Generate HTML for Welcome Email
- */
-export function generateWelcomeEmailHTML(data: WelcomeEmailData): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #000000; padding: 40px 20px; text-align: center; }
-    .logo { color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 0; }
-    .subtitle { color: #D4AF37; font-size: 14px; margin-top: 10px; }
-    .content { padding: 40px 20px; }
-    .btn { display: inline-block; background-color: #D4AF37; color: #000000; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; margin: 10px 0; }
-    .footer { background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 class="logo">WELCOME TO PRODCULATOR</h1>
-      <p class="subtitle">Scripteligence v6.8</p>
-    </div>
-    
-    <div class="content">
-      <h2>Welcome, ${data.userName}! 🎉</h2>
-      <p>You've just joined the future of film production intelligence.</p>
-      
-      <p>Your account includes <strong>${data.freeCredits} free credits</strong> to get started.</p>
-      
-      <h3>What You Can Do:</h3>
-      <ul style="line-height: 2;">
-        <li>📄 Upload scripts for AI analysis</li>
-        <li>🌍 Compare production locations across 6 territories</li>
-        <li>💰 Calculate tax incentives & rebates</li>
-        <li>👥 Estimate crew costs by department</li>
-        <li>🎬 Research comparable productions</li>
-        <li>💸 Find grants & funding opportunities</li>
-      </ul>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${data.dashboardUrl}" class="btn">Get Started</a>
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p>© 2026 Prodculator. All rights reserved.</p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
-}
-
-/**
- * Generate HTML for Payment Confirmation Email
- */
-export function generatePaymentConfirmationEmailHTML(data: PaymentConfirmationEmailData): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #000000; padding: 40px 20px; text-align: center; }
-    .logo { color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 0; }
-    .content { padding: 40px 20px; }
-    .receipt-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    .receipt-table td { padding: 10px; border-bottom: 1px solid #e0e0e0; }
-    .receipt-table .label { font-weight: bold; color: #666666; }
-    .receipt-table .value { text-align: right; }
-    .total-row { background-color: #FFF9E6; font-weight: bold; }
-    .btn { display: inline-block; background-color: #D4AF37; color: #000000; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; margin: 10px 0; }
-    .footer { background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 class="logo">PAYMENT CONFIRMATION</h1>
-    </div>
-    
-    <div class="content">
-      <h2>Thank you for your payment! ✅</h2>
-      <p>Hi ${data.userName},</p>
-      <p>Your payment has been successfully processed.</p>
-      
-      <table class="receipt-table">
-        <tr>
-          <td class="label">Plan:</td>
-          <td class="value">${data.planName}</td>
-        </tr>
-        <tr>
-          <td class="label">Scripts Included:</td>
-          <td class="value">${data.scriptsIncluded}</td>
-        </tr>
-        <tr>
-          <td class="label">Billing Date:</td>
-          <td class="value">${data.billingDate}</td>
-        </tr>
-        <tr class="total-row">
-          <td class="label">Total Amount:</td>
-          <td class="value">${data.amount} ${data.currency}</td>
-        </tr>
-      </table>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${data.receiptUrl}" class="btn">View Receipt</a>
-      </div>
-      
-      <p style="font-size: 14px; color: #666666;">
-        Your subscription will automatically renew on the next billing date. You can manage your billing preferences in your account settings.
-      </p>
-    </div>
-    
-    <div class="footer">
-      <p>© 2026 Prodculator. All rights reserved.</p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
-}
-
-/**
- * Generate HTML for Processing Started Email
- */
-export function generateProcessingStartedEmailHTML(data: ProcessingStartedEmailData): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #000000; padding: 40px 20px; text-align: center; }
-    .logo { color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 0; }
-    .content { padding: 40px 20px; }
-    .btn { display: inline-block; background-color: #D4AF37; color: #000000; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; margin: 10px 0; }
-    .footer { background-color: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 class="logo">ANALYSIS IN PROGRESS</h1>
-    </div>
-    
-    <div class="content">
-      <h2>We're analyzing your script! ⚡</h2>
-      <p>Hi ${data.userName},</p>
-      <p>Your script "<strong>${data.scriptTitle}</strong>" has been received and is being analyzed by our Scripteligence AI system.</p>
-      
-      <p><strong>Estimated completion time:</strong> ${data.estimatedTime}</p>
-      
-      <h3>What we're analyzing:</h3>
-      <ul style="line-height: 2;">
-        <li>📍 Production locations & requirements</li>
-        <li>🎭 Character breakdown & casting needs</li>
-        <li>🌍 Optimal filming territories</li>
-        <li>💰 Tax incentive opportunities</li>
-        <li>👥 Crew cost estimates</li>
-        <li>🎬 Comparable productions</li>
-      </ul>
-      
-      <p>You'll receive an email notification as soon as your report is ready!</p>
-      
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${data.dashboardUrl}" class="btn">Track Status</a>
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p>© 2026 Prodculator. All rights reserved.</p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
-}

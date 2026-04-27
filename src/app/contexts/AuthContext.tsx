@@ -17,7 +17,7 @@ export interface AdminPermissions {
   canViewPlatformEconomics: boolean;
 }
 
-type PlanType = 'free' | 'single' | 'professional' | 'studio';
+type PlanType = 'free' | 'single' | 'professional' | 'producer' | 'studio';
 
 /** Normalize legacy 'single' plan name to 'professional'. */
 function normalizePlan(plan: string | undefined): PlanType {

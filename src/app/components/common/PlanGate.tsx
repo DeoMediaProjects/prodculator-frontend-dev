@@ -5,7 +5,7 @@ import { Lock } from '@mui/icons-material';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 
 interface PlanGateProps {
-  plan?: 'professional' | 'studio';
+  plan?: 'professional' | 'producer' | 'studio';
   children: ReactNode;
   fallback?: ReactNode;
   blurred?: boolean;
@@ -26,7 +26,7 @@ export function PlanGate({
 
   if (fallback) return <>{fallback}</>;
 
-  const label = featureName || (plan === 'studio' ? 'Studio' : 'Professional');
+  const label = featureName || (plan === 'studio' ? 'Studio' : plan === 'producer' ? 'Producer' : 'Professional');
 
   return (
     <Box sx={{ position: 'relative', minHeight: 300, overflow: 'hidden' }}>

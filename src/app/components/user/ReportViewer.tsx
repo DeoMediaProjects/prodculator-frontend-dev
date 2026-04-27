@@ -40,6 +40,9 @@ import {
   CheckCircle,
   AccessTime,
   BarChart,
+  PictureAsPdf,
+  GridOn,
+  Share,
 } from '@mui/icons-material';
 import { useScript, mapReportToAnalysis } from '@/app/contexts/ScriptContext';
 import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/report-pdf.service';
@@ -59,12 +62,20 @@ export function ReportViewer() {
   const [tabValue, setTabValue] = useState(0);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingInvestorSummary, setIsDownloadingInvestorSummary] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isFetchingReport, setIsFetchingReport] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  // userPlan returned by the report endpoint — promoted to "producer" for pay-per-report buyers
+  // whose account plan remains "free". Use this as the source of truth for access decisions.
+  const [reportUserPlan, setReportUserPlan] = useState<string | null>(null);
 
-  const { isFree } = usePlanGate();
-  const isPreview = isFree || location.pathname.includes('preview');
+  const { isFree, isProducer, isStudio } = usePlanGate();
+  // After the report loads, prefer the plan the backend embedded in the report response.
+  // This correctly handles pay-per-report (credit) buyers who have plan="free" on their
+  // account but purchased a full report — the API promotes their effective plan to "producer".
+  const effectiveIsFree = reportUserPlan !== null ? reportUserPlan === 'free' : isFree;
+  const isPreview = effectiveIsFree || location.pathname.includes('preview');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -79,6 +90,10 @@ export function ReportViewer() {
     apiClient
       .get<any>(`/api/reports/${reportId}`, { auth: true })
       .then((report) => {
+        // Capture the effective plan for this specific report.
+        // Pay-per-report buyers have account plan "free" but the API returns "producer" here.
+        if (report.userPlan) setReportUserPlan(report.userPlan);
+
         // Always capture the pdf url
         setPdfUrl(report.pdf_url || report.pdfUrl || null);
 
@@ -144,6 +159,24 @@ export function ReportViewer() {
     }
   };
 
+  const handleDownloadInvestorSummary = async () => {
+    if (!reportId) return;
+    setIsDownloadingInvestorSummary(true);
+    try {
+      const blob = await apiClient.get<Blob>(`/api/reports/${reportId}/investor-summary`, { auth: true });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `investor-summary-${reportId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Investor summary download failed:', error);
+    } finally {
+      setIsDownloadingInvestorSummary(false);
+    }
+  };
+
   const handleExportPDF = async () => {
     if (!analysis) return;
 
@@ -195,6 +228,26 @@ export function ReportViewer() {
     { label: 'Weather & Logistics', icon: <WbSunny />, locked: isPreview },
     { label: 'Funding & Festivals', icon: <TrendingUp />, locked: isPreview },
   ];
+
+  const renderLockedHeaderAction = (
+    label: string,
+    requiredPlan: 'producer' | 'studio'
+  ) => (
+    <Button
+      size="small"
+      variant="outlined"
+      startIcon={<Lock sx={{ fontSize: 14 }} />}
+      onClick={() => navigate('/pricing')}
+      sx={{
+        color: '#000',
+        borderColor: '#000',
+        display: { xs: 'none', md: 'flex' },
+        fontSize: '0.75rem',
+      }}
+    >
+      {`${label} (${requiredPlan === 'studio' ? 'Studio' : 'Producer'})`}
+    </Button>
+  );
 
   const BlurredContent = ({ title }: { title: string }) => (
     <Box sx={{ position: 'relative', minHeight: '400px', overflow: 'hidden' }}>
@@ -256,11 +309,28 @@ export function ReportViewer() {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {/* Free user: upgrade nudge + watermarked PDF download */}
               {isPreview && (
-                <Button size="small" variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                  Upgrade
-                </Button>
+                <>
+                  {pdfUrl && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={isDownloading ? <CircularProgress size={14} /> : <Download />}
+                      sx={{ color: '#000', borderColor: '#000', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                      onClick={handleDownloadPDF}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading ? 'Downloading...' : 'Download Trial PDF (Watermarked)'}
+                    </Button>
+                  )}
+                  <Button size="small" variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    Upgrade
+                  </Button>
+                </>
               )}
+
+              {/* Paid user PDF buttons */}
               {!isPreview && pdfUrl && (
                 <>
                   <Button
@@ -297,6 +367,47 @@ export function ReportViewer() {
                   {isGeneratingPDF ? 'Preparing...' : 'Save PDF'}
                 </Button>
               )}
+
+              {/* Investor Summary — Producer+ */}
+              {!isPreview && (
+                isProducer ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={isDownloadingInvestorSummary ? <CircularProgress size={14} /> : <PictureAsPdf />}
+                    sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', md: 'flex' } }}
+                    onClick={handleDownloadInvestorSummary}
+                    disabled={isDownloadingInvestorSummary}
+                  >
+                    Investor Summary
+                  </Button>
+                ) : (
+                  renderLockedHeaderAction('Investor Summary', 'producer')
+                )
+              )}
+
+              {/* Excel Export — Producer+ */}
+              {!isPreview && (
+                isProducer ? (
+                  <Button size="small" variant="outlined" startIcon={<GridOn />} disabled sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', md: 'flex' } }}>
+                    Export Excel
+                  </Button>
+                ) : (
+                  renderLockedHeaderAction('Export Excel', 'producer')
+                )
+              )}
+
+              {/* Share Link — Studio */}
+              {!isPreview && (
+                isStudio ? (
+                  <Button size="small" variant="outlined" startIcon={<Share />} disabled sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', md: 'flex' } }}>
+                    Share Report
+                  </Button>
+                ) : (
+                  renderLockedHeaderAction('Share Report', 'studio')
+                )
+              )}
+
               <Button size="small" startIcon={<ArrowBack />} onClick={() => navigate(isPreview ? '/upload' : '/dashboard')} sx={{ color: '#000' }}>
                 Back
               </Button>
@@ -414,6 +525,12 @@ export function ReportViewer() {
               {analysis.sectionExplainers?.locationRankings && (
                 <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>{analysis.sectionExplainers.locationRankings}</Typography>
               )}
+              {/* Free users see 3 territories — show 2 locked placeholders so they know more exist */}
+              {isPreview && (
+                <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(212,175,55,0.08)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)', '& .MuiAlert-icon': { color: '#D4AF37' } }}>
+                  Showing top 3 territories. Upgrade to Professional for up to 5, or buy a single report for all available territories.
+                </Alert>
+              )}
               {analysis.locationRankings.map((loc, i) => (
                 <Paper key={i} sx={{ p: 3, mb: 2, bgcolor: '#111', border: '1px solid #222' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
@@ -460,6 +577,21 @@ export function ReportViewer() {
                   <Typography variant="subtitle2" sx={{ mb: 1, color: '#D4AF37' }}>Key Intelligence:</Typography>
                   <List dense>{loc.reasoning.map((r, ri) => <ListItem key={ri} sx={{ color: '#a0a0a0' }}>• {r}</ListItem>)}</List>
                 </Paper>
+              ))}
+              {isPreview && [0, 1].map((i) => (
+                <Box key={`locked-territory-${i}`} sx={{ position: 'relative', mb: 2 }}>
+                  <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', filter: 'blur(4px)', opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6" sx={{ color: '#D4AF37' }}>Territory #{i + 4}</Typography>
+                      <Chip label="Score: —/100" sx={{ bgcolor: '#333', color: '#666', fontWeight: 700 }} />
+                    </Box>
+                    <LinearProgress variant="determinate" value={60} sx={{ height: 6, borderRadius: 3, bgcolor: '#222' }} />
+                  </Paper>
+                  <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <Lock sx={{ color: '#D4AF37', fontSize: '1.8rem' }} />
+                    <Typography variant="body2" sx={{ color: '#D4AF37', fontWeight: 600 }}>Upgrade to unlock</Typography>
+                  </Box>
+                </Box>
               ))}
             </TabPanel>
 
