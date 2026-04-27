@@ -137,6 +137,7 @@ export function Pricing() {
   };
 
   const handlePlanClick = async (planName: string, planType: PlanType) => {
+    if (planType === 'producer' || planType === 'studio') return;
     if (planType === 'free') {
       navigate('/upload');
       return;
@@ -193,6 +194,9 @@ export function Pricing() {
   };
 
   const ctaForPlan = (plan: Plan): { label: string; disabled: boolean } => {
+    if (plan.planType === 'producer' || plan.planType === 'studio') {
+      return { label: 'Coming Soon', disabled: true };
+    }
     if (!hasActiveSubscription || !user) {
       return { label: plan.cta, disabled: false };
     }
@@ -285,60 +289,60 @@ export function Pricing() {
       ctaSubtext: 'Cancel anytime',
       planType: 'professional',
     },
-    // {
-    //   name: 'Producer',
-    //   monthlyUSD: 149,
-    //   monthlyGBP: 119,
-    //   annualUSD: 119,
-    //   annualGBP: 95,
-    //   period: 'month',
-    //   description: 'Scale your productions',
-    //   badge: 'BEST VALUE',
-    //   highlight: true,
-    //   features: [
-    //     '3 scripts per month',
-    //     'All territories',
-    //     'Everything in Professional, plus:',
-    //     'Investor Summary PDF',
-    //     'Excel Export',
-    //     'Saved What-If Scenarios',
-    //   ],
-    //   cta: 'Start Producer',
-    //   ctaSubtext: 'Cancel anytime',
-    //   planType: 'producer',
-    // },
-    // {
-    //   name: 'Studio',
-    //   monthlyUSD: 299,
-    //   monthlyGBP: 239,
-    //   annualUSD: 239,
-    //   annualGBP: 191,
-    //   period: 'month',
-    //   description: 'Your brand. Your reports.',
-    //   badge: 'FOR PRODUCTION COMPANIES',
-    //   includesText: 'Everything in Producer, plus:',
-    //   sections: [
-    //     {
-    //       title: 'WHITE-LABEL',
-    //       features: [
-    //         'Your logo on every PDF',
-    //         '"Prepared by [You]" footer',
-    //         'Share Link (permanent)',
-    //       ],
-    //     },
-    //     {
-    //       title: 'VOLUME',
-    //       features: [
-    //         '10 scripts per month',
-    //         'Multiple team seats',
-    //       ],
-    //     },
-    //   ],
-    //   footerNote: 'Used by production companies to deliver reports to clients',
-    //   cta: 'Start Studio Plan',
-    //   ctaSubtext: 'Cancel anytime',
-    //   planType: 'studio',
-    // },
+    {
+      name: 'Producer',
+      monthlyUSD: 149,
+      monthlyGBP: 119,
+      annualUSD: 119,
+      annualGBP: 95,
+      period: 'month',
+      description: 'Scale your productions',
+      badge: 'BEST VALUE',
+      highlight: true,
+      features: [
+        '3 scripts per month',
+        'All territories',
+        'Everything in Professional, plus:',
+        'Investor Summary PDF',
+        'Excel Export',
+        'Saved What-If Scenarios',
+      ],
+      cta: 'Start Producer',
+      ctaSubtext: 'Cancel anytime',
+      planType: 'producer',
+    },
+    {
+      name: 'Studio',
+      monthlyUSD: 299,
+      monthlyGBP: 239,
+      annualUSD: 239,
+      annualGBP: 191,
+      period: 'month',
+      description: 'Your brand. Your reports.',
+      badge: 'FOR PRODUCTION COMPANIES',
+      includesText: 'Everything in Producer, plus:',
+      sections: [
+        {
+          title: 'WHITE-LABEL',
+          features: [
+            'Your logo on every PDF',
+            '"Prepared by [You]" footer',
+            'Share Link (permanent)',
+          ],
+        },
+        {
+          title: 'VOLUME',
+          features: [
+            '10 scripts per month',
+            'Multiple team seats',
+          ],
+        },
+      ],
+      footerNote: 'Used by production companies to deliver reports to clients',
+      cta: 'Start Studio Plan',
+      ctaSubtext: 'Cancel anytime',
+      planType: 'studio',
+    },
   ];
 
   return (
@@ -466,7 +470,7 @@ export function Pricing() {
                     size="medium"
                     sx={{
                       position: 'absolute',
-                      top: -16,
+                      top: -7,
                       left: '50%',
                       transform: 'translateX(-50%)',
                       bgcolor: plan.highlight ? '#D4AF37' : 'rgba(212, 175, 55, 0.15)',
