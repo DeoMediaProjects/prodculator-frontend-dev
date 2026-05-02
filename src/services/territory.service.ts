@@ -95,6 +95,7 @@ export async function compareTerritories(
     });
     const raw = await apiClient.get<TerritoryCompareResponse>(
       `/api/territories/compare?${params.toString()}`,
+      { auth: true },
     );
     // Normalise shape defensively
     const resp = raw as TerritoryCompareResponse;

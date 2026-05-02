@@ -34,6 +34,7 @@ import {
   createCreditCheckout,
   redirectToCheckout
 } from '@/services/stripe.service';
+import { cancelScheduledChange } from '@/services/subscription.service';
 import { useSnackbar } from 'notistack';
 import { ChangePlanModal } from './ChangePlanModal';
 
@@ -136,10 +137,25 @@ export function Pricing() {
     return '';
   };
 
+  const handleCancelScheduledChange = async () => {
+    try {
+      await cancelScheduledChange();
+      enqueueSnackbar('Scheduled plan change cancelled', { variant: 'success' });
+      void refetchSubscription();
+    } catch {
+      enqueueSnackbar('Failed to cancel scheduled change', { variant: 'error' });
+    }
+  };
+
   const handlePlanClick = async (planName: string, planType: PlanType) => {
-    if (planType === 'producer' || planType === 'studio') return;
     if (planType === 'free') {
       navigate('/upload');
+      return;
+    }
+
+    // If clicking the plan that is currently scheduled to take effect, cancel it.
+    if (pendingPlan === planType) {
+      await handleCancelScheduledChange();
       return;
     }
 
@@ -194,9 +210,6 @@ export function Pricing() {
   };
 
   const ctaForPlan = (plan: Plan): { label: string; disabled: boolean } => {
-    if (plan.planType === 'producer' || plan.planType === 'studio') {
-      return { label: 'Coming Soon', disabled: true };
-    }
     if (!hasActiveSubscription || !user) {
       return { label: plan.cta, disabled: false };
     }
@@ -209,7 +222,7 @@ export function Pricing() {
       return { label: 'Current plan', disabled: true };
     }
     if (pendingPlan && pendingPlan === plan.planType) {
-      return { label: 'Scheduled at renewal', disabled: true };
+      return { label: 'Cancel scheduled change', disabled: false };
     }
     if (direction === 'upgrade') return { label: `Upgrade to ${plan.name}`, disabled: false };
     if (direction === 'downgrade') return { label: `Switch to ${plan.name}`, disabled: false };

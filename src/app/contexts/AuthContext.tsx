@@ -59,7 +59,7 @@ interface AuthContextType {
 
   // User auth
   userLogin: (email: string, password: string) => Promise<boolean>;
-  userSignup: (userData: SignupData) => Promise<boolean>;
+  userSignup: (userData: SignupData) => Promise<{ status: 'success' | 'verification_required' | 'error'; error?: string }>;
   googleLogin: () => Promise<boolean>;
   userLogout: () => void;
 
@@ -224,8 +224,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const userSignup = async (userData: SignupData): Promise<boolean> => {
-    const { user: authUser, error } = await authService.signUp(
+  const userSignup = async (userData: SignupData): Promise<{ status: 'success' | 'verification_required' | 'error'; error?: string }> => {
+    const { user: authUser, verificationRequired, error } = await authService.signUp(
       userData.email,
       userData.password,
       {
@@ -235,9 +235,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    if (verificationRequired) return { status: 'verification_required' };
+
     if (error || !authUser) {
       console.error('Signup error:', error);
-      return false;
+      return { status: 'error', error: error ?? undefined };
     }
 
     setUser({
@@ -247,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       reportsLimit: authUser.credits_remaining || 0,
     });
 
-    return true;
+    return { status: 'success' };
   };
 
   const userLogout = async () => {

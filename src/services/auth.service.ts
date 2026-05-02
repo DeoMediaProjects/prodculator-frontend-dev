@@ -25,6 +25,7 @@ export interface AuthUser {
   user_type: 'free' | 'paid' | 'b2b' | 'admin';
   credits_remaining?: number;
   plan?: 'free' | 'single' | 'professional' | 'producer' | 'studio';
+  email_verified?: boolean;
 }
 
 interface TokenResponse {
@@ -33,6 +34,11 @@ interface TokenResponse {
   token_type: string;
   expires_in: number;
   user: AuthUser;
+}
+
+interface SignUpResponse {
+  verification_required: true;
+  email: string;
 }
 
 export class AuthService {
@@ -44,19 +50,35 @@ export class AuthService {
       company?: string;
       role?: string;
     }
-  ): Promise<{ user: AuthUser | null; error: string | null }> {
+  ): Promise<{ user: AuthUser | null; verificationRequired: boolean; error: string | null }> {
     try {
-      const data = await apiClient.post<TokenResponse>('/api/auth/signup', {
+      const data = await apiClient.post<TokenResponse | SignUpResponse>('/api/auth/signup', {
         email,
         password,
         name: metadata?.name,
         company: metadata?.company,
         role: metadata?.role,
       });
+
+      if ('verification_required' in data && data.verification_required) {
+        return { user: null, verificationRequired: true, error: null };
+      }
+
+      const tokens = data as TokenResponse;
+      setTokens(tokens.access_token, tokens.refresh_token);
+      return { user: tokens.user, verificationRequired: false, error: null };
+    } catch (error) {
+      return { user: null, verificationRequired: false, error: error instanceof Error ? error.message : 'Sign up failed' };
+    }
+  }
+
+  async verifyEmailToken(token: string): Promise<{ user: AuthUser | null; error: string | null }> {
+    try {
+      const data = await apiClient.post<TokenResponse>('/api/auth/verify-email', { token });
       setTokens(data.access_token, data.refresh_token);
       return { user: data.user, error: null };
     } catch (error) {
-      return { user: null, error: error instanceof Error ? error.message : 'Sign up failed' };
+      return { user: null, error: error instanceof Error ? error.message : 'Verification failed' };
     }
   }
 

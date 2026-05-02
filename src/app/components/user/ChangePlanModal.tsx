@@ -63,7 +63,7 @@ export function ChangePlanModal({
   onClose,
   onSuccess,
   currentPlan,
-  targetPlan,
+  targetPlan: _targetPlan,
   targetPriceId,
   targetPlanLabel,
 }: ChangePlanModalProps) {
@@ -194,6 +194,23 @@ export function ChangePlanModal({
                   emphasis
                 />
               </Stack>
+            )}
+
+            {preview.billing_cycle_changes && (
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 1,
+                  p: 1.5,
+                  borderRadius: 1,
+                  bgcolor: 'rgba(212,175,55,0.08)',
+                  color: '#D4AF37',
+                  fontSize: '0.8rem',
+                }}
+              >
+                Your billing cycle will also change (
+                {direction === 'upgrade' ? 'applied immediately' : 'effective at next renewal'}).
+              </Typography>
             )}
           </Stack>
         )}

@@ -43,12 +43,24 @@ import {
   PictureAsPdf,
   GridOn,
   Share,
+  ContentCopy,
+  Check,
+  LinkOff,
 } from '@mui/icons-material';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Tooltip,
+} from '@mui/material';
 import { useScript, mapReportToAnalysis } from '@/app/contexts/ScriptContext';
 import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/report-pdf.service';
-import { apiClient } from '@/services/api';
+import { apiClient, ProjectDetails } from '@/services/api';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
+import ProjectDetailsPanel from './ProjectDetailsPanel';
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   return <div hidden={value !== index} style={{ height: '100%' }}>{value === index && <Box sx={{ py: 3 }}>{children}</Box>}</div>;
@@ -61,14 +73,23 @@ export function ReportViewer() {
   const { analysis, setAnalysis } = useScript();
   const [tabValue, setTabValue] = useState(0);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [isViewingPDF, setIsViewingPDF] = useState(false);
   const [isDownloadingInvestorSummary, setIsDownloadingInvestorSummary] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [investorModalOpen, setInvestorModalOpen] = useState(false);
+  const [isCreatingShare, setIsCreatingShare] = useState(false);
+  const [isRevokingShare, setIsRevokingShare] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [isFetchingReport, setIsFetchingReport] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   // userPlan returned by the report endpoint — promoted to "producer" for pay-per-report buyers
   // whose account plan remains "free". Use this as the source of truth for access decisions.
   const [reportUserPlan, setReportUserPlan] = useState<string | null>(null);
+  const [projectDetails, setProjectDetails] = useState<ProjectDetails | null>(null);
 
   const { isFree, isProducer, isStudio } = usePlanGate();
   // After the report loads, prefer the plan the backend embedded in the report response.
@@ -94,8 +115,14 @@ export function ReportViewer() {
         // Pay-per-report buyers have account plan "free" but the API returns "producer" here.
         if (report.userPlan) setReportUserPlan(report.userPlan);
 
+        // Capture share token if one exists (only Studio users will see it non-null)
+        setShareToken(report.shareToken ?? null);
+
         // Always capture the pdf url
         setPdfUrl(report.pdf_url || report.pdfUrl || null);
+
+        // Capture any previously saved project details
+        if (report.projectDetails) setProjectDetails(report.projectDetails);
 
         // If analysis is already in context (same-session), don't overwrite it
         if (analysis) return;
@@ -137,25 +164,25 @@ export function ReportViewer() {
 
   const handleDownloadPDF = async () => {
     if (!reportId) return;
-    setIsDownloading(true);
+    setIsDownloadingPDF(true);
     try {
       await downloadReportPDF(reportId, analysis?.scriptTitle);
     } catch (error) {
       console.error('PDF download failed:', error);
     } finally {
-      setIsDownloading(false);
+      setIsDownloadingPDF(false);
     }
   };
 
   const handleViewPDF = async () => {
     if (!reportId) return;
-    setIsDownloading(true);
+    setIsViewingPDF(true);
     try {
       await viewReportPDF(reportId);
     } catch (error) {
       console.error('PDF view failed:', error);
     } finally {
-      setIsDownloading(false);
+      setIsViewingPDF(false);
     }
   };
 
@@ -163,7 +190,7 @@ export function ReportViewer() {
     if (!reportId) return;
     setIsDownloadingInvestorSummary(true);
     try {
-      const blob = await apiClient.get<Blob>(`/api/reports/${reportId}/investor-summary`, { auth: true });
+      const blob = await apiClient.get<Blob>(`/api/reports/${reportId}/investor-summary`, { auth: true, responseType: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -174,6 +201,70 @@ export function ReportViewer() {
       console.error('Investor summary download failed:', error);
     } finally {
       setIsDownloadingInvestorSummary(false);
+    }
+  };
+
+  const shareUrl = shareToken
+    ? `${window.location.origin}/report/shared/${shareToken}`
+    : null;
+
+  const handleCreateShare = async () => {
+    if (!reportId) return;
+    setIsCreatingShare(true);
+    try {
+      const data = await apiClient.post<{ share_token: string; share_url: string }>(
+        `/api/reports/${reportId}/share`,
+        undefined,
+        { auth: true },
+      );
+      setShareToken(data.share_token);
+    } catch (error) {
+      console.error('Share link creation failed:', error);
+    } finally {
+      setIsCreatingShare(false);
+    }
+  };
+
+  const handleRevokeShare = async () => {
+    if (!reportId) return;
+    setIsRevokingShare(true);
+    try {
+      await apiClient.delete<void>(`/api/reports/${reportId}/share`, { auth: true });
+      setShareToken(null);
+    } catch (error) {
+      console.error('Share link revoke failed:', error);
+    } finally {
+      setIsRevokingShare(false);
+    }
+  };
+
+  const handleCopyShareUrl = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleExportExcel = async () => {
+    if (!reportId) return;
+    setIsExportingExcel(true);
+    try {
+      const blob = await apiClient.get<Blob>(`/api/reports/${reportId}/export-excel`, {
+        auth: true,
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prodculator-export-${reportId}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+    } finally {
+      setIsExportingExcel(false);
     }
   };
 
@@ -241,7 +332,6 @@ export function ReportViewer() {
       sx={{
         color: '#000',
         borderColor: '#000',
-        display: { xs: 'none', md: 'flex' },
         fontSize: '0.75rem',
       }}
     >
@@ -316,12 +406,12 @@ export function ReportViewer() {
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={isDownloading ? <CircularProgress size={14} /> : <Download />}
+                      startIcon={isDownloadingPDF ? <CircularProgress size={14} /> : <Download />}
                       sx={{ color: '#000', borderColor: '#000', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                       onClick={handleDownloadPDF}
-                      disabled={isDownloading}
+                      disabled={isDownloadingPDF}
                     >
-                      {isDownloading ? 'Downloading...' : 'Download Trial PDF (Watermarked)'}
+                      {isDownloadingPDF ? 'Downloading...' : 'Download Trial PDF (Watermarked)'}
                     </Button>
                   )}
                   <Button size="small" variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
@@ -336,22 +426,22 @@ export function ReportViewer() {
                   <Button
                     size="small"
                     variant="outlined"
-                    startIcon={isDownloading ? <CircularProgress size={14} /> : <Download />}
-                    sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', sm: 'flex' } }}
+                    startIcon={isViewingPDF ? <CircularProgress size={14} /> : <Download />}
+                    sx={{ color: '#000', borderColor: '#000' }}
                     onClick={handleViewPDF}
-                    disabled={isDownloading}
+                    disabled={isViewingPDF}
                   >
-                    View PDF
+                    {isViewingPDF ? 'Opening...' : 'View PDF'}
                   </Button>
                   <Button
                     size="small"
                     variant="contained"
-                    startIcon={isDownloading ? <CircularProgress size={14} sx={{ color: '#000' }} /> : <Download />}
+                    startIcon={isDownloadingPDF ? <CircularProgress size={14} sx={{ color: '#000' }} /> : <Download />}
                     sx={{ bgcolor: '#000', color: '#fff', '&:hover': { bgcolor: '#222' }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     onClick={handleDownloadPDF}
-                    disabled={isDownloading}
+                    disabled={isDownloadingPDF}
                   >
-                    {isDownloading ? 'Downloading...' : 'Download PDF'}
+                    {isDownloadingPDF ? 'Downloading...' : 'Download PDF'}
                   </Button>
                 </>
               )}
@@ -374,10 +464,9 @@ export function ReportViewer() {
                   <Button
                     size="small"
                     variant="outlined"
-                    startIcon={isDownloadingInvestorSummary ? <CircularProgress size={14} /> : <PictureAsPdf />}
-                    sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', md: 'flex' } }}
-                    onClick={handleDownloadInvestorSummary}
-                    disabled={isDownloadingInvestorSummary}
+                    startIcon={<PictureAsPdf />}
+                    sx={{ color: '#000', borderColor: '#000', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    onClick={() => setInvestorModalOpen(true)}
                   >
                     Investor Summary
                   </Button>
@@ -389,8 +478,15 @@ export function ReportViewer() {
               {/* Excel Export — Producer+ */}
               {!isPreview && (
                 isProducer ? (
-                  <Button size="small" variant="outlined" startIcon={<GridOn />} disabled sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', md: 'flex' } }}>
-                    Export Excel
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={isExportingExcel ? <CircularProgress size={14} /> : <GridOn />}
+                    onClick={handleExportExcel}
+                    disabled={isExportingExcel}
+                    sx={{ color: '#000', borderColor: '#000', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  >
+                    {isExportingExcel ? 'Exporting...' : 'Export Excel'}
                   </Button>
                 ) : (
                   renderLockedHeaderAction('Export Excel', 'producer')
@@ -400,8 +496,14 @@ export function ReportViewer() {
               {/* Share Link — Studio */}
               {!isPreview && (
                 isStudio ? (
-                  <Button size="small" variant="outlined" startIcon={<Share />} disabled sx={{ color: '#000', borderColor: '#000', display: { xs: 'none', md: 'flex' } }}>
-                    Share Report
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Share />}
+                    onClick={() => setShareModalOpen(true)}
+                    sx={{ color: '#000', borderColor: '#000', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  >
+                    {shareToken ? 'Manage Share' : 'Share Report'}
                   </Button>
                 ) : (
                   renderLockedHeaderAction('Share Report', 'studio')
@@ -959,6 +1061,128 @@ export function ReportViewer() {
           </Box>
         </Paper>
       </Container>
+
+      {/* Investor Summary Modal */}
+      <Dialog
+        open={investorModalOpen}
+        onClose={() => setInvestorModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        slotProps={{ paper: { sx: { bgcolor: '#0a0a0a', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 2 } } }}
+      >
+        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700, pb: 0 }}>
+          Investor Summary
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+            Fill in your project details to personalise the PDF — every field is optional.
+          </Typography>
+          {reportId && (
+            <ProjectDetailsPanel
+              reportId={reportId}
+              initialData={projectDetails}
+              onSaved={setProjectDetails}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button onClick={() => setInvestorModalOpen(false)} sx={{ color: '#a0a0a0' }}>
+            Close
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={isDownloadingInvestorSummary ? <CircularProgress size={14} sx={{ color: '#000' }} /> : <PictureAsPdf />}
+            onClick={handleDownloadInvestorSummary}
+            disabled={isDownloadingInvestorSummary}
+            sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#c9a227' } }}
+          >
+            {isDownloadingInvestorSummary ? 'Downloading…' : 'Download Investor Summary'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Share Report Modal */}
+      <Dialog
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{ paper: { sx: { bgcolor: '#111', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 2 } } }}
+      >
+        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>
+          Share Report
+        </DialogTitle>
+        <DialogContent>
+          {shareToken ? (
+            <Box>
+              <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
+                Anyone with this link can view a read-only version of this report. No account required.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={shareUrl || ''}
+                  slotProps={{ input: { readOnly: true, style: { color: '#fff', fontSize: '0.8rem' } } }}
+                  sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#0a0a0a' } }}
+                />
+                <Tooltip title={copied ? 'Copied!' : 'Copy link'}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={copied ? <Check /> : <ContentCopy />}
+                    onClick={handleCopyShareUrl}
+                    sx={{ borderColor: '#D4AF37', color: '#D4AF37', whiteSpace: 'nowrap', minWidth: 110 }}
+                  >
+                    {copied ? 'Copied' : 'Copy link'}
+                  </Button>
+                </Tooltip>
+              </Box>
+              <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #222' }}>
+                <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 1.5 }}>
+                  Want to make this report private again?
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="error"
+                  startIcon={isRevokingShare ? <CircularProgress size={14} /> : <LinkOff />}
+                  onClick={handleRevokeShare}
+                  disabled={isRevokingShare}
+                  sx={{ borderColor: 'rgba(244,67,54,0.5)', color: '#f44336' }}
+                >
+                  {isRevokingShare ? 'Revoking…' : 'Revoke link'}
+                </Button>
+              </Box>
+            </Box>
+          ) : (
+            <Box>
+              <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
+                Generate a permanent shareable link. Anyone with the link can view the full report — no account needed.
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#666' }}>
+                You can revoke the link at any time from this dialog.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setShareModalOpen(false)} sx={{ color: '#a0a0a0' }}>
+            Close
+          </Button>
+          {!shareToken && (
+            <Button
+              variant="contained"
+              startIcon={isCreatingShare ? <CircularProgress size={14} sx={{ color: '#000' }} /> : <Share />}
+              onClick={handleCreateShare}
+              disabled={isCreatingShare}
+              sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700 }}
+            >
+              {isCreatingShare ? 'Creating…' : 'Create share link'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

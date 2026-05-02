@@ -68,13 +68,14 @@ export function UserSignup() {
     setLoading(true);
 
     try {
-      const success = await userSignup(formData);
-      
-      if (success) {
-        // Redirect to email verification screen instead of dashboard
+      const { status, error: signupError } = await userSignup(formData);
+
+      if (status === 'verification_required') {
         navigate('/verify-email', { state: { email: formData.email } });
+      } else if (status === 'success') {
+        navigate('/dashboard');
       } else {
-        setError('An error occurred during signup. Please try again.');
+        setError(signupError || 'An error occurred during signup. Please try again.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
