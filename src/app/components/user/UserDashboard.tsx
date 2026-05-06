@@ -50,7 +50,6 @@ import { authService } from '@/services/auth.service';
 import { WhatIfCalculator } from '@/app/components/user/WhatIfCalculator';
 import { TerritoryComparison } from '@/app/components/user/TerritoryComparison';
 import { ProductionTimeline } from '@/app/components/user/ProductionTimeline';
-import { PlanGate } from '@/app/components/common/PlanGate';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { useSnackbar } from 'notistack';
 
@@ -657,8 +656,8 @@ export function UserDashboard() {
           )}
         </TabPanel>
 
-        <TabPanel value={currentTab} index={1}><PlanGate plan="professional" featureName="Territory Comparison"><TerritoryComparison /></PlanGate></TabPanel>
-        <TabPanel value={currentTab} index={2}><PlanGate plan="professional" featureName="What-If Calculator"><WhatIfCalculator /></PlanGate></TabPanel>
+        <TabPanel value={currentTab} index={1}><TerritoryComparison /></TabPanel>
+        <TabPanel value={currentTab} index={2}><WhatIfCalculator /></TabPanel>
         <TabPanel value={currentTab} index={3}>
           <ProductionTimeline
             userPlan={(user?.plan as 'free' | 'professional' | 'studio') || 'free'}

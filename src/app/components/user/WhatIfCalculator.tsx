@@ -16,6 +16,8 @@ import {
 import { InfoOutlined } from '@mui/icons-material';
 import logoBlack from '@/assets/ddbe9f875b0128308d18010a516a1a848d4b7b77.png';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
+import { ResultsGate } from '@/app/components/common/PlanGate';
+import { usePlanGate } from '@/app/hooks/usePlanGate';
 import {
   computeScenario,
   type ScenarioResponse,
@@ -129,6 +131,7 @@ const SCORE_WEIGHTS_INFO = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function WhatIfCalculator() {
+  const { hasAccess } = usePlanGate('professional');
 
   // Inputs
   const [budget, setBudget] = useState(4_000_000);
@@ -150,6 +153,7 @@ export function WhatIfCalculator() {
 
   // Debounced fetch
   const fetchScenario = useCallback(() => {
+    if (!hasAccess) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     setStale(true);
 
@@ -292,11 +296,22 @@ export function WhatIfCalculator() {
       <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 5 } }}>
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: '#111111', mb: 1 }}>
-            What-If Calculator
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: '#111111' }}>
+              What-If Calculator
+            </Typography>
+            {!hasAccess && (
+              <Chip
+                label="Pro"
+                size="small"
+                sx={{ bgcolor: 'rgba(212,175,55,0.15)', color: '#D4AF37', fontFamily: font, fontWeight: 700, fontSize: '11px', height: '22px' }}
+              />
+            )}
+          </Box>
           <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: '#555555' }}>
-            Compare financial returns across {territories.length || '...'} territories at your budget
+            {hasAccess
+              ? `Compare financial returns across ${territories.length || '...'} territories at your budget`
+              : 'Configure your production parameters — upgrade to see results across all territories'}
           </Typography>
         </Box>
 
@@ -487,8 +502,54 @@ export function WhatIfCalculator() {
           </Box>
         )}
 
+        {/* Locked results preview for free users */}
+        {!hasAccess && (
+          <ResultsGate plan="professional" featureName="What-If Calculator">
+            <Box
+              sx={{
+                bgcolor: '#FFFFFF', borderRadius: '12px',
+                border: '1px solid rgba(0,0,0,0.06)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Preview header row */}
+              <Box
+                sx={{
+                  display: 'flex', bgcolor: 'rgba(245,200,0,0.1)',
+                  height: '44px', alignItems: 'center', px: 2,
+                  borderBottom: '1px solid rgba(0,0,0,0.04)',
+                  minWidth: '1320px', gap: 2,
+                }}
+              >
+                {['Territory', 'Programme', 'Incentive Rate', 'Est. Incentive', 'Currency Adv.', 'Crew Saving', 'NET SAVING', 'Min Spend', 'Payment', 'Score /100'].map((col) => (
+                  <Box key={col} sx={{ flex: col === 'Territory' ? '0 0 200px' : '0 0 120px' }}>
+                    <Typography sx={{ ...headerCellSx }}>{col}</Typography>
+                  </Box>
+                ))}
+              </Box>
+              {/* Preview placeholder rows */}
+              {[1, 2, 3, 4].map((i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    display: 'flex', alignItems: 'center', px: 2,
+                    minHeight: '52px', borderBottom: '1px solid rgba(0,0,0,0.04)',
+                    bgcolor: i % 2 === 0 ? '#FAFAF8' : '#FFFFFF', minWidth: '1320px', gap: 2,
+                  }}
+                >
+                  <Box sx={{ flex: '0 0 200px', height: 14, bgcolor: '#E8E8E8', borderRadius: 1 }} />
+                  {[120, 80, 110, 110, 100, 110, 90, 100, 70].map((w, j) => (
+                    <Box key={j} sx={{ flex: `0 0 ${w}px`, height: 12, bgcolor: '#EEEEEE', borderRadius: 1 }} />
+                  ))}
+                </Box>
+              ))}
+            </Box>
+          </ResultsGate>
+        )}
+
         {/* Territory Comparison Table */}
-        {territories.length > 0 && (
+        {hasAccess && territories.length > 0 && (
           <Box
             sx={{
               bgcolor: '#FFFFFF', borderRadius: '12px',

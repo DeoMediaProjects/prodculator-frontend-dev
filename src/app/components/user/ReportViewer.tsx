@@ -339,49 +339,96 @@ export function ReportViewer() {
     </Button>
   );
 
-  const BlurredContent = ({ title }: { title: string }) => (
-    <Box sx={{ position: 'relative', minHeight: '400px', overflow: 'hidden' }}>
-      <Box sx={{ filter: 'blur(8px)', opacity: 0.3, pointerEvents: 'none', userSelect: 'none' }}>
-        <Typography variant="h5" gutterBottom>{title}</Typography>
-        <Grid container spacing={3}>
-          {[1, 2, 3, 4].map(i => (
-            <Grid size={{ xs: 12 }} key={i}>
-              <Paper sx={{ p: 3, bgcolor: '#1a1a1a' }}>
-                <Box sx={{ height: 20, width: '40%', bgcolor: '#333', mb: 2 }} />
-                <Box sx={{ height: 100, width: '100%', bgcolor: '#222' }} />
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-      <Box 
-        sx={{ 
-          position: 'absolute', 
-          top: 0, left: 0, right: 0, bottom: 0, 
-          display: 'flex', flexDirection: 'column', 
-          alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', p: 4,
-          zIndex: 10
-        }}
-      >
-        <Lock sx={{ fontSize: 64, color: '#D4AF37', mb: 2 }} />
-        <Typography variant="h5" sx={{ color: '#ffffff', mb: 1, fontWeight: 700 }}>
-          {title} Locked
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#a0a0a0', mb: 4, maxWidth: '400px' }}>
-          Detailed {title.toLowerCase()} analysis is exclusive to Pro and Studio members. Upgrade to unlock investor-ready intelligence.
-        </Typography>
-        <Button 
-          variant="contained" 
-          size="large"
-          onClick={() => navigate('/pricing')}
-          sx={{ px: 6 }}
-        >
-          Unlock Full Report
-        </Button>
-      </Box>
+  const LockedBadge = () => (
+    <Box
+      component="span"
+      onClick={() => navigate('/pricing')}
+      sx={{
+        display: 'inline-flex', alignItems: 'center', gap: 0.5,
+        bgcolor: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)',
+        borderRadius: 1, px: 1, py: 0.25, cursor: 'pointer',
+        '&:hover': { bgcolor: 'rgba(212,175,55,0.18)' },
+      }}
+    >
+      <Lock sx={{ fontSize: 11, color: '#D4AF37' }} />
+      <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>Upgrade</Typography>
     </Box>
   );
+
+  const LOCKED_SECTION_CONFIG: Record<string, { description: string; previewRows: string[] }> = {
+    'Financial Analysis': {
+      description: 'ROI projections, cash flow timelines, and break-even analysis across territories.',
+      previewRows: ['Estimated Net Incentive', 'Cash Flow at 12 Months', 'Break-Even Point', 'ROI Projection'],
+    },
+    'Crew & Cost': {
+      description: 'Crew day rates, availability ratings, and speciality breakdowns by territory.',
+      previewRows: ['Avg. Crew Day Rate', 'Crew Availability', 'Quality Rating', 'Key Specialties'],
+    },
+    'Comparables': {
+      description: 'Similar productions with matching genre, budget range, and shooting territories.',
+      previewRows: ['Title', 'Budget', 'Location', 'Year'],
+    },
+    'Weather & Logistics': {
+      description: 'Shooting season windows, climate risk scores, and logistics complexity ratings.',
+      previewRows: ['Best Shooting Season', 'Climate Risk Score', 'Permit Complexity', 'Infrastructure Rating'],
+    },
+    'Funding & Festivals': {
+      description: 'Co-production funds, soft money sources, and festival circuit recommendations.',
+      previewRows: ['Co-Production Fund', 'Soft Money Available', 'Top Festival Target', 'Application Deadline'],
+    },
+  };
+
+  const BlurredContent = ({ title }: { title: string }) => {
+    const config = LOCKED_SECTION_CONFIG[title];
+    const rows = config?.previewRows ?? ['Data Point 1', 'Data Point 2', 'Data Point 3', 'Data Point 4'];
+    const description = config?.description ?? `${title.toLowerCase()} analysis is exclusive to Pro and Studio members.`;
+
+    return (
+      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+        {/* Blurred preview — shows section structure */}
+        <Box sx={{ filter: 'blur(6px)', opacity: 0.25, pointerEvents: 'none', userSelect: 'none' }}>
+          <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>{title}</Typography>
+          <Grid container spacing={2}>
+            {rows.map((row) => (
+              <Grid size={{ xs: 12, sm: 6 }} key={row}>
+                <Paper sx={{ p: 2.5, bgcolor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                  <Typography variant="caption" sx={{ color: '#888', display: 'block', mb: 1 }}>{row}</Typography>
+                  <Box sx={{ height: 14, width: '55%', bgcolor: '#2e2e2e', borderRadius: 0.5, mb: 1 }} />
+                  <Box sx={{ height: 10, width: '80%', bgcolor: '#252525', borderRadius: 0.5 }} />
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+        {/* Lock overlay */}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            textAlign: 'center', p: 4, zIndex: 10,
+          }}
+        >
+          <Lock sx={{ fontSize: 40, color: '#D4AF37', mb: 1.5 }} />
+          <Typography variant="h6" sx={{ color: '#ffffff', mb: 0.5, fontWeight: 700 }}>
+            {title} Locked
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3, maxWidth: '400px' }}>
+            {description}
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => navigate('/pricing')}
+            sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}
+          >
+            Unlock Full Report
+          </Button>
+        </Box>
+      </Box>
+    );
+  };
 
   return (
     <Box sx={{ bgcolor: '#000000', minHeight: '100vh' }}>
@@ -563,6 +610,35 @@ export function ReportViewer() {
                 </Paper>
               )}
 
+              {/* Executive Summary narrative */}
+              {!!analysis.executiveSummary?.keyInsights && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 1.5, fontWeight: 600 }}>
+                    Executive Summary
+                  </Typography>
+                  <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #2a2a2a', borderRadius: 2 }}>
+                    {String(analysis.executiveSummary!.keyInsights)
+                      .split(/\n\n+/)
+                      .map(p => p.replace(/^\s*[-•*]\s+/, '').trim())
+                      .filter(Boolean)
+                      .map((paragraph, i, arr) => (
+                        <Typography
+                          key={i}
+                          variant="body1"
+                          sx={{
+                            color: '#d0d0d0',
+                            lineHeight: 1.85,
+                            mb: i < arr.length - 1 ? 2.5 : 0,
+                            fontSize: '0.95rem',
+                          }}
+                        >
+                          {paragraph}
+                        </Typography>
+                      ))}
+                  </Paper>
+                </Box>
+              )}
+
               {/* Key Flags */}
               {analysis.executiveSummary?.keyFlags && analysis.executiveSummary.keyFlags.length > 0 && (
                 <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -677,23 +753,31 @@ export function ReportViewer() {
                   </Grid>
                   <Divider sx={{ my: 2, borderColor: '#333' }} />
                   <Typography variant="subtitle2" sx={{ mb: 1, color: '#D4AF37' }}>Key Intelligence:</Typography>
-                  <List dense>{loc.reasoning.map((r, ri) => <ListItem key={ri} sx={{ color: '#a0a0a0' }}>• {r}</ListItem>)}</List>
-                </Paper>
-              ))}
-              {isPreview && [0, 1].map((i) => (
-                <Box key={`locked-territory-${i}`} sx={{ position: 'relative', mb: 2 }}>
-                  <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', filter: 'blur(4px)', opacity: 0.35, pointerEvents: 'none', userSelect: 'none' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="h6" sx={{ color: '#D4AF37' }}>Territory #{i + 4}</Typography>
-                      <Chip label="Score: —/100" sx={{ bgcolor: '#333', color: '#666', fontWeight: 700 }} />
+                  {isPreview ? (
+                    <Box sx={{ position: 'relative', mt: 0.5 }}>
+                      <Box sx={{ filter: 'blur(4px)', opacity: 0.3, pointerEvents: 'none', userSelect: 'none' }}>
+                        {[90, 75, 85].map((w, ri) => (
+                          <Box key={ri} sx={{ height: 11, bgcolor: '#2a2a2a', borderRadius: 1, mb: 1, width: `${w}%` }} />
+                        ))}
+                      </Box>
+                      <Box sx={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5,
+                      }}>
+                        <Lock sx={{ color: '#D4AF37', fontSize: '1.1rem' }} />
+                        <Typography
+                          variant="caption"
+                          onClick={() => navigate('/pricing')}
+                          sx={{ color: '#D4AF37', fontWeight: 600, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                        >
+                          Upgrade to unlock
+                        </Typography>
+                      </Box>
                     </Box>
-                    <LinearProgress variant="determinate" value={60} sx={{ height: 6, borderRadius: 3, bgcolor: '#222' }} />
-                  </Paper>
-                  <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                    <Lock sx={{ color: '#D4AF37', fontSize: '1.8rem' }} />
-                    <Typography variant="body2" sx={{ color: '#D4AF37', fontWeight: 600 }}>Upgrade to unlock</Typography>
-                  </Box>
-                </Box>
+                  ) : (
+                    <List dense>{loc.reasoning.map((r, ri) => <ListItem key={ri} sx={{ color: '#a0a0a0' }}>• {r}</ListItem>)}</List>
+                  )}
+                </Paper>
               ))}
             </TabPanel>
 
@@ -704,36 +788,36 @@ export function ReportViewer() {
                 <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>{analysis.sectionExplainers.incentiveEstimates}</Typography>
               )}
               {isPreview && (
-                <Box sx={{ position: 'relative' }}>
-                  <Box sx={{ filter: 'blur(4px)', pointerEvents: 'none', userSelect: 'none' }}>
-                    <Grid container spacing={3}>
-                      {analysis.incentiveEstimates.map((inc, i) => (
-                        <Grid size={{ xs: 12, md: 6 }} key={i}>
-                          <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
-                            <Typography variant="h6" sx={{ color: '#D4AF37', mb: 1 }}>{inc.territory}</Typography>
-                            <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>{inc.program}</Typography>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                              <Typography variant="body2">Rate:</Typography>
-                              <Typography variant="body1" sx={{ fontWeight: 600 }}>{inc.rate}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                              <Typography variant="body2">Estimated Rebate:</Typography>
-                              <Typography variant="h6" sx={{ color: '#4caf50' }}>{inc.estimatedRebate}</Typography>
-                            </Box>
-                          </Paper>
-                        </Grid>
-                      ))}
+                <Grid container spacing={3}>
+                  {analysis.incentiveEstimates.map((inc, i) => (
+                    <Grid size={{ xs: 12, md: 6 }} key={i}>
+                      <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
+                        <Typography variant="h6" sx={{ color: '#D4AF37', mb: 1 }}>{inc.territory}</Typography>
+                        <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>{inc.program}</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2">Rate:</Typography>
+                          <LockedBadge />
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="body2">Estimated Rebate:</Typography>
+                          <Box
+                            component="span"
+                            onClick={() => navigate('/pricing')}
+                            sx={{
+                              display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                              bgcolor: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)',
+                              borderRadius: 1, px: 1, py: 0.25, cursor: 'pointer',
+                              '&:hover': { bgcolor: 'rgba(212,175,55,0.18)' },
+                            }}
+                          >
+                            <Lock sx={{ fontSize: 11, color: '#D4AF37' }} />
+                            <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>Upgrade to unlock</Typography>
+                          </Box>
+                        </Box>
+                      </Paper>
                     </Grid>
-                  </Box>
-                  <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-                    <Paper sx={{ p: 4, bgcolor: 'rgba(0,0,0,0.9)', border: '1px solid #D4AF37', textAlign: 'center' }}>
-                      <Lock sx={{ fontSize: 40, color: '#D4AF37', mb: 1 }} />
-                      <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>Upgrade for Full Details</Typography>
-                      <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>Get detailed rebate calculations, eligibility requirements, and qualifying spend analysis.</Typography>
-                      <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#D4AF37' } }}>Upgrade Now</Button>
-                    </Paper>
-                  </Box>
-                </Box>
+                  ))}
+                </Grid>
               )}
               {!isPreview && (
                 <Grid container spacing={3}>
@@ -789,7 +873,37 @@ export function ReportViewer() {
 
             {/* Tab 4: Financial Analysis */}
             <TabPanel value={tabValue} index={3}>
-              {isPreview ? <BlurredContent title="Financial Analysis" /> : (
+              {isPreview ? (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Financial Analysis</Typography>
+                  <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>
+                    Per-territory budget breakdowns, rebate calculations, and net cost projections.
+                  </Typography>
+                  <Grid container spacing={3}>
+                    {analysis.locationRankings.map((loc, i) => (
+                      <Grid size={{ xs: 12 }} key={i}>
+                        <Paper sx={{ p: 3, bgcolor: '#111', border: i === 0 ? '2px solid rgba(212,175,55,0.3)' : '1px solid #222' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{loc.name}, {loc.country}</Typography>
+                            <LockedBadge />
+                          </Box>
+                          {['Total Budget', 'Qualifying Spend', 'ATL Deduction', 'Net Qualifying Spend', 'Gross Rebate', 'Net Rebate', 'Net Budget After Rebate'].map((step, si) => (
+                            <Box key={si} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, px: 1, mb: 0.5, borderRadius: 1, bgcolor: si === 6 ? 'rgba(76,175,80,0.04)' : 'transparent', borderLeft: si === 6 ? '3px solid rgba(76,175,80,0.3)' : si === 5 ? '3px solid rgba(212,175,55,0.3)' : '3px solid transparent' }}>
+                              <Typography variant="body2" sx={{ color: '#a0a0a0' }}>{`${si + 1}. ${step}`}</Typography>
+                              <LockedBadge />
+                            </Box>
+                          ))}
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  <Box sx={{ textAlign: 'center', mt: 3 }}>
+                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}>
+                      Unlock Financial Analysis
+                    </Button>
+                  </Box>
+                </>
+              ) : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Financial Analysis</Typography>
                   {analysis.sectionExplainers?.financialAnalysis && (
@@ -879,7 +993,44 @@ export function ReportViewer() {
 
             {/* Tab 5: Crew & Cost */}
             <TabPanel value={tabValue} index={4}>
-              {isPreview ? <BlurredContent title="Crew & Cost" /> : (
+              {isPreview ? (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Crew Insights by Territory</Typography>
+                  <Grid container spacing={3}>
+                    {analysis.locationRankings.map((loc, i) => (
+                      <Grid size={{ xs: 12, md: 6 }} key={i}>
+                        <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{loc.name}</Typography>
+                            <Box sx={{ height: 24, width: 64, bgcolor: '#1e1e1e', borderRadius: 1 }} />
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Crew Cost:</Typography>
+                            <LockedBadge />
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Quality Rating:</Typography>
+                            <LockedBadge />
+                          </Box>
+                          <Typography variant="subtitle2" sx={{ color: '#D4AF37', mb: 1 }}>Specialties:</Typography>
+                          <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
+                            {[48, 62, 40].map((w, j) => (
+                              <Box key={j} sx={{ height: 22, width: w, bgcolor: '#1e1e1e', borderRadius: 1 }} />
+                            ))}
+                          </Box>
+                          <Divider sx={{ my: 1, borderColor: '#333' }} />
+                          <Box sx={{ height: 12, width: '85%', bgcolor: '#1a1a1a', borderRadius: 1 }} />
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  <Box sx={{ textAlign: 'center', mt: 3 }}>
+                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}>
+                      Unlock Crew & Cost Intelligence
+                    </Button>
+                  </Box>
+                </>
+              ) : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Crew Insights by Territory</Typography>
                   <Grid container spacing={3}>
@@ -924,7 +1075,38 @@ export function ReportViewer() {
 
             {/* Tab 6: Comparables */}
             <TabPanel value={tabValue} index={5}>
-              {isPreview ? <BlurredContent title="Comparables" /> : (
+              {isPreview ? (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Comparable Productions</Typography>
+                  <TableContainer component={Paper} sx={{ bgcolor: '#111' }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          {['Title', 'Genre', 'Budget', 'Location', 'Year', 'Source'].map((col) => (
+                            <TableCell key={col} sx={{ color: '#D4AF37', fontWeight: 600 }}>{col}</TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {[70, 55, 80, 60].map((w, i) => (
+                          <TableRow key={i}>
+                            {[w, 50, 55, 60, 30, 45].map((cw, j) => (
+                              <TableCell key={j} sx={{ borderBottom: '1px solid #222' }}>
+                                <Box sx={{ height: 12, width: cw, bgcolor: '#1e1e1e', borderRadius: 1 }} />
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <Box sx={{ textAlign: 'center', mt: 3 }}>
+                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}>
+                      Unlock Comparable Productions
+                    </Button>
+                  </Box>
+                </>
+              ) : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Comparable Productions</Typography>
                   <TableContainer component={Paper} sx={{ bgcolor: '#111' }}>
@@ -959,7 +1141,43 @@ export function ReportViewer() {
 
             {/* Tab 7: Weather & Logistics */}
             <TabPanel value={tabValue} index={6}>
-              {isPreview ? <BlurredContent title="Weather & Logistics" /> : (
+              {isPreview ? (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Weather & Logistics</Typography>
+                  <Grid container spacing={3}>
+                    {analysis.locationRankings.map((loc, i) => (
+                      <Grid size={{ xs: 12, md: 6 }} key={i}>
+                        <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{loc.name}</Typography>
+                            <Box sx={{ height: 24, width: 80, bgcolor: '#1e1e1e', borderRadius: 1 }} />
+                          </Box>
+                          <Typography variant="subtitle2" sx={{ color: '#D4AF37', mb: 0.5 }}>Best Months:</Typography>
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 2 }}>
+                            {[44, 44, 44].map((w, j) => (
+                              <Box key={j} sx={{ height: 22, width: w, bgcolor: '#1e1e1e', borderRadius: 1 }} />
+                            ))}
+                          </Box>
+                          {['Temp Range:', 'Daylight:'].map((label) => (
+                            <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                              <Typography variant="body2" sx={{ color: '#a0a0a0' }}>{label}</Typography>
+                              <LockedBadge />
+                            </Box>
+                          ))}
+                          <Divider sx={{ my: 1.5, borderColor: '#333' }} />
+                          <Box sx={{ height: 12, width: '85%', bgcolor: '#1a1a1a', borderRadius: 1, mb: 1 }} />
+                          <Box sx={{ height: 12, width: '70%', bgcolor: '#1a1a1a', borderRadius: 1 }} />
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  <Box sx={{ textAlign: 'center', mt: 3 }}>
+                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}>
+                      Unlock Weather & Logistics
+                    </Button>
+                  </Box>
+                </>
+              ) : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Weather & Logistics</Typography>
                   <Grid container spacing={3}>
@@ -1014,7 +1232,44 @@ export function ReportViewer() {
 
             {/* Tab 8: Funding & Festivals */}
             <TabPanel value={tabValue} index={7}>
-              {isPreview ? <BlurredContent title="Funding & Festivals" /> : (
+              {isPreview ? (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Funding & Festival Opportunities</Typography>
+                  <Grid container spacing={3}>
+                    {[
+                      { type: 'Fund', color: '#4caf50', bg: 'rgba(76,175,80,0.2)' },
+                      { type: 'Festival', color: '#2196f3', bg: 'rgba(33,150,243,0.2)' },
+                      { type: 'Fund', color: '#4caf50', bg: 'rgba(76,175,80,0.2)' },
+                      { type: 'Festival', color: '#2196f3', bg: 'rgba(33,150,243,0.2)' },
+                    ].map((item, i) => (
+                      <Grid size={{ xs: 12, md: 6 }} key={i}>
+                        <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Box sx={{ height: 14, width: '55%', bgcolor: '#2a2a2a', borderRadius: 1 }} />
+                            <Chip label={item.type} size="small" sx={{ bgcolor: item.bg, color: item.color, fontWeight: 600 }} />
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
+                            {[55, 48].map((w, j) => (
+                              <Box key={j} sx={{ height: 20, width: w, bgcolor: 'rgba(212,175,55,0.08)', borderRadius: 1 }} />
+                            ))}
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Deadline:</Typography>
+                            <LockedBadge />
+                          </Box>
+                          <Box sx={{ height: 12, width: '90%', bgcolor: '#1a1a1a', borderRadius: 1, mb: 0.5 }} />
+                          <Box sx={{ height: 12, width: '70%', bgcolor: '#1a1a1a', borderRadius: 1 }} />
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  <Box sx={{ textAlign: 'center', mt: 3 }}>
+                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}>
+                      Unlock Funding & Festival Intelligence
+                    </Button>
+                  </Box>
+                </>
+              ) : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Funding & Festival Opportunities</Typography>
                   <Grid container spacing={3}>

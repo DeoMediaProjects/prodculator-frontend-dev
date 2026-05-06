@@ -75,6 +75,7 @@ export async function computeScenario(
     const data = await apiClient.post<ScenarioResponse>(
       '/api/calculator/scenario',
       request,
+      { auth: true },
     );
     return { data, error: null };
   } catch (err: unknown) {
