@@ -1,5 +1,8 @@
 /**
  * Stripe Payment Service (backend routed)
+ *
+ * All card data flows through Stripe Checkout — we never handle raw card numbers.
+ * This keeps the integration at PCI SAQ-A compliance level.
  */
 
 import { loadStripe, Stripe } from '@stripe/stripe-js';
@@ -17,7 +20,7 @@ export const getStripe = () => {
 };
 
 export const STRIPE_PRICES = {
-  // Pay-per-report one-time prices
+  // ── Pay-per-report (one-time) ──────────────────────────────────────────────
   singleReportUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE_USD || '',
     amount: 4000,
@@ -30,7 +33,8 @@ export const STRIPE_PRICES = {
     currency: 'gbp',
     name: 'Single Script Report (GBP)',
   },
-  // Professional monthly subscription
+
+  // ── Professional ───────────────────────────────────────────────────────────
   professionalMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_USD || '',
     amount: 6100,
@@ -45,52 +49,52 @@ export const STRIPE_PRICES = {
     name: 'Professional Monthly (GBP)',
     reportLimit: 1,
   },
-  // Professional annual subscription
-  professionalAnnualGBP: {
-    priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_GBP || '',
-    amount: 3900,  // £39/month billed annually = £468/year
-    currency: 'gbp',
-    name: 'Professional Annual (GBP)',
-    reportLimit: 1,
-  },
   professionalAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_USD || '',
-    amount: 4900,  // $49/month billed annually = $588/year (~20% off $61/mo)
+    amount: 4900,  // $49/mo billed annually = $588/yr (~20% off $61/mo)
     currency: 'usd',
     name: 'Professional Annual (USD)',
     reportLimit: 1,
   },
-  // Producer monthly subscription
+  professionalAnnualGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_GBP || '',
+    amount: 3900,  // £39/mo billed annually = £468/yr
+    currency: 'gbp',
+    name: 'Professional Annual (GBP)',
+    reportLimit: 1,
+  },
+
+  // ── Producer ───────────────────────────────────────────────────────────────
   producerMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_USD || '',
-    amount: 14900,  // $149.00
+    amount: 14900,
     currency: 'usd',
     name: 'Producer Monthly (USD)',
     reportLimit: 3,
   },
   producerMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_GBP || '',
-    amount: 11900,  // £119.00
+    amount: 11900,
     currency: 'gbp',
     name: 'Producer Monthly (GBP)',
     reportLimit: 3,
   },
-  // Producer annual subscription
-  producerAnnualGBP: {
-    priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_GBP || '',
-    amount: 9500,  // £95/month billed annually = £1,140/year
-    currency: 'gbp',
-    name: 'Producer Annual (GBP)',
-    reportLimit: 3,
-  },
   producerAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_USD || '',
-    amount: 11900,  // $119/month billed annually = $1,428/year (~20% off $149/mo)
+    amount: 11900,  // $119/mo billed annually = $1,428/yr (~20% off $149/mo)
     currency: 'usd',
     name: 'Producer Annual (USD)',
     reportLimit: 3,
   },
-  // Studio monthly subscription
+  producerAnnualGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_GBP || '',
+    amount: 9500,  // £95/mo billed annually = £1,140/yr
+    currency: 'gbp',
+    name: 'Producer Annual (GBP)',
+    reportLimit: 3,
+  },
+
+  // ── Studio ─────────────────────────────────────────────────────────────────
   studioMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_USD || '',
     amount: 29900,
@@ -105,19 +109,18 @@ export const STRIPE_PRICES = {
     name: 'Studio Monthly (GBP)',
     reportLimit: 10,
   },
-  // Studio annual subscription
-  studioAnnualGBP: {
-    priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_GBP || '',
-    amount: 19100,  // £191/month billed annually = £2,292/year (20% off £239/mo)
-    currency: 'gbp',
-    name: 'Studio Annual (GBP)',
-    reportLimit: 10,
-  },
   studioAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_USD || '',
-    amount: 23900,  // $239/month billed annually = $2,868/year (~20% off $299/mo)
+    amount: 23900,  // $239/mo billed annually = $2,868/yr (~20% off $299/mo)
     currency: 'usd',
     name: 'Studio Annual (USD)',
+    reportLimit: 10,
+  },
+  studioAnnualGBP: {
+    priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_GBP || '',
+    amount: 19100,  // £191/mo billed annually = £2,292/yr (20% off £239/mo)
+    currency: 'gbp',
+    name: 'Studio Annual (GBP)',
     reportLimit: 10,
   },
 };
@@ -130,10 +133,7 @@ export async function createCheckoutSession(
   try {
     const data = await apiClient.post<{ session_id: string; url: string }>(
       '/api/payments/checkout',
-      {
-        price_id: priceId,
-        metadata,
-      },
+      { price_id: priceId, metadata },
       { auth: true }
     );
     return { sessionId: data.session_id, url: data.url };
