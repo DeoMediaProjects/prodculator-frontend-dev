@@ -35,6 +35,7 @@ import {
   WbSunny,
   TrendingUp,
   Info,
+  InfoOutlined,
   Lock,
   Warning,
   CheckCircle,
@@ -517,6 +518,63 @@ export function ReportViewer() {
                   </Box>
                 </Box>
               )}
+              {/* Next Steps */}
+              {(analysis as any).nextSteps && (analysis as any).nextSteps.length > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2, fontWeight: 600 }}>Next Steps</Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {(analysis as any).nextSteps.map((step: any, i: number) => (
+                      <Paper key={i} sx={{ p: 2, bgcolor: '#111', border: `1px solid ${step.priority === 'URGENT' ? 'rgba(244,67,54,0.4)' : step.priority === 'HIGH' ? 'rgba(255,152,0,0.3)' : '#222'}`, display: 'flex', gap: 2 }}>
+                        <Chip
+                          label={step.priority}
+                          size="small"
+                          sx={{
+                            fontWeight: 700, fontSize: '0.65rem', flexShrink: 0, height: 20,
+                            bgcolor: step.priority === 'URGENT' ? 'rgba(244,67,54,0.15)' : step.priority === 'HIGH' ? 'rgba(255,152,0,0.15)' : 'rgba(76,175,80,0.15)',
+                            color: step.priority === 'URGENT' ? '#f44336' : step.priority === 'HIGH' ? '#ff9800' : '#4caf50',
+                            border: '1px solid currentColor',
+                          }}
+                        />
+                        <Box>
+                          <Typography variant="body2" sx={{ color: '#fff', fontWeight: 500 }}>{step.action}</Typography>
+                          <Typography variant="caption" sx={{ color: '#888', display: 'block', mt: 0.25 }}>{step.reason}</Typography>
+                          {step.deadline && <Typography variant="caption" sx={{ color: '#D4AF37', display: 'block', mt: 0.25 }}>⏱ {step.deadline}</Typography>}
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Script Intelligence */}
+              {(analysis as any).scriptIntelligence && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2, fontWeight: 600 }}>Script Intelligence</Typography>
+                  {(analysis as any).scriptIntelligence.creativeRecognition && (
+                    <Paper sx={{ p: 2, mb: 2, bgcolor: '#111', border: '1px solid #222' }}>
+                      <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600, display: 'block', mb: 1 }}>Creative Recognition</Typography>
+                      <Typography variant="body2" sx={{ color: '#ccc' }}>{(analysis as any).scriptIntelligence.creativeRecognition}</Typography>
+                    </Paper>
+                  )}
+                  {(analysis as any).scriptIntelligence.scheduleWeatherNotes && (
+                    <Paper sx={{ p: 2, mb: 2, bgcolor: '#111', border: '1px solid #222' }}>
+                      <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600, display: 'block', mb: 1 }}>Schedule & Weather Viability</Typography>
+                      <Typography variant="body2" sx={{ color: '#ccc' }}>{(analysis as any).scriptIntelligence.scheduleWeatherNotes}</Typography>
+                    </Paper>
+                  )}
+                  {(analysis as any).scriptIntelligence.complexityDrivers?.length > 0 && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600, display: 'block', mb: 1 }}>Complexity Drivers</Typography>
+                      {(analysis as any).scriptIntelligence.complexityDrivers.map((d: any, i: number) => (
+                        <Paper key={i} sx={{ p: 1.5, mb: 1, bgcolor: '#111', border: '1px solid #222' }}>
+                          <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600 }}>{d.flag}</Typography>
+                          <Typography variant="caption" sx={{ color: '#888', display: 'block' }}>{d.detail} — {d.implication}</Typography>
+                        </Paper>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              )}
             </TabPanel>
 
             {/* Tab 2: Location Rankings */}
@@ -555,7 +613,24 @@ export function ReportViewer() {
                         />
                       )}
                     </Box>
-                    <Chip label={`Score: ${loc.score}/100`} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      {(loc as any).financialReturnScore != null && (
+                        <Chip
+                          label={`FRS: ${(loc as any).financialReturnScore} — ${(loc as any).financialReturnVerdict}`}
+                          size="small"
+                          sx={{
+                            fontWeight: 700, fontSize: '0.75rem',
+                            bgcolor: (loc as any).financialReturnVerdict === 'Bankable' ? 'rgba(26,140,78,0.15)' :
+                                     (loc as any).financialReturnVerdict === 'Verify First' ? 'rgba(177,119,13,0.15)' :
+                                     'rgba(192,57,43,0.15)',
+                            color: (loc as any).financialReturnVerdict === 'Bankable' ? '#1A8C4E' :
+                                   (loc as any).financialReturnVerdict === 'Verify First' ? '#B7770D' : '#C0392B',
+                            border: '1px solid currentColor',
+                          }}
+                        />
+                      )}
+                      <Chip label={`Score: ${loc.score}/100`} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700 }} />
+                    </Box>
                   </Box>
                   <Grid container spacing={2} sx={{ mb: 2 }}>
                     {[
@@ -573,6 +648,36 @@ export function ReportViewer() {
                       </Grid>
                     ))}
                   </Grid>
+                  {/* Dimension verdict info icons */}
+                  {(analysis as any).dimensionVerdicts?.[loc.name] && (
+                    <Box sx={{ mt: 1, mb: 1 }}>
+                      {Object.entries((analysis as any).dimensionVerdicts[loc.name]).map(([dim, verdict]) => (
+                        <Box key={dim} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 0.5 }}>
+                          <InfoOutlined sx={{ fontSize: '13px', color: '#D4AF37', mt: '3px', flexShrink: 0 }} />
+                          <Typography variant="caption" sx={{ color: '#888', fontSize: '0.72rem' }}>
+                            <span style={{ color: '#aaa', fontWeight: 600 }}>{dim}:</span> {String(verdict)}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                  {/* SVS badge */}
+                  {(loc as any).scheduleViabilityScore != null && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Chip
+                        size="small"
+                        label={`SVS: ${(loc as any).scheduleViabilityScore}/100 — ~${(loc as any).contingencyDaysEstimate}d contingency`}
+                        sx={{
+                          bgcolor: (loc as any).scheduleViabilityScore >= 75 ? 'rgba(76,175,80,0.12)' :
+                                   (loc as any).scheduleViabilityScore >= 55 ? 'rgba(255,152,0,0.12)' :
+                                   'rgba(244,67,54,0.12)',
+                          color: (loc as any).scheduleViabilityScore >= 75 ? '#4caf50' :
+                                 (loc as any).scheduleViabilityScore >= 55 ? '#ff9800' : '#f44336',
+                          border: '1px solid currentColor', fontSize: '0.7rem', fontWeight: 600,
+                        }}
+                      />
+                    </Box>
+                  )}
                   <Divider sx={{ my: 2, borderColor: '#333' }} />
                   <Typography variant="subtitle2" sx={{ mb: 1, color: '#D4AF37' }}>Key Intelligence:</Typography>
                   <List dense>{loc.reasoning.map((r, ri) => <ListItem key={ri} sx={{ color: '#a0a0a0' }}>• {r}</ListItem>)}</List>
