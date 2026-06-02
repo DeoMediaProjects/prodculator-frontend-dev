@@ -39,6 +39,8 @@ import {
   BarChart,
   CreditCard,
   Logout,
+  Receipt,
+  OpenInNew,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
@@ -48,7 +50,6 @@ import { authService } from '@/services/auth.service';
 import { WhatIfCalculator } from '@/app/components/user/WhatIfCalculator';
 import { TerritoryComparison } from '@/app/components/user/TerritoryComparison';
 import { ProductionTimeline } from '@/app/components/user/ProductionTimeline';
-import { PlanGate } from '@/app/components/common/PlanGate';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { useSnackbar } from 'notistack';
 
@@ -71,6 +72,33 @@ function formatRenewalDate(iso: string | null | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+interface InvoiceItem {
+  id: string;
+  number: string | null;
+  status: string;
+  amount_paid: number;
+  amount_due: number;
+  currency: string;
+  created: number | null;
+  period_start: number | null;
+  period_end: number | null;
+  hosted_invoice_url: string | null;
+  invoice_pdf: string | null;
+  description: string | null;
+}
+
+interface UsageData {
+  plan: string;
+  reports_used: number;
+  reports_limit: number | null;
+  reports_remaining: number | null;
+  credits_remaining: number;
+  period_start: string | null;
+  period_end: string | null;
+  can_generate: boolean;
+  reason: string;
 }
 
 interface ReportSummary {
@@ -194,6 +222,11 @@ export function UserDashboard() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [invoicesLoaded, setInvoicesLoaded] = useState(false);
 
   const {
     data: subscriptionData,
@@ -295,6 +328,21 @@ export function UserDashboard() {
   };
 
   useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const data = await apiClient.get<UsageData>('/api/subscriptions/usage', { auth: true });
+        setUsageData(data);
+      } catch {
+        // Non-fatal — usage widget just won't render
+      } finally {
+        setUsageLoading(false);
+      }
+    };
+    if (user) fetchUsage();
+    else setUsageLoading(false);
+  }, [user]);
+
+  useEffect(() => {
     const fetchReports = async () => {
       try {
         const data = await apiClient.get<ReportApiResponse[]>('/api/reports', { auth: true });
@@ -335,6 +383,18 @@ export function UserDashboard() {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
+    // Lazy-load invoices the first time the Account tab (index 4) is opened
+    if (newValue === 4 && !invoicesLoaded && user) {
+      setInvoicesLoading(true);
+      apiClient
+        .get<{ invoices: InvoiceItem[] }>('/api/subscriptions/invoices', { auth: true })
+        .then((data) => setInvoices(data.invoices || []))
+        .catch(() => setInvoices([]))
+        .finally(() => {
+          setInvoicesLoading(false);
+          setInvoicesLoaded(true);
+        });
+    }
   };
 
   return (
@@ -393,6 +453,97 @@ export function UserDashboard() {
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}><VisibilityIcon sx={{ color: '#D4AF37' }} /><Typography variant="h6">Active Projects</Typography></Box>
                 <Typography variant="h3" sx={{ color: '#D4AF37', fontWeight: 700 }}>{reports.length}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Plan Usage Card */}
+          <Grid size={{ xs: 12 }}>
+            <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <BarChart sx={{ color: '#D4AF37' }} />
+                    <Typography variant="h6">Plan Usage</Typography>
+                    {usageData && (
+                      <Chip
+                        label={usageData.plan.charAt(0).toUpperCase() + usageData.plan.slice(1)}
+                        size="small"
+                        sx={{ bgcolor: 'rgba(212, 175, 55, 0.15)', color: '#D4AF37', fontWeight: 600, fontSize: '0.7rem' }}
+                      />
+                    )}
+                  </Box>
+                  {usageData?.period_end && (
+                    <Typography variant="caption" sx={{ color: '#666' }}>
+                      Resets {formatRenewalDate(usageData.period_end)}
+                    </Typography>
+                  )}
+                </Box>
+
+                {usageLoading ? (
+                  <LinearProgress sx={{ height: 6, borderRadius: 3, bgcolor: '#1a1a1a', '& .MuiLinearProgress-bar': { bgcolor: '#D4AF37' } }} />
+                ) : usageData ? (
+                  <Box>
+                    {usageData.reports_limit === null ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                          {usageData.reports_used} report{usageData.reports_used !== 1 ? 's' : ''} generated this period
+                        </Typography>
+                        <Chip label="Unlimited" size="small" sx={{ bgcolor: 'rgba(76,175,80,0.15)', color: '#4caf50', fontWeight: 600, fontSize: '0.65rem' }} />
+                      </Box>
+                    ) : (
+                      <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                            {usageData.reports_used} / {usageData.reports_limit} reports used this period
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: usageData.can_generate ? '#4caf50' : '#f44336', fontWeight: 600 }}>
+                            {usageData.reports_remaining} remaining
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(100, (usageData.reports_used / usageData.reports_limit) * 100)}
+                          sx={{
+                            height: 8,
+                            borderRadius: 4,
+                            bgcolor: '#1a1a1a',
+                            '& .MuiLinearProgress-bar': {
+                              bgcolor: usageData.reports_used >= usageData.reports_limit ? '#f44336' : '#D4AF37',
+                              borderRadius: 4,
+                            },
+                          }}
+                        />
+                        {usageData.reports_used >= usageData.reports_limit && (
+                          <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            <Typography variant="caption" sx={{ color: '#f44336' }}>Monthly limit reached.</Typography>
+                            {usageData.credits_remaining > 0 ? (
+                              <Typography variant="caption" sx={{ color: '#D4AF37' }}>
+                                {usageData.credits_remaining} pay-per-report credit{usageData.credits_remaining !== 1 ? 's' : ''} available as overflow.
+                              </Typography>
+                            ) : (
+                              <Button size="small" variant="outlined" onClick={() => navigate('/pricing')} sx={{ color: '#D4AF37', borderColor: '#D4AF37', fontSize: '0.7rem', py: 0.25 }}>
+                                Buy a credit or upgrade
+                              </Button>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+                    {usageData.credits_remaining > 0 && usageData.reports_limit !== null && usageData.reports_used < usageData.reports_limit && (
+                      <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 1 }}>
+                        + {usageData.credits_remaining} pay-per-report credit{usageData.credits_remaining !== 1 ? 's' : ''} available
+                      </Typography>
+                    )}
+                    {usageData.reports_limit === null && usageData.credits_remaining > 0 && (
+                      <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
+                        + {usageData.credits_remaining} pay-per-report credit{usageData.credits_remaining !== 1 ? 's' : ''} on account
+                      </Typography>
+                    )}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" sx={{ color: '#666' }}>Usage data unavailable</Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -505,8 +656,8 @@ export function UserDashboard() {
           )}
         </TabPanel>
 
-        <TabPanel value={currentTab} index={1}><PlanGate plan="professional" featureName="Territory Comparison"><TerritoryComparison /></PlanGate></TabPanel>
-        <TabPanel value={currentTab} index={2}><PlanGate plan="professional" featureName="What-If Calculator"><WhatIfCalculator /></PlanGate></TabPanel>
+        <TabPanel value={currentTab} index={1}><TerritoryComparison /></TabPanel>
+        <TabPanel value={currentTab} index={2}><WhatIfCalculator /></TabPanel>
         <TabPanel value={currentTab} index={3}>
           <ProductionTimeline
             userPlan={(user?.plan as 'free' | 'professional' | 'studio') || 'free'}
@@ -594,6 +745,102 @@ export function UserDashboard() {
                 )}
               </Grid>
             </Grid>
+            <Divider sx={{ my: 4, borderColor: '#222' }} />
+
+            {/* Billing History */}
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <Receipt sx={{ color: '#D4AF37', fontSize: 20 }} />
+                <Typography variant="h6" sx={{ color: '#D4AF37' }}>Invoice History</Typography>
+              </Box>
+              {invoicesLoading ? (
+                <LinearProgress sx={{ height: 4, borderRadius: 2, bgcolor: '#1a1a1a', '& .MuiLinearProgress-bar': { bgcolor: '#D4AF37' } }} />
+              ) : invoices.length === 0 ? (
+                <Typography variant="body2" sx={{ color: '#666' }}>
+                  {invoicesLoaded ? 'No invoices found.' : 'Open this tab to load your invoice history.'}
+                </Typography>
+              ) : (
+                <TableContainer component={Paper} sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ color: '#D4AF37', fontWeight: 600, borderColor: '#222' }}>Invoice #</TableCell>
+                        <TableCell sx={{ color: '#D4AF37', fontWeight: 600, borderColor: '#222' }}>Date</TableCell>
+                        <TableCell sx={{ color: '#D4AF37', fontWeight: 600, borderColor: '#222' }}>Amount</TableCell>
+                        <TableCell sx={{ color: '#D4AF37', fontWeight: 600, borderColor: '#222' }}>Status</TableCell>
+                        <TableCell sx={{ color: '#D4AF37', fontWeight: 600, borderColor: '#222' }}>Download</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {invoices.map((inv) => {
+                        const amountMajor = ((inv.status === 'paid' ? inv.amount_paid : inv.amount_due) / 100).toFixed(2);
+                        const symbol = inv.currency === 'gbp' ? '£' : '$';
+                        const dateStr = inv.created
+                          ? new Date(inv.created * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                          : '—';
+                        return (
+                          <TableRow key={inv.id} sx={{ '&:hover': { bgcolor: 'rgba(212,175,55,0.04)' } }}>
+                            <TableCell sx={{ color: '#a0a0a0', borderColor: '#1a1a1a', fontSize: '0.8rem' }}>
+                              {inv.number || inv.id.slice(-8)}
+                            </TableCell>
+                            <TableCell sx={{ color: '#a0a0a0', borderColor: '#1a1a1a', whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                              {dateStr}
+                            </TableCell>
+                            <TableCell sx={{ color: '#ffffff', borderColor: '#1a1a1a', fontWeight: 600, fontSize: '0.85rem' }}>
+                              {symbol}{amountMajor}
+                            </TableCell>
+                            <TableCell sx={{ borderColor: '#1a1a1a' }}>
+                              <Chip
+                                label={inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+                                size="small"
+                                sx={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  ...(inv.status === 'paid'
+                                    ? { bgcolor: 'rgba(76,175,80,0.15)', color: '#4caf50', border: '1px solid rgba(76,175,80,0.4)' }
+                                    : { bgcolor: 'rgba(255,193,7,0.15)', color: '#ffc247', border: '1px solid rgba(255,193,7,0.4)' }),
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell sx={{ borderColor: '#1a1a1a' }}>
+                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                {inv.hosted_invoice_url && (
+                                  <IconButton
+                                    size="small"
+                                    component="a"
+                                    href={inv.hosted_invoice_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{ color: '#D4AF37' }}
+                                    title="View invoice"
+                                  >
+                                    <OpenInNew fontSize="small" />
+                                  </IconButton>
+                                )}
+                                {inv.invoice_pdf && (
+                                  <IconButton
+                                    size="small"
+                                    component="a"
+                                    href={inv.invoice_pdf}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{ color: '#D4AF37' }}
+                                    title="Download PDF"
+                                  >
+                                    <FileDownload fontSize="small" />
+                                  </IconButton>
+                                )}
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+
             <Divider sx={{ my: 4, borderColor: '#222' }} />
             <Box>
               <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 1.5 }}>Session</Typography>

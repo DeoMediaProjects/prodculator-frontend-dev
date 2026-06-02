@@ -39,6 +39,7 @@ export interface PreviewChangeResponse {
   next_invoice_total: number;
   currency: string;
   effective_date: string | null;
+  billing_cycle_changes: boolean;
 }
 
 export interface ChangePlanResponse {
@@ -71,8 +72,16 @@ export async function changePlan(
   );
 }
 
+export async function cancelScheduledChange(): Promise<{ cancelled: boolean }> {
+  return apiClient.delete<{ cancelled: boolean }>(
+    '/api/subscriptions/scheduled-change',
+    { auth: true },
+  );
+}
+
 export default {
   getCurrentSubscription,
   previewPlanChange,
   changePlan,
+  cancelScheduledChange,
 };

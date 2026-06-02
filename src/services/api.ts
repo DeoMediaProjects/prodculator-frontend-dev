@@ -344,3 +344,53 @@ export const apiClient = {
 export async function getTerritories(): Promise<Territory[]> {
   return apiClient.get<Territory[]>('/api/territories');
 }
+
+// ── Project details (Producer+) ───────────────────────────────────────────────
+
+export interface ProjectDetails {
+  director_name?: string;
+  director_bio?: string;
+  producer_name?: string;
+  producer_bio?: string;
+  logline?: string;
+  synopsis?: string;
+  equity_sought?: string;
+  equity_committed_pct?: string;
+  minimum_investment?: string;
+  investor_profit_share?: string;
+  preferred_return?: string;
+  // Phase 3
+  revenue_model?: {
+    low?: RevenueScenario;
+    base?: RevenueScenario;
+    high?: RevenueScenario;
+  };
+  waterfall?: {
+    distribution_fee_pct?: string;
+    sales_agent_commission_pct?: string;
+    pa_budget?: string;
+    investor_equity_pct?: string;
+    preferred_return_pct?: string;
+    investor_net_profit_split_pct?: string;
+    producer_net_profit_split_pct?: string;
+  };
+}
+
+export interface RevenueScenario {
+  theatrical_domestic?: string;
+  theatrical_international?: string;
+  svod?: string;
+  tv_broadcast?: string;
+  ancillary?: string;
+}
+
+export async function updateProjectDetails(
+  reportId: string,
+  projectDetails: ProjectDetails,
+): Promise<void> {
+  await apiClient.patch(
+    `/api/reports/${reportId}/project-details`,
+    { project_details: projectDetails },
+    { auth: true },
+  );
+}

@@ -31,6 +31,8 @@ import {
   type TerritoryListItem,
   type TerritoryCompareItem,
 } from '@/services/territory.service';
+import { ResultsGate } from '@/app/components/common/PlanGate';
+import { usePlanGate } from '@/app/hooks/usePlanGate';
 
 // ── Flag emoji helper ────────────────────────────────────────────────────────
 const FLAG_FALLBACK = '\u{1F3AC}';
@@ -70,6 +72,7 @@ function groupByCountry(territories: TerritoryListItem[]): Record<string, Territ
 }
 
 export function TerritoryComparison() {
+  const { hasAccess } = usePlanGate('professional');
   const [availableTerritories, setAvailableTerritories] = useState<TerritoryListItem[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [comparedTerritories, setComparedTerritories] = useState<TerritoryCompareItem[]>([]);
@@ -98,7 +101,7 @@ export function TerritoryComparison() {
 
   // Fetch comparison data when selection changes
   const fetchComparison = useCallback(async () => {
-    if (!selectedLabels.length) {
+    if (!hasAccess || !selectedLabels.length) {
       setComparedTerritories([]);
       return;
     }
@@ -252,8 +255,43 @@ export function TerritoryComparison() {
         </Alert>
       )}
 
+      {/* Locked comparison preview for free users */}
+      {!hasAccess && selectedLabels.length > 0 && (
+        <ResultsGate plan="professional" featureName="Territory Comparison">
+          <TableContainer
+            component={Paper}
+            sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)', borderRadius: 2, overflowX: 'auto' }}
+          >
+            <Table sx={{ minWidth: 480 }}>
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'rgba(212, 175, 55, 0.1)' }}>
+                  <TableCell sx={{ color: '#D4AF37', fontWeight: 700, fontSize: '0.95rem' }}>Criteria</TableCell>
+                  {selectedLabels.map((label) => (
+                    <TableCell key={label} sx={{ color: '#D4AF37', fontWeight: 700 }}>
+                      <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 700, fontSize: '1rem' }}>{label}</Typography>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {['Tax Rebate', 'Programme', 'Post-Production / VFX Bonus', 'Minimum Spend', 'Avg Crew Cost', 'Payment Timeline', 'Highlights', 'Restrictions'].map((row) => (
+                  <TableRow key={row}>
+                    <TableCell sx={{ color: '#ffffff', fontWeight: 700, borderBottom: '1px solid #222', whiteSpace: 'nowrap' }}>{row}</TableCell>
+                    {selectedLabels.map((label) => (
+                      <TableCell key={label} sx={{ borderBottom: '1px solid #222' }}>
+                        <Box sx={{ height: 14, width: '80%', bgcolor: '#1e1e1e', borderRadius: 1 }} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </ResultsGate>
+      )}
+
       {/* Comparison Table */}
-      {comparedTerritories.length > 0 && (
+      {hasAccess && comparedTerritories.length > 0 && (
         <Box sx={{ position: 'relative' }}>
           {loading && (
             <Box
@@ -476,7 +514,7 @@ export function TerritoryComparison() {
       )}
 
       {/* Empty state */}
-      {!loading && !comparedTerritories.length && !error && (
+      {!loading && !comparedTerritories.length && !error && (hasAccess || selectedLabels.length === 0) && (
         <Paper
           sx={{
             p: 6, textAlign: 'center', bgcolor: '#0a0a0a',
@@ -494,7 +532,7 @@ export function TerritoryComparison() {
       )}
 
       {/* Disclaimer */}
-      {comparedTerritories.length > 0 && (
+      {hasAccess && comparedTerritories.length > 0 && (
         <Alert
           severity="info"
           sx={{

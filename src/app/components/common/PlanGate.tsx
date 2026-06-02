@@ -4,6 +4,57 @@ import { Box, Typography, Button } from '@mui/material';
 import { Lock } from '@mui/icons-material';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 
+interface ResultsGateProps {
+  plan?: 'professional' | 'producer' | 'studio';
+  featureName?: string;
+  children: ReactNode;
+}
+
+export function ResultsGate({ plan = 'professional', featureName, children }: ResultsGateProps) {
+  const navigate = useNavigate();
+  const { hasAccess } = usePlanGate(plan);
+
+  if (hasAccess) return null;
+
+  const label = featureName || (plan === 'studio' ? 'Studio' : plan === 'producer' ? 'Producer' : 'Professional');
+
+  return (
+    <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: '12px' }}>
+      <Box sx={{ filter: 'blur(6px)', opacity: 0.25, pointerEvents: 'none', userSelect: 'none' }}>
+        {children}
+      </Box>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          p: 4,
+          zIndex: 10,
+        }}
+      >
+        <Lock sx={{ fontSize: 40, color: '#D4AF37', mb: 1.5 }} />
+        <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, mb: 0.5 }}>
+          {label} Results
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3, maxWidth: 360 }}>
+          Upgrade to {label} to see your personalised scenario results.
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => navigate('/pricing')}
+          sx={{ bgcolor: '#D4AF37', color: '#000000', fontWeight: 600, px: 4, '&:hover': { bgcolor: '#B8941F' } }}
+        >
+          Upgrade Now
+        </Button>
+      </Box>
+    </Box>
+  );
+}
+
 interface PlanGateProps {
   plan?: 'professional' | 'producer' | 'studio';
   children: ReactNode;

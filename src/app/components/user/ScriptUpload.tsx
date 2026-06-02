@@ -39,6 +39,7 @@ import { databaseService } from '@/services/database.service';
 import { InfoTip, TOOLTIP_TEXTS } from '@/app/components/common/InfoTip';
 import { useToast } from '@/app/hooks/useToast';
 import { useTerritories } from '@/app/hooks/useTerritories';
+import { usePlanGate } from '@/app/hooks/usePlanGate';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
 export function ScriptUpload() {
@@ -47,6 +48,8 @@ export function ScriptUpload() {
   const { isAuthenticated, hasUsedFreeReport, markFreeReportUsed } = useAuth();
   const { showError } = useToast();
   const { countries: countryOptions, territories: allTerritories, loading: territoriesLoading } = useTerritories();
+  const { isFree, isProducer } = usePlanGate();
+  const maxTerritories = isFree ? 3 : !isProducer ? 5 : null; // null = unlimited (Producer+)
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -498,17 +501,20 @@ export function ScriptUpload() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
-                      type="number"
                       label={
                         <>
                           Budget Amount
                           <InfoTip text="The actual total production budget figure — what you expect to spend making the film or series from first day of pre-production to picture lock. Not distribution or marketing." />
                         </>
                       }
-                      value={budgetAmount}
-                      onChange={(e) => setBudgetAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                      inputProps={{ min: 1, step: 1 }}
-                      placeholder="e.g. 3000000"
+                      value={budgetAmount === '' ? '' : Number(budgetAmount).toLocaleString()}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/,/g, '');
+                        if (raw === '') { setBudgetAmount(''); return; }
+                        const n = Number(raw);
+                        if (!isNaN(n)) setBudgetAmount(n);
+                      }}
+                      placeholder="e.g. 3,000,000"
                     />
                   </Grid>
 
@@ -576,10 +582,17 @@ export function ScriptUpload() {
                   {/* Territories Considering */}
                   <Grid size={{ xs: 12 }}>
                     <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" sx={{ color: '#a0a0a0', fontWeight: 600, mb: 1.5 }}>
-                        Territories considering
-                        <InfoTip text={TOOLTIP_TEXTS.territoriesConsidering} />
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                        <Typography variant="body2" sx={{ color: '#a0a0a0', fontWeight: 600 }}>
+                          Territories considering
+                          <InfoTip text={TOOLTIP_TEXTS.territoriesConsidering} />
+                        </Typography>
+                        {maxTerritories !== null && !territoriesConsidering.includes('Open to all') && (
+                          <Typography variant="caption" sx={{ color: territoriesConsidering.length >= maxTerritories ? '#D4AF37' : '#666' }}>
+                            {territoriesConsidering.length}/{maxTerritories} selected
+                          </Typography>
+                        )}
+                      </Box>
                       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         {territoriesLoading ? (
                           Array.from({ length: 10 }).map((_, i) => (
@@ -592,45 +605,69 @@ export function ScriptUpload() {
                             />
                           ))
                         ) : (
-                          [...allTerritories, { label: 'Open to all', iso: 'ALL', parent: null, isSubTerritory: false }].map((territory) => (
-                            <Chip
-                              key={territory.iso}
-                              label={territory.label}
-                              onClick={() => {
-                                if (territory.label === 'Open to all') {
-                                  setTerritoriesConsidering(['Open to all']);
-                                } else if (territoriesConsidering.includes(territory.label)) {
-                                  setTerritoriesConsidering(territoriesConsidering.filter(t => t !== territory.label));
-                                } else {
-                                  setTerritoriesConsidering([...territoriesConsidering.filter(t => t !== 'Open to all'), territory.label]);
-                                }
-                              }}
-                              sx={{
-                                px: 1.5,
-                                height: 32,
-                                fontSize: '0.875rem',
-                                fontWeight: 500,
-                                cursor: 'pointer',
-                                ...(territoriesConsidering.includes(territory.label) ? {
-                                  bgcolor: '#D4AF37',
-                                  color: '#000000',
-                                  '&:hover': { bgcolor: '#D4AF37' },
-                                } : {
-                                  bgcolor: 'rgba(212, 175, 55, 0.1)',
-                                  color: '#D4AF37',
-                                  border: '1px solid rgba(212, 175, 55, 0.5)',
-                                  opacity: territoriesConsidering.includes('Open to all') ? 0.5 : 1,
-                                  '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.2)' },
-                                }),
-                              }}
-                            />
-                          ))
+                          [
+                            ...allTerritories,
+                            // "Open to all" only for Producer+ (unlimited plans)
+                            ...(maxTerritories === null ? [{ label: 'Open to all', iso: 'ALL', parent: null, isSubTerritory: false }] : []),
+                          ].map((territory) => {
+                            const isSelected = territoriesConsidering.includes(territory.label);
+                            const atLimit = maxTerritories !== null && territoriesConsidering.length >= maxTerritories;
+                            const isDisabled = !isSelected && (atLimit || territoriesConsidering.includes('Open to all'));
+                            return (
+                              <Chip
+                                key={territory.iso}
+                                label={territory.label}
+                                onClick={() => {
+                                  if (territory.label === 'Open to all') {
+                                    setTerritoriesConsidering(['Open to all']);
+                                  } else if (isSelected) {
+                                    setTerritoriesConsidering(territoriesConsidering.filter(t => t !== territory.label));
+                                  } else if (!isDisabled) {
+                                    setTerritoriesConsidering([...territoriesConsidering.filter(t => t !== 'Open to all'), territory.label]);
+                                  }
+                                }}
+                                sx={{
+                                  px: 1.5,
+                                  height: 32,
+                                  fontSize: '0.875rem',
+                                  fontWeight: 500,
+                                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                  transition: 'opacity 0.15s',
+                                  ...(isSelected ? {
+                                    bgcolor: '#D4AF37',
+                                    color: '#000000',
+                                    '&:hover': { bgcolor: '#D4AF37' },
+                                  } : {
+                                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                                    color: '#D4AF37',
+                                    border: '1px solid rgba(212, 175, 55, 0.5)',
+                                    opacity: isDisabled ? 0.3 : 1,
+                                    '&:hover': isDisabled ? {} : { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.2)' },
+                                  }),
+                                }}
+                              />
+                            );
+                          })
                         )}
                       </Box>
                       {territoriesConsidering.includes('Open to all') && (
                         <Typography variant="caption" sx={{ color: '#4caf50', display: 'block', mt: 1 }}>
-                          We'll rank all 15 territories and recommend the best fit.
+                          We'll rank all available territories and recommend the best fit.
                         </Typography>
+                      )}
+                      {maxTerritories !== null && territoriesConsidering.length >= maxTerritories && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                          <Typography variant="caption" sx={{ color: '#D4AF37' }}>
+                            {isFree ? 'Explorer plan is limited to 3 territories.' : 'Professional plan is limited to 5 territories.'}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: '#D4AF37', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
+                            onClick={() => navigate('/pricing')}
+                          >
+                            Upgrade for more
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                   </Grid>
@@ -699,7 +736,7 @@ export function ScriptUpload() {
                       fullWidth 
                       type="date" 
                       label="Filming Start" 
-                      InputLabelProps={{ shrink: true }} 
+                      slotProps={{ inputLabel: { shrink: true } }}
                       value={filmingStart} 
                       onChange={(e) => setFilmingStart(e.target.value)}
                     />
@@ -817,7 +854,7 @@ export function ScriptUpload() {
       </Container>
 
       {/* Email Modal for Free Preview */}
-      <Dialog open={emailModalOpen} onClose={() => setEmailModalOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { bgcolor: '#1a1a1a', border: '1px solid #D4AF37', mx: { xs: 2, sm: 'auto' } } }}>
+      <Dialog open={emailModalOpen} onClose={() => setEmailModalOpen(false)} fullWidth maxWidth="sm" slotProps={{ paper: { sx: { bgcolor: '#1a1a1a', border: '1px solid #D4AF37', mx: { xs: 2, sm: 'auto' } } } }}>
         <DialogTitle sx={{ color: '#D4AF37' }}>Free Production Preview</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>
@@ -851,13 +888,13 @@ export function ScriptUpload() {
         onClose={() => {}} // intentionally non-dismissable — user must take action
         maxWidth="sm"
         fullWidth
-        PaperProps={{
+        slotProps={{ paper: {
           sx: {
             bgcolor: '#0a0a0a',
             border: '1px solid rgba(212, 175, 55, 0.4)',
             borderRadius: 2,
           },
-        }}
+        } }}
       >
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

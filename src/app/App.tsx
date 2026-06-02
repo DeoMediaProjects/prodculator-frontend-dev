@@ -21,6 +21,7 @@ import { UserDashboard } from '../app/components/user/UserDashboard';
 import { TerritoryComparison } from '../app/components/user/TerritoryComparison';
 import { WhatIfCalculator } from '../app/components/user/WhatIfCalculator';
 import { PublicWhatIfCalculator } from '../app/components/user/PublicWhatIfCalculator';
+import { SharedReportViewer } from '../app/components/user/SharedReportViewer';
 
 // Static Pages
 import { FAQ } from '../app/pages/FAQ';
@@ -58,6 +59,7 @@ import { PDFReportPreview } from '../app/pages/PDFReportPreview';
 import { EmailPreview } from '../app/pages/EmailPreview';
 import { APIConnectionTester } from '../app/pages/APIConnectionTester';
 import { VerifyEmail } from '../app/pages/VerifyEmail';
+import { EmailVerifyCallback } from '../app/pages/EmailVerifyCallback';
 
 // MUI Theme Configuration
 const theme = createTheme({
@@ -215,8 +217,10 @@ function AppContent() {
                   <Route path="/login" element={<UserLogin />} />
                   <Route path="/signup" element={<UserSignup />} />
                   <Route path="/verify-email" element={<VerifyEmail />} />
+                  <Route path="/auth/callback" element={<EmailVerifyCallback />} />
                   <Route path="/upload" element={<ScriptUpload />} />
                   <Route path="/report/:reportId" element={<ReportViewer />} />
+                  <Route path="/report/shared/:shareToken" element={<SharedReportViewer />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/sample" element={<SampleReport />} />
                   <Route path="/dashboard" element={<UserDashboard />} />
