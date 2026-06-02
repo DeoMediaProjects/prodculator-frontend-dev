@@ -102,28 +102,28 @@ const DEBOUNCE_MS = 500;
 // ── Score weights by priority ─────────────────────────────────────────────────
 const SCORE_WEIGHTS_INFO = {
   full: [
-    { label: 'Incentive Strength',    pct: '30%', note: 'rebate/credit %' },
-    { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment record' },
-    { label: 'Cost Efficiency',        pct: '20%', noteKey: 'crew' as const },
-    { label: 'Currency Advantage',     pct: '15%', note: 'budget vs local currency' },
-    { label: 'Crew Depth',             pct: '10%', estimated: true },
-    { label: 'Infrastructure',         pct: '10%', estimated: true },
+    { label: 'Cost Efficiency', pct: '25%', noteKey: 'crew' as const },
+    { label: 'Crew Depth', pct: '20%', estimated: true },
+    { label: 'Infrastructure', pct: '20%', estimated: true },
+    { label: 'Incentive Strength', pct: '20%', note: 'rebate/credit %' },
+    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
+    { label: 'Programme Reliability', pct: '5%' },
   ],
   incentive: [
-    { label: 'Incentive Strength',    pct: '45%', note: 'rebate/credit %' },
-    { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment record' },
-    { label: 'Cost Efficiency',        pct: '15%', noteKey: 'crew' as const },
-    { label: 'Currency Advantage',     pct: '15%', note: 'budget vs local currency' },
-    { label: 'Crew Depth',             pct: '5%',  estimated: true },
-    { label: 'Infrastructure',         pct: '5%',  estimated: true },
+    { label: 'Incentive Strength', pct: '40%', note: 'rebate/credit %' },
+    { label: 'Cost Efficiency', pct: '15%', noteKey: 'crew' as const },
+    { label: 'Crew Depth', pct: '15%', estimated: true },
+    { label: 'Infrastructure', pct: '15%', estimated: true },
+    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
+    { label: 'Programme Reliability', pct: '5%' },
   ],
   location: [
-    { label: 'Crew Depth',             pct: '25%', estimated: true },
-    { label: 'Infrastructure',         pct: '20%', estimated: true },
-    { label: 'Cost Efficiency',        pct: '20%', noteKey: 'crew' as const },
-    { label: 'Incentive Strength',     pct: '15%', note: 'rebate/credit %' },
-    { label: 'Incentive Reliability',  pct: '10%', note: 'bankability & payment record' },
-    { label: 'Currency Advantage',     pct: '10%', note: 'budget vs local currency' },
+    { label: 'Crew Depth', pct: '25%', estimated: true },
+    { label: 'Infrastructure', pct: '25%', estimated: true },
+    { label: 'Cost Efficiency', pct: '17%', noteKey: 'crew' as const },
+    { label: 'Incentive Strength', pct: '13%', note: 'rebate/credit %' },
+    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
+    { label: 'Programme Reliability', pct: '10%' },
   ],
 } as const;
 
@@ -193,11 +193,12 @@ export function WhatIfCalculator() {
     if (!territories.length) return;
 
     const header = [
-      'Territory', 'Programme', 'Rate', 'Est. Incentive', 'Currency Advantage Score',
+      'Territory', 'Programme', 'Rate', 'Bankability', 'FRS', 'FRS Verdict', 'Est. Incentive', 'Currency Advantage Score',
       'Crew Cost Index', 'Net Saving', 'Min Spend', 'Payment Timeline', 'Overall Score',
     ];
     const rows = territories.map((t) => [
       t.territory, t.programme, t.rate_display,
+      t.bankability_label ?? '', t.financial_return_score != null ? String(t.financial_return_score) : '', t.financial_return_verdict ?? '',
       t.estimated_rebate_display, String(t.currency_advantage_score),
       t.crew_cost_index != null ? String(t.crew_cost_index) : '',
       t.net_saving_display, t.min_spend ?? '', t.payment_timeline ?? '',
@@ -254,9 +255,8 @@ export function WhatIfCalculator() {
         );
       })}
       <Typography sx={{ fontSize: '10px', color: '#666', mt: 1.5, lineHeight: 1.4 }}>
-        * Crew Depth and Infrastructure use the Prodculator territory tier ratings
-        (Established / Growing / Emerging) — editorially maintained and reviewed annually.
-        Upload your script for a production-specific crew specialisation analysis.
+        * Crew depth and infrastructure are estimated at industry average in this tool.
+        Upload your script for AI-scored values.
       </Typography>
     </Box>
   );
@@ -526,15 +526,31 @@ export function WhatIfCalculator() {
                 display: 'flex', bgcolor: 'rgba(245,200,0,0.1)',
                 height: '44px', alignItems: 'center', px: 2,
                 borderBottom: '1px solid rgba(0,0,0,0.04)',
-                minWidth: '1320px',
+                minWidth: '1540px',
               }}
             >
               <Box sx={{ width: '200px' }}><Typography sx={headerCellSx}>Territory</Typography></Box>
-              <Box sx={{ width: '160px' }}><Typography sx={headerCellSx}>Programme</Typography></Box>
+              <Box sx={{ width: '140px' }}><Typography sx={headerCellSx}>Programme</Typography></Box>
               <Box sx={{ width: '110px' }}><Typography sx={headerCellSx}>Incentive Rate</Typography></Box>
+              <Box sx={{ width: '110px' }}>
+                <Tooltip title="BANKABLE = accepted by most gap lenders as collateral. VERIFY FIRST = confirm before investor documents. CAUTION = unreliable payment or programme unstable." placement="top" arrow>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'default' }}>
+                    <Typography sx={headerCellSx}>Bankability</Typography>
+                    <InfoOutlined sx={{ fontSize: '12px', color: '#D4AF37', opacity: 0.7 }} />
+                  </Box>
+                </Tooltip>
+              </Box>
+              <Box sx={{ width: '100px' }}>
+                <Tooltip title="Financial Return Score: measures incentive strength + bankability. Bankable (≥70) / Verify First (45–69) / Caution (<45 or NOT BANKABLE)." placement="top" arrow>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'default' }}>
+                    <Typography sx={headerCellSx}>FRS /100</Typography>
+                    <InfoOutlined sx={{ fontSize: '12px', color: '#D4AF37', opacity: 0.7 }} />
+                  </Box>
+                </Tooltip>
+              </Box>
               <Box sx={{ width: '140px' }}><Typography sx={headerCellSx}>Est. Incentive</Typography></Box>
-              <Box sx={{ width: '140px' }}><Typography sx={headerCellSx}>Currency Adv.</Typography></Box>
-              <Box sx={{ width: '120px' }}><Typography sx={headerCellSx}>Crew Saving</Typography></Box>
+              <Box sx={{ width: '140px' }}><Tooltip title="Estimated from territory score. Upload script for exact figures." placement="top"><Typography sx={headerCellSx}>~ Currency Adv.</Typography></Tooltip></Box>
+              <Box sx={{ width: '120px' }}><Tooltip title="Estimated from territory score. Upload script for exact figures." placement="top"><Typography sx={headerCellSx}>~ Crew Saving</Typography></Tooltip></Box>
               <Box sx={{ width: '140px' }}><Typography sx={headerCellSx}>NET SAVING</Typography></Box>
               <Box sx={{ width: '110px' }}><Typography sx={headerCellSx}>Min Spend</Typography></Box>
               <Box sx={{ width: '120px' }}><Typography sx={headerCellSx}>Payment</Typography></Box>
@@ -577,7 +593,7 @@ export function WhatIfCalculator() {
                       bgcolor: index % 2 === 0 ? '#FFFFFF' : '#FAFAF8',
                       minHeight: '52px', alignItems: 'center', px: 2,
                       borderBottom: '1px solid rgba(0,0,0,0.04)',
-                      minWidth: '1320px',
+                      minWidth: '1540px',
                       '&:hover': { bgcolor: 'rgba(245,200,0,0.04)' },
                     }}
                   >
@@ -600,7 +616,7 @@ export function WhatIfCalculator() {
                     </Box>
 
                     {/* Programme */}
-                    <Box sx={{ width: '160px' }}>
+                    <Box sx={{ width: '140px' }}>
                       <Tooltip title={t.programme_note || ''} disableHoverListener={!t.programme_note}>
                         <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555' }}>
                           {t.programme}
@@ -613,6 +629,40 @@ export function WhatIfCalculator() {
                       <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#111111' }}>
                         {t.rate_display}
                       </Typography>
+                    </Box>
+
+                    {/* Bankability */}
+                    <Box sx={{ width: '110px' }}>
+                      {t.bankability_label ? (
+                        <Chip label={t.bankability_label} size="small" sx={{
+                          height: 22, fontSize: '10px', fontWeight: 700, fontFamily: font,
+                          bgcolor: t.bankability_label === 'BANKABLE' ? 'rgba(26,140,78,0.12)' :
+                                   t.bankability_label === 'VERIFY FIRST' ? 'rgba(177,119,13,0.12)' :
+                                   'rgba(192,57,43,0.12)',
+                          color: t.bankability_label === 'BANKABLE' ? '#1A8C4E' :
+                                 t.bankability_label === 'VERIFY FIRST' ? '#B7770D' : '#C0392B',
+                          border: '1px solid currentColor',
+                        }} />
+                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>—</Typography>}
+                    </Box>
+
+                    {/* FRS */}
+                    <Box sx={{ width: '100px' }}>
+                      {t.financial_return_score != null ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px',
+                            color: t.financial_return_verdict === 'Bankable' ? '#1A8C4E' :
+                                   t.financial_return_verdict === 'Verify First' ? '#B7770D' : '#C0392B' }}>
+                            {t.financial_return_score}
+                            <Typography component="span" sx={{ fontWeight: 400, fontSize: '11px', color: '#BBB' }}>/100</Typography>
+                          </Typography>
+                          <Typography sx={{ fontFamily: font, fontSize: '10px', fontWeight: 600,
+                            color: t.financial_return_verdict === 'Bankable' ? '#1A8C4E' :
+                                   t.financial_return_verdict === 'Verify First' ? '#B7770D' : '#C0392B' }}>
+                            {t.financial_return_verdict}
+                          </Typography>
+                        </Box>
+                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>—</Typography>}
                     </Box>
 
                     {/* Est. Incentive */}

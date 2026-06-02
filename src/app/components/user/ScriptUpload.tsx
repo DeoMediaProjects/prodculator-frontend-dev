@@ -225,7 +225,6 @@ export function ScriptUpload() {
         crewSize: crewSize ? Number(crewSize) : undefined,
         principalCast: principalCast ? Number(principalCast) : undefined,
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
-        targetAudience: targetAudience || undefined,
         language: language || undefined,
       };
 
@@ -291,7 +290,6 @@ export function ScriptUpload() {
         crewSize: crewSize ? Number(crewSize) : undefined,
         principalCast: principalCast ? Number(principalCast) : undefined,
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
-        targetAudience: targetAudience || undefined,
         language: language || undefined,
       };
 
@@ -537,7 +535,7 @@ export function ScriptUpload() {
                   <Grid size={{ xs: 12 }}>
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2" sx={{ color: '#a0a0a0', fontWeight: 600, mb: 1.5 }}>
-                        Location strategy
+                        Location strategy<InfoTip text={TOOLTIP_TEXTS.locationStrategy} />
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                         {[
@@ -631,7 +629,7 @@ export function ScriptUpload() {
                       </Box>
                       {territoriesConsidering.includes('Open to all') && (
                         <Typography variant="caption" sx={{ color: '#4caf50', display: 'block', mt: 1 }}>
-                          We'll analyse all available territories and recommend the best fit for your production.
+                          We'll rank all 15 territories and recommend the best fit.
                         </Typography>
                       )}
                     </Box>
@@ -641,7 +639,7 @@ export function ScriptUpload() {
                   <Grid size={{ xs: 12 }}>
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2" sx={{ color: '#a0a0a0', fontWeight: 600, mb: 1.5 }}>
-                        Production priority
+                        Production priority<InfoTip text={TOOLTIP_TEXTS.productionPriority} />
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {[
@@ -708,17 +706,12 @@ export function ScriptUpload() {
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Filming Duration (Weeks)"
-                      type="number"
-                      value={filmingDuration}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (e.target.value === '' || (v >= 1 && v <= 52)) setFilmingDuration(e.target.value);
-                      }}
-                      inputProps={{ min: 1, max: 52, step: 1 }}
-                      helperText="Principal photography only — not including pre/post production"
+                    <TextField 
+                      fullWidth 
+                      label="Filming Duration (Weeks)" 
+                      type="number" 
+                      value={filmingDuration} 
+                      onChange={(e) => setFilmingDuration(e.target.value)}
                     />
                   </Grid>
 
@@ -772,26 +765,15 @@ export function ScriptUpload() {
                       onChange={(e) => setSupportingCast(e.target.value)}
                     />
                   </Grid>
-{/* 
-                  <Grid size={{ xs: 12, sm: 6 }}>
+<Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
-                      label="Target Audience"
-                      placeholder="e.g. 18-34, arthouse"
-                      value={targetAudience}
-                      onChange={(e) => setTargetAudience(e.target.value)}
-                    />
-                  </Grid> */}
-
-                  {/* <Grid size={{ xs: 12, sm: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Primary Language"
+                      label={<>Primary Language<InfoTip text="The primary spoken language in your script." /></>}
                       placeholder="e.g. English"
                       value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
+                      onChange={(e) => _setLanguage(e.target.value)}
                     />
-                  </Grid> */}
+                  </Grid>
                 </Grid>
               </Paper>
 

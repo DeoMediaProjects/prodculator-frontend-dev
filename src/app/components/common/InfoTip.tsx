@@ -133,9 +133,9 @@ export const TOOLTIP_TEXTS = {
   crewSize: "The total number of people on your production crew — camera, sound, art department, lighting, etc. Does not include cast.",
   principalCast: "Your named, contracted lead actors. The number you enter affects visa and accommodation cost estimates for each territory.",
   supportingCast: "Named supporting actors with speaking roles — not background/extras. Affects talent cost estimates.",
-  locationStrategy: "How flexible you are about where you shoot. 'Open to international' means we'll rank all territories including those that may require your story's location to be substituted for a financial equivalent.",
+  locationStrategy: "How open you are about where you shoot. Open to international: all territories ranked — some script locations may need to be substituted. For investor sharing, Full picture or Maximise incentive priority is recommended. Location first prioritises crew/infrastructure over financial return.",
   territoriesConsidering: "The countries or regions you're already thinking about. If you're open to all options, select 'Open to all' and we'll rank every territory we have data for.",
-  productionPriority: "This tells us how to weight our recommendations. 'Full picture' is the default — it balances financial return with creative fit and production quality. Choose 'Maximise incentive return' if budget is the primary constraint.",
+  productionPriority: "Controls how territory scores are weighted. Full picture (default): Incentive Strength 30%, Incentive Reliability 15%, Cost Efficiency 20%, Currency Advantage 15%, Crew Depth 10%, Infrastructure 10%. Maximise incentive return: Incentive Strength 45%, Reliability 15%, Cost Efficiency & Currency Advantage 15% each, Crew/Infrastructure 5% each. Location first: Crew Depth 25%, Infrastructure 20%, Cost Efficiency 20%, Incentive Strength 15%, Reliability 10%, Currency Advantage 10%. For investor-facing reports, use Full picture or Maximise incentive return.",
   cameraEquipment: "The camera system(s) you intend to shoot with. This affects equipment rental cost estimates per territory, and flags specific considerations — for example, IMAX-certified facilities, film lab availability, or drone permit requirements.",
   
   // Report Viewer
@@ -151,7 +151,7 @@ export const TOOLTIP_TEXTS = {
   section481: "Ireland's film and TV tax relief programme, named after Section 481 of the Irish Taxes Consolidation Act. Provides 32% relief on qualifying Irish spend.",
   avecIftc: "The UK's Audio-Visual Expenditure Credit (AVEC) replaced the old film tax credit system in 2024. IFTC (Independent Film Tax Credit) offers an enhanced 39.75% rate for qualifying independent films under £15M.",
   trip: "France's Tax Rebate for International Production — a 30% rebate on qualifying French spend, rising to 40% for productions with significant VFX content.",
-  whatIfCalculator: "An interactive tool that lets you change your budget, VFX allocation, and other variables to see how the financial picture shifts across all 15 territories in real time. Useful for testing scenarios before committing to a location.",
+  whatIfCalculator: "Compare financial returns across all available territories. Crew Depth and Infrastructure use the Prodculator territory tier ratings (Established/Growing/Emerging). Upload your script for a production-specific analysis.",
   comparables: "Comparable productions — real films or series with similar genre, format, budget range, and INT/EXT profile that were produced in a given territory. Provided as production precedent and to illustrate how other producers have used the same incentives.",
   weatherAdvisory: "Based on your filming start date, duration, and the percentage of exterior scenes in your script. Data sourced from Open-Meteo historical climate records for each territory. This is a planning indicator — always verify with a local production service company.",
 } as const;

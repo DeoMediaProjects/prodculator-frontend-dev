@@ -53,6 +53,9 @@ export interface TerritoryScenario {
   vfx_uplift_programme: string | null;
   vfx_uplift_value: number | null;
   vfx_uplift_display: string | null;
+  bankability_label: 'BANKABLE' | 'VERIFY FIRST' | 'NOT BANKABLE' | string | null;
+  financial_return_score: number | null;
+  financial_return_verdict: 'Bankable' | 'Verify First' | 'Caution' | null;
 }
 
 export interface ScenarioResponse {
