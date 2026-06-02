@@ -102,28 +102,28 @@ const DEBOUNCE_MS = 500;
 // ── Score weights by priority ─────────────────────────────────────────────────
 const SCORE_WEIGHTS_INFO = {
   full: [
-    { label: 'Cost Efficiency', pct: '25%', noteKey: 'crew' as const },
-    { label: 'Crew Depth', pct: '20%', estimated: true },
-    { label: 'Infrastructure', pct: '20%', estimated: true },
-    { label: 'Incentive Strength', pct: '20%', note: 'rebate/credit %' },
-    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
-    { label: 'Programme Reliability', pct: '5%' },
+    { label: 'Incentive Strength',    pct: '30%', note: 'rebate/credit %' },
+    { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment record' },
+    { label: 'Cost Efficiency',        pct: '20%', noteKey: 'crew' as const },
+    { label: 'Currency Advantage',     pct: '15%', note: 'budget vs local currency' },
+    { label: 'Crew Depth',             pct: '10%', estimated: true },
+    { label: 'Infrastructure',         pct: '10%', estimated: true },
   ],
   incentive: [
-    { label: 'Incentive Strength', pct: '40%', note: 'rebate/credit %' },
-    { label: 'Cost Efficiency', pct: '15%', noteKey: 'crew' as const },
-    { label: 'Crew Depth', pct: '15%', estimated: true },
-    { label: 'Infrastructure', pct: '15%', estimated: true },
-    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
-    { label: 'Programme Reliability', pct: '5%' },
+    { label: 'Incentive Strength',    pct: '45%', note: 'rebate/credit %' },
+    { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment record' },
+    { label: 'Cost Efficiency',        pct: '15%', noteKey: 'crew' as const },
+    { label: 'Currency Advantage',     pct: '15%', note: 'budget vs local currency' },
+    { label: 'Crew Depth',             pct: '5%',  estimated: true },
+    { label: 'Infrastructure',         pct: '5%',  estimated: true },
   ],
   location: [
-    { label: 'Crew Depth', pct: '25%', estimated: true },
-    { label: 'Infrastructure', pct: '25%', estimated: true },
-    { label: 'Cost Efficiency', pct: '17%', noteKey: 'crew' as const },
-    { label: 'Incentive Strength', pct: '13%', note: 'rebate/credit %' },
-    { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
-    { label: 'Programme Reliability', pct: '10%' },
+    { label: 'Crew Depth',             pct: '25%', estimated: true },
+    { label: 'Infrastructure',         pct: '20%', estimated: true },
+    { label: 'Cost Efficiency',        pct: '20%', noteKey: 'crew' as const },
+    { label: 'Incentive Strength',     pct: '15%', note: 'rebate/credit %' },
+    { label: 'Incentive Reliability',  pct: '10%', note: 'bankability & payment record' },
+    { label: 'Currency Advantage',     pct: '10%', note: 'budget vs local currency' },
   ],
 } as const;
 
@@ -254,8 +254,9 @@ export function WhatIfCalculator() {
         );
       })}
       <Typography sx={{ fontSize: '10px', color: '#666', mt: 1.5, lineHeight: 1.4 }}>
-        * Crew depth and infrastructure are estimated at industry average in this tool.
-        Upload your script for AI-scored values.
+        * Crew Depth and Infrastructure use the Prodculator territory tier ratings
+        (Established / Growing / Emerging) — editorially maintained and reviewed annually.
+        Upload your script for a production-specific crew specialisation analysis.
       </Typography>
     </Box>
   );
