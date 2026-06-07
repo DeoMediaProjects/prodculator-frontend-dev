@@ -203,8 +203,8 @@ export function LandingPage() {
               )}
               <Button
                 variant="contained"
-                    onClick={() => navigate('/signup')}
-                    sx={{ 
+                    onClick={() => navigate('/admin/login')}
+                    sx={{
                       bgcolor: '#D4AF37',
                       color: '#000000',
                       fontWeight: 400,
@@ -215,7 +215,7 @@ export function LandingPage() {
                       }
                     }}
               >
-                Admin 
+                Admin
               </Button>
             </Box>
           </Box>

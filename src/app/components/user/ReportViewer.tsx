@@ -61,11 +61,21 @@ import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/
 import { apiClient, ProjectDetails } from '@/services/api';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
+import { InfoTip, TOOLTIP_TEXTS } from '@/app/components/common/InfoTip';
 import ProjectDetailsPanel from './ProjectDetailsPanel';
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   return <div hidden={value !== index} style={{ height: '100%' }}>{value === index && <Box sx={{ py: 3 }}>{children}</Box>}</div>;
 }
+
+const DIMENSION_TOOLTIP_KEYS = {
+  'Cost Efficiency': 'costEfficiency',
+  'Crew Depth': 'crewDepth',
+  Infrastructure: 'infrastructure',
+  'Incentive Strength': 'incentiveStrength',
+  'Currency Advantage': 'currencyAdvantage',
+  'Incentive Reliability': 'incentiveReliability',
+} as const satisfies Record<string, keyof typeof TOOLTIP_TEXTS>;
 
 export function ReportViewer() {
   const navigate = useNavigate();
@@ -813,18 +823,25 @@ export function ReportViewer() {
                   <Grid container spacing={2} sx={{ mb: 2 }}>
                     {[
                       { label: 'Cost Efficiency', value: loc.costEfficiency },
-                      { label: 'Crew Depth', value: loc.crewDepth },
-                      { label: 'Infrastructure', value: loc.infrastructure },
+                      { label: 'Crew Depth', value: loc.crewDepth, tier: loc.crewDepthTier },
+                      { label: 'Infrastructure', value: loc.infrastructure, tier: loc.infrastructureTier },
                       { label: 'Incentive Strength', value: loc.incentiveStrength },
                       { label: 'Currency Advantage', value: loc.currencyAdvantage },
                       ...(loc.incentiveReliability != null ? [{ label: 'Incentive Reliability', value: loc.incentiveReliability }] : []),
-                    ].map((metric) => (
-                      <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
-                        <Typography variant="caption" sx={{ color: '#666' }}>{metric.label}</Typography>
-                        <LinearProgress variant="determinate" value={metric.value} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#222', '& .MuiLinearProgress-bar': { bgcolor: metric.value >= 80 ? '#4caf50' : metric.value >= 60 ? '#2196f3' : metric.value >= 40 ? '#D4AF37' : '#ff9800' } }} />
-                        <Typography variant="caption" sx={{ color: '#888', fontSize: '0.7rem' }}>{metric.value}/100</Typography>
-                      </Grid>
-                    ))}
+                    ].map((metric) => {
+                      const tooltipKey = DIMENSION_TOOLTIP_KEYS[metric.label as keyof typeof DIMENSION_TOOLTIP_KEYS];
+                      return (
+                        <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
+                          <Typography variant="caption" sx={{ color: '#666', display: 'flex', alignItems: 'center' }}>
+                            {metric.label}
+                            {'tier' in metric && metric.tier ? ` (${metric.tier})` : ''}
+                            <InfoTip text={TOOLTIP_TEXTS[tooltipKey]} placement="top" />
+                          </Typography>
+                          <LinearProgress variant="determinate" value={metric.value} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#222', '& .MuiLinearProgress-bar': { bgcolor: metric.value >= 80 ? '#4caf50' : metric.value >= 60 ? '#2196f3' : metric.value >= 40 ? '#D4AF37' : '#ff9800' } }} />
+                          <Typography variant="caption" sx={{ color: '#888', fontSize: '0.7rem' }}>{metric.value}/100</Typography>
+                        </Grid>
+                      );
+                    })}
                   </Grid>
                   {/* Dimension verdict info icons */}
                   {(analysis as any).dimensionVerdicts?.[loc.name] && (

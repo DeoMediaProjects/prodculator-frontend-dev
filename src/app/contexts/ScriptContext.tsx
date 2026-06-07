@@ -99,6 +99,8 @@ interface LocationRanking {
   costEfficiency: number;
   crewDepth: number;
   infrastructure: number;
+  crewDepthTier?: string | null;
+  infrastructureTier?: string | null;
   incentiveStrength: number;
   currencyAdvantage: number;
   incentiveReliability?: number | null;
@@ -270,6 +272,8 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
       costEfficiency: clampScore(100 - Math.min(crewTotal / 25000, 100)),
       crewDepth: clampScore(Number(territory.locationMatch?.score || 60)),
       infrastructure: clampScore(Number(territory.locationMatch?.score || 65)),
+      crewDepthTier: territory.crewDepthTier ?? null,
+      infrastructureTier: territory.infrastructureTier ?? null,
       incentiveStrength: clampScore(incentive ? 80 : 45),
       currencyAdvantage: clampScore(65),
       incentiveReliability: territory.incentiveReliability != null ? clampScore(Number(territory.incentiveReliability)) : null,
