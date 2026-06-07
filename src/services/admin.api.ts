@@ -3,6 +3,7 @@ import {
   ADMIN_ADMIN_USERS_URL,
   adminAdminUserUrl,
   ADMIN_METRICS_URL,
+  ADMIN_BUSINESS_METRICS_URL,
   ADMIN_PRODUCTION_SIGNALS_URL,
   ADMIN_INCENTIVES_URL,
   adminIncentiveUrl,
@@ -63,6 +64,7 @@ import {
 } from './admin.apiurl';
 import type {
   AdminMetrics,
+  BusinessMetricsDashboard,
   ProductionSignal,
   ProductionSignalsResponse,
   IncentiveData,
@@ -78,7 +80,6 @@ import type {
   SyncSettingsUpdate,
   SyncTriggerResponse,
   SubscriberMetrics,
-  Subscriber,
   SubscriberListResponse,
   CreditAdjustment,
   CreditAdjustmentResponse,
@@ -97,11 +98,8 @@ import type {
   CreateAdminPayload,
   CreateAdminResponse,
   UpdateAdminPayload,
-  ActivityItem,
   ActivityResponse,
-  ServiceStatusItem,
   SystemStatusResponse,
-  TaskItem,
   TasksResponse,
 } from './admin.types';
 import type { Festival } from '@/app/types/festival';
@@ -201,6 +199,16 @@ async function getMetrics(signal?: AbortSignal): ApiResult<AdminMetrics> {
     return { data, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch metrics' };
+  }
+}
+
+// ── Business Metrics dashboard ────────────────────────────────────────────────
+async function getBusinessMetrics(signal?: AbortSignal): ApiResult<BusinessMetricsDashboard> {
+  try {
+    const data = await apiClient.get<BusinessMetricsDashboard>(ADMIN_BUSINESS_METRICS_URL, { auth: true, signal });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch business metrics' };
   }
 }
 
@@ -1069,4 +1077,5 @@ export const adminApi = {
   getActivity,
   getSystemStatus,
   getTasks,
+  getBusinessMetrics,
 };

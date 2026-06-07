@@ -1515,7 +1515,7 @@ interface GrantPreviewDialogProps {
   getStatusColor: (status: Grant['status']) => string;
 }
 
-function GrantPreviewDialog({ open, onClose, grant, formatCurrency, getStatusColor }: GrantPreviewDialogProps) {
+function GrantPreviewDialog({ open, onClose, grant, formatCurrency }: GrantPreviewDialogProps) {
   return (
     <Dialog
       open={open}

@@ -10,7 +10,6 @@ import {
   InsertDriveFile,
   Close,
   CheckCircle,
-  Error as ErrorIcon,
 } from '@mui/icons-material';
 
 interface FileUploadProps {
@@ -458,8 +457,7 @@ export function FileUploadWithPreview({
     [onFileRemove]
   );
 
-  const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+  const getFileIcon = (_fileName: string) => {
     return <InsertDriveFile sx={{ fontSize: 40, color: '#D4AF37' }} />;
   };
 

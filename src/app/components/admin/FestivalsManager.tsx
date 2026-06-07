@@ -37,17 +37,14 @@ import {
   Add,
   Edit,
   Delete,
-  Visibility,
   CheckCircle,
   Warning,
   Schedule,
-  Event,
   Sync,
   Refresh,
   ExpandMore,
   ExpandLess,
   Movie,
-  EmojiEvents,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { Festival, FestivalDeadline } from '@/app/types/festival';

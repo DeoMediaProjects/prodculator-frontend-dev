@@ -6,6 +6,7 @@ export const adminAdminUserUrl = (id: string) => `/api/admin/admin-users/${id}`;
 export const ADMIN_USERS_URL = '/api/admin/users';
 export const ADMIN_REPORTS_URL = '/api/admin/reports';
 export const ADMIN_METRICS_URL = '/api/admin/metrics';
+export const ADMIN_BUSINESS_METRICS_URL = '/api/admin/business-metrics';
 export const ADMIN_ACTIVITY_URL = '/api/admin/activity';
 export const ADMIN_SYSTEM_STATUS_URL = '/api/admin/system-status';
 export const ADMIN_TASKS_URL = '/api/admin/tasks';
