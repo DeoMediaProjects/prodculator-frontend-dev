@@ -16,6 +16,55 @@ export interface AdminMetrics {
   conversion_rate_percent: number;
 }
 
+// ── Business Metrics dashboard (matches /api/admin/business-metrics response) ──
+export interface CurrencyAmount {
+  currency: string;
+  amount: number;
+}
+
+export interface PlanCount {
+  plan: string;
+  count: number;
+}
+
+export interface RoleCount {
+  role: string;
+  count: number;
+}
+
+export interface GeoCountry {
+  country_code: string;
+  country: string;
+  users: number;
+  percentage: number;
+  revenue_usd: number;
+}
+
+export interface GeoState {
+  state_code: string;
+  state: string;
+  users: number;
+  revenue_usd: number;
+}
+
+export interface BusinessMetricsDashboard {
+  total_users: number;
+  total_paid_users: number;
+  active_subscriptions: number;
+  mrr_usd: number;
+  arr_usd: number;
+  mrr_by_currency: CurrencyAmount[];
+  monthly_churn_percent: number;
+  free_to_paid_percent: number;
+  avg_days_to_convert: number | null;
+  activation_rate_percent: number;
+  plan_distribution: PlanCount[];
+  role_distribution: RoleCount[];
+  geo_available: boolean;
+  geographic: GeoCountry[];
+  us_states: GeoState[];
+}
+
 // ── Production Intelligence ──────────────────────────────────────────────────
 export type ProductionScaleBand = 'small' | 'medium' | 'large' | 'extra_large';
 export type ProductionCameraEquipment =

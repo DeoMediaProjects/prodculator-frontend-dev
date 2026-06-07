@@ -61,11 +61,21 @@ import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/
 import { apiClient, ProjectDetails } from '@/services/api';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
+import { InfoTip, TOOLTIP_TEXTS } from '@/app/components/common/InfoTip';
 import ProjectDetailsPanel from './ProjectDetailsPanel';
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   return <div hidden={value !== index} style={{ height: '100%' }}>{value === index && <Box sx={{ py: 3 }}>{children}</Box>}</div>;
 }
+
+const DIMENSION_TOOLTIP_KEYS = {
+  'Cost Efficiency': 'costEfficiency',
+  'Crew Depth': 'crewDepth',
+  Infrastructure: 'infrastructure',
+  'Incentive Strength': 'incentiveStrength',
+  'Currency Advantage': 'currencyAdvantage',
+  'Incentive Reliability': 'incentiveReliability',
+} as const satisfies Record<string, keyof typeof TOOLTIP_TEXTS>;
 
 export function ReportViewer() {
   const navigate = useNavigate();
@@ -356,80 +366,6 @@ export function ReportViewer() {
     </Box>
   );
 
-  const LOCKED_SECTION_CONFIG: Record<string, { description: string; previewRows: string[] }> = {
-    'Financial Analysis': {
-      description: 'ROI projections, cash flow timelines, and break-even analysis across territories.',
-      previewRows: ['Estimated Net Incentive', 'Cash Flow at 12 Months', 'Break-Even Point', 'ROI Projection'],
-    },
-    'Crew & Cost': {
-      description: 'Crew day rates, availability ratings, and speciality breakdowns by territory.',
-      previewRows: ['Avg. Crew Day Rate', 'Crew Availability', 'Quality Rating', 'Key Specialties'],
-    },
-    'Comparables': {
-      description: 'Similar productions with matching genre, budget range, and shooting territories.',
-      previewRows: ['Title', 'Budget', 'Location', 'Year'],
-    },
-    'Weather & Logistics': {
-      description: 'Shooting season windows, climate risk scores, and logistics complexity ratings.',
-      previewRows: ['Best Shooting Season', 'Climate Risk Score', 'Permit Complexity', 'Infrastructure Rating'],
-    },
-    'Funding & Festivals': {
-      description: 'Co-production funds, soft money sources, and festival circuit recommendations.',
-      previewRows: ['Co-Production Fund', 'Soft Money Available', 'Top Festival Target', 'Application Deadline'],
-    },
-  };
-
-  const BlurredContent = ({ title }: { title: string }) => {
-    const config = LOCKED_SECTION_CONFIG[title];
-    const rows = config?.previewRows ?? ['Data Point 1', 'Data Point 2', 'Data Point 3', 'Data Point 4'];
-    const description = config?.description ?? `${title.toLowerCase()} analysis is exclusive to Pro and Studio members.`;
-
-    return (
-      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-        {/* Blurred preview — shows section structure */}
-        <Box sx={{ filter: 'blur(6px)', opacity: 0.25, pointerEvents: 'none', userSelect: 'none' }}>
-          <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>{title}</Typography>
-          <Grid container spacing={2}>
-            {rows.map((row) => (
-              <Grid size={{ xs: 12, sm: 6 }} key={row}>
-                <Paper sx={{ p: 2.5, bgcolor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-                  <Typography variant="caption" sx={{ color: '#888', display: 'block', mb: 1 }}>{row}</Typography>
-                  <Box sx={{ height: 14, width: '55%', bgcolor: '#2e2e2e', borderRadius: 0.5, mb: 1 }} />
-                  <Box sx={{ height: 10, width: '80%', bgcolor: '#252525', borderRadius: 0.5 }} />
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-        {/* Lock overlay */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            textAlign: 'center', p: 4, zIndex: 10,
-          }}
-        >
-          <Lock sx={{ fontSize: 40, color: '#D4AF37', mb: 1.5 }} />
-          <Typography variant="h6" sx={{ color: '#ffffff', mb: 0.5, fontWeight: 700 }}>
-            {title} Locked
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3, maxWidth: '400px' }}>
-            {description}
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate('/pricing')}
-            sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}
-          >
-            Unlock Full Report
-          </Button>
-        </Box>
-      </Box>
-    );
-  };
 
   return (
     <Box sx={{ bgcolor: '#000000', minHeight: '100vh' }}>
@@ -813,18 +749,25 @@ export function ReportViewer() {
                   <Grid container spacing={2} sx={{ mb: 2 }}>
                     {[
                       { label: 'Cost Efficiency', value: loc.costEfficiency },
-                      { label: 'Crew Depth', value: loc.crewDepth },
-                      { label: 'Infrastructure', value: loc.infrastructure },
+                      { label: 'Crew Depth', value: loc.crewDepth, tier: loc.crewDepthTier },
+                      { label: 'Infrastructure', value: loc.infrastructure, tier: loc.infrastructureTier },
                       { label: 'Incentive Strength', value: loc.incentiveStrength },
                       { label: 'Currency Advantage', value: loc.currencyAdvantage },
                       ...(loc.incentiveReliability != null ? [{ label: 'Incentive Reliability', value: loc.incentiveReliability }] : []),
-                    ].map((metric) => (
-                      <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
-                        <Typography variant="caption" sx={{ color: '#666' }}>{metric.label}</Typography>
-                        <LinearProgress variant="determinate" value={metric.value} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#222', '& .MuiLinearProgress-bar': { bgcolor: metric.value >= 80 ? '#4caf50' : metric.value >= 60 ? '#2196f3' : metric.value >= 40 ? '#D4AF37' : '#ff9800' } }} />
-                        <Typography variant="caption" sx={{ color: '#888', fontSize: '0.7rem' }}>{metric.value}/100</Typography>
-                      </Grid>
-                    ))}
+                    ].map((metric) => {
+                      const tooltipKey = DIMENSION_TOOLTIP_KEYS[metric.label as keyof typeof DIMENSION_TOOLTIP_KEYS];
+                      return (
+                        <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
+                          <Typography variant="caption" sx={{ color: '#666', display: 'flex', alignItems: 'center' }}>
+                            {metric.label}
+                            {'tier' in metric && metric.tier ? ` (${metric.tier})` : ''}
+                            <InfoTip text={TOOLTIP_TEXTS[tooltipKey]} placement="top" />
+                          </Typography>
+                          <LinearProgress variant="determinate" value={metric.value} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#222', '& .MuiLinearProgress-bar': { bgcolor: metric.value >= 80 ? '#4caf50' : metric.value >= 60 ? '#2196f3' : metric.value >= 40 ? '#D4AF37' : '#ff9800' } }} />
+                          <Typography variant="caption" sx={{ color: '#888', fontSize: '0.7rem' }}>{metric.value}/100</Typography>
+                        </Grid>
+                      );
+                    })}
                   </Grid>
                   {/* Dimension verdict info icons */}
                   {(analysis as any).dimensionVerdicts?.[loc.name] && (

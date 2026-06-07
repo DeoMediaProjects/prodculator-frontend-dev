@@ -1,4 +1,26 @@
-import { Error as ErrorIcon,
+import { useState } from 'react';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Grid,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material';
+import {
+  CheckCircle,
+  ExpandMore,
+  PlayArrow,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 import scriptAnalysisService, { ScriptAnalysisResult } from '@/services/script-analysis.service';
 
@@ -129,18 +151,16 @@ export function ScriptAnalysisTester() {
                         <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1 }}>
                           Estimated Range
                         </Typography>
-                        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+                        <Typography variant="h6" sx={{ color: '#ffffff', textTransform: 'capitalize' }}>
                           {result.budgetEstimate.range}
                         </Typography>
+                        <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5 }}>
+                          ${result.budgetEstimate.minUSD.toLocaleString()} – ${result.budgetEstimate.maxUSD.toLocaleString()}
+                        </Typography>
                         <Chip
-                          label={result.budgetEstimate.category}
+                          label={`${Math.round(result.budgetEstimate.confidence * 100)}% confidence`}
                           size="small"
                           sx={{ mt: 1, bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }}
-                        />
-                        <Chip
-                          label={`${result.budgetEstimate.confidence} confidence`}
-                          size="small"
-                          sx={{ mt: 1, ml: 1 }}
                         />
                       </CardContent>
                     </Card>
@@ -176,53 +196,20 @@ export function ScriptAnalysisTester() {
                       <Typography variant="h6" sx={{ color: '#ffffff', mb: 1 }}>
                         {location.name}
                       </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                        <Chip label={location.type} size="small" />
+                      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                        <Chip label={location.country} size="small" />
                         <Chip label={`${location.frequency} scenes`} size="small" />
-                        <Chip label={`${location.feasibility} feasibility`} size="small" />
+                        {location.isMainLocation && (
+                          <Chip
+                            label="Main location"
+                            size="small"
+                            sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }}
+                          />
+                        )}
                       </Box>
                       <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                        Primary Territory: {location.primaryTerritory || 'TBD'}
+                        Territory: {location.territory || 'TBD'}
                       </Typography>
-                      {location.alternativeTerritories && location.alternativeTerritories.length > 0 && (
-                        <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                          Alternatives: {location.alternativeTerritories.join(', ')}
-                        </Typography>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </AccordionDetails>
-            </Accordion>
-
-            {/* Territory Recommendations */}
-            <Accordion sx={{ bgcolor: '#0a0a0a', mb: 2 }}>
-              <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-                <Typography sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                  Territory Recommendations
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                {result.territoryRecommendations.map((territory, idx) => (
-                  <Card key={idx} sx={{ bgcolor: '#1a1a1a', mb: 2 }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                          {territory.territory}
-                        </Typography>
-                        <Chip
-                          label={`Score: ${territory.score}/100`}
-                          sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }}
-                        />
-                      </Box>
-                      <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1 }}>
-                        {territory.reasoning}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Chip label={`Incentive: ${territory.incentiveMatch}`} size="small" />
-                        <Chip label={`Crew: ${territory.crewAvailability}`} size="small" />
-                        <Chip label={`Infrastructure: ${territory.infrastructureMatch}`} size="small" />
-                      </Box>
                     </CardContent>
                   </Card>
                 ))}
@@ -240,28 +227,32 @@ export function ScriptAnalysisTester() {
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, md: 4 }}>
                     <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Crew Size</Typography>
-                    <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                      {result.productionScale.crewSize}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                      {result.productionScale.crewSizeEstimate}
+                    <Typography variant="h6" sx={{ color: '#ffffff', textTransform: 'capitalize' }}>
+                      {result.productionScale.crewSize.replace('_', ' ')}
                     </Typography>
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
                     <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Shooting Days</Typography>
                     <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                      {result.productionScale.shootingDays} days
+                      {result.productionScale.estimatedShootingDays} days
                     </Typography>
-                    <Chip
-                      label={`${result.productionScale.shootingDaysConfidence} confidence`}
-                      size="small"
-                      sx={{ mt: 1 }}
-                    />
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Complexity</Typography>
-                    <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                      {result.productionScale.complexity}
+                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Principal Cast</Typography>
+                    <Typography variant="h6" sx={{ color: '#ffffff', textTransform: 'capitalize' }}>
+                      {result.productionScale.principalCast.replace('_', ' ')}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Supporting Cast</Typography>
+                    <Typography variant="h6" sx={{ color: '#ffffff', textTransform: 'capitalize' }}>
+                      {result.productionScale.supportingCast.replace('_', ' ')}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Background Extras</Typography>
+                    <Typography variant="h6" sx={{ color: '#ffffff', textTransform: 'capitalize' }}>
+                      {result.productionScale.backgroundExtras.replace('_', ' ')}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -276,17 +267,16 @@ export function ScriptAnalysisTester() {
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
-                  {result.equipment.cameraEquipmentReasoning}
-                </Typography>
                 <Box sx={{ mb: 2 }}>
-                  {result.equipment.cameraEquipment.map((camera, idx) => (
-                    <Chip
-                      key={idx}
-                      label={camera.toUpperCase()}
-                      sx={{ mr: 1, mb: 1, bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }}
-                    />
-                  ))}
+                  <Chip
+                    label={result.equipment.cameraEquipment.toUpperCase()}
+                    sx={{ mr: 1, mb: 1, bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }}
+                  />
+                  <Chip
+                    label={`VFX: ${result.equipment.vfxRequirements}`}
+                    size="small"
+                    sx={{ textTransform: 'capitalize' }}
+                  />
                 </Box>
                 {result.equipment.specialEquipment.length > 0 && (
                   <>
@@ -298,88 +288,87 @@ export function ScriptAnalysisTester() {
                     ))}
                   </>
                 )}
-                <Box sx={{ mt: 2 }}>
-                  <Chip
-                    label={`Stunts: ${result.equipment.stunts ? 'Yes' : 'No'}`}
-                    size="small"
-                    sx={{ mr: 1 }}
-                  />
-                  <Chip
-                    label={`VFX: ${result.equipment.vfxComplexity}`}
-                    size="small"
-                  />
-                </Box>
               </AccordionDetails>
             </Accordion>
 
-            {/* Cast */}
+            {/* Metadata */}
             <Accordion sx={{ bgcolor: '#0a0a0a', mb: 2 }}>
               <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
                 <Typography sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                  Cast Requirements
+                  Metadata
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Principal Cast</Typography>
-                    <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                      {result.cast.principalCast}
+                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Format</Typography>
+                    <Typography variant="h6" sx={{ color: '#ffffff', textTransform: 'capitalize' }}>
+                      {result.metadata.format.replace('_', ' ')}
                     </Typography>
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Supporting Cast</Typography>
+                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Tone</Typography>
                     <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                      {result.cast.supportingCast}
+                      {result.metadata.tone}
                     </Typography>
                   </Grid>
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Background Extras</Typography>
+                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Target Audience</Typography>
                     <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                      {result.cast.backgroundExtras}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                      {result.cast.extrasEstimate}
+                      {result.metadata.targetAudience}
                     </Typography>
                   </Grid>
                 </Grid>
-                {result.cast.specialSkills.length > 0 && (
+                {result.metadata.genres.length > 0 && (
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1 }}>
-                      Special Skills Required:
+                      Genres:
                     </Typography>
-                    {result.cast.specialSkills.map((skill, idx) => (
-                      <Chip key={idx} label={skill} size="small" sx={{ mr: 1 }} />
+                    {result.metadata.genres.map((genre, idx) => (
+                      <Chip key={idx} label={genre} size="small" sx={{ mr: 1, mb: 1 }} />
                     ))}
                   </Box>
                 )}
               </AccordionDetails>
             </Accordion>
 
-            {/* Comparables */}
-            {result.comparables.length > 0 && (
-              <Accordion sx={{ bgcolor: '#0a0a0a', mb: 2 }}>
-                <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-                  <Typography sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                    Comparable Productions
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  {result.comparables.map((comp, idx) => (
-                    <Card key={idx} sx={{ bgcolor: '#1a1a1a', mb: 2 }}>
-                      <CardContent>
-                        <Typography variant="h6" sx={{ color: '#ffffff' }}>
-                          {comp.title} ({comp.year})
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                          {comp.similarity}
-                        </Typography>
-                      </CardContent>
-                    </Card>
+            {/* Production Challenges */}
+            <Accordion sx={{ bgcolor: '#0a0a0a', mb: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+                <Typography sx={{ color: '#D4AF37', fontWeight: 600 }}>
+                  Production Challenges
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                  {([
+                    ['Weather dependent', result.challenges.weatherDependent],
+                    ['Historical period', result.challenges.historicalPeriod],
+                    ['Special permits', result.challenges.specialPermits],
+                    ['Stunts', result.challenges.stunts],
+                    ['Animal wrangling', result.challenges.animalWrangling],
+                    ['Water work', result.challenges.waterWork],
+                    ['Night shooting', result.challenges.nightShooting],
+                  ] as const).map(([label, active]) => (
+                    <Chip
+                      key={label}
+                      label={label}
+                      size="small"
+                      icon={active ? <CheckCircle /> : undefined}
+                      sx={{
+                        bgcolor: active ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        color: active ? '#4caf50' : '#666',
+                      }}
+                    />
                   ))}
-                </AccordionDetails>
-              </Accordion>
-            )}
+                </Box>
+                {result.challenges.notes.map((note, idx) => (
+                  <Typography key={idx} variant="body2" sx={{ color: '#a0a0a0' }}>
+                    • {note}
+                  </Typography>
+                ))}
+              </AccordionDetails>
+            </Accordion>
 
             {/* Raw Analysis */}
             <Accordion sx={{ bgcolor: '#0a0a0a' }}>
@@ -393,7 +382,7 @@ export function ScriptAnalysisTester() {
                   fullWidth
                   multiline
                   rows={10}
-                  value={result.rawAnalysis}
+                  value={result.rawResponse || 'No raw response provided.'}
                   InputProps={{ readOnly: true }}
                   sx={{
                     '& .MuiInputBase-input': {

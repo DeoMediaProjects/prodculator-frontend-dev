@@ -28,6 +28,7 @@ describe('PlanGate', () => {
       userPlan: 'professional',
       isAuthenticated: true,
       isProfessional: true,
+      isProducer: false,
       isStudio: false,
       isFree: false,
     });
@@ -48,6 +49,7 @@ describe('PlanGate', () => {
       userPlan: 'free',
       isAuthenticated: true,
       isProfessional: false,
+      isProducer: false,
       isStudio: false,
       isFree: true,
     });
@@ -68,6 +70,7 @@ describe('PlanGate', () => {
       userPlan: 'free',
       isAuthenticated: true,
       isProfessional: false,
+      isProducer: false,
       isStudio: false,
       isFree: true,
     });
@@ -88,6 +91,7 @@ describe('PlanGate', () => {
       userPlan: 'free',
       isAuthenticated: true,
       isProfessional: false,
+      isProducer: false,
       isStudio: false,
       isFree: true,
     });
@@ -111,6 +115,7 @@ describe('PlanGate', () => {
       userPlan: 'professional',
       isAuthenticated: true,
       isProfessional: true,
+      isProducer: false,
       isStudio: false,
       isFree: false,
     });

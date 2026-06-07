@@ -19,14 +19,11 @@ import {
   DialogActions,
   TextField,
   Grid,
-  Tooltip,
   CircularProgress,
 } from '@mui/material';
 import {
-  Notifications,
   TrendingUp,
   TrendingDown,
-  Email,
   CheckCircle,
   Warning,
   Info,
@@ -36,7 +33,6 @@ import {
   AttachMoney,
   OpenInNew,
   Movie,
-  CalendarToday,
   EmojiEvents,
 } from '@mui/icons-material';
 import { Festival } from '@/app/types/festival';
@@ -129,8 +125,6 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
       expectedDate: 'Q3 2026',
     },
   ];
-
-  const alertsPerMonth = userPlan === 'free' ? 1 : userPlan === 'professional' ? 12 : 999;
 
   // Mock grant opportunities
   const grantOpportunities: GrantOpportunity[] = [
@@ -817,7 +811,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
       </Paper>
 
       {/* Film Festival Deadlines */}
-      <FestivalDeadlinesSection userPlan={userPlan} />
+      <FestivalDeadlinesSection />
 
       {/* Email Settings Dialog */}
       <Dialog
@@ -894,7 +888,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
 }
 
 // Festival Deadlines Section Component
-function FestivalDeadlinesSection({ userPlan }: { userPlan: 'free' | 'professional' | 'studio' }) {
+function FestivalDeadlinesSection() {
   const [allFestivals, setAllFestivals] = useState<Festival[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -1206,7 +1200,8 @@ function FestivalDeadlinesSection({ userPlan }: { userPlan: 'free' | 'profession
                             }
                           }}
                           endIcon={<OpenInNew />}
-                          sx={{\n                            borderColor: '#D4AF37',
+                          sx={{
+                            borderColor: '#D4AF37',
                             color: '#D4AF37',
                             fontWeight: 600,
                             '&:hover': {

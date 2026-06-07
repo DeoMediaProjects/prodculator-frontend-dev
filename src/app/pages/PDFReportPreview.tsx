@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Box,
@@ -20,7 +19,6 @@ import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
 export function PDFReportPreview() {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
 
   const sampleData = {
     reportId: 'RPT-2026-001234',

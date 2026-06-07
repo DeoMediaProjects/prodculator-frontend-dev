@@ -20,7 +20,6 @@ import {
   Assessment,
   CheckCircle,
   Warning,
-  Info,
   HelpOutline,
 } from '@mui/icons-material';
 import { adminApi } from '@/services/admin.api';

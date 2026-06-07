@@ -83,7 +83,7 @@ export function ScriptUpload() {
   const [timeoutModalOpen, setTimeoutModalOpen] = useState(false);
   const [_timedOutReportId, setTimedOutReportId] = useState<string | null>(null);
 
-  const [targetAudience, _setTargetAudience] = useState('');
+  const [_targetAudience, _setTargetAudience] = useState('');
   const [language, _setLanguage] = useState('');
 
   // Production strategy fields
@@ -455,10 +455,10 @@ export function ScriptUpload() {
 
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
-                      <InputLabel>Production Country</InputLabel>
+                      <InputLabel>Production Country<InfoTip text="Where you or your production company is based" /></InputLabel>
                       <Select
                         value={country}
-                        label="Production Country"
+                        label={<>Production Country<InfoTip text="Where you or your production company is based" /></>}
                         onChange={(e) => setCountry(e.target.value)}
                       >
                         {countryOptions.map((t) => (
@@ -805,7 +805,7 @@ export function ScriptUpload() {
 <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
-                      label={<>Primary Language<InfoTip text="The primary spoken language in your script." /></>}
+                      label={<>Primary Language<InfoTip text="The primary spoken language(s) in your script." /></>}
                       placeholder="e.g. English"
                       value={language}
                       onChange={(e) => _setLanguage(e.target.value)}
@@ -918,7 +918,7 @@ export function ScriptUpload() {
             <Typography variant="body2" sx={{ color: '#a0a0a0', lineHeight: 1.7 }}>
               Your report is still being generated. Our AI engine is processing complex script
               data across multiple territories — this can occasionally take longer than expected
-              depending on demand.
+              depending on script complexity and server load.
             </Typography>
           </Box>
 

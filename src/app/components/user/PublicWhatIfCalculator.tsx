@@ -88,30 +88,30 @@ const selectSx = {
 const DEBOUNCE_MS = 500;
 
 // ── Score weights by priority ─────────────────────────────────────────────────
-const SCORE_WEIGHTS_INFO = {
+export const SCORE_WEIGHTS_INFO = {
   full: [
-    { label: 'Cost Efficiency', pct: '25%', noteKey: 'crew' as const },
-    { label: 'Crew Depth', pct: '20%', estimated: true },
-    { label: 'Infrastructure', pct: '20%', estimated: true },
-    { label: 'Incentive Strength', pct: '20%', note: 'rebate/credit %' },
-    { label: 'Currency Advantage', pct: '10%', note: '' },
-    { label: 'Programme Reliability', pct: '5%' },
+    { label: 'Incentive Strength', pct: '30%', note: 'rebate/credit value' },
+    { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment track record' },
+    { label: 'Cost Efficiency', pct: '20%', noteKey: 'crew' as const },
+    { label: 'Currency Advantage', pct: '15%', note: 'your budget vs local currency' },
+    { label: 'Crew Depth', pct: '10%', note: 'territory tier rating' },
+    { label: 'Infrastructure', pct: '10%', note: 'territory tier rating' },
   ],
   incentive: [
-    { label: 'Incentive Strength', pct: '40%', note: 'rebate/credit %' },
+    { label: 'Incentive Strength', pct: '45%', note: 'rebate/credit value' },
+    { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment track record' },
     { label: 'Cost Efficiency', pct: '15%', noteKey: 'crew' as const },
-    { label: 'Crew Depth', pct: '15%', estimated: true },
-    { label: 'Infrastructure', pct: '15%', estimated: true },
-    { label: 'Currency Advantage', pct: '10%', note: '' },
-    { label: 'Programme Reliability', pct: '5%' },
+    { label: 'Currency Advantage', pct: '15%', note: 'your budget vs local currency' },
+    { label: 'Crew Depth', pct: '5%', note: 'territory tier rating' },
+    { label: 'Infrastructure', pct: '5%', note: 'territory tier rating' },
   ],
   location: [
-    { label: 'Crew Depth', pct: '25%', estimated: true },
-    { label: 'Infrastructure', pct: '25%', estimated: true },
-    { label: 'Cost Efficiency', pct: '17%', noteKey: 'crew' as const },
-    { label: 'Incentive Strength', pct: '13%', note: 'rebate/credit %' },
+    { label: 'Crew Depth', pct: '25%', note: 'territory tier rating' },
+    { label: 'Infrastructure', pct: '20%', note: 'territory tier rating' },
+    { label: 'Cost Efficiency', pct: '20%', noteKey: 'crew' as const },
+    { label: 'Incentive Strength', pct: '15%', note: 'rebate/credit value' },
+    { label: 'Incentive Reliability', pct: '10%', note: 'bankability & payment track record' },
     { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
-    { label: 'Programme Reliability', pct: '10%' },
   ],
 } as const;
 
@@ -185,8 +185,8 @@ export function PublicWhatIfCalculator() {
         const note = 'noteKey' in w ? `crew day rates vs ${baseline === 'US' ? 'US' : 'UK'} baseline` : 'note' in w ? w.note : '';
         return (
           <Box key={w.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
-            <Typography sx={{ fontSize: '11px', color: 'estimated' in w ? '#777' : '#ccc' }}>
-              {w.label}{note ? ` (${note})` : ''}{'estimated' in w ? ' *' : ''}
+            <Typography sx={{ fontSize: '11px', color: '#ccc' }}>
+              {w.label}{note ? ` (${note})` : ''}
             </Typography>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#F5C800', flexShrink: 0 }}>
               {w.pct}
@@ -195,8 +195,8 @@ export function PublicWhatIfCalculator() {
         );
       })}
       <Typography sx={{ fontSize: '10px', color: '#666', mt: 1.5, lineHeight: 1.4 }}>
-        * Crew depth and infrastructure are estimated at industry average in this tool.
-        Upload your script for AI-scored values.
+        Crew Depth and Infrastructure use Prodculator territory tier ratings.
+        Upload your script for production-specific narrative analysis.
       </Typography>
     </Box>
   );

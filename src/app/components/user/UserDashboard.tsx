@@ -858,9 +858,6 @@ export function UserDashboard() {
               >
                 {loggingOut ? 'Signing out…' : 'Sign Out'}
               </Button>
-              <Typography variant="caption" sx={{ color: '#555', display: 'block', mt: 1 }}>
-                This will revoke your session token immediately.
-              </Typography>
             </Box>
           </Paper>
         </TabPanel>
