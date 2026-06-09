@@ -11,7 +11,7 @@ interface SEOHeadProps {
 }
 
 export function SEOHead({
-  title = 'Prodculator - Film Tax Credit Calculator & Production Intelligence',
+  title = 'Prodculator Film Tax Credit Calculator & Production Intelligence',
   description = 'Professional film production intelligence platform for US & UK producers. Get instant tax credit estimates, location recommendations, crew costs, and production budgets from your screenplay. Trusted by producers, investors, and film commissions.',
   keywords = [
     'film tax credits',

@@ -45,7 +45,7 @@ import { AdminAccessDenied } from './AdminAccessDenied';
 
 /** Convert integer cents to a human-readable dollar/currency string */
 const formatRate = (cents: number | null | undefined, currency = 'USD') => {
-  if (cents == null) return '—';
+  if (cents == null) return 'N/A';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
@@ -226,7 +226,7 @@ function CrewCostsManagerContent() {
             Crew Costs & Union Rates
           </Typography>
           <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-            Manage crew rates with AI-powered quarterly auto-sync from union agreements and industry surveys
+            Manage crew rates with AI powered quarterly auto sync from union agreements and industry surveys
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -244,7 +244,7 @@ function CrewCostsManagerContent() {
               },
             }}
           >
-            Auto-Sync Settings
+            Auto Sync Settings
           </Button>
           <Button
             variant="contained"
@@ -288,7 +288,7 @@ function CrewCostsManagerContent() {
         }}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-          Informational Data Only - Not Salary Advice
+          Informational Data Only Not Salary Advice
         </Typography>
         <Typography variant="body2" sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>
           All crew rate data shown here is sourced from publicly available union agreements, guild rate cards, and industry surveys.
@@ -306,7 +306,7 @@ function CrewCostsManagerContent() {
               <Sync sx={{ color: '#D4AF37', fontSize: 28 }} />
               <Box>
                 <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                  AI-Powered Auto-Sync Status
+                  AI Powered Auto Sync Status
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
                   Next scheduled check: <strong>{formatDate(syncStatus?.nextScheduledCheck)}</strong>
@@ -342,11 +342,11 @@ function CrewCostsManagerContent() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <CheckCircle sx={{ color: '#66bb6a', fontSize: 20 }} />
                   <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.territoriesSyncing ?? '—'}
+                    {syncStatus?.territoriesSyncing ?? 'N/A'}
                   </Typography>
                 </Box>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                  Territories Auto-Syncing
+                  Territories Auto Syncing
                 </Typography>
               </Box>
             </Grid>
@@ -382,7 +382,7 @@ function CrewCostsManagerContent() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Schedule sx={{ color: '#42a5f5', fontSize: 20 }} />
                   <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.daysSinceLastCheck ?? '—'}
+                    {syncStatus?.daysSinceLastCheck ?? 'N/A'}
                   </Typography>
                 </Box>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
@@ -417,7 +417,7 @@ function CrewCostsManagerContent() {
           }
         >
           <Typography variant="body2">
-            <strong>{pendingChanges.length} update(s) detected</strong> by AI auto-sync and awaiting your review
+            <strong>{pendingChanges.length} update(s) detected</strong> by AI auto sync and awaiting your review
           </Typography>
         </Alert>
       )}
@@ -441,7 +441,7 @@ function CrewCostsManagerContent() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
-                    {change.territory} - {change.field}
+                    {change.territory}: {change.field}
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, md: 5 }}>
@@ -536,12 +536,12 @@ function CrewCostsManagerContent() {
                 // Derive display values from new API fields, falling back to legacy fields
                 const displayTerritory = rate.country
                   ? `${rate.country}${rate.region ? ` / ${rate.region}` : ''}`
-                  : (rate.territory ?? '—');
-                const displayCategory = rate.roleCategory ?? rate.category ?? '—';
+                  : (rate.territory ?? 'N/A');
+                const displayCategory = rate.roleCategory ?? rate.category ?? 'N/A';
                 const displayUnion = rate.rateCurrency
                   ? `${rate.rateCurrency} · ${rate.department}`
-                  : (rate.union ?? '—');
-                const displaySource = rate.sourceName ?? rate.source ?? '—';
+                  : (rate.union ?? 'N/A');
+                const displaySource = rate.sourceName ?? rate.source ?? 'N/A';
                 const displayLastUpdated = rate.updatedAt
                   ? formatDate(rate.updatedAt)
                   : formatDate(rate.lastUpdated);
@@ -549,13 +549,13 @@ function CrewCostsManagerContent() {
 
                 // Day rate: prefer unionRateCents (new) over dayRate (legacy, already in dollars)
                 const dayRateDisplay = rate.unionRateCents != null
-                  ? `${formatRate(rate.unionRateCents, currency)} – ${formatRate(rate.nonUnionRateCents, currency)}`
+                  ? `${formatRate(rate.unionRateCents, currency)} to ${formatRate(rate.nonUnionRateCents, currency)}`
                   : rate.dayRate != null
                   ? `$${rate.dayRate}`
-                  : '—';
+                  : 'N/A';
 
                 // Week rate: legacy field only (new API is day-based)
-                const weekRateDisplay = rate.weekRate != null ? `$${rate.weekRate}` : '—';
+                const weekRateDisplay = rate.weekRate != null ? `$${rate.weekRate}` : 'N/A';
 
                 return (
                   <TableRow key={rate.id} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
@@ -632,7 +632,7 @@ function CrewCostsManagerContent() {
               fullWidth
             />
             <TextField
-              label="Role Category (e.g. HOD-Camera)"
+              label="Role Category (e.g. HOD Camera)"
               value={formData.roleCategory || ''}
               onChange={(e) => setFormData({ ...formData, roleCategory: e.target.value })}
               fullWidth
@@ -662,7 +662,7 @@ function CrewCostsManagerContent() {
               fullWidth
             />
             <TextField
-              label="Non-Union Rate (cents)"
+              label="Non Union Rate (cents)"
               type="number"
               value={formData.nonUnionRateCents ?? ''}
               onChange={(e) => setFormData({ ...formData, nonUnionRateCents: parseInt(e.target.value) })}
@@ -725,7 +725,7 @@ function CrewCostsManagerContent() {
         <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Schedule />
-            Auto-Sync Configuration
+            Auto Sync Configuration
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -737,7 +737,7 @@ function CrewCostsManagerContent() {
             <>
               <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', color: '#42a5f5' }}>
                 <strong>How it works:</strong> Our AI agent reads union rate cards and industry surveys,
-                extracts crew cost data, and flags changes for your review before auto-applying.
+                extracts crew cost data, and flags changes for your review before auto applying.
               </Alert>
 
               {syncSettings && (
@@ -764,7 +764,7 @@ function CrewCostsManagerContent() {
                 >
                   <option value="monthly">Monthly (1st of each month)</option>
                   <option value="quarterly">Quarterly (Jan, Apr, Jul, Oct)</option>
-                  <option value="biannual">Semi-Annual (Jan, Jul)</option>
+                  <option value="biannual">Semi Annual (Jan, Jul)</option>
                   <option value="annual">Annual (January)</option>
                 </TextField>
               </Box>

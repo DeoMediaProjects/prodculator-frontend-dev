@@ -229,7 +229,7 @@ export function SampleReport() {
               >
                 <ListItemText 
                   primary={`${territory.territory} Territory Analysis`}
-                  secondary={`Detailed breakdown - Rank #${territory.rank}`}
+                  secondary={`Detailed breakdown Rank #${territory.rank}`}
                   primaryTypographyProps={{ fontWeight: 600 }}
                 />
                 <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>
@@ -914,7 +914,7 @@ export function SampleReport() {
 
           <Alert severity="info" sx={{ mt: 4 }}>
             <Typography variant="body2">
-              <strong>Pro Tip:</strong> Applications for grants typically require 3-6 months lead time. Start preparation early and consider engaging a local producer familiar with the application process.
+              <strong>Pro Tip:</strong> Applications for grants typically require 3 to 6 months lead time. Start preparation early and consider engaging a local producer familiar with the application process.
             </Typography>
           </Alert>
         </Box>
@@ -934,7 +934,7 @@ export function SampleReport() {
           <Divider sx={{ mb: 4, borderColor: '#D4AF37', borderWidth: 2 }} />
 
           <Typography variant="body1" sx={{ mb: 4, color: '#444', lineHeight: 1.8 }}>
-            Strategic festival recommendations based on your production's genre, location, and co-production territories:
+            Strategic festival recommendations based on your production's genre, location, and co production territories:
           </Typography>
 
           {data.festivals.map((festival, index) => (
@@ -943,8 +943,8 @@ export function SampleReport() {
               sx={{ 
                 mb: 3,
                 boxShadow: 'none',
-                border: festival.tier === 'A-List' ? '2px solid #D4AF37' : '1px solid rgba(0,0,0,0.1)',
-                bgcolor: festival.tier === 'A-List' ? 'rgba(212, 175, 55, 0.03)' : 'transparent',
+                border: festival.tier === 'A List' ? '2px solid #D4AF37' : '1px solid rgba(0,0,0,0.1)',
+                bgcolor: festival.tier === 'A List' ? 'rgba(212, 175, 55, 0.03)' : 'transparent',
               }}
             >
               <CardContent>
@@ -958,8 +958,8 @@ export function SampleReport() {
                         label={festival.tier}
                         size="small"
                         sx={{ 
-                          bgcolor: festival.tier === 'A-List' ? '#D4AF37' : 'rgba(0,0,0,0.1)',
-                          color: festival.tier === 'A-List' ? '#000' : '#666',
+                          bgcolor: festival.tier === 'A List' ? '#D4AF37' : 'rgba(0,0,0,0.1)',
+                          color: festival.tier === 'A List' ? '#000' : '#666',
                           fontWeight: 700
                         }}
                       />

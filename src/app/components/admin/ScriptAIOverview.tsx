@@ -159,7 +159,7 @@ export function ScriptAIOverview() {
       ? `$${(metrics?.mrr_usd ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
       : currencyView === 'GBP'
       ? `£${(metrics?.mrr_gbp ?? 0).toLocaleString('en-GB', { maximumFractionDigits: 0 })}`
-      : 'Multi-Currency';
+      : 'Multi Currency';
 
   const mrrSubtext =
     currencyView === 'BOTH'
@@ -169,7 +169,7 @@ export function ScriptAIOverview() {
   const stats = [
     {
       label: 'Total Paid Users',
-      value: metrics?.total_paid_users?.toString() ?? '—',
+      value: metrics?.total_paid_users?.toString() ?? 'N/A',
       change: '',
       icon: <People />,
       color: '#D4AF37',
@@ -183,7 +183,7 @@ export function ScriptAIOverview() {
     },
     {
       label: 'Reports Generated (MTD)',
-      value: metrics?.reports_this_month_total?.toLocaleString() ?? '—',
+      value: metrics?.reports_this_month_total?.toLocaleString() ?? 'N/A',
       change: metrics
         ? `${metrics.reports_this_month_free.toLocaleString()} free, ${metrics.reports_this_month_paid.toLocaleString()} paid`
         : '',
@@ -192,7 +192,7 @@ export function ScriptAIOverview() {
     },
     {
       label: 'Avg. Reports per User',
-      value: metrics?.avg_reports_per_user?.toFixed(1) ?? '—',
+      value: metrics?.avg_reports_per_user?.toFixed(1) ?? 'N/A',
       change: 'Per paid user',
       icon: <TrendingUp />,
       color: '#ffa726',
@@ -624,7 +624,7 @@ function SubscriberRow({
         {user.monthly_spend}/mo
       </TableCell>
       <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{user.join_date}</TableCell>
-      <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{user.last_active ?? '—'}</TableCell>
+      <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{user.last_active ?? 'N/A'}</TableCell>
       <TableCell>
         <Chip
           icon={user.status === 'Active' ? <CheckCircle sx={{ fontSize: 14 }} /> : undefined}

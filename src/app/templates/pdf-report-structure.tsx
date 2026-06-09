@@ -145,7 +145,7 @@ export const pdfReportStructure = {
       marginTop: 16,
     },
     metadata: {
-      reportId: 'Report ID: RPT-2026-001234',
+      reportId: 'Report ID: RPT2026001234',
       generated: 'Generated: January 23, 2026',
       version: 'Scripteligence v6.8',
       fontSize: 12,
@@ -194,7 +194,7 @@ export const pdfReportStructure = {
       {
         label: 'Estimated Tax Incentive',
         icon: '💰',
-        content: '$XXX,XXX - $XXX,XXX',
+        content: '$XXX,XXX to $XXX,XXX',
       },
       {
         label: 'Projected Net Savings',
@@ -227,7 +227,7 @@ export const pdfReportStructure = {
           { label: 'Genre', value: 'Drama / Thriller' },
           { label: 'Logline', value: '...' },
           { label: 'Page Count', value: '110 pages' },
-          { label: 'Estimated Runtime', value: '100-110 minutes' },
+          { label: 'Estimated Runtime', value: '100 to 110 minutes' },
         ],
       },
       {
@@ -295,10 +295,10 @@ export const pdfReportStructure = {
           'Diverse locations (urban, mountains, coast)',
           'Favorable exchange rate',
         ],
-        estimatedIncentive: '$450,000 - $650,000',
+        estimatedIncentive: '$450,000 to $650,000',
         considerations: [
           'Weather can be unpredictable (rain)',
-          'Application timeline: 6-8 weeks',
+          'Application timeline: 6 to 8 weeks',
         ],
         visualization: 'Radar chart showing 5 score categories',
       },
@@ -308,11 +308,11 @@ export const pdfReportStructure = {
     comparisonTable: {
       headers: ['Territory', 'Incentive %', 'Est. Rebate', 'Crew Cost Index', 'Overall Score'],
       rows: [
-        ['British Columbia, Canada', '36%', '$450K-$650K', '92/100', '94/100'],
-        ['UK (England)', '25%', '$380K-$520K', '78/100', '89/100'],
-        ['Georgia, USA', '30%', '$420K-$580K', '85/100', '87/100'],
-        ['Malta', '40%', '$320K-$480K', '82/100', '84/100'],
-        ['South Africa (Cape Town)', '35%', '$280K-$420K', '95/100', '82/100'],
+        ['British Columbia, Canada', '36%', '$450K to $650K', '92/100', '94/100'],
+        ['UK (England)', '25%', '$380K to $520K', '78/100', '89/100'],
+        ['Georgia, USA', '30%', '$420K to $580K', '85/100', '87/100'],
+        ['Malta', '40%', '$320K to $480K', '82/100', '84/100'],
+        ['South Africa (Cape Town)', '35%', '$280K to $420K', '95/100', '82/100'],
       ],
     },
     
@@ -340,14 +340,14 @@ export const pdfReportStructure = {
           regionalBonus: '+6% for qualifying regional production',
           digitalAnimation: '+17.5% for digital animation',
           maxRebate: 'No cap',
-          estimatedRebate: '$450,000 - $650,000',
+          estimatedRebate: '$450,000 to $650,000',
         },
         
         qualifyingExpenses: [
           'BC labor costs (salaries, wages)',
           'BC resident labor only',
-          'Post-production labor (if done in BC)',
-          'Excludes above-the-line costs',
+          'Post production labor (if done in BC)',
+          'Excludes above the line costs',
         ],
         
         eligibility: [
@@ -358,14 +358,14 @@ export const pdfReportStructure = {
         ],
         
         applicationProcess: {
-          timing: '6-8 weeks before principal photography',
+          timing: '6 to 8 weeks before principal photography',
           documents: [
             'Detailed budget',
             'Shooting schedule',
             'Financing plan',
             'BC content certification',
           ],
-          contact: 'Creative BC - creativebc.com',
+          contact: 'Creative BC creativebc.com',
         },
         
         paymentSchedule: {
@@ -393,7 +393,7 @@ export const pdfReportStructure = {
   // ========================================
   crewCosts: {
     title: '4. CREW COST ESTIMATES',
-    subtitle: 'Territory-by-Territory Comparison',
+    subtitle: 'Territory by Territory Comparison',
     
     departmentBreakdown: [
       {
@@ -427,9 +427,9 @@ export const pdfReportStructure = {
     },
     
     notes: [
-      'Rates based on industry-standard 12-hour days, 6-day weeks',
-      'Union vs. non-union considerations vary by territory',
-      'Rates assume mid-budget feature production',
+      'Rates based on industry standard 12 hour days, 6 day weeks',
+      'Union vs. non union considerations vary by territory',
+      'Rates assume mid budget feature production',
     ],
     
     dataBadge: 'Sources: Production Weekly, KFTV, BECTU, IATSE rate cards | Verified: Jan 2026',
@@ -447,7 +447,7 @@ export const pdfReportStructure = {
         title: 'Example Film Title',
         year: 2024,
         genre: 'Drama/Thriller',
-        budget: '$8.5M - $12M',
+        budget: '$8.5M to $12M',
         filmingLocation: 'British Columbia, Canada',
         
         similarities: [
@@ -460,8 +460,8 @@ export const pdfReportStructure = {
         productionNotes: [
           'Utilized BC Film Incentive (35% + regional bonus)',
           'Shot primarily in Vancouver doubling for Seattle',
-          '45-day shooting schedule',
-          'Post-production completed in Toronto',
+          '45 day shooting schedule',
+          'Post production completed in Toronto',
         ],
         
         outcome: 'Successfully qualified for $680K in tax credits',
@@ -484,17 +484,17 @@ export const pdfReportStructure = {
         territory: 'British Columbia, Canada',
         funds: [
           {
-            fundName: 'BC Arts Council - Film & Media Arts',
+            fundName: 'BC Arts Council Film & Media Arts',
             fundingType: 'Grant',
             maxAmount: 'Up to $100,000',
             deadline: 'Rolling deadlines (quarterly)',
             eligibility: [
-              'BC-based production company',
+              'BC based production company',
               'Canadian content certification',
               'Artistic merit criteria',
             ],
             applicationUrl: 'bcarts council.ca/film',
-            syncStatus: '✓ Auto-sync enabled',
+            syncStatus: '✓ Auto sync enabled',
             lastVerified: 'Jan 15, 2026',
           },
           // ... more funds
@@ -503,7 +503,7 @@ export const pdfReportStructure = {
       // ... more territories
     ],
     
-    dataBadge: 'Sources: Film Commission websites, regional arts councils | Auto-synced: Jan 2026',
+    dataBadge: 'Sources: Film Commission websites, regional arts councils | Auto synced: Jan 2026',
   },
 
   // ========================================
@@ -516,11 +516,11 @@ export const pdfReportStructure = {
     territoryComparison: {
       headers: ['Territory', 'Gross Cost', 'Tax Incentives', 'Net Cost', 'Savings'],
       rows: [
-        ['BC, Canada', '$1,850,000', '-$650,000', '$1,200,000', '35%'],
-        ['UK (England)', '$2,120,000', '-$520,000', '$1,600,000', '25%'],
-        ['Georgia, USA', '$1,920,000', '-$580,000', '$1,340,000', '30%'],
-        ['Malta', '$1,780,000', '-$480,000', '$1,300,000', '27%'],
-        ['South Africa', '$1,560,000', '-$420,000', '$1,140,000', '27%'],
+        ['BC, Canada', '$1,850,000', '$650,000', '$1,200,000', '35%'],
+        ['UK (England)', '$2,120,000', '$520,000', '$1,600,000', '25%'],
+        ['Georgia, USA', '$1,920,000', '$580,000', '$1,340,000', '30%'],
+        ['Malta', '$1,780,000', '$480,000', '$1,300,000', '27%'],
+        ['South Africa', '$1,560,000', '$420,000', '$1,140,000', '27%'],
       ],
     },
     
@@ -539,7 +539,7 @@ export const pdfReportStructure = {
     
     assumptions: [
       'Based on estimated $2.5M total production budget',
-      'Assumes 6-week principal photography',
+      'Assumes 6 week principal photography',
       'Exchange rates as of January 2026',
       'Incentive calculations based on current program rules',
     ],
@@ -557,27 +557,27 @@ export const pdfReportStructure = {
       {
         step: 'Contact Film Commissions',
         description: 'Reach out to top 3 recommended territories to discuss incentive eligibility',
-        timeline: 'Week 1-2',
+        timeline: 'Week 1 to 2',
       },
       {
         step: 'Engage Tax Advisor',
         description: 'Consult with qualified entertainment tax attorney for incentive structuring',
-        timeline: 'Week 2-3',
+        timeline: 'Week 2 to 3',
       },
       {
         step: 'Scout Locations',
-        description: 'Virtual or in-person location scouts in top-ranked territories',
-        timeline: 'Week 3-6',
+        description: 'Virtual or in person location scouts in top ranked territories',
+        timeline: 'Week 3 to 6',
       },
       {
         step: 'Budget Refinement',
-        description: 'Create detailed budgets for top 2-3 territory options',
-        timeline: 'Week 4-6',
+        description: 'Create detailed budgets for top 2 to 3 territory options',
+        timeline: 'Week 4 to 6',
       },
       {
         step: 'Apply for Incentives',
         description: 'Submit applications to selected incentive programs',
-        timeline: 'Week 6-8',
+        timeline: 'Week 6 to 8',
       },
     ],
     
@@ -600,8 +600,8 @@ export const pdfReportStructure = {
       services: [
         'Entertainment tax attorney (incentive structuring)',
         'Production accountant (local expertise)',
-        'Line producer (territory-specific experience)',
-        'Location scout (on-ground knowledge)',
+        'Line producer (territory specific experience)',
+        'Location scout (on ground knowledge)',
       ],
     },
   },
@@ -621,7 +621,7 @@ export const pdfReportStructure = {
         'IMDb Pro production data',
         'Variety, Deadline, Screen International trade publications',
         'Internal curated datasets (updated quarterly)',
-        'Third-party APIs (exchange rates, location data)',
+        'Third party APIs (exchange rates, location data)',
       ],
       lastUpdated: 'January 2026',
     },
@@ -631,7 +631,7 @@ export const pdfReportStructure = {
       items: [
         {
           title: 'Data Accuracy',
-          content: 'This report uses indicative data from third-party APIs and internally curated datasets. All information is current as of January 2026 but is subject to change. Film incentive programs, crew rates, and regulations are updated periodically by governing bodies.',
+          content: 'This report uses indicative data from third party APIs and internally curated datasets. All information is current as of January 2026 but is subject to change. Film incentive programs, crew rates, and regulations are updated periodically by governing bodies.',
         },
         {
           title: 'Not Tax or Legal Advice',

@@ -136,19 +136,19 @@ export function APIConnectionTester() {
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
             API Connection Tester
           </Typography>
-          <Typography sx={{ color: '#a0a0a0' }}>Validate backend-first frontend integrations</Typography>
+          <Typography sx={{ color: '#a0a0a0' }}>Validate backend first frontend integrations</Typography>
         </Box>
 
         <Card sx={{ mb: 3, bgcolor: '#1f1f1f', border: '1px solid #333' }}>
           <CardHeader
             title="Configuration Status"
-            subheader="Only frontend-safe values are checked here"
+            subheader="Only frontend safe values are checked here"
             slotProps={{ title: { sx: { color: '#fff' } }, subheader: { sx: { color: '#a0a0a0' } } }}
           />
           <CardContent>
             <Alert icon={<InfoOutlined />} severity="warning" sx={{ mb: 3 }}>
-              <AlertTitle>Server-side secrets</AlertTitle>
-              Secret provider keys (OpenAI, backend service credentials, Stripe secret) are server-side only and are
+              <AlertTitle>Server side secrets</AlertTitle>
+              Secret provider keys (OpenAI, backend service credentials, Stripe secret) are server side only and are
               intentionally not exposed in this page.
             </Alert>
 

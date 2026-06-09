@@ -158,7 +158,7 @@ export function B2BSolutions() {
                 lineHeight: 1.7,
               }}
             >
-              Our intelligence is derived from real production planning activity on the Prodculator platform — not
+              Our intelligence is derived from real production planning activity on the Prodculator platform, not
               surveys, not estimates. When a producer uploads their script and declares their budget, timeline, and
               territory preferences, that signal is anonymised and aggregated into the market intelligence below.
             </Typography>
@@ -246,11 +246,11 @@ export function B2BSolutions() {
               </Typography>
               <List dense sx={{ mb: 2 }}>
                 {[
-                  'Territory-specific production volume trends',
+                  'Territory specific production volume trends',
                   'Casting demand analytics (extras, principals)',
                   'Production type distribution (film, TV, commercial)',
                   'Quarterly demand forecasts',
-                  'Genre-based equipment implications',
+                  'Genre based equipment implications',
                   'Seasonal trend analysis',
                 ].map((feature, idx) => (
                   <ListItem key={idx} sx={{ py: 0.5, px: 0 }}>
@@ -368,7 +368,7 @@ export function B2BSolutions() {
                     textAlign: 'center',
                   }}
                 >
-                  Launching Q3 2026 — founding partner pricing available
+                  Launching Q3 2026, founding partner pricing available
                 </Typography>
               </Box>
             </Card>
@@ -558,7 +558,7 @@ export function B2BSolutions() {
                     textAlign: 'center',
                   }}
                 >
-                  Launching Q3 2026 — founding partner pricing available
+                  Launching Q3 2026, founding partner pricing available
                 </Typography>
               </Box>
             </Card>
@@ -748,7 +748,7 @@ export function B2BSolutions() {
                     textAlign: 'center',
                   }}
                 >
-                  Launching Q3 2026 — founding partner pricing available
+                  Launching Q3 2026, founding partner pricing available
                 </Typography>
               </Box>
             </Card>
@@ -818,7 +818,7 @@ export function B2BSolutions() {
                   lineHeight: 1.6,
                 }}
               >
-                Understand how producers are evaluating your territory — what they're looking for, what's stopping
+                Understand how producers are evaluating your territory, what they're looking for, what's stopping
                 conversion, and how you compare against competing territories.
               </Typography>
               <Typography
@@ -834,11 +834,11 @@ export function B2BSolutions() {
               </Typography>
               <List dense sx={{ mb: 2 }}>
                 {[
-                  'Quarterly territory interest reports — how many productions considered your territory',
+                  'Quarterly territory interest reports, how many productions considered your territory',
                   'Budget range of interested productions',
                   'Genre mix considering your territory',
                   'Competing territories most often compared against you',
-                  'Programme conversion analysis — ranked highly but not selected',
+                  'Programme conversion analysis, ranked highly but not selected',
                   'Seasonal planning patterns',
                 ].map((feature, idx) => (
                   <ListItem key={idx} sx={{ py: 0.5, px: 0 }}>
@@ -1006,12 +1006,12 @@ export function B2BSolutions() {
                 mb: 3,
               }}
             >
-              Optimise territory decisions across your entire production slate — not just one film at a time.
+              Optimise territory decisions across your entire production slate, not just one film at a time.
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               {[
                 'Full slate analysis',
-                'Multi-project optimisation',
+                'Multi project optimisation',
                 'API integration',
                 'Dedicated account management',
                 'Custom data outputs',
@@ -1089,7 +1089,7 @@ export function B2BSolutions() {
           >
             All market intelligence data is derived from anonymised, aggregated platform activity. No individual
             production data is ever identified or disclosed. All intelligence products are subject to minimum data
-            thresholds — products launch when sufficient anonymised data volume is available to ensure statistical
+            thresholds, products launch when sufficient anonymised data volume is available to ensure statistical
             relevance.
           </Typography>
         </Box>

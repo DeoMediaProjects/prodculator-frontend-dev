@@ -44,7 +44,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 const CURRENCIES = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'ZAR'] as const;
 const FORMATS = [
   'Feature Film', 'TV Series', 'Limited Series', 'Documentary',
-  'Short Film', 'Animation', 'Animated Feature', 'Mini-Series',
+  'Short Film', 'Animation', 'Animated Feature', 'Mini Series',
   'Docuseries', 'Animation Series',
 ] as const;
 
@@ -260,7 +260,7 @@ export function WhatIfCalculator() {
       })}
       <Typography sx={{ fontSize: '10px', color: '#666', mt: 1.5, lineHeight: 1.4 }}>
         Crew Depth and Infrastructure use Prodculator territory tier ratings.
-        Upload your script for production-specific narrative analysis.
+        Upload your script for production specific narrative analysis.
       </Typography>
     </Box>
   );
@@ -299,7 +299,7 @@ export function WhatIfCalculator() {
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
             <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: '#111111' }}>
-              What-If Calculator
+              What If Calculator
             </Typography>
             {!hasAccess && (
               <Chip
@@ -312,7 +312,7 @@ export function WhatIfCalculator() {
           <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: '#555555' }}>
             {hasAccess
               ? `Compare financial returns across ${territories.length || '...'} territories at your budget`
-              : 'Configure your production parameters — upgrade to see results across all territories'}
+              : 'Configure your production parameters, upgrade to see results across all territories'}
           </Typography>
         </Box>
 
@@ -505,7 +505,7 @@ export function WhatIfCalculator() {
 
         {/* Locked results preview for free users */}
         {!hasAccess && (
-          <ResultsGate plan="professional" featureName="What-If Calculator">
+          <ResultsGate plan="professional" featureName="What If Calculator">
             <Box
               sx={{
                 bgcolor: '#FFFFFF', borderRadius: '12px',
@@ -602,7 +602,7 @@ export function WhatIfCalculator() {
                 </Tooltip>
               </Box>
               <Box sx={{ width: '100px' }}>
-                <Tooltip title="Financial Return Score: measures incentive strength + bankability. Bankable (≥70) / Verify First (45–69) / Caution (<45 or NOT BANKABLE)." placement="top" arrow>
+                <Tooltip title="Financial Return Score: measures incentive strength + bankability. Bankable (≥70) / Verify First (45 to 69) / Caution (<45 or NOT BANKABLE)." placement="top" arrow>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'default' }}>
                     <Typography sx={headerCellSx}>FRS /100</Typography>
                     <InfoOutlined sx={{ fontSize: '12px', color: '#D4AF37', opacity: 0.7 }} />
@@ -704,7 +704,7 @@ export function WhatIfCalculator() {
                                  t.bankability_label === 'VERIFY FIRST' ? '#B7770D' : '#C0392B',
                           border: '1px solid currentColor',
                         }} />
-                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>—</Typography>}
+                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>N/A</Typography>}
                     </Box>
 
                     {/* FRS */}
@@ -723,7 +723,7 @@ export function WhatIfCalculator() {
                             {t.financial_return_verdict}
                           </Typography>
                         </Box>
-                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>—</Typography>}
+                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>N/A</Typography>}
                     </Box>
 
                     {/* Est. Incentive */}
@@ -752,7 +752,7 @@ export function WhatIfCalculator() {
                           </Typography>
                         </Tooltip>
                       ) : (
-                        <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999999' }}>—</Typography>
+                        <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999999' }}>N/A</Typography>
                       )}
                     </Box>
 
@@ -763,7 +763,7 @@ export function WhatIfCalculator() {
                           {crewVal > 0 ? '+' : ''}{formatLargeNumber(Math.round(crewVal), sym)}
                         </Typography>
                       ) : (
-                        <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999999' }}>—</Typography>
+                        <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999999' }}>N/A</Typography>
                       )}
                     </Box>
 

@@ -64,7 +64,7 @@ export async function analyzeScript(
 }
 
 export async function testAnalysis(): Promise<ScriptAnalysisResult> {
-  const sample = `INT. STUDIO - NIGHT\nA producer reviews locations and discusses VFX-heavy sequences.`;
+  const sample = `INT. STUDIO NIGHT\nA producer reviews locations and discusses VFX heavy sequences.`;
   return analyzeScript(sample, 'Sample Script');
 }
 

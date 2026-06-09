@@ -27,7 +27,7 @@ export function EmailPreview() {
       pdfUrl: 'https://prodculator.com/downloads/rpt-2026-001234.pdf',
       processingTime: '2 minutes 34 seconds',
       topRecommendation: 'British Columbia, Canada',
-      estimatedIncentive: '$450,000 - $650,000',
+      estimatedIncentive: '$450,000 to $650,000',
     },
     welcome: {
       userName: 'Sarah Mitchell',
@@ -47,7 +47,7 @@ export function EmailPreview() {
     processing: {
       userName: 'Sarah Mitchell',
       scriptTitle: 'THE LAST FRONTIER',
-      estimatedTime: '3–5 minutes',
+      estimatedTime: '3 to 5 minutes',
       dashboardUrl: 'https://prodculator.com/dashboard',
     },
   };
@@ -75,7 +75,7 @@ export function EmailPreview() {
         if (!active) return;
         console.error('Failed to load backend email preview:', error);
         setPreviewHtml('');
-        setPreviewError('Unable to load backend-rendered preview. Check backend availability and template config.');
+        setPreviewError('Unable to load backend rendered preview. Check backend availability and template config.');
       } finally {
         if (active) setPreviewLoading(false);
       }
@@ -322,9 +322,9 @@ export function EmailPreview() {
             <strong style={{ color: '#D4AF37' }}>Implementation Notes:</strong>
           </Typography>
           <Box component="ul" sx={{ color: '#a0a0a0', fontSize: '0.875rem', lineHeight: 1.8, pl: 3 }}>
-            <li>Emails are sent via server-side email service (SendGrid, AWS SES, etc.)</li>
+            <li>Emails are sent via server side email service (SendGrid, AWS SES, etc.)</li>
             <li>All templates include black and gold branding consistent with platform design</li>
-            <li>Mobile-responsive layouts ensure proper rendering across devices</li>
+            <li>Mobile responsive layouts ensure proper rendering across devices</li>
             <li>Data source badges and verification dates included where applicable</li>
             <li>Professional disclaimers included in all transactional emails</li>
           </Box>

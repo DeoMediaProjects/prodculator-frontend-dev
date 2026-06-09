@@ -75,8 +75,8 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, display: 'block', fontSize: '0.65rem' }}>
             <strong>Indicative Estimates Only:</strong> All tax incentive rates, crew costs, production costs, and rebate calculations are 
-            <strong> indicative estimates</strong> based on cached datasets, third-party APIs, and curated industry sources. 
-            Data is NOT real-time and may be outdated or inaccurate.
+            <strong> indicative estimates</strong> based on cached datasets, third party APIs, and curated industry sources.
+            Data is NOT real time and may be outdated or inaccurate.
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
             <strong>No Guarantee of Accuracy:</strong> We make reasonable efforts to maintain data accuracy but do not warrant or guarantee 
@@ -87,8 +87,8 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
             with official government sources, film commissions, and regulatory authorities before making decisions.
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
-            <strong>Third-Party Data:</strong> We rely on third-party APIs, government databases, and public sources. 
-            We are not responsible for errors, omissions, or changes in third-party data.
+            <strong>Third Party Data:</strong> We rely on third party APIs, government databases, and public sources.
+            We are not responsible for errors, omissions, or changes in third party data.
           </Typography>
         </Box>
 
@@ -112,7 +112,7 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
             <strong>Transferable Credits:</strong> Where applicable (e.g., Georgia, Louisiana), transferable tax credits 
-            typically sell at discounts (85-90 cents on the dollar). Estimated values assume face value unless otherwise stated.
+            typically sell at discounts (85 to 90 cents on the dollar). Estimated values assume face value unless otherwise stated.
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
             <strong>Known Payment Issues:</strong> Some territories (notably South Africa) have documented delays or issues 
@@ -128,7 +128,7 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
             </Typography>
             <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, display: 'block', fontSize: '0.65rem' }}>
               <strong>Limited License Only:</strong> By uploading scripts to Prodculator, you grant us only a limited, 
-              non-exclusive, temporary license to analyze your script for the sole purpose of generating this intelligence report.
+              non exclusive, temporary license to analyze your script for the sole purpose of generating this intelligence report.
             </Typography>
             <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
               <strong>No Ownership Claims:</strong> We do NOT claim any ownership rights, production rights, distribution rights, 
@@ -136,11 +136,11 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
             </Typography>
             <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
               <strong>User Responsibility:</strong> You warrant that you own or have rights to upload the script. 
-              Do not upload copyrighted material you don't own, illegal content, or material violating third-party rights.
+              Do not upload copyrighted material you don't own, illegal content, or material violating third party rights.
             </Typography>
             <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
               <strong>AI Analysis Limitations:</strong> Script analysis is performed by AI (Scripteligence™) and may contain 
-              errors, omissions, or misinterpretations. AI-generated recommendations are not human expert opinions.
+              errors, omissions, or misinterpretations. AI generated recommendations are not human expert opinions.
             </Typography>
           </Box>
         )}
@@ -155,12 +155,12 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
             based on industry averages. Actual costs vary significantly based on experience, availability, union status, and negotiation.
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
-            <strong>Union vs. Non-Union:</strong> Crew rates shown assume experienced, non-union crew unless specified. 
-            Union rates (SAG-AFTRA, DGA, WGA, IATSE, Equity) may be significantly higher and subject to strict contracts.
+            <strong>Union vs. Non Union:</strong> Crew rates shown assume experienced, non union crew unless specified.
+            Union rates (SAG AFTRA, DGA, WGA, IATSE, Equity) may be significantly higher and subject to strict contracts.
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
             <strong>Currency Fluctuations:</strong> All currency conversions use cached exchange rates. 
-            Actual exchange rates fluctuate and may differ significantly, especially over multi-month productions.
+            Actual exchange rates fluctuate and may differ significantly, especially over multi month productions.
           </Typography>
         </Box>
 
@@ -171,7 +171,7 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, display: 'block', fontSize: '0.65rem' }}>
             <strong>"AS IS" Service:</strong> This report is provided "AS IS" and "AS AVAILABLE" without warranties of any kind, 
-            express or implied, including merchantability, fitness for a particular purpose, or non-infringement.
+            express or implied, including merchantability, fitness for a particular purpose, or non infringement.
           </Typography>
           <Typography variant="caption" sx={{ color: '#cccccc', lineHeight: 1.5, mt: 0.5, display: 'block', fontSize: '0.65rem' }}>
             <strong>No Liability for Decisions:</strong> Prodculator is not liable for any production, financial, or legal decisions 
@@ -219,7 +219,7 @@ export function PDFDisclaimer({ reportType = 'general', includedSections = [] }:
           <Box component="ul" sx={{ pl: 2.5, mt: 0.5, mb: 0, color: '#cccccc', '& li': { mb: 0.25, fontSize: '0.65rem' } }}>
             <li>Government film commissions and tax authorities (BFI, Creative BC, Georgia DED, etc.)</li>
             <li>Public regulatory databases (HMRC, CRA, IRS)</li>
-            <li>Third-party APIs and industry databases</li>
+            <li>Third party APIs and industry databases</li>
             <li>Curated industry surveys and production reports</li>
             <li>Film festival databases and grant programs</li>
           </Box>

@@ -402,7 +402,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
             </Box>
           ) : (
             <Typography variant="body2" sx={{ color: '#666' }}>
-              Complete a script analysis first to auto-generate milestones.
+              Complete a script analysis first to auto generate milestones.
             </Typography>
           )}
           {canAddCustomMilestones && (

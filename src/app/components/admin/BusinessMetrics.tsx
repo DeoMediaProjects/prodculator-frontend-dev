@@ -166,21 +166,21 @@ export function BusinessMetrics() {
               value={data.total_paid_users.toLocaleString()}
               label="Paid Users"
               sub={`${data.total_users.toLocaleString()} total`}
-              tooltip="Users on a paid plan (Professional, Producer, Studio, or B2B). The sub-line shows every registered user, paid or free."
+              tooltip="Users on a paid plan (Professional, Producer, Studio, or B2B). The subline shows every registered user, paid or free."
             />
             <Kpi
               icon={<MonetizationOn />}
               value={usd(data.mrr_usd)}
               label="MRR (USD equiv.)"
               color="#66bb6a"
-              tooltip="Monthly Recurring Revenue from all active subscriptions, with non-USD currencies converted to USD."
+              tooltip="Monthly Recurring Revenue from all active subscriptions, with non USD currencies converted to USD."
             />
             <Kpi
               icon={<TrendingUp />}
               value={usd(data.arr_usd)}
               label="ARR (USD equiv.)"
               color="#66bb6a"
-              tooltip="Annual Recurring Revenue — current MRR projected over 12 months, in USD."
+              tooltip="Annual Recurring Revenue, current MRR projected over 12 months, in USD."
             />
             <Kpi
               icon={<Assessment />}
@@ -193,7 +193,7 @@ export function BusinessMetrics() {
               value={pct(data.monthly_churn_percent)}
               label="Monthly Churn"
               color="#ffa726"
-              tooltip="Subscriptions cancelled in the last 30 days as a share of active plus recently-cancelled subscriptions."
+              tooltip="Subscriptions cancelled in the last 30 days as a share of active plus recently cancelled subscriptions."
             />
             <Kpi
               icon={<Person />}
@@ -249,7 +249,7 @@ export function BusinessMetrics() {
 
           {/* US state breakdown */}
           {data.us_states.length > 0 && (
-            <SectionCard icon={<Public />} title="United States — State Breakdown">
+            <SectionCard icon={<Public />} title="United States State Breakdown">
               <TableContainer>
                 <Table>
                   <TableHead>
@@ -267,7 +267,7 @@ export function BusinessMetrics() {
                         <TableCell sx={{ color: '#ffffff' }}>{row.users}</TableCell>
                         <TableCell sx={{ color: '#66bb6a', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
                         <TableCell sx={{ color: '#42a5f5' }}>
-                          {row.users ? usd(row.revenue_usd / row.users) : '—'}
+                          {row.users ? usd(row.revenue_usd / row.users) : 'N/A'}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -333,7 +333,7 @@ export function BusinessMetrics() {
               {[
                 { value: pct(data.free_to_paid_percent), label: 'Free → Paid Conversion', note: '% of users on a paid plan' },
                 {
-                  value: data.avg_days_to_convert != null ? `${data.avg_days_to_convert} days` : '—',
+                  value: data.avg_days_to_convert != null ? `${data.avg_days_to_convert} days` : 'N/A',
                   label: 'Avg. Time to Convert',
                   note: 'Signup → first paid subscription',
                 },

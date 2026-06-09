@@ -444,7 +444,7 @@ function DataSourcesManagerContent() {
 
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-          <strong>Security:</strong> Secret keys are stored server-side only. Frontend never stores OpenAI or backend service credentials.
+          <strong>Security:</strong> Secret keys are stored server side only. Frontend never stores OpenAI or backend service credentials.
         </Typography>
         <Button
           variant="contained"

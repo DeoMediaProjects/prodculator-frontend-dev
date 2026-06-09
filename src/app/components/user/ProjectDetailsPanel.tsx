@@ -122,10 +122,10 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
           <TextField fullWidth size="small" label="Producer Name" value={form.producer_name ?? ''} onChange={(e) => setField('producer_name', e.target.value)} sx={fieldSx} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField fullWidth size="small" multiline minRows={2} label="Director Bio" placeholder="2–3 sentences" value={form.director_bio ?? ''} onChange={(e) => setField('director_bio', e.target.value)} sx={fieldSx} />
+          <TextField fullWidth size="small" multiline minRows={2} label="Director Bio" placeholder="2 to 3 sentences" value={form.director_bio ?? ''} onChange={(e) => setField('director_bio', e.target.value)} sx={fieldSx} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField fullWidth size="small" multiline minRows={2} label="Producer Bio" placeholder="2–3 sentences" value={form.producer_bio ?? ''} onChange={(e) => setField('producer_bio', e.target.value)} sx={fieldSx} />
+          <TextField fullWidth size="small" multiline minRows={2} label="Producer Bio" placeholder="2 to 3 sentences" value={form.producer_bio ?? ''} onChange={(e) => setField('producer_bio', e.target.value)} sx={fieldSx} />
         </Grid>
       </Grid>
 
@@ -135,7 +135,7 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
           <TextField fullWidth size="small" label="Logline" placeholder="One sentence describing the story" value={form.logline ?? ''} onChange={(e) => setField('logline', e.target.value)} sx={fieldSx} />
         </Grid>
         <Grid size={12}>
-          <TextField fullWidth size="small" multiline minRows={3} label="Synopsis" placeholder="2–3 sentences" value={form.synopsis ?? ''} onChange={(e) => setField('synopsis', e.target.value)} sx={fieldSx} />
+          <TextField fullWidth size="small" multiline minRows={3} label="Synopsis" placeholder="2 to 3 sentences" value={form.synopsis ?? ''} onChange={(e) => setField('synopsis', e.target.value)} sx={fieldSx} />
         </Grid>
       </Grid>
 
@@ -158,7 +158,7 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
         </Grid>
       </Grid>
 
-      {sectionLabel('Revenue Model — Three Scenarios')}
+      {sectionLabel('Revenue Model, Three Scenarios')}
       <Box sx={{ overflowX: 'auto' }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 1fr', gap: 1, minWidth: 480 }}>
           <Box />

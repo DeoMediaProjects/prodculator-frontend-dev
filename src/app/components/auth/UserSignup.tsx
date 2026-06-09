@@ -94,10 +94,10 @@ export function UserSignup() {
       if (success) {
         navigate('/dashboard');
       } else {
-        setError('Google sign-up failed. Please try again.');
+        setError('Google sign up failed. Please try again.');
       }
     } catch (_err) {
-      setError('Google sign-up failed. Please try again.');
+      setError('Google sign up failed. Please try again.');
     } finally {
       setLoading(false);
     }

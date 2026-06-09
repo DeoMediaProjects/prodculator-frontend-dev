@@ -256,7 +256,7 @@ export function UserDashboard() {
             return;
           }
         }
-        enqueueSnackbar('Payment received! Your credit will appear shortly — refresh if needed.', { variant: 'info' });
+        enqueueSnackbar('Payment received! Your credit will appear shortly, refresh if needed.', { variant: 'info' });
       };
       pollForCredit();
     }
@@ -299,7 +299,7 @@ export function UserDashboard() {
         // Webhook didn't propagate within ~30s. Don't pretend it succeeded —
         // tell the user payment landed and prompt a refresh.
         enqueueSnackbar(
-          'Payment received! Your plan will update in a moment — refresh if needed.',
+          'Payment received! Your plan will update in a moment, refresh if needed.',
           { variant: 'info' },
         );
       };
@@ -519,7 +519,7 @@ export function UserDashboard() {
                             <Typography variant="caption" sx={{ color: '#f44336' }}>Monthly limit reached.</Typography>
                             {usageData.credits_remaining > 0 ? (
                               <Typography variant="caption" sx={{ color: '#D4AF37' }}>
-                                {usageData.credits_remaining} pay-per-report credit{usageData.credits_remaining !== 1 ? 's' : ''} available as overflow.
+                                {usageData.credits_remaining} pay per report credit{usageData.credits_remaining !== 1 ? 's' : ''} available as overflow.
                               </Typography>
                             ) : (
                               <Button size="small" variant="outlined" onClick={() => navigate('/pricing')} sx={{ color: '#D4AF37', borderColor: '#D4AF37', fontSize: '0.7rem', py: 0.25 }}>
@@ -532,12 +532,12 @@ export function UserDashboard() {
                     )}
                     {usageData.credits_remaining > 0 && usageData.reports_limit !== null && usageData.reports_used < usageData.reports_limit && (
                       <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 1 }}>
-                        + {usageData.credits_remaining} pay-per-report credit{usageData.credits_remaining !== 1 ? 's' : ''} available
+                        + {usageData.credits_remaining} pay per report credit{usageData.credits_remaining !== 1 ? 's' : ''} available
                       </Typography>
                     )}
                     {usageData.reports_limit === null && usageData.credits_remaining > 0 && (
                       <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-                        + {usageData.credits_remaining} pay-per-report credit{usageData.credits_remaining !== 1 ? 's' : ''} on account
+                        + {usageData.credits_remaining} pay per report credit{usageData.credits_remaining !== 1 ? 's' : ''} on account
                       </Typography>
                     )}
                   </Box>
@@ -565,7 +565,7 @@ export function UserDashboard() {
           >
             <Tab icon={<Download />} iconPosition="start" label="Reports" sx={{ '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'block' } } }} />
             <Tab icon={<Compare />} iconPosition="start" label="Territories" sx={{ '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'block' } } }} />
-            <Tab icon={<Calculate />} iconPosition="start" label="What-If" sx={{ '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'block' } } }} />
+            <Tab icon={<Calculate />} iconPosition="start" label="What If" sx={{ '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'block' } } }} />
             <Tab icon={<Timeline />} iconPosition="start" label="Timeline" sx={{ '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'block' } } }} />
             <Tab icon={<Settings />} iconPosition="start" label="Account" sx={{ '& .MuiTab-iconWrapper': { display: { xs: 'none', sm: 'block' } } }} />
           </Tabs>
@@ -777,7 +777,7 @@ export function UserDashboard() {
                         const symbol = inv.currency === 'gbp' ? '£' : '$';
                         const dateStr = inv.created
                           ? new Date(inv.created * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-                          : '—';
+                          : 'N/A';
                         return (
                           <TableRow key={inv.id} sx={{ '&:hover': { bgcolor: 'rgba(212,175,55,0.04)' } }}>
                             <TableCell sx={{ color: '#a0a0a0', borderColor: '#1a1a1a', fontSize: '0.8rem' }}>

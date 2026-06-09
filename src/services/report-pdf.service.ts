@@ -56,13 +56,13 @@ export async function generateReportPDF(analysis: ScriptAnalysis): Promise<void>
       printWindow = window.open('', '_blank');
     } catch (error) {
       console.error('SecurityError: window.open blocked:', error);
-      alert('Unable to generate PDF. Please allow pop-ups for this site and ensure you are not in a sandboxed environment.');
-      throw new Error('Pop-up blocked or sandboxed environment detected.');
+      alert('Unable to generate PDF. Please allow pop ups for this site and ensure you are not in a sandboxed environment.');
+      throw new Error('Pop up blocked or sandboxed environment detected.');
     }
     
     if (!printWindow) {
-      alert('Please allow pop-ups to generate PDF reports');
-      throw new Error('Could not open print window. Pop-ups may be blocked.');
+      alert('Please allow pop ups to generate PDF reports');
+      throw new Error('Could not open print window. Pop ups may be blocked.');
     }
 
     // Write content to new window
@@ -104,7 +104,7 @@ function generatePDFHTML(analysis: ScriptAnalysis): string {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Prodculator Report - ${analysis.scriptTitle}</title>
+  <title>Prodculator Report ${analysis.scriptTitle}</title>
   <style>
     @media print {
       @page {
@@ -467,7 +467,7 @@ function generatePDFHTML(analysis: ScriptAnalysis): string {
     </div>
 
     <div class="disclaimer-item">
-      <div class="disclaimer-title">AI-Generated Analysis</div>
+      <div class="disclaimer-title">AI Generated Analysis</div>
       <div class="disclaimer-text">
         This report is generated using artificial intelligence to analyze script content. While our AI is trained 
         on industry data, its recommendations should be validated by experienced production professionals and local experts.

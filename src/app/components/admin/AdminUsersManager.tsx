@@ -231,7 +231,7 @@ export function AdminUsersManager() {
             Admin User Management
           </Typography>
           <Typography variant="body1" sx={{ color: '#a0a0a0' }}>
-            Manage admin accounts and assign role-based permissions
+            Manage admin accounts and assign role based permissions
           </Typography>
         </Box>
         <Button
@@ -263,7 +263,7 @@ export function AdminUsersManager() {
         }}
       >
         <Typography variant="body2">
-          <strong>Logged in as:</strong> {adminUser?.name} ({adminUser?.email}) —{' '}
+          <strong>Logged in as:</strong> {adminUser?.name} ({adminUser?.email}){' '}
           <strong>{ROLE_LABELS[adminUser?.role || 'support_admin']}</strong>
         </Typography>
       </Alert>
@@ -318,7 +318,7 @@ export function AdminUsersManager() {
                     <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>
                       {admin.created_at
                         ? new Date(admin.created_at).toLocaleDateString()
-                        : '—'}
+                        : 'N/A'}
                     </TableCell>
                     <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>
                       {admin.last_login
@@ -543,7 +543,7 @@ export function AdminUsersManager() {
               border: '1px solid rgba(255, 152, 0, 0.3)',
             }}
           >
-            Save this temporary password now — it won't be shown again.
+            Save this temporary password now. It won't be shown again.
           </Alert>
           <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
             Admin: <strong style={{ color: '#ffffff' }}>{createdAdminEmail}</strong>

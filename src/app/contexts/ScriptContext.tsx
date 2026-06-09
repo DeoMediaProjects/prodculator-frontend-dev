@@ -429,7 +429,7 @@ function buildPreviewAnalysis(metadata: ScriptMetadata): ScriptAnalysis {
       {
         territory: primaryTerritory.toUpperCase(),
         program: 'Preview incentive estimate',
-        rate: 'Est. 20-30%',
+        rate: 'Est. 20 to 30%',
         cap: 'Varies',
         qualifyingSpend: 'Program dependent',
         estimatedRebate: 'Unlock full report',

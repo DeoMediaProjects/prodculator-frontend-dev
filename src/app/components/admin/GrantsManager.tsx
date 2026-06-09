@@ -373,7 +373,7 @@ function GrantsManagerContent() {
       return;
     }
 
-    setSyncSuccessMessage('Grant auto-sync started. New scraped diffs will appear after processing.');
+    setSyncSuccessMessage('Grant auto sync started. New scraped diffs will appear after processing.');
     await refreshSyncData();
   };
 
@@ -515,7 +515,7 @@ function GrantsManagerContent() {
               },
             }}
           >
-            Auto-Sync Settings
+            Auto Sync Settings
           </Button>
           <Button
             variant="outlined"
@@ -642,7 +642,7 @@ function GrantsManagerContent() {
               <Sync sx={{ color: '#D4AF37', fontSize: 28 }} />
               <Box>
                 <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                  AI-Powered Auto-Sync Status
+                  AI Powered Auto Sync Status
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
                   Next scheduled check: <strong>{formatDate(syncStatus?.nextScheduledCheck)}</strong>
@@ -678,11 +678,11 @@ function GrantsManagerContent() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <CheckCircle sx={{ color: '#66bb6a', fontSize: 20 }} />
                   <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.territoriesSyncing ?? '—'}
+                    {syncStatus?.territoriesSyncing ?? 'N/A'}
                   </Typography>
                 </Box>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                  Territories Auto-Syncing
+                  Territories Auto Syncing
                 </Typography>
               </Box>
             </Grid>
@@ -718,7 +718,7 @@ function GrantsManagerContent() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Schedule sx={{ color: '#42a5f5', fontSize: 20 }} />
                   <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.daysSinceLastCheck ?? '—'}
+                    {syncStatus?.daysSinceLastCheck ?? 'N/A'}
                   </Typography>
                 </Box>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
@@ -764,7 +764,7 @@ function GrantsManagerContent() {
           )}
         >
           <Typography variant="body2">
-            <strong>{pendingChanges.length} update(s) detected</strong> by AI auto-sync and awaiting your review
+            <strong>{pendingChanges.length} update(s) detected</strong> by AI auto sync and awaiting your review
           </Typography>
         </Alert>
       )}
@@ -788,7 +788,7 @@ function GrantsManagerContent() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
-                    {change.territory} - {change.field}
+                    {change.territory}: {change.field}
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, md: 5 }}>
@@ -1018,7 +1018,7 @@ function GrantsManagerContent() {
         <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Schedule />
-            Auto-Sync Configuration
+            Auto Sync Configuration
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -1060,7 +1060,7 @@ function GrantsManagerContent() {
                 >
                   <option value="monthly">Monthly (1st of each month)</option>
                   <option value="quarterly">Quarterly (Jan, Apr, Jul, Oct)</option>
-                  <option value="biannual">Semi-Annual (Jan, Jul)</option>
+                  <option value="biannual">Semi Annual (Jan, Jul)</option>
                   <option value="annual">Annual (January)</option>
                 </TextField>
               </Box>
@@ -1451,7 +1451,7 @@ function GrantFormDialog({
               label="Eligibility Criteria (one per line)"
               value={formData.eligibility}
               onChange={(e) => setFormData({ ...formData, eligibility: e.target.value })}
-              placeholder="UK-qualified productions&#10;High-end TV drama&#10;Budget >£1M/hour"
+              placeholder="UK qualifying productions&#10;High end TV drama&#10;Budget >£1M/hour"
               sx={{
                 '& .MuiInputLabel-root': { color: '#a0a0a0' },
                 '& .MuiOutlinedInput-root': {
@@ -1642,7 +1642,7 @@ function BulkImportDialog({
 
   const handleDownloadTemplate = () => {
     const headers = 'title,territory,fundingBody,maxAmount,currency,applicationOpens,applicationDeadline,eligibility,websiteUrl,verified';
-    const example = 'BFI Film Fund,UK,British Film Institute,500000,GBP,2026-03-01,2026-06-30,UK-qualified productions;High-end drama,https://www.bfi.org.uk,true';
+    const example = 'BFI Film Fund,UK,British Film Institute,500000,GBP,2026-03-01,2026-06-30,UK qualifying productions;High end drama,https://www.bfi.org.uk,true';
     const csv = `${headers}\n${example}\n`;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -1691,7 +1691,7 @@ function BulkImportDialog({
         <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', '& .MuiAlert-icon': { color: '#2196F3' } }}>
           <Typography variant="body2" sx={{ color: '#2196F3' }}>
             Upload a CSV file with grant data. Download the template below for the correct format.
-            Eligibility values should be semicolon-separated.
+            Eligibility values should be semicolon separated.
           </Typography>
         </Alert>
 

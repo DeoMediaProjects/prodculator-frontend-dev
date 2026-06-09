@@ -682,7 +682,7 @@ export function ReportViewer() {
                       {(analysis as any).scriptIntelligence.complexityDrivers.map((d: any, i: number) => (
                         <Paper key={i} sx={{ p: 1.5, mb: 1, bgcolor: '#111', border: '1px solid #222' }}>
                           <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600 }}>{d.flag}</Typography>
-                          <Typography variant="caption" sx={{ color: '#888', display: 'block' }}>{d.detail} — {d.implication}</Typography>
+                          <Typography variant="caption" sx={{ color: '#888', display: 'block' }}>{d.detail}, {d.implication}</Typography>
                         </Paper>
                       ))}
                     </Box>
@@ -730,7 +730,7 @@ export function ReportViewer() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       {(loc as any).financialReturnScore != null && (
                         <Chip
-                          label={`FRS: ${(loc as any).financialReturnScore} — ${(loc as any).financialReturnVerdict}`}
+                          label={`FRS: ${(loc as any).financialReturnScore}, ${(loc as any).financialReturnVerdict}`}
                           size="small"
                           sx={{
                             fontWeight: 700, fontSize: '0.75rem',
@@ -787,7 +787,7 @@ export function ReportViewer() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <Chip
                         size="small"
-                        label={`SVS: ${(loc as any).scheduleViabilityScore}/100 — ~${(loc as any).contingencyDaysEstimate}d contingency`}
+                        label={`SVS: ${(loc as any).scheduleViabilityScore}/100, ~${(loc as any).contingencyDaysEstimate}d contingency`}
                         sx={{
                           bgcolor: (loc as any).scheduleViabilityScore >= 75 ? 'rgba(76,175,80,0.12)' :
                                    (loc as any).scheduleViabilityScore >= 55 ? 'rgba(255,152,0,0.12)' :
@@ -925,7 +925,7 @@ export function ReportViewer() {
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Financial Analysis</Typography>
                   <Typography variant="body2" sx={{ color: '#888', mb: 3 }}>
-                    Per-territory budget breakdowns, rebate calculations, and net cost projections.
+                    Per territory budget breakdowns, rebate calculations, and net cost projections.
                   </Typography>
                   <Grid container spacing={3}>
                     {analysis.locationRankings.map((loc, i) => (
@@ -976,10 +976,10 @@ export function ReportViewer() {
                                 <Box>
                                   {[
                                     { label: 'Total Budget', value: scenario.totalBudget },
-                                    { label: `Qualifying Spend (${scenario.qualifyingSpendPct || '—'})`, value: scenario.qualifyingSpend },
+                                    { label: `Qualifying Spend (${scenario.qualifyingSpendPct || 'N/A'})`, value: scenario.qualifyingSpend },
                                     { label: 'ATL Deduction', value: scenario.atlDeduction },
                                     { label: 'Net Qualifying Spend', value: scenario.netQualifyingSpend },
-                                    { label: `Gross Rebate (${scenario.rateGross || scenario.rateNet || '—'})`, value: scenario.grossRebate },
+                                    { label: `Gross Rebate (${scenario.rateGross || scenario.rateNet || 'N/A'})`, value: scenario.grossRebate },
                                     { label: 'Net Rebate', value: scenario.netRebate, highlight: true },
                                     { label: 'Net Budget After Rebate', value: scenario.netBudget, bold: true },
                                   ].map((step, si) => step.value ? (
@@ -1378,7 +1378,7 @@ export function ReportViewer() {
         </DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
-            Fill in your project details to personalise the PDF — every field is optional.
+            Fill in your project details to personalise the PDF, every field is optional.
           </Typography>
           {reportId && (
             <ProjectDetailsPanel
@@ -1419,7 +1419,7 @@ export function ReportViewer() {
           {shareToken ? (
             <Box>
               <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
-                Anyone with this link can view a read-only version of this report. No account required.
+                Anyone with this link can view a read only version of this report. No account required.
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <TextField
@@ -1461,7 +1461,7 @@ export function ReportViewer() {
           ) : (
             <Box>
               <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
-                Generate a permanent shareable link. Anyone with the link can view the full report — no account needed.
+                Generate a permanent shareable link. Anyone with the link can view the full report, no account needed.
               </Typography>
               <Typography variant="caption" sx={{ color: '#666' }}>
                 You can revoke the link at any time from this dialog.

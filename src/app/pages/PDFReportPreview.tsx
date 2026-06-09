@@ -21,13 +21,13 @@ export function PDFReportPreview() {
   const navigate = useNavigate();
 
   const sampleData = {
-    reportId: 'RPT-2026-001234',
+    reportId: 'RPT2026001234',
     generatedDate: 'January 23, 2026',
     scriptTitle: 'THE LAST FRONTIER',
     genre: 'Action/Thriller',
     userName: 'Sarah Mitchell',
     pageCount: 110,
-    estimatedRuntime: '100-110 minutes',
+    estimatedRuntime: '100 to 110 minutes',
     sceneCount: 87,
     locationCount: 32,
     characterCount: 8,
@@ -77,7 +77,7 @@ export function PDFReportPreview() {
         </Box>
 
         <Typography variant="body1" sx={{ color: '#a0a0a0', mb: 4 }}>
-          Investor-ready PDF report with comprehensive production intelligence, tax incentive analysis, and location strategy.
+          Investor ready PDF report with comprehensive production intelligence, tax incentive analysis, and location strategy.
         </Typography>
 
         {/* PDF Preview */}
@@ -285,7 +285,7 @@ export function PDFReportPreview() {
                     Estimated Tax Incentive
                   </Typography>
                   <Typography sx={{ fontSize: 20, fontWeight: 700, color: '#D4AF37' }}>
-                    $450K - $650K
+                    $450K to $650K
                   </Typography>
                 </Box>
                 <Box>
@@ -334,7 +334,7 @@ export function PDFReportPreview() {
             <Box component="ul" sx={{ pl: 3, color: '#333333', lineHeight: 1.8 }}>
               <li>British Columbia offers optimal combination of 36% tax credit and experienced crew base</li>
               <li>Urban contemporary setting matches Vancouver infrastructure capabilities</li>
-              <li>Mid-budget action/thriller aligns with BC's production history (comparable: "Example Films")</li>
+              <li>Mid budget action/thriller aligns with BC's production history (comparable: "Example Films")</li>
               <li>Estimated net cost after incentives: $1.2M vs. $1.85M gross production budget</li>
             </Box>
 
@@ -496,11 +496,11 @@ export function PDFReportPreview() {
                 </TableHead>
                 <TableBody>
                   {[
-                    { rank: 1, territory: 'British Columbia, Canada', incentive: '36%', rebate: '$450K-$650K', score: 94 },
-                    { rank: 2, territory: 'UK (England)', incentive: '25%', rebate: '$380K-$520K', score: 89 },
-                    { rank: 3, territory: 'Georgia, USA', incentive: '30%', rebate: '$420K-$580K', score: 87 },
-                    { rank: 4, territory: 'Malta', incentive: '40%', rebate: '$320K-$480K', score: 84 },
-                    { rank: 5, territory: 'South Africa (Cape Town)', incentive: '35%', rebate: '$280K-$420K', score: 82 },
+                    { rank: 1, territory: 'British Columbia, Canada', incentive: '36%', rebate: '$450K to $650K', score: 94 },
+                    { rank: 2, territory: 'UK (England)', incentive: '25%', rebate: '$380K to $520K', score: 89 },
+                    { rank: 3, territory: 'Georgia, USA', incentive: '30%', rebate: '$420K to $580K', score: 87 },
+                    { rank: 4, territory: 'Malta', incentive: '40%', rebate: '$320K to $480K', score: 84 },
+                    { rank: 5, territory: 'South Africa (Cape Town)', incentive: '35%', rebate: '$280K to $420K', score: 82 },
                   ].map((row) => (
                     <TableRow key={row.rank} sx={{ '&:nth-of-type(odd)': { bgcolor: '#fafafa' } }}>
                       <TableCell>
@@ -559,7 +559,7 @@ export function PDFReportPreview() {
               </Typography>
               <Box component="ul" sx={{ pl: 3, color: '#333333', lineHeight: 2, mb: 3 }}>
                 <li>Up to 36% tax credit on eligible BC labor (35% base + 6% regional bonus)</li>
-                <li>Established film infrastructure with world-class studios and equipment</li>
+                <li>Established film infrastructure with world class studios and equipment</li>
                 <li>Skilled crew base with competitive rates and deep experience</li>
                 <li>Diverse locations (urban Vancouver, mountains, coastal)</li>
                 <li>Favorable USD/CAD exchange rate adds ~25% additional savings</li>
@@ -569,8 +569,8 @@ export function PDFReportPreview() {
                 Considerations
               </Typography>
               <Box component="ul" sx={{ pl: 3, color: '#333333', lineHeight: 2 }}>
-                <li>Weather can be unpredictable (frequent rain, especially Nov-Mar)</li>
-                <li>Application timeline: 6-8 weeks before principal photography</li>
+                <li>Weather can be unpredictable (frequent rain, especially Nov to Mar)</li>
+                <li>Application timeline: 6 to 8 weeks before principal photography</li>
                 <li>Must meet BC labor expenditure requirements (75% minimum)</li>
               </Box>
             </Paper>
@@ -594,7 +594,7 @@ export function PDFReportPreview() {
           {/* PAGE INDICATOR */}
           <Box sx={{ p: 4, bgcolor: '#000000', textAlign: 'center' }}>
             <Typography sx={{ color: '#666666', fontSize: 13, mb: 2 }}>
-              Full report continues for 15-22 pages with detailed sections on:
+              Full report continues for 15 to 22 pages with detailed sections on:
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
               {[
@@ -643,12 +643,12 @@ export function PDFReportPreview() {
             <strong style={{ color: '#D4AF37' }}>PDF Generation Implementation:</strong>
           </Typography>
           <Box component="ul" sx={{ color: '#a0a0a0', fontSize: '0.875rem', lineHeight: 1.8, pl: 3 }}>
-            <li><strong>Library Options:</strong> jsPDF, PDFKit, Puppeteer, or react-pdf</li>
-            <li><strong>Total Length:</strong> 15-22 pages depending on script complexity</li>
-            <li><strong>File Size:</strong> Optimized to 2-5 MB for easy download and sharing</li>
+            <li><strong>Library Options:</strong> jsPDF, PDFKit, Puppeteer, or react pdf</li>
+            <li><strong>Total Length:</strong> 15 to 22 pages depending on script complexity</li>
+            <li><strong>File Size:</strong> Optimized to 2 to 5 MB for easy download and sharing</li>
             <li><strong>Branding:</strong> Consistent black (#000000) and gold (#D4AF37) throughout</li>
-            <li><strong>Data Attribution:</strong> Every data-driven section includes source badges and verification dates</li>
-            <li><strong>Professional Quality:</strong> Investor-ready formatting with charts, tables, and visual hierarchy</li>
+            <li><strong>Data Attribution:</strong> Every data driven section includes source badges and verification dates</li>
+            <li><strong>Professional Quality:</strong> Investor ready formatting with charts, tables, and visual hierarchy</li>
             <li><strong>Disclaimers:</strong> Comprehensive legal disclaimers in appendix covering data accuracy, tax advice, estimates</li>
           </Box>
         </Paper>

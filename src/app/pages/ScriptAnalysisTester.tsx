@@ -73,7 +73,7 @@ export function ScriptAnalysisTester() {
           🧪 Script Analysis Service Tester
         </Typography>
         <Typography variant="body1" sx={{ color: '#a0a0a0', mb: 4 }}>
-          Test the OpenAI GPT-4 integration for script analysis
+          Test the OpenAI GPT 4 integration for script analysis
         </Typography>
 
         {/* Test Controls */}
@@ -155,7 +155,7 @@ export function ScriptAnalysisTester() {
                           {result.budgetEstimate.range}
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5 }}>
-                          ${result.budgetEstimate.minUSD.toLocaleString()} – ${result.budgetEstimate.maxUSD.toLocaleString()}
+                          ${result.budgetEstimate.minUSD.toLocaleString()} to ${result.budgetEstimate.maxUSD.toLocaleString()}
                         </Typography>
                         <Chip
                           label={`${Math.round(result.budgetEstimate.confidence * 100)}% confidence`}

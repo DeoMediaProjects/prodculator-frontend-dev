@@ -194,7 +194,7 @@ function IncentiveDataManagerContent(_props?: any) {
             Incentive Data Management
           </Typography>
           <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-            Manage tax incentive data with AI-powered quarterly auto-sync from official sources
+            Manage tax incentive data with AI powered quarterly auto sync from official sources
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -211,7 +211,7 @@ function IncentiveDataManagerContent(_props?: any) {
               },
             }}
           >
-            Auto-Sync Settings
+            Auto Sync Settings
           </Button>
           <Button
             variant="contained"
@@ -248,7 +248,7 @@ function IncentiveDataManagerContent(_props?: any) {
               <Sync sx={{ color: '#D4AF37', fontSize: 28 }} />
               <Box>
                 <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                  AI-Powered Auto-Sync Status
+                  AI Powered Auto Sync Status
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
                   Next scheduled check: <strong>{formatDate(syncStatus?.nextScheduledCheck)}</strong>
@@ -274,10 +274,10 @@ function IncentiveDataManagerContent(_props?: any) {
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(46, 125, 50, 0.1)', borderRadius: 2 }}>
                 <Typography variant="h4" sx={{ color: '#66bb6a', fontWeight: 700 }}>
-                  {syncStatus?.territoriesSyncing ?? '—'}
+                  {syncStatus?.territoriesSyncing ?? 'N/A'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                  Territories Auto-Syncing
+                  Territories Auto Syncing
                 </Typography>
               </Box>
             </Grid>
@@ -294,7 +294,7 @@ function IncentiveDataManagerContent(_props?: any) {
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(212, 175, 55, 0.1)', borderRadius: 2 }}>
                 <Typography variant="h4" sx={{ color: '#D4AF37', fontWeight: 700 }}>
-                  {syncStatus?.daysSinceLastCheck ?? '—'}
+                  {syncStatus?.daysSinceLastCheck ?? 'N/A'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
                   Days Since Last Check
@@ -326,7 +326,7 @@ function IncentiveDataManagerContent(_props?: any) {
             </Button>
           }
         >
-          <strong>{pendingChanges.length} change(s) detected</strong> by AI auto-sync and awaiting your review
+          <strong>{pendingChanges.length} change(s) detected</strong> by AI auto sync and awaiting your review
         </Alert>
       )}
 
@@ -349,7 +349,7 @@ function IncentiveDataManagerContent(_props?: any) {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box>
                   <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
-                    {change.territory} - {change.field}
+                    {change.territory}: {change.field}
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, md: 5 }}>
@@ -434,7 +434,7 @@ function IncentiveDataManagerContent(_props?: any) {
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Rate</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Cap</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Last Updated</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Auto-Sync</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Auto Sync</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Source</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Actions</TableCell>
@@ -551,7 +551,7 @@ function IncentiveDataManagerContent(_props?: any) {
                           <OpenInNew sx={{ fontSize: 14 }} />
                         </Link>
                       ) : (
-                        <Typography variant="body2" sx={{ color: '#666' }}>—</Typography>
+                        <Typography variant="body2" sx={{ color: '#666' }}>N/A</Typography>
                       )}
                     </TableCell>
                     <TableCell>
@@ -611,7 +611,7 @@ function IncentiveDataManagerContent(_props?: any) {
         <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Schedule />
-            Auto-Sync Configuration
+            Auto Sync Configuration
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -623,7 +623,7 @@ function IncentiveDataManagerContent(_props?: any) {
             <>
               <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', color: '#42a5f5' }}>
                 <strong>How it works:</strong> Our AI agent reads official government websites and PDFs quarterly,
-                extracts tax incentive data, and flags changes for your review before auto-applying.
+                extracts tax incentive data, and flags changes for your review before auto applying.
               </Alert>
 
               {syncSettings && (
@@ -684,7 +684,7 @@ function IncentiveDataManagerContent(_props?: any) {
                 >
                   <option value="monthly">Monthly (1st of each month)</option>
                   <option value="quarterly">Quarterly (Jan, Apr, Jul, Oct)</option>
-                  <option value="biannual">Semi-Annual (Jan, Jul)</option>
+                  <option value="biannual">Semi Annual (Jan, Jul)</option>
                   <option value="annual">Annual (January)</option>
                 </TextField>
               </Box>

@@ -27,7 +27,7 @@ import { adminApi } from '@/services/admin.api';
 import type { ComparableProduction, TmdbSyncResponse } from '@/services/admin.types';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
-const genres = ['Action', 'Drama', 'Comedy', 'Sci-Fi', 'Thriller', 'Horror', 'Adventure', 'Romance'];
+const genres = ['Action', 'Drama', 'Comedy', 'Sci Fi', 'Thriller', 'Horror', 'Adventure', 'Romance'];
 const territories = ['United Kingdom', 'British Columbia', 'Georgia (USA)', 'Malta', 'South Africa'];
 
 export function ComparableProductionsManager() {

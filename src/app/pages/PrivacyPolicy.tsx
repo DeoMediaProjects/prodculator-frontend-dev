@@ -44,7 +44,7 @@ export function PrivacyPolicy() {
             <li>Reports generated (metadata: date, territories analyzed, report type)</li>
             <li>Feature usage (which tools you use, frequency)</li>
             <li>Comparison tool usage (territories selected, parameters used, number of comparisons)</li>
-            <li>What-if calculator usage (budget ranges, scenario parameters, saved calculations)</li>
+            <li>What if calculator usage (budget ranges, scenario parameters, saved calculations)</li>
             <li>Session data (login times, IP addresses, browser type)</li>
             <li>Engagement features (Territory Watchlist, Alert preferences, Festival tracking)</li>
           </ul>
@@ -109,10 +109,10 @@ export function PrivacyPolicy() {
 
           <Typography variant="h4">4. Data Storage & Security</Typography>
           <Typography>
-            <strong>4.1 Encryption:</strong> All data is encrypted in transit (HTTPS/TLS 1.3) and at rest (AES-256).
+            <strong>4.1 Encryption:</strong> All data is encrypted in transit (HTTPS/TLS 1.3) and at rest (AES 256).
           </Typography>
           <Typography>
-            <strong>4.2 Access Controls:</strong> Strict role-based access controls limit who can view your data internally.
+            <strong>4.2 Access Controls:</strong> Strict role based access controls limit who can view your data internally.
           </Typography>
           <Typography>
             <strong>4.3 Script Confidentiality:</strong> Uploaded scripts are treated as confidential trade secrets and are never shared with third parties or used for training AI models.
@@ -130,7 +130,7 @@ export function PrivacyPolicy() {
             <li>API logs: Retained for 90 days for security and performance monitoring</li>
           </ul>
           <Typography>
-            <strong>4.6 Production Intelligence Dashboard - Anonymized Metadata:</strong> When you upload a script, we automatically extract anonymized metadata (estimated crew size, camera equipment requirements, cast size indicators, production scale) to power our Production Intelligence Dashboard. This dashboard shows aggregate industry trends (e.g., "Average crew size for action films: 85 people") and is shared with enterprise clients. Your specific script content, project title, character names, dialogue, and plot details are NEVER included in this analysis. Only non-identifiable production logistics metadata is extracted and aggregated across hundreds of scripts.
+            <strong>4.6 Production Intelligence Dashboard Anonymized Metadata:</strong> When you upload a script, we automatically extract anonymized metadata (estimated crew size, camera equipment requirements, cast size indicators, production scale) to power our Production Intelligence Dashboard. This dashboard shows aggregate industry trends (e.g., "Average crew size for action films: 85 people") and is shared with enterprise clients. Your specific script content, project title, character names, dialogue, and plot details are NEVER included in this analysis. Only non identifiable production logistics metadata is extracted and aggregated across hundreds of scripts.
           </Typography>
 
           <Typography variant="h4">5. Data Sharing & Third Parties</Typography>
@@ -145,10 +145,10 @@ export function PrivacyPolicy() {
             <li><strong>Legal Requirements:</strong> When required by law, court order, or to protect our rights</li>
           </ul>
           <Typography>
-            <strong>Third-Party Data Sources:</strong> We integrate with government APIs and film commission databases to provide incentive data. These integrations do NOT share your personal information or uploaded scripts.
+            <strong>Third Party Data Sources:</strong> We integrate with government APIs and film commission databases to provide incentive data. These integrations do NOT share your personal information or uploaded scripts.
           </Typography>
 
-          <Typography variant="h4">6. Enterprise-Specific Privacy Terms</Typography>
+          <Typography variant="h4">6. Enterprise Specific Privacy Terms</Typography>
           <Typography>
             <strong>6.1 Data Processing Agreements (DPAs):</strong> Enterprise clients may request a DPA for GDPR compliance at no additional cost.
           </Typography>
@@ -173,7 +173,7 @@ export function PrivacyPolicy() {
             <li><strong>Access:</strong> Request a copy of your personal data</li>
             <li><strong>Correction:</strong> Update inaccurate or incomplete data</li>
             <li><strong>Deletion:</strong> Request deletion of your data (subject to legal retention requirements)</li>
-            <li><strong>Portability:</strong> Receive your data in a machine-readable format</li>
+            <li><strong>Portability:</strong> Receive your data in a machine readable format</li>
             <li><strong>Objection:</strong> Object to certain processing activities (e.g., marketing emails)</li>
             <li><strong>Restriction:</strong> Request restriction of processing in certain circumstances</li>
             <li><strong>Withdrawal of Consent:</strong> Withdraw consent at any time (does not affect prior processing)</li>
@@ -188,8 +188,8 @@ export function PrivacyPolicy() {
           </Typography>
           <ul>
             <li><strong>Essential Cookies:</strong> Session tokens, authentication (required for service functionality)</li>
-            <li><strong>Analytics Cookies:</strong> Google Analytics (anonymized, no PII) - you can opt out via browser settings</li>
-            <li><strong>No Third-Party Ads:</strong> We do not serve third-party advertising or use advertising trackers</li>
+            <li><strong>Analytics Cookies:</strong> Google Analytics (anonymized, no PII) you can opt out via browser settings</li>
+            <li><strong>No Third Party Ads:</strong> We do not serve third party advertising or use advertising trackers</li>
           </ul>
 
           <Typography variant="h4">9. International Data Transfers</Typography>
@@ -197,7 +197,7 @@ export function PrivacyPolicy() {
             <strong>9.1 Data Hosting:</strong> Data is hosted on secure servers in the EU (for European customers) and US (for North American customers).
           </Typography>
           <Typography>
-            <strong>9.2 Cross-Border Transfers:</strong> If you are outside these regions, your data may be transferred to and processed in the EU or US under Standard Contractual Clauses (SCCs) approved by the European Commission.
+            <strong>9.2 Cross Border Transfers:</strong> If you are outside these regions, your data may be transferred to and processed in the EU or US under Standard Contractual Clauses (SCCs) approved by the European Commission.
           </Typography>
           <Typography>
             <strong>9.3 Enterprise Clients:</strong> We can accommodate data residency requirements (e.g., "Data must stay in UK") for enterprise contracts upon request.
@@ -216,7 +216,7 @@ export function PrivacyPolicy() {
             <strong>11.2 Product Updates:</strong> We may occasionally send product updates or new feature announcements. You can opt out via the "Unsubscribe" link in any email.
           </Typography>
           <Typography>
-            <strong>11.3 Enterprise Communication:</strong> Enterprise sales inquiries (RFP submissions) will receive follow-up emails from our sales team. You can request removal from our sales list at any time.
+            <strong>11.3 Enterprise Communication:</strong> Enterprise sales inquiries (RFP submissions) will receive follow up emails from our sales team. You can request removal from our sales list at any time.
           </Typography>
 
           <Typography variant="h4">12. Data Breach Notification</Typography>
@@ -232,7 +232,7 @@ export function PrivacyPolicy() {
 
           <Typography variant="h4">13. Changes to This Privacy Policy</Typography>
           <Typography>
-            We may update this Privacy Policy to reflect changes in our practices or legal requirements. Material changes will be communicated via email or in-app notification at least 30 days before taking effect.
+            We may update this Privacy Policy to reflect changes in our practices or legal requirements. Material changes will be communicated via email or in app notification at least 30 days before taking effect.
           </Typography>
           <Typography>
             <strong>Version History:</strong>
@@ -258,7 +258,7 @@ export function PrivacyPolicy() {
             If you are in the EU/UK and believe we have not addressed your privacy concerns adequately, you have the right to lodge a complaint with your local data protection authority:
           </Typography>
           <ul>
-            <li><strong>UK:</strong> Information Commissioner's Office (ICO) - <Link href="https://ico.org.uk" target="_blank" sx={{ color: '#D4AF37' }}>ico.org.uk</Link></li>
+            <li><strong>UK:</strong> Information Commissioner's Office (ICO) <Link href="https://ico.org.uk" target="_blank" sx={{ color: '#D4AF37' }}>ico.org.uk</Link></li>
             <li><strong>EU:</strong> Your national data protection authority</li>
           </ul>
 

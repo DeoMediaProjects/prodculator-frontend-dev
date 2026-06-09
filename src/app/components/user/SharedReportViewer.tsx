@@ -81,7 +81,7 @@ export function SharedReportViewer() {
         <Container maxWidth="lg">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Public sx={{ fontSize: 16, color: '#D4AF37' }} />
-            <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>Shared Report — powered by</Typography>
+            <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>Shared Report powered by</Typography>
             <img src={exampleLogo} alt="Prodculator" style={{ height: '16px' }} />
             <Chip label="View only" size="small" sx={{ ml: 'auto', bgcolor: 'rgba(212,175,55,0.15)', color: '#D4AF37', fontSize: '0.65rem', height: 20 }} />
           </Box>

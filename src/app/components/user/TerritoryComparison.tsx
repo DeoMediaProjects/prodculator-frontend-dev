@@ -135,7 +135,7 @@ export function TerritoryComparison() {
   const handleExportCSV = () => {
     if (!comparedTerritories.length) return;
     const header = [
-      'Territory', 'Tax Rebate', 'Post-Production Bonus', 'Min Spend',
+      'Territory', 'Tax Rebate', 'Post Production Bonus', 'Min Spend',
       'Avg Crew Cost', 'Payment Timeline', 'Labor Requirement',
       'Highlights', 'Restrictions',
     ];
@@ -216,7 +216,7 @@ export function TerritoryComparison() {
           }}
         >
           <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-            Compare up to <strong style={{ color: '#D4AF37' }}>4 territories</strong> side-by-side
+            Compare up to <strong style={{ color: '#D4AF37' }}>4 territories</strong> side by side
           </Typography>
           <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 300 }, flex: '1 1 200px', maxWidth: { xs: '100%', sm: 400 } }}>
             <InputLabel sx={{ color: '#a0a0a0' }}>Add Territory</InputLabel>
@@ -274,7 +274,7 @@ export function TerritoryComparison() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {['Tax Rebate', 'Programme', 'Post-Production / VFX Bonus', 'Minimum Spend', 'Avg Crew Cost', 'Payment Timeline', 'Highlights', 'Restrictions'].map((row) => (
+                {['Tax Rebate', 'Programme', 'Post Production / VFX Bonus', 'Minimum Spend', 'Avg Crew Cost', 'Payment Timeline', 'Highlights', 'Restrictions'].map((row) => (
                   <TableRow key={row}>
                     <TableCell sx={{ color: '#ffffff', fontWeight: 700, borderBottom: '1px solid #222', whiteSpace: 'nowrap' }}>{row}</TableCell>
                     {selectedLabels.map((label) => (
@@ -370,8 +370,8 @@ export function TerritoryComparison() {
                   ))}
                 </ComparisonRow>
 
-                {/* Post-Production Bonus */}
-                <ComparisonRow label="Post-Production / VFX Bonus">
+                {/* Post Production Bonus */}
+                <ComparisonRow label="Post Production / VFX Bonus">
                   {comparedTerritories.map((t) => (
                     <TableCell key={t.label} sx={dataCellSx}>
                       <Typography
@@ -420,7 +420,7 @@ export function TerritoryComparison() {
                           ))}
                         </Box>
                       ) : (
-                        <Typography sx={{ color: '#666' }}>—</Typography>
+                        <Typography sx={{ color: '#666' }}>N/A</Typography>
                       )}
                     </TableCell>
                   ))}
@@ -471,7 +471,7 @@ export function TerritoryComparison() {
                             </Typography>
                           ))
                         ) : (
-                          <Typography sx={{ color: '#666' }}>—</Typography>
+                          <Typography sx={{ color: '#666' }}>N/A</Typography>
                         )}
                       </Box>
                     </TableCell>
@@ -490,7 +490,7 @@ export function TerritoryComparison() {
                             </Typography>
                           ))
                         ) : (
-                          <Typography sx={{ color: '#666' }}>—</Typography>
+                          <Typography sx={{ color: '#666' }}>N/A</Typography>
                         )}
                       </Box>
                     </TableCell>
@@ -526,7 +526,7 @@ export function TerritoryComparison() {
             Select territories to compare
           </Typography>
           <Typography variant="body2" sx={{ color: '#666' }}>
-            Use the dropdown above to add up to 4 territories for side-by-side comparison
+            Use the dropdown above to add up to 4 territories for side by side comparison
           </Typography>
         </Paper>
       )}

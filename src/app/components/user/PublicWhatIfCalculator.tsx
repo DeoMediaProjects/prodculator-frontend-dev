@@ -42,7 +42,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 const CURRENCIES = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'ZAR'] as const;
 const FORMATS = [
   'Feature Film', 'TV Series', 'Limited Series', 'Documentary',
-  'Short Film', 'Animation', 'Animated Feature', 'Mini-Series',
+  'Short Film', 'Animation', 'Animated Feature', 'Mini Series',
   'Docuseries', 'Animation Series',
 ] as const;
 
@@ -196,7 +196,7 @@ export function PublicWhatIfCalculator() {
       })}
       <Typography sx={{ fontSize: '10px', color: '#666', mt: 1.5, lineHeight: 1.4 }}>
         Crew Depth and Infrastructure use Prodculator territory tier ratings.
-        Upload your script for production-specific narrative analysis.
+        Upload your script for production specific narrative analysis.
       </Typography>
     </Box>
   );
@@ -255,7 +255,7 @@ export function PublicWhatIfCalculator() {
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
           <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: '#111111', mb: 1 }}>
-            What-If Calculator
+            What If Calculator
           </Typography>
           <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: '#555555' }}>
             Compare incentive returns across {territories.length || '...'} territories at your budget
@@ -609,7 +609,7 @@ export function PublicWhatIfCalculator() {
             </Typography>
             <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#a0a0a0', lineHeight: 1.6 }}>
               Sign up for free to see currency advantage, crew savings, net saving, minimum spend,
-              payment timelines — and upload your own script for a complete production report.
+              payment timelines, and upload your own script for a complete production report.
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1.5, flexShrink: 0 }}>
