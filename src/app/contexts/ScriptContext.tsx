@@ -471,7 +471,7 @@ export function ScriptProvider({ children }: { children: ReactNode }) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const pollReportStatus = async (reportId: string): Promise<ReportStatusResponse> => {
-    const timeoutMs = 180000;
+    const timeoutMs = 60000;
     const pollIntervalMs = 3000;
     const start = Date.now();
 
