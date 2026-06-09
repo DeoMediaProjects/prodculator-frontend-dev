@@ -103,7 +103,7 @@ export function ChangePlanModal({
     try {
       const result = await changePlan(targetPriceId, idempotencyKey);
       const verb = result.status === 'applied' ? 'updated' : 'scheduled';
-      enqueueSnackbar(`Plan ${verb} — ${PLAN_LABEL[result.target_plan] ?? result.target_plan}`, {
+      enqueueSnackbar(`Plan ${verb}, ${PLAN_LABEL[result.target_plan] ?? result.target_plan}`, {
         variant: 'success',
       });
       onSuccess(result);

@@ -923,7 +923,7 @@ async function resendPdfReport(reportId: string, email?: string): ApiResult<Rese
     const data = await apiClient.post<ResendReportResponse>(adminPdfReportResendUrl(reportId), { payload }, { auth: true });
     return { data, error: null };
   } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to re-send report' };
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to resend report' };
   }
 }
 

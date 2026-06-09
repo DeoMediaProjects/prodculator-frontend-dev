@@ -45,7 +45,7 @@ describe('ProtectedRoute', () => {
     renderRoute(
       '/tools/what-if',
       <ProtectedRoute plan="professional">
-        <div data-testid="content">What-If Calculator</div>
+        <div data-testid="content">What If Calculator</div>
       </ProtectedRoute>,
       '/tools/what-if'
     );
@@ -60,7 +60,7 @@ describe('ProtectedRoute', () => {
     renderRoute(
       '/tools/what-if',
       <ProtectedRoute plan="professional">
-        <div>What-If Calculator</div>
+        <div>What If Calculator</div>
       </ProtectedRoute>,
       '/tools/what-if'
     );
@@ -75,7 +75,7 @@ describe('ProtectedRoute', () => {
     renderRoute(
       '/tools/what-if',
       <ProtectedRoute plan="professional">
-        <div>What-If Calculator</div>
+        <div>What If Calculator</div>
       </ProtectedRoute>,
       '/tools/what-if'
     );

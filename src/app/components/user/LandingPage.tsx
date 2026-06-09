@@ -287,7 +287,7 @@ export function LandingPage() {
                   px: { xs: 2, md: 0 },
                 }}
               >
-                Prodculator analyses your screenplay to generate location recommendations, incentive estimates, and production insights — all delivered in one clear report.
+                Prodculator analyses your screenplay to generate location recommendations, incentive estimates, and production insights, all delivered in one clear report.
               </Typography>
             </Box>
 
@@ -361,7 +361,7 @@ export function LandingPage() {
                     }
                   }}
                 >
-                  Try What-If Calculator
+                  Try What If Calculator
                 </Button>
               )}
             </Box>

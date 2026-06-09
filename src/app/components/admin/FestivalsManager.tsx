@@ -175,7 +175,7 @@ function FestivalsManagerContent() {
   };
 
   const genreOptions = [
-    'Drama', 'Comedy', 'Thriller', 'Horror', 'Sci-Fi', 'Fantasy',
+    'Drama', 'Comedy', 'Thriller', 'Horror', 'Sci Fi', 'Fantasy',
     'Documentary', 'Animation', 'Action', 'Romance', 'Mystery',
     'Art House', 'International', 'Experimental', 'Short Films',
     'Music', 'Political', 'European Cinema', 'British Cinema',
@@ -284,7 +284,7 @@ function FestivalsManagerContent() {
       return;
     }
 
-    setSyncSuccessMessage('Festival auto-sync started. Detected changes will appear for review.');
+    setSyncSuccessMessage('Festival auto sync started. Detected changes will appear for review.');
     await refreshSyncData();
   };
 
@@ -406,7 +406,7 @@ function FestivalsManagerContent() {
               '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
             }}
           >
-            Auto-Sync Settings
+            Auto Sync Settings
           </Button>
           <Button
             variant="contained"
@@ -478,7 +478,7 @@ function FestivalsManagerContent() {
                 {stats.aList}
               </Typography>
               <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                A-List Festivals
+                A List Festivals
               </Typography>
             </CardContent>
           </Card>
@@ -493,7 +493,7 @@ function FestivalsManagerContent() {
               <Sync sx={{ color: '#D4AF37', fontSize: 28 }} />
               <Box>
                 <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                  AI-Powered Auto-Sync Status
+                  AI Powered Auto Sync Status
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
                   Next scheduled check: <strong>{formatDate(syncStatus?.nextScheduledCheck)}</strong>
@@ -522,11 +522,11 @@ function FestivalsManagerContent() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <CheckCircle sx={{ color: '#66bb6a', fontSize: 20 }} />
                   <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.territoriesSyncing ?? '—'}
+                    {syncStatus?.territoriesSyncing ?? 'N/A'}
                   </Typography>
                 </Box>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                  Territories Auto-Syncing
+                  Territories Auto Syncing
                 </Typography>
               </Box>
             </Grid>
@@ -548,7 +548,7 @@ function FestivalsManagerContent() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Schedule sx={{ color: '#42a5f5', fontSize: 20 }} />
                   <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.daysSinceLastCheck ?? '—'}
+                    {syncStatus?.daysSinceLastCheck ?? 'N/A'}
                   </Typography>
                 </Box>
                 <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
@@ -594,7 +594,7 @@ function FestivalsManagerContent() {
           )}
         >
           <Typography variant="body2">
-            <strong>{pendingChanges.length} update(s) detected</strong> by AI auto-sync and awaiting your review
+            <strong>{pendingChanges.length} update(s) detected</strong> by AI auto sync and awaiting your review
           </Typography>
         </Alert>
       )}
@@ -622,7 +622,7 @@ function FestivalsManagerContent() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box>
                     <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
-                      {change.territory} - {change.field}
+                      {change.territory}: {change.field}
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid size={{ xs: 12, md: 5 }}>
@@ -707,7 +707,7 @@ function FestivalsManagerContent() {
           }}
         >
           <Tab label={`All Festivals (${festivals.length})`} />
-          <Tab label={`A-List (${festivals.filter(f => f.tier === 'a-list').length})`} />
+          <Tab label={`A List (${festivals.filter(f => f.tier === 'a-list').length})`} />
           <Tab label={`Tier 2 (${festivals.filter(f => f.tier === 'tier-2').length})`} />
           <Tab label={`Specialized (${festivals.filter(f => f.tier === 'specialized').length})`} />
         </Tabs>
@@ -839,7 +839,7 @@ function FestivalsManagerContent() {
                 label="Festival Dates"
                 value={formData.festivalDates || ''}
                 onChange={(e) => setFormData({ ...formData, festivalDates: e.target.value })}
-                placeholder="e.g., Jan 21-31, 2027"
+                placeholder="e.g., Jan 21 to 31, 2027"
                 sx={{
                   '& .MuiInputLabel-root': { color: '#a0a0a0' },
                   '& .MuiOutlinedInput-root': {
@@ -902,7 +902,7 @@ function FestivalsManagerContent() {
                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#D4AF37' },
                   }}
                 >
-                  <MenuItem value="a-list">A-List</MenuItem>
+                  <MenuItem value="a-list">A List</MenuItem>
                   <MenuItem value="tier-2">Tier 2</MenuItem>
                   <MenuItem value="regional">Regional</MenuItem>
                   <MenuItem value="specialized">Specialized</MenuItem>
@@ -1165,7 +1165,7 @@ function FestivalsManagerContent() {
         <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Schedule />
-            Auto-Sync Configuration
+            Auto Sync Configuration
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -1207,7 +1207,7 @@ function FestivalsManagerContent() {
                 >
                   <option value="monthly">Monthly (1st of each month)</option>
                   <option value="quarterly">Quarterly (Jan, Apr, Jul, Oct)</option>
-                  <option value="biannual">Semi-Annual (Jan, Jul)</option>
+                  <option value="biannual">Semi Annual (Jan, Jul)</option>
                   <option value="annual">Annual (January)</option>
                 </TextField>
               </Box>

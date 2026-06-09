@@ -129,7 +129,7 @@ function PDFReportsManagerContent() {
 
       <Paper sx={{ p: 3 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          View, download, and re-issue generated PDF reports
+          View, download, and re issue generated PDF reports
         </Typography>
 
         <TableContainer>
@@ -165,7 +165,7 @@ function PDFReportsManagerContent() {
                     <IconButton size="small" title="Download" onClick={() => handleDownload(report.id)}>
                       <Download />
                     </IconButton>
-                    <IconButton size="small" title="Re-issue" onClick={() => handleResend(report.id)}>
+                    <IconButton size="small" title="Re issue" onClick={() => handleResend(report.id)}>
                       <Send />
                     </IconButton>
                   </TableCell>

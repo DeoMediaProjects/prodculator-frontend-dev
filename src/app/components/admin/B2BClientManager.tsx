@@ -125,7 +125,7 @@ export function B2BClientManager() {
       name: 'Sarah Johnson',
       companyName: 'Warner Bros. Studios',
       email: 'sarah.j@warnerbros.com',
-      phone: '+1 818-xxx-xxxx',
+      phone: '+1 818 xxx xxxx',
       website: 'https://www.warnerbros.com',
       plan: 'professional',
       status: 'active',
@@ -147,7 +147,7 @@ export function B2BClientManager() {
       name: 'Michael Chen',
       companyName: 'Sony Pictures Entertainment',
       email: 'm.chen@sonypictures.com',
-      phone: '+1 310-xxx-xxxx',
+      phone: '+1 310 xxx xxxx',
       website: 'https://www.sonypictures.com',
       plan: 'starter',
       status: 'trial',
@@ -162,7 +162,7 @@ export function B2BClientManager() {
       currency: 'USD',
       lastActive: '2026-01-25',
       createdAt: '2026-01-10',
-      notes: 'Trial period - follows up needed',
+      notes: 'Trial period follows up needed',
     },
   ]);
 
@@ -520,7 +520,7 @@ export function B2BClientManager() {
             />
             <FormControlLabel
               control={<Switch defaultChecked={selectedClient?.autoDeliveryEnabled || false} />}
-              label="Enable Auto-Delivery"
+              label="Enable Auto Delivery"
               sx={{ color: '#999' }}
             />
           </Box>
@@ -695,7 +695,7 @@ function ClientsTable({
             <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Plan</TableCell>
             <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Status</TableCell>
             <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Usage</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Auto-Delivery</TableCell>
+            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Auto Delivery</TableCell>
             <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Territory</TableCell>
             <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Last Active</TableCell>
             <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Actions</TableCell>

@@ -26,7 +26,7 @@ import { adminApi } from '@/services/admin.api';
 import type { AdminMetrics, ActivityItem, ServiceStatusItem, TaskItem } from '@/services/admin.types';
 
 function formatTimestamp(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return 'N/A';
   return new Date(iso).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -121,7 +121,7 @@ export function AdminOverview() {
                 <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
               ) : (
                 <Typography variant="h3" sx={{ fontWeight: 700, color: '#D4AF37' }}>
-                  {metrics ? metrics.total_users.toLocaleString() : '—'}
+                  {metrics ? metrics.total_users.toLocaleString() : 'N/A'}
                 </Typography>
               )}
             </CardContent>
@@ -139,7 +139,7 @@ export function AdminOverview() {
                 <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
               ) : (
                 <Typography variant="h3" sx={{ fontWeight: 700, color: '#D4AF37' }}>
-                  {metrics ? metrics.active_subscriptions.toLocaleString() : '—'}
+                  {metrics ? metrics.active_subscriptions.toLocaleString() : 'N/A'}
                 </Typography>
               )}
             </CardContent>
@@ -157,7 +157,7 @@ export function AdminOverview() {
                 <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
               ) : (
                 <Typography variant="h3" sx={{ fontWeight: 700, color: '#D4AF37' }}>
-                  {metrics ? `$${metrics.mrr_usd.toLocaleString()}` : '—'}
+                  {metrics ? `$${metrics.mrr_usd.toLocaleString()}` : 'N/A'}
                 </Typography>
               )}
             </CardContent>
@@ -175,7 +175,7 @@ export function AdminOverview() {
                 <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
               ) : (
                 <Typography variant="h3" sx={{ fontWeight: 700, color: '#D4AF37' }}>
-                  {metrics ? metrics.total_reports.toLocaleString() : '—'}
+                  {metrics ? metrics.total_reports.toLocaleString() : 'N/A'}
                 </Typography>
               )}
             </CardContent>
@@ -193,7 +193,7 @@ export function AdminOverview() {
                 <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
               ) : (
                 <Typography variant="h3" sx={{ fontWeight: 700, color: '#D4AF37' }}>
-                  {metrics ? metrics.reports_this_month.toLocaleString() : '—'}
+                  {metrics ? metrics.reports_this_month.toLocaleString() : 'N/A'}
                 </Typography>
               )}
             </CardContent>
@@ -211,7 +211,7 @@ export function AdminOverview() {
                 <CircularProgress size={28} sx={{ color: '#D4AF37' }} />
               ) : (
                 <Typography variant="h3" sx={{ fontWeight: 700, color: '#D4AF37' }}>
-                  {metrics ? `${metrics.conversion_rate_percent.toFixed(1)}%` : '—'}
+                  {metrics ? `${metrics.conversion_rate_percent.toFixed(1)}%` : 'N/A'}
                 </Typography>
               )}
             </CardContent>

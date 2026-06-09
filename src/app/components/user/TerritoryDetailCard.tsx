@@ -160,7 +160,7 @@ export function TerritoryDetailCard({
             {includePostProduction && territory.postProductionBonus > 0 && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                  Post-Production Bonus:
+                  Post Production Bonus:
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 600 }}>
                   +{(territory.postProductionBonus * 100)}%

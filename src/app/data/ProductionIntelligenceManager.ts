@@ -94,11 +94,11 @@ export class ProductionIntelligenceManager {
     const total = filteredSignals.length;
     const equipmentNames: Record<string, string> = {
       arri: 'ARRI (Alexa, Amira)',
-      red: 'RED (Komodo, V-Raptor)',
+      red: 'RED (Komodo, V Raptor)',
       sony: 'Sony (Venice, FX9)',
       panavision: 'Panavision',
       blackmagic: 'Blackmagic (URSA, Pocket)',
-      canon: 'Canon (C-series)',
+      canon: 'Canon (C series)',
       other: 'Other',
     };
     
@@ -154,9 +154,9 @@ export class ProductionIntelligenceManager {
     
     const total = filteredSignals.length;
     const sizeNames: Record<string, string> = {
-      small: 'Small (1-10)',
-      medium: 'Medium (11-50)',
-      large: 'Large (51-100)',
+      small: 'Small (1 to 10)',
+      medium: 'Medium (11 to 50)',
+      large: 'Large (51 to 100)',
       extra_large: 'Extra Large (100+)',
     };
     
@@ -197,9 +197,9 @@ export class ProductionIntelligenceManager {
     
     const trends: CastDemandTrend[] = [];
     const sizeNames: Record<string, string> = {
-      small: '1-5',
-      medium: '6-10',
-      large: '11-20',
+      small: '1 to 5',
+      medium: '6 to 10',
+      large: '11 to 20',
       extra_large: '21+',
     };
     
@@ -271,9 +271,9 @@ export class ProductionIntelligenceManager {
     const extrasCounts = new Map<string, number>();
     const extrasTerritories = new Map<string, Map<string, number>>();
     const extrasNames: Record<string, string> = {
-      small: '1-50/day',
-      medium: '51-100/day',
-      large: '101-200/day',
+      small: '1 to 50/day',
+      medium: '51 to 100/day',
+      large: '101 to 200/day',
       extra_large: '200+/day',
     };
     

@@ -76,13 +76,13 @@ describe('PlanGate', () => {
     });
 
     render(
-      <PlanGate plan="professional" featureName="What-If Calculator">
+      <PlanGate plan="professional" featureName="What If Calculator">
         <div>Content</div>
       </PlanGate>
     );
 
-    expect(screen.getByText('What-If Calculator Feature')).toBeInTheDocument();
-    expect(screen.getByText(/Upgrade to What-If Calculator/)).toBeInTheDocument();
+    expect(screen.getByText('What If Calculator Feature')).toBeInTheDocument();
+    expect(screen.getByText(/Upgrade to What If Calculator/)).toBeInTheDocument();
   });
 
   it('renders custom fallback instead of default lock UI', () => {

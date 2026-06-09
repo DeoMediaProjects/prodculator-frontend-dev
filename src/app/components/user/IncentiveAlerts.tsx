@@ -130,7 +130,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
   const grantOpportunities: GrantOpportunity[] = [
     {
       id: '1',
-      title: 'BFI Production Fund - High-End TV',
+      title: 'BFI Production Fund High End TV',
       territory: 'UK',
       fundingBody: 'British Film Institute',
       maxAmount: '£1.2M',
@@ -138,13 +138,13 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
       applicationDeadline: 'Feb 28, 2026',
       status: 'opening-soon',
       daysUntilDeadline: 36,
-      eligibility: ['UK-qualified productions', 'High-end TV drama', 'Budget >£1M/hour'],
+      eligibility: ['UK qualifying productions', 'High end TV drama', 'Budget >£1M/hour'],
       websiteUrl: 'https://www.bfi.org.uk/funding',
       isNew: true,
     },
     {
       id: '2',
-      title: 'Canada Media Fund - Convergent Stream',
+      title: 'Canada Media Fund Convergent Stream',
       territory: 'Canada',
       fundingBody: 'Canada Media Fund',
       maxAmount: 'CAD $2.5M',
@@ -166,13 +166,13 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
       applicationDeadline: 'Jan 31, 2026',
       status: 'closing-soon',
       daysUntilDeadline: 8,
-      eligibility: ['Documentary features', 'Creative treatment of actuality', 'Non-fiction storytelling'],
+      eligibility: ['Documentary features', 'Creative treatment of actuality', 'Non fiction storytelling'],
       websiteUrl: 'https://www.sundance.org/programs/documentary-fund',
       isNew: false,
     },
     {
       id: '4',
-      title: 'Creative Europe MEDIA - Development Support',
+      title: 'Creative Europe MEDIA Development Support',
       territory: 'Malta',
       fundingBody: 'European Commission',
       maxAmount: '€60K',
@@ -704,7 +704,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
                             try {
                               const newWindow = window.open(grant.websiteUrl, '_blank');
                               if (!newWindow) {
-                                console.warn('Pop-up blocked');
+                                console.warn('Pop up blocked');
                               }
                             } catch (error) {
                               console.error('SecurityError opening link:', error);
@@ -758,7 +758,7 @@ export function IncentiveAlerts({ userEmail, userPlan }: IncentiveAlertsProps) {
           }}
         >
           <Typography variant="body2" sx={{ color: '#2196F3' }}>
-            <strong>Auto-synced from official sources:</strong> Grant data is updated daily from film commission APIs, RSS feeds, and verified databases. Last sync: Jan 23, 2026 8:42 AM UTC
+            <strong>Auto synced from official sources:</strong> Grant data is updated daily from film commission APIs, RSS feeds, and verified databases. Last sync: Jan 23, 2026 8:42 AM UTC
           </Typography>
         </Alert>
 
@@ -935,7 +935,7 @@ function FestivalDeadlinesSection() {
 
   const getTierBadge = (tier: Festival['tier']) => {
     const config = {
-      'a-list': { label: 'A-List', color: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.2)' },
+      'a-list': { label: 'A List', color: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.2)' },
       'tier-2': { label: 'Tier 2', color: '#2196F3', bgcolor: 'rgba(33, 150, 243, 0.2)' },
       'regional': { label: 'Regional', color: '#9c27b0', bgcolor: 'rgba(156, 39, 176, 0.2)' },
       'specialized': { label: 'Specialized', color: '#ff9800', bgcolor: 'rgba(255, 152, 0, 0.2)' },
@@ -1193,7 +1193,7 @@ function FestivalDeadlinesSection() {
                             try {
                               const newWindow = window.open(festival.filmfreewayUrl, '_blank');
                               if (!newWindow) {
-                                console.warn('Pop-up blocked');
+                                console.warn('Pop up blocked');
                               }
                             } catch (error) {
                               console.error('SecurityError opening link:', error);
@@ -1221,7 +1221,7 @@ function FestivalDeadlinesSection() {
                             try {
                               const newWindow = window.open(festival.websiteUrl, '_blank');
                               if (!newWindow) {
-                                console.warn('Pop-up blocked');
+                                console.warn('Pop up blocked');
                               }
                             } catch (error) {
                               console.error('SecurityError opening link:', error);

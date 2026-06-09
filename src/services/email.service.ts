@@ -196,7 +196,7 @@ export class EmailService {
             pdfUrl: `${APP_URL}/downloads/rpt-test-001.pdf`,
             processingTime: '2 minutes 34 seconds',
             topRecommendation: 'British Columbia, Canada',
-            estimatedIncentive: '$450,000 – $650,000',
+            estimatedIncentive: '$450,000 to $650,000',
           }),
       },
       {
@@ -232,7 +232,7 @@ export class EmailService {
           this.sendProcessingStartedEmail(to, {
             userName: 'Test User',
             scriptTitle: 'THE LAST FRONTIER',
-            estimatedTime: '3–5 minutes',
+            estimatedTime: '3 to 5 minutes',
             dashboardUrl: `${APP_URL}/dashboard`,
           }),
       },

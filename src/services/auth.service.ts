@@ -190,7 +190,7 @@ export class AuthService {
       setTokens(data.access_token, data.refresh_token);
       return { user: data.user, error: null };
     } catch (error) {
-      return { user: null, error: error instanceof Error ? error.message : 'Google sign-in failed' };
+      return { user: null, error: error instanceof Error ? error.message : 'Google sign in failed' };
     }
   }
 

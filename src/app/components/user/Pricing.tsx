@@ -292,11 +292,11 @@ export function Pricing() {
       features: [
         '1 script per month',
         'Up to 5 territories',
-        'Full 13-section report',
+        'Full 13 section report',
         'PDF report download (clean)',
-        'What-If Calculator',
+        'What If Calculator',
         'Territory Comparison',
-        'Script Re-Analysis',
+        'Script Re Analysis',
       ],
       cta: 'Start Professional',
       ctaSubtext: 'Cancel anytime',
@@ -318,7 +318,7 @@ export function Pricing() {
         'Everything in Professional, plus:',
         'Investor Summary PDF',
         'Excel Export',
-        'Saved What-If Scenarios',
+        'Saved What If Scenarios',
       ],
       cta: 'Start Producer',
       ctaSubtext: 'Cancel anytime',
@@ -336,7 +336,7 @@ export function Pricing() {
       includesText: 'Everything in Producer, plus:',
       sections: [
         {
-          title: 'WHITE-LABEL',
+          title: 'WHITE LABEL',
           features: [
             'Your logo on every PDF',
             '"Prepared by [You]" footer',
@@ -697,11 +697,11 @@ export function Pricing() {
                 Just need one report?
               </Typography>
               <Typography variant="body1" sx={{ color: '#a0a0a0', mb: 3, lineHeight: 1.7 }}>
-                Get a full professional report for a single production with no commitment. Everything in the Professional plan — charged once, never expires.
+                Get a full professional report for a single production with no commitment. Everything in the Professional plan, charged once, never expires.
               </Typography>
               <Grid container spacing={1}>
                 {[
-                  'Full 13-section report',
+                  'Full 13 section report',
                   'All available territories',
                   'Clean PDF download',
                   'Tax incentive analysis',
@@ -733,7 +733,7 @@ export function Pricing() {
                   {isGBP ? '£35' : '$40'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5, mb: 3 }}>
-                  one-time &nbsp;·&nbsp; no subscription &nbsp;·&nbsp; never expires
+                  one time &nbsp;·&nbsp; no subscription &nbsp;·&nbsp; never expires
                 </Typography>
                 <Button
                   variant="contained"

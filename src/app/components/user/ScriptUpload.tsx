@@ -93,14 +93,14 @@ export function ScriptUpload() {
 
   // ✅ SECTION 2a: Genre options - expanded list (no pre-selection)
   const genreOptions = [
-    'Drama', 'Thriller', 'Sci-Fi', 'Horror', 'Comedy', 'Romance', 'Action',
+    'Drama', 'Thriller', 'Sci Fi', 'Horror', 'Comedy', 'Romance', 'Action',
     'Adventure', 'Fantasy', 'Mystery', 'Documentary', 'Biopic', 'Period',
     'Western', 'Animation', 'Musical', 'Crime', 'War', 'Sports', 'Family'
   ];
 
   // ✅ SECTION 2c: Format options - expanded list
   const formatOptions = [
-    'Feature Film', 'Short Film', 'TV Series', 'Limited Series', 'Mini-Series',
+    'Feature Film', 'Short Film', 'TV Series', 'Limited Series', 'Mini Series',
     'Documentary', 'Docuseries', 'Animation', 'Animated Feature', 'Animation Series',
     'Commercial', 'Music Video', 'Interactive', 'VR',
   ];
@@ -110,7 +110,7 @@ export function ScriptUpload() {
   // Camera flags: Film (35mm/16mm) → lab processing costs; IMAX → certified facility availability; 
   // DJI Drone → permit requirements; multiple selections → combined transport & insurance costs
   const cameraOptions = [
-    'ARRI Alexa 35', 'RED V-RAPTOR', 'Sony VENICE 2', 'Film 35mm',
+    'ARRI Alexa 35', 'RED VRAPTOR', 'Sony VENICE 2', 'Film 35mm',
     'Blackmagic Cinema', 'Canon C70', 'Sony FX9', 'Panavision', 'IMAX',
     'DJI Drone', 'GoPro', 'iPhone', 'Sony Alpha', 'Sony A7S III',
     'Canon EOS R5', 'Phantom High Speed', 'Kinefinity Terra', 'Other',
@@ -346,7 +346,7 @@ export function ScriptUpload() {
           Production Analysis Engine
         </Typography>
         <Typography variant="body1" sx={{ mb: 4, color: '#a0a0a0', textAlign: 'center' }}>
-          Upload your script to receive investor-ready intelligence reports on locations, incentives, and costs.
+          Upload your script to receive investor ready intelligence reports on locations, incentives, and costs.
         </Typography>
 
         {processing && (
@@ -504,7 +504,7 @@ export function ScriptUpload() {
                       label={
                         <>
                           Budget Amount
-                          <InfoTip text="The actual total production budget figure — what you expect to spend making the film or series from first day of pre-production to picture lock. Not distribution or marketing." />
+                          <InfoTip text="The actual total production budget figure, what you expect to spend making the film or series from first day of pre production to picture lock. Not distribution or marketing." />
                         </>
                       }
                       value={budgetAmount === '' ? '' : Number(budgetAmount).toLocaleString()}
@@ -681,7 +681,7 @@ export function ScriptUpload() {
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {[
                           { value: 'incentive', label: 'Maximise incentive return' },
-                          { value: 'full', label: 'Full picture — financial, creative and quality', badge: 'DEFAULT' },
+                          { value: 'full', label: 'Full picture, financial, creative and quality', badge: 'DEFAULT' },
                           { value: 'location', label: 'Location and creative fit first' },
                         ].map((priority) => (
                           <Box
@@ -871,7 +871,7 @@ export function ScriptUpload() {
             control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} sx={{ color: '#D4AF37' }} />}
             label={
               <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                I agree to the Terms of Service and Privacy Policy. I understand this is a preview and non-commercial data.
+                I agree to the Terms of Service and Privacy Policy. I understand this is a preview and non commercial data.
               </Typography>
             }
           />
@@ -917,7 +917,7 @@ export function ScriptUpload() {
           >
             <Typography variant="body2" sx={{ color: '#a0a0a0', lineHeight: 1.7 }}>
               Your report is still being generated. Our AI engine is processing complex script
-              data across multiple territories — this can occasionally take longer than expected
+              data across multiple territories, this can occasionally take longer than expected
               depending on script complexity and server load.
             </Typography>
           </Box>
@@ -926,7 +926,7 @@ export function ScriptUpload() {
             <Email sx={{ color: '#D4AF37', mt: 0.25, flexShrink: 0 }} />
             <Typography variant="body2" sx={{ color: '#cccccc', lineHeight: 1.7 }}>
               <strong style={{ color: '#ffffff' }}>You'll receive an email</strong> as soon as
-              your report is ready. No action is needed — just check your inbox.
+              your report is ready. No action is needed, just check your inbox.
             </Typography>
           </Box>
 

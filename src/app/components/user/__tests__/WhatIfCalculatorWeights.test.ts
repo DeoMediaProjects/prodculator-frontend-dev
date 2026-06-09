@@ -40,7 +40,7 @@ function simplify(
   };
 }
 
-describe('What-If calculator score weights', () => {
+describe('What If calculator score weights', () => {
   it('uses the approved methodology in the authenticated calculator', () => {
     expect(simplify(PRIVATE_SCORE_WEIGHTS_INFO)).toEqual(expectedWeights);
   });

@@ -56,10 +56,10 @@ export function UserLogin() {
       if (success) {
         navigate('/dashboard');
       } else {
-        setError('Google sign-in failed. Please try again.');
+        setError('Google sign in failed. Please try again.');
       }
     } catch (_err) {
-      setError('Google sign-in failed. Please try again.');
+      setError('Google sign in failed. Please try again.');
     } finally {
       setLoading(false);
     }

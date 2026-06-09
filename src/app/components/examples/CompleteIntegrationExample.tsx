@@ -198,11 +198,11 @@ export function CompleteIntegrationExample() {
             What This Demonstrates:
           </Typography>
           <Box component="ul" sx={{ color: '#a0a0a0', lineHeight: 2 }}>
-            <li>Enhanced file upload with drag-and-drop</li>
+            <li>Enhanced file upload with drag and drop</li>
             <li>Script upload through backend API</li>
             <li>Background script analysis and report orchestration</li>
             <li>Status polling through backend report endpoints</li>
-            <li>Automatic report/PDF completion handled server-side</li>
+            <li>Automatic report/PDF completion handled server side</li>
             <li>Stripe webhook handling (when payment occurs)</li>
           </Box>
         </Paper>
@@ -220,10 +220,10 @@ export function CompleteIntegrationExample() {
               <strong style={{ color: '#D4AF37' }}>Webhooks:</strong> Stripe API v11+
             </Typography>
             <Typography variant="body2" sx={{ mb: 1 }}>
-              <strong style={{ color: '#D4AF37' }}>Storage:</strong> Backend-managed object storage
+              <strong style={{ color: '#D4AF37' }}>Storage:</strong> Backend managed object storage
             </Typography>
             <Typography variant="body2">
-              <strong style={{ color: '#D4AF37' }}>File Upload:</strong> Native HTML5 drag-and-drop
+              <strong style={{ color: '#D4AF37' }}>File Upload:</strong> Native HTML5 drag and drop
             </Typography>
           </Box>
         </Paper>

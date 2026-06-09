@@ -23,7 +23,7 @@ export function AcceptableUse() {
             You may use the Platform for:
           </Typography>
           <ul>
-            <li><strong>Individual Users:</strong> Professional film production planning, location scouting, budget estimation, and investor-ready intelligence reports</li>
+            <li><strong>Individual Users:</strong> Professional film production planning, location scouting, budget estimation, and investor ready intelligence reports</li>
             <li><strong>Film Commissions:</strong> Territory marketing, competitive analysis, policy development, and ROI reporting to government stakeholders</li>
             <li><strong>Streamers & Studios:</strong> Location scouting, financial planning, production pipeline analysis, and competitive intelligence</li>
             <li><strong>Equipment Rental & Service Providers:</strong> Demand forecasting, equipment deployment planning, and market trend analysis</li>
@@ -59,7 +59,7 @@ export function AcceptableUse() {
             <li>Using automated bots, scrapers, or scripts to extract data (except via authorized API access)</li>
             <li>Sharing API keys publicly or with unauthorized third parties</li>
             <li>Circumventing rate limits, usage caps, or security measures</li>
-            <li>Launching denial-of-service (DoS) attacks or attempting to overload our infrastructure</li>
+            <li>Launching denial of service (DoS) attacks or attempting to overload our infrastructure</li>
           </ul>
 
           <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
@@ -73,13 +73,13 @@ export function AcceptableUse() {
           </ul>
 
           <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
-            3.5 Enterprise-Specific Prohibitions
+            3.5 Enterprise Specific Prohibitions
           </Typography>
           <ul>
             <li><strong>API Abuse:</strong> Exceeding contracted API rate limits or using API access for purposes not specified in your contract</li>
             <li><strong>Report Redistribution:</strong> Forwarding automated B2B reports to individuals or organizations not listed in your contract</li>
             <li><strong>Benchmark Gaming:</strong> Using territory intelligence data to artificially inflate or deflate reported production activity</li>
-            <li><strong>White-Label Misuse:</strong> Using white-label reports to misrepresent data as your own proprietary research (appropriate attribution required)</li>
+            <li><strong>White Label Misuse:</strong> Using white label reports to misrepresent data as your own proprietary research (appropriate attribution required)</li>
           </ul>
 
           <Typography variant="h4">4. Account Integrity</Typography>
@@ -120,13 +120,13 @@ export function AcceptableUse() {
             <strong>7.1 Internal Use Only:</strong> Licensed data (territory intelligence, API data, reports) is for internal organizational use only unless your contract explicitly permits external distribution.
           </Typography>
           <Typography>
-            <strong>7.2 Attribution Requirements:</strong> When presenting data externally (e.g., to government stakeholders, investors), you must attribute data to "Prodculator" unless using white-label services.
+            <strong>7.2 Attribution Requirements:</strong> When presenting data externally (e.g., to government stakeholders, investors), you must attribute data to "Prodculator" unless using white label services.
           </Typography>
           <Typography>
             <strong>7.3 No Competitive Use:</strong> Enterprise clients may not use licensed data to create competing production intelligence platforms or services.
           </Typography>
           <Typography>
-            <strong>7.4 Aggregated Data Sharing:</strong> We may share anonymized, aggregated data with multiple clients (e.g., "UK production activity increased 15% in Q1 2026"). This does NOT include client-specific or identifiable data.
+            <strong>7.4 Aggregated Data Sharing:</strong> We may share anonymized, aggregated data with multiple clients (e.g., "UK production activity increased 15% in Q1 2026"). This does NOT include client specific or identifiable data.
           </Typography>
 
           <Typography variant="h4">8. Reporting Violations</Typography>
@@ -158,7 +158,7 @@ export function AcceptableUse() {
 
           <Typography variant="h4">10. Changes to This Policy</Typography>
           <Typography>
-            We may update this AUP to address new security threats or abuse patterns. Material changes will be communicated via email or in-app notification.
+            We may update this AUP to address new security threats or abuse patterns. Material changes will be communicated via email or in app notification.
           </Typography>
 
           <Typography variant="h4">11. Questions</Typography>
