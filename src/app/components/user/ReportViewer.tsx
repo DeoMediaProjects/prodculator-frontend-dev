@@ -331,6 +331,18 @@ export function ReportViewer() {
     { label: 'Funding & Festivals', icon: <TrendingUp />, locked: isPreview },
   ];
 
+  const previewUrgentCount = Number(
+    (analysis as any).previewUrgentActionCount ??
+    ((analysis as any).nextSteps || []).filter((step: any) => step?.priority === 'URGENT').length ??
+    0
+  );
+  const previewComplexityCount = Number(
+    (analysis as any).previewComplexityFactorCount ??
+    (analysis as any).scriptIntelligence?.complexityDrivers?.length ??
+    analysis.executiveSummary?.keyFlags?.length ??
+    0
+  );
+
   const renderLockedHeaderAction = (
     label: string,
     requiredPlan: 'producer' | 'studio'
@@ -538,7 +550,7 @@ export function ReportViewer() {
               <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Script Intelligence Summary</Typography>
 
               {/* Headline Net Budget */}
-              {analysis.executiveSummary?.headlineNetBudget && (
+              {!isPreview && analysis.executiveSummary?.headlineNetBudget && (
                 <Paper sx={{ p: 3, mb: 3, bgcolor: '#0d1a0d', border: '2px solid #4caf50', borderRadius: 2 }}>
                   <Typography variant="overline" sx={{ color: '#4caf50', letterSpacing: 2 }}>Net Effective Budget After Incentives</Typography>
                   <Typography variant="h3" sx={{ color: '#4caf50', fontWeight: 800, mt: 0.5 }}>
@@ -577,7 +589,7 @@ export function ReportViewer() {
               )}
 
               {/* Key Flags */}
-              {analysis.executiveSummary?.keyFlags && analysis.executiveSummary.keyFlags.length > 0 && (
+              {!isPreview && analysis.executiveSummary?.keyFlags && analysis.executiveSummary.keyFlags.length > 0 && (
                 <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {analysis.executiveSummary.keyFlags.slice(0, 3).map((flag, i) => (
                     <Alert
@@ -603,8 +615,21 @@ export function ReportViewer() {
                 <Grid size={{ xs: 12 }}><Card sx={{ bgcolor: '#111' }}><CardContent><Typography variant="overline" color="primary">Tone & Scale</Typography><Typography variant="body1">{analysis.tone}</Typography></CardContent></Card></Grid>
               </Grid>
 
+              {isPreview && (
+                <Paper sx={{ p: 3, mb: 3, bgcolor: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 2 }}>
+                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 1, fontWeight: 600 }}>
+                    {previewComplexityCount > 0
+                      ? `${previewComplexityCount} production factor${previewComplexityCount === 1 ? '' : 's'} identified`
+                      : 'Production factors identified'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                    Upgrade to see the full script intelligence and complexity breakdown.
+                  </Typography>
+                </Paper>
+              )}
+
               {/* Action Timeline */}
-              {analysis.executiveSummary?.actionTimeline && analysis.executiveSummary.actionTimeline.length > 0 && (
+              {!isPreview && analysis.executiveSummary?.actionTimeline && analysis.executiveSummary.actionTimeline.length > 0 && (
                 <Box sx={{ mt: 1 }}>
                   <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2, fontWeight: 600 }}>
                     Action Timeline
@@ -633,7 +658,26 @@ export function ReportViewer() {
                 </Box>
               )}
               {/* Next Steps */}
-              {(analysis as any).nextSteps && (analysis as any).nextSteps.length > 0 && (
+              {isPreview ? (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2, fontWeight: 600 }}>Next Steps</Typography>
+                  <Paper sx={{ p: 3, bgcolor: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 2 }}>
+                    <Typography variant="h6" sx={{ color: '#D4AF37', mb: 1 }}>
+                      {previewUrgentCount > 0
+                        ? `${previewUrgentCount} urgent action${previewUrgentCount === 1 ? '' : 's'} identified for this production`
+                        : 'Actions identified for this production'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
+                      {previewUrgentCount > 0
+                        ? `Including ${previewUrgentCount} time-sensitive item${previewUrgentCount === 1 ? '' : 's'} that require attention before principal photography.`
+                        : 'Upgrade to see your prioritised action plan.'}
+                    </Typography>
+                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, '&:hover': { bgcolor: '#B8941F' } }}>
+                      Upgrade to Unlock
+                    </Button>
+                  </Paper>
+                </Box>
+              ) : (analysis as any).nextSteps && (analysis as any).nextSteps.length > 0 && (
                 <Box sx={{ mt: 3 }}>
                   <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2, fontWeight: 600 }}>Next Steps</Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -661,7 +705,7 @@ export function ReportViewer() {
               )}
 
               {/* Script Intelligence */}
-              {(analysis as any).scriptIntelligence && (
+              {!isPreview && (analysis as any).scriptIntelligence && (
                 <Box sx={{ mt: 3 }}>
                   <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2, fontWeight: 600 }}>Script Intelligence</Typography>
                   {(analysis as any).scriptIntelligence.creativeRecognition && (
@@ -703,7 +747,27 @@ export function ReportViewer() {
                   Showing top 3 territories. Upgrade to Professional for up to 5, or buy a single report for all available territories.
                 </Alert>
               )}
-              {analysis.locationRankings.map((loc, i) => (
+              {analysis.locationRankings.map((loc, i) => {
+                const isLockedTerritory = isPreview && (loc as any).lockedPreview;
+                if (isLockedTerritory) {
+                  return (
+                    <Paper key={i} sx={{ p: 3, mb: 2, bgcolor: '#0d0d0d', border: '1px solid rgba(212,175,55,0.25)', position: 'relative', overflow: 'hidden' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+                        <Box>
+                          <Typography variant="h6" sx={{ color: '#D4AF37' }}>{loc.name}</Typography>
+                          <Typography variant="body2" sx={{ color: '#777' }}>Ranked comparison available in the full report</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Lock sx={{ color: '#D4AF37' }} />
+                          <Button size="small" onClick={() => navigate('/pricing')} sx={{ color: '#D4AF37', fontWeight: 700 }}>
+                            Upgrade
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Paper>
+                  );
+                }
+                return (
                 <Paper key={i} sx={{ p: 3, mb: 2, bgcolor: '#111', border: '1px solid #222' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
@@ -728,7 +792,7 @@ export function ReportViewer() {
                       )}
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      {(loc as any).financialReturnScore != null && (
+                      {!isPreview && (loc as any).financialReturnScore != null && (
                         <Chip
                           label={`FRS: ${(loc as any).financialReturnScore}, ${(loc as any).financialReturnVerdict}`}
                           size="small"
@@ -743,7 +807,9 @@ export function ReportViewer() {
                           }}
                         />
                       )}
-                      <Chip label={`Score: ${loc.score}/100`} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700 }} />
+                      {loc.score != null && (
+                        <Chip label={`Score: ${loc.score}/100`} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700 }} />
+                      )}
                     </Box>
                   </Box>
                   <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -756,6 +822,7 @@ export function ReportViewer() {
                       ...(loc.incentiveReliability != null ? [{ label: 'Incentive Reliability', value: loc.incentiveReliability }] : []),
                     ].map((metric) => {
                       const tooltipKey = DIMENSION_TOOLTIP_KEYS[metric.label as keyof typeof DIMENSION_TOOLTIP_KEYS];
+                      const metricValue = Number(metric.value ?? 0);
                       return (
                         <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
                           <Typography variant="caption" sx={{ color: '#666', display: 'flex', alignItems: 'center' }}>
@@ -763,14 +830,21 @@ export function ReportViewer() {
                             {'tier' in metric && metric.tier ? ` (${metric.tier})` : ''}
                             <InfoTip text={TOOLTIP_TEXTS[tooltipKey]} placement="top" />
                           </Typography>
-                          <LinearProgress variant="determinate" value={metric.value} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#222', '& .MuiLinearProgress-bar': { bgcolor: metric.value >= 80 ? '#4caf50' : metric.value >= 60 ? '#2196f3' : metric.value >= 40 ? '#D4AF37' : '#ff9800' } }} />
-                          <Typography variant="caption" sx={{ color: '#888', fontSize: '0.7rem' }}>{metric.value}/100</Typography>
+                          <LinearProgress variant="determinate" value={metricValue} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: '#222', '& .MuiLinearProgress-bar': { bgcolor: metricValue >= 80 ? '#4caf50' : metricValue >= 60 ? '#2196f3' : metricValue >= 40 ? '#D4AF37' : '#ff9800' } }} />
+                          {isPreview ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.4 }}>
+                              <Lock sx={{ fontSize: '0.7rem', color: '#D4AF37' }} />
+                              <Typography variant="caption" sx={{ color: '#D4AF37', fontSize: '0.7rem' }}>Upgrade</Typography>
+                            </Box>
+                          ) : (
+                            <Typography variant="caption" sx={{ color: '#888', fontSize: '0.7rem' }}>{metricValue}/100</Typography>
+                          )}
                         </Grid>
                       );
                     })}
                   </Grid>
                   {/* Dimension verdict info icons */}
-                  {(analysis as any).dimensionVerdicts?.[loc.name] && (
+                  {!isPreview && (analysis as any).dimensionVerdicts?.[loc.name] && (
                     <Box sx={{ mt: 1, mb: 1 }}>
                       {Object.entries((analysis as any).dimensionVerdicts[loc.name]).map(([dim, verdict]) => (
                         <Box key={dim} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 0.5 }}>
@@ -826,7 +900,8 @@ export function ReportViewer() {
                     <List dense>{loc.reasoning.map((r, ri) => <ListItem key={ri} sx={{ color: '#a0a0a0' }}>• {r}</ListItem>)}</List>
                   )}
                 </Paper>
-              ))}
+                );
+              })}
             </TabPanel>
 
             {/* Tab 3: Tax Incentives */}
@@ -928,11 +1003,17 @@ export function ReportViewer() {
                     Per territory budget breakdowns, rebate calculations, and net cost projections.
                   </Typography>
                   <Grid container spacing={3}>
-                    {analysis.locationRankings.map((loc, i) => (
+                    {((analysis.financialAnalysis?.budgetScenarios && analysis.financialAnalysis.budgetScenarios.length > 0)
+                      ? analysis.financialAnalysis.budgetScenarios
+                      : analysis.locationRankings
+                    ).map((item: any, i: number) => (
                       <Grid size={{ xs: 12 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: '#111', border: i === 0 ? '2px solid rgba(212,175,55,0.3)' : '1px solid #222' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{loc.name}, {loc.country}</Typography>
+                            <Box>
+                              <Typography variant="h6" sx={{ color: '#D4AF37' }}>{item.territory || item.name}</Typography>
+                              {item.programme && <Typography variant="body2" sx={{ color: '#777' }}>{item.programme}</Typography>}
+                            </Box>
                             <LockedBadge />
                           </Box>
                           {['Total Budget', 'Qualifying Spend', 'ATL Deduction', 'Net Qualifying Spend', 'Gross Rebate', 'Net Rebate', 'Net Budget After Rebate'].map((step, si) => (
