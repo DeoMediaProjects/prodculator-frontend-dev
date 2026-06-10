@@ -1,7 +1,7 @@
 /**
  * Email Delivery Service
- * Integrates with SendGrid to send transactional emails
- * Note: SendGrid API calls must be made server-side due to API key security
+ * Integrates with Brevo to send transactional emails
+ * Note: Brevo API calls must be made server-side due to API key security
  */
 
 import { API_CONFIG } from '@/config/api.config';

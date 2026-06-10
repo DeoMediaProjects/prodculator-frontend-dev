@@ -203,7 +203,7 @@ Podculator 2.0/
 
 ### Phase 6: Email + PDF Services
 **Files to create:**
-- `backend/app/services/email_service.py` — SendGrid integration with Jinja2 templates
+- `backend/app/services/email_service.py` — Brevo integration with Jinja2 templates
 - `backend/app/services/pdf_service.py` — WeasyPrint HTML→PDF rendering
 - `backend/app/templates/emails/*.html` — 6 email templates
 - `backend/app/templates/pdf/report_b2c.html`, `report_b2b.html`
@@ -291,7 +291,6 @@ python-multipart>=0.0.9
 httpx>=0.27.0
 openai>=1.12.0
 stripe>=8.0.0
-sendgrid>=6.11.0
 weasyprint>=61.0
 Jinja2>=3.1.3
 pdfplumber>=0.10.0

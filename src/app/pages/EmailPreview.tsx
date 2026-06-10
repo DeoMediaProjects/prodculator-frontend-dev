@@ -322,7 +322,7 @@ export function EmailPreview() {
             <strong style={{ color: '#D4AF37' }}>Implementation Notes:</strong>
           </Typography>
           <Box component="ul" sx={{ color: '#a0a0a0', fontSize: '0.875rem', lineHeight: 1.8, pl: 3 }}>
-            <li>Emails are sent via server side email service (SendGrid, AWS SES, etc.)</li>
+            <li>Emails are sent via server side email service (Brevo, AWS SES, etc.)</li>
             <li>All templates include black and gold branding consistent with platform design</li>
             <li>Mobile responsive layouts ensure proper rendering across devices</li>
             <li>Data source badges and verification dates included where applicable</li>

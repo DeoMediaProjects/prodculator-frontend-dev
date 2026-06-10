@@ -50,6 +50,7 @@ import { authService } from '@/services/auth.service';
 import { WhatIfCalculator } from '@/app/components/user/WhatIfCalculator';
 import { TerritoryComparison } from '@/app/components/user/TerritoryComparison';
 import { ProductionTimeline } from '@/app/components/user/ProductionTimeline';
+import { SupportContactWidget } from '@/app/components/user/SupportContactWidget';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { useSnackbar } from 'notistack';
 
@@ -416,14 +417,6 @@ export function UserDashboard() {
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Button startIcon={<Home />} onClick={() => navigate('/')} sx={{ color: '#a0a0a0', display: { xs: 'none', sm: 'flex' } }}>Back to Home</Button>
               <Button variant="contained" startIcon={<Movie />} onClick={() => navigate('/upload')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>New Analysis</Button>
-              <Button
-                startIcon={loggingOut ? <CircularProgress size={14} sx={{ color: '#a0a0a0' }} /> : <Logout />}
-                onClick={handleLogout}
-                disabled={loggingOut}
-                sx={{ color: '#a0a0a0', display: { xs: 'none', sm: 'flex' }, '&:hover': { color: '#ffffff' } }}
-              >
-                Logout
-              </Button>
             </Box>
           </Box>
         </Box>
@@ -862,6 +855,7 @@ export function UserDashboard() {
           </Paper>
         </TabPanel>
       </Box>
+      <SupportContactWidget />
     </Box>
   );
 }
