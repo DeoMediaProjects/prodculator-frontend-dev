@@ -11,6 +11,7 @@ import {
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import grantifyBanner from '@/assets/524910a57dfd11f1e00b5b105577b194b5ba8e33.png';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { IntroAnimation } from '@/app/components/common/IntroAnimation';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ export function LandingPage() {
 
   return (
     <Box sx={{ bgcolor: '#000000', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}  >
+      <IntroAnimation />
+
       {/* Atmospheric gradient effect */}
       <Box
         sx={{
