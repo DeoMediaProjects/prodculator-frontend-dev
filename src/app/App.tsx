@@ -60,6 +60,7 @@ import { EmailPreview } from '../app/pages/EmailPreview';
 import { APIConnectionTester } from '../app/pages/APIConnectionTester';
 import { VerifyEmail } from '../app/pages/VerifyEmail';
 import { EmailVerifyCallback } from '../app/pages/EmailVerifyCallback';
+import { ResetPassword } from '../app/pages/ResetPassword';
 
 // MUI Theme Configuration
 const theme = createTheme({
@@ -218,9 +219,11 @@ function AppContent() {
                   <Route path="/signup" element={<UserSignup />} />
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/auth/callback" element={<EmailVerifyCallback />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/upload" element={<ScriptUpload />} />
-                  <Route path="/report/:reportId" element={<ReportViewer />} />
                   <Route path="/report/shared/:shareToken" element={<SharedReportViewer />} />
+                  <Route path="/report/preview" element={<ReportViewer />} />
+                  <Route path="/report/:reportId" element={<ReportViewer />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/sample" element={<SampleReport />} />
                   <Route path="/dashboard" element={<UserDashboard />} />

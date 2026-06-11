@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router';
+import { Navigate, Outlet, useNavigate, useLocation } from 'react-router';
 import {
   Box,
   Drawer,
@@ -40,7 +40,7 @@ const drawerWidth = 240;
 export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { adminLogout, hasAdminPermission } = useAuth();
+  const { adminLogout, hasAdminPermission, isAdminAuthenticated, isAdminAuthLoading } = useAuth();
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -61,6 +61,14 @@ export function AdminLayout() {
     { label: 'User Management', path: '/admin/users', icon: <SupervisorAccount />, permission: 'canManageAdmins' },
   ];
   const visibleMenuItems = menuItems.filter((item) => !item.permission || hasAdminPermission(item.permission));
+
+  if (isAdminAuthLoading) {
+    return <LoadingSpinner overlay message="Loading admin session..." />;
+  }
+
+  if (!isAdminAuthenticated) {
+    return <Navigate to="/admin/login" replace state={{ from: location }} />;
+  }
 
   const handleLogout = async () => {
     if (loggingOut) return;

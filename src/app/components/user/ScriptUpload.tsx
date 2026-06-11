@@ -231,8 +231,11 @@ export function ScriptUpload() {
         language: language || undefined,
       };
 
-      await generateAnalysis(file!, metadata);
-      navigate('/report/full');
+      const generated = await generateAnalysis(file!, metadata);
+      if (!generated.id) {
+        throw new Error('Report completed but did not return a report ID.');
+      }
+      navigate(`/report/${generated.id}`);
     } catch (err: any) {
       if (err instanceof ReportTimeoutError) {
         setTimedOutReportId(err.reportId);
@@ -294,6 +297,7 @@ export function ScriptUpload() {
         principalCast: principalCast ? Number(principalCast) : undefined,
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
         language: language || undefined,
+        email,
       };
 
       await generatePreview(metadata);

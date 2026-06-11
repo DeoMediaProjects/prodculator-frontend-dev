@@ -182,7 +182,7 @@ export function AdminLogin() {
               Sign In
             </Button>
           </Box>
-
+{/* 
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Button
               onClick={() => navigate('/')}
@@ -197,7 +197,7 @@ export function AdminLogin() {
             >
               ← Back to Main Site
             </Button>
-          </Box>
+          </Box> */}
         </Paper>
       </Container>
     </Box>

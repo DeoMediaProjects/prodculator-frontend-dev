@@ -118,7 +118,7 @@ export const STRIPE_PRICES = {
   },
   studioAnnualGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_GBP || '',
-    amount: 19100,  // £191/mo billed annually = £2,292/yr (20% off £239/mo)
+    amount: 19900,  // £199/mo billed annually = £2,388/yr
     currency: 'gbp',
     name: 'Studio Annual (GBP)',
     reportLimit: 10,

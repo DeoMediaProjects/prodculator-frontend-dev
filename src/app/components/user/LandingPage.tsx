@@ -11,18 +11,16 @@ import {
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import grantifyBanner from '@/assets/524910a57dfd11f1e00b5b105577b194b5ba8e33.png';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { IntroAnimation } from '@/app/components/common/IntroAnimation';
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, userLogout } = useAuth();
-
-  const handleLogout = async () => {
-    await userLogout();
-    // page stays on '/', auth state clears
-  };
+  const { isAuthenticated } = useAuth();
 
   return (
     <Box sx={{ bgcolor: '#000000', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}  >
+      <IntroAnimation />
+
       {/* Atmospheric gradient effect */}
       <Box
         sx={{
@@ -121,48 +119,6 @@ export function LandingPage() {
                   >
                     Dashboard
                   </Button>
-                  <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: '#000000',
-                        fontWeight: 400,
-                      }}
-                    >
-                      Plan: <Box component="span" sx={{ fontWeight: 600 }}>Free</Box>
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    onClick={() => navigate('/pricing')}
-                    sx={{
-                      bgcolor: '#D4AF37',
-                      color: '#000000',
-                      fontWeight: 400,
-                      px: { xs: 2, md: 3 },
-                      textTransform: 'none',
-                      '&:hover': {
-                        bgcolor: '#D4AF37',
-                      }
-                    }}
-                  >
-                    Upgrade
-                  </Button>
-                  <Button
-                    onClick={handleLogout}
-                     sx={{
-                      bgcolor: '#D4AF37',
-                      color: '#000000',
-                      fontWeight: 400,
-                      px: { xs: 2, md: 3 },
-                      textTransform: 'none',
-                      '&:hover': {
-                        bgcolor: '#D4AF37',
-                      }
-                    }}
-                  >
-                    Logout
-                  </Button>
                 </>
               ) : (
                 <>
@@ -201,22 +157,6 @@ export function LandingPage() {
                   </Button>
                 </>
               )}
-              <Button
-                variant="contained"
-                    onClick={() => navigate('/admin/login')}
-                    sx={{
-                      bgcolor: '#D4AF37',
-                      color: '#000000',
-                      fontWeight: 400,
-                      px: { xs: 2, md: 3 },
-                      textTransform: 'none',
-                      '&:hover': {
-                        bgcolor: '#D4AF37',
-                      }
-                    }}
-              >
-                Admin
-              </Button>
             </Box>
           </Box>
         </Container>

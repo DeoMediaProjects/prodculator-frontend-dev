@@ -183,6 +183,7 @@ interface ScriptMetadata {
   supportingCast?: number;
   targetAudience?: string;
   language?: string;
+  email?: string;
 }
 
 interface ScriptContextType {
@@ -253,7 +254,39 @@ function buildReportRequestBody(
   if (metadata.supportingCast) body.supporting_cast = metadata.supportingCast;
   if (metadata.targetAudience) body.target_audience = metadata.targetAudience;
   if (metadata.language) body.language = metadata.language;
+  if (metadata.email) body.email = metadata.email;
   return body;
+}
+
+function normaliseComplexity(value: unknown): ScriptAnalysis['complexity'] {
+  if (value === 'Low' || value === 'Medium' || value === 'High' || value === 'Very High') {
+    return value;
+  }
+  return 'Medium';
+}
+
+function normaliseAnalysisData(
+  analysisData: Partial<ScriptAnalysis>,
+  metadata: ScriptMetadata
+): ScriptAnalysis {
+  return {
+    id: analysisData.id,
+    genre: analysisData.genre || (metadata.genre.length ? metadata.genre.join(', ') : 'Unknown'),
+    tone: analysisData.tone || metadata.targetAudience || 'Production-ready with balanced commercial and creative intent',
+    scale: analysisData.scale || metadata.format || 'Unknown format',
+    complexity: normaliseComplexity(analysisData.complexity),
+    executiveSummary: analysisData.executiveSummary ?? null,
+    financialAnalysis: analysisData.financialAnalysis ?? null,
+    sectionExplainers: analysisData.sectionExplainers ?? null,
+    locationRankings: toArray<LocationRanking>(analysisData.locationRankings),
+    incentiveEstimates: toArray<IncentiveEstimate>(analysisData.incentiveEstimates),
+    crewInsights: toArray<CrewInsight>(analysisData.crewInsights),
+    comparables: toArray<ComparableProduction>(analysisData.comparables),
+    weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
+    fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities),
+    scriptTitle: analysisData.scriptTitle || metadata.title,
+    generatedAt: analysisData.generatedAt || new Date().toISOString(),
+  };
 }
 
 export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPreview = false): ScriptAnalysis {
@@ -399,72 +432,6 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
   };
 }
 
-function buildPreviewAnalysis(metadata: ScriptMetadata): ScriptAnalysis {
-  const now = new Date().toISOString();
-  const primaryTerritory = metadata.country || 'uk';
-
-  return {
-    genre: metadata.genre.length ? metadata.genre.join(', ') : 'Drama',
-    tone: metadata.targetAudience || 'Preview estimate based on supplied production metadata',
-    scale: `${metadata.format || 'Feature Film'} • ${metadata.budgetCurrency} ${metadata.budgetAmount || 'budget TBD'}`,
-    complexity: 'Medium',
-    locationRankings: [
-      {
-        name: primaryTerritory.toUpperCase(),
-        country: primaryTerritory.toUpperCase(),
-        score: 72,
-        costEfficiency: 68,
-        crewDepth: 70,
-        infrastructure: 74,
-        incentiveStrength: 69,
-        currencyAdvantage: 62,
-        reasoning: [
-          'Preview mode: estimated from your selected metadata.',
-          'Full analysis unlocks scene-level matching and territory scoring.',
-        ],
-        isAssessmentOnly: true,
-      },
-    ],
-    incentiveEstimates: [
-      {
-        territory: primaryTerritory.toUpperCase(),
-        program: 'Preview incentive estimate',
-        rate: 'Est. 20 to 30%',
-        cap: 'Varies',
-        qualifyingSpend: 'Program dependent',
-        estimatedRebate: 'Unlock full report',
-        requirements: ['Eligibility must be validated against local program rules.'],
-        disclaimer: 'Preview estimate only.',
-        dataSource: 'Prodculator preview model',
-        lastUpdated: now,
-      },
-    ],
-    crewInsights: [
-      {
-        territory: primaryTerritory.toUpperCase(),
-        availability: 'Medium',
-        costVsUSD: 'Preview estimate',
-        qualityRating: 3.5,
-        specialties: ['General production crew'],
-        tradeoff: 'Upgrade for full crew-cost and role-by-role detail.',
-      },
-    ],
-    comparables: [],
-    weatherLogistics: [
-      {
-        territory: primaryTerritory.toUpperCase(),
-        bestMonths: ['Apr', 'May', 'Sep', 'Oct'],
-        weatherRisk: 'Medium',
-        infrastructure: 'Preview estimate',
-        travelVisa: 'Check local visa and permit requirements.',
-      },
-    ],
-    fundingOpportunities: [],
-    scriptTitle: metadata.title,
-    generatedAt: now,
-  };
-}
-
 export function ScriptProvider({ children }: { children: ReactNode }) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
@@ -527,7 +494,15 @@ export function ScriptProvider({ children }: { children: ReactNode }) {
       // Use direct analysis if backend returns it in the guide's shape, else fall back to mapper
       const analysisData = (report as any).analysis;
       const mapped = analysisData?.locationRankings
-        ? { ...analysisData, id: report.id, scriptTitle: metadata.title, generatedAt: report.completed_at || new Date().toISOString() }
+        ? normaliseAnalysisData(
+          {
+            ...analysisData,
+            id: report.id,
+            scriptTitle: metadata.title,
+            generatedAt: report.completed_at || report.created_at || new Date().toISOString(),
+          },
+          metadata
+        )
         : mapReportToAnalysis(report, metadata);
       setAnalysis(mapped);
       return mapped;
@@ -536,29 +511,20 @@ export function ScriptProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Preview calls POST /api/reports with report_type "preview" — synchronous, no auth needed.
+  // Preview uses the JSON-only backend contract — synchronous, no auth needed.
   const generatePreview = async (metadata: ScriptMetadata): Promise<ScriptAnalysis> => {
     setIsProcessing(true);
 
     try {
       const body = buildReportRequestBody(metadata, 'preview');
       const response = await apiClient.post<{ reportType: string; analysis: ScriptAnalysis }>(
-        '/api/reports',
+        '/api/reports/preview',
         body
       );
 
-      const analysisData: ScriptAnalysis = {
-        ...response.analysis,
-        scriptTitle: metadata.title,
-        generatedAt: new Date().toISOString(),
-      };
+      const analysisData = normaliseAnalysisData(response.analysis, metadata);
       setAnalysis(analysisData);
       return analysisData;
-    } catch (err) {
-      // Fall back to local preview if backend preview fails
-      const fallback = buildPreviewAnalysis(metadata);
-      setAnalysis(fallback);
-      return fallback;
     } finally {
       setIsProcessing(false);
     }

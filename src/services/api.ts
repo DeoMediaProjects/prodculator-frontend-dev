@@ -3,9 +3,15 @@ import type { Territory } from '@/services/admin.types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
-const ACCESS_TOKEN_KEY = 'prodculator_access_token';
-const REFRESH_TOKEN_KEY = 'prodculator_refresh_token';
+// Auth tokens are no longer stored in JS-readable storage. The backend issues
+// the access/refresh JWTs as httpOnly cookies (unreadable by JavaScript, so XSS
+// can't exfiltrate them) and the browser attaches them automatically because the
+// client sends requests with credentials. The only readable cookie is the CSRF
+// token, which we echo back in a header (double-submit). `prodculator_admin_session`
+// remains a non-secret local marker recording which session type is active.
 const ADMIN_SESSION_KEY = 'prodculator_admin_session';
+const CSRF_COOKIE_NAME = 'pc_csrf_token';
+const CSRF_HEADER_NAME = 'X-CSRF-Token';
 
 type AuthListener = (authenticated: boolean) => void;
 const authListeners = new Set<AuthListener>();
@@ -19,26 +25,35 @@ export function subscribeAuthState(listener: AuthListener) {
   return () => authListeners.delete(listener);
 }
 
-export function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const escaped = name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1');
+  const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+/**
+ * The readable CSRF cookie. Its presence also serves as the "is there a session?"
+ * signal, since the JWTs themselves live in httpOnly cookies JS cannot read.
+ */
+export function getCsrfToken(): string | null {
+  return readCookie(CSRF_COOKIE_NAME);
 }
 
-export function setTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+export function isAuthenticated(): boolean {
+  return getCsrfToken() !== null;
+}
+
+/** Mark a regular-user session as established and notify listeners. */
+export function markAuthenticated() {
+  localStorage.removeItem(ADMIN_SESSION_KEY);
   emitAuthChange(true);
 }
 
-// Like setTokens but does NOT emit an auth-state change event.
-// Use for admin sign-in so the regular-user onAuthStateChange listener
-// does not fire and call /api/auth/me with an admin token.
-export function setTokensSilent(accessToken: string, refreshToken: string) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+// Like markAuthenticated but does NOT emit an auth-state change event, and records
+// the admin marker. Used for admin sign-in so the regular-user onAuthStateChange
+// listener does not fire and call /api/auth/me with an admin session.
+export function markAdminAuthenticated() {
   localStorage.setItem(ADMIN_SESSION_KEY, 'true');
 }
 
@@ -46,9 +61,11 @@ export function isAdminSession(): boolean {
   return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
 }
 
-export function clearTokens() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+/**
+ * Forget local session state. The httpOnly auth cookies are cleared server-side
+ * by the signout response; here we drop the admin marker and notify listeners.
+ */
+export function clearAuthState() {
   localStorage.removeItem(ADMIN_SESSION_KEY);
   emitAuthChange(false);
 }
@@ -142,17 +159,25 @@ type InternalRequestConfig = AxiosRequestConfig & {
   _isRetry?: boolean;
 };
 
+// withCredentials so the browser sends/receives the httpOnly auth cookies on
+// every cross-origin API call.
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
 });
 
+const CSRF_SAFE_METHODS = new Set(['get', 'head', 'options', 'trace']);
+
 axiosClient.interceptors.request.use((config) => {
-  const options = config as InternalRequestConfig;
-  if (options._requiresAuth) {
-    const token = getAccessToken();
-    if (token) {
+  // Auth travels in cookies now — no Authorization header. For state-changing
+  // requests, echo the readable CSRF cookie in a header (double-submit) so the
+  // backend can prove the request originated from our app.
+  const method = (config.method || 'get').toLowerCase();
+  if (!CSRF_SAFE_METHODS.has(method)) {
+    const csrf = getCsrfToken();
+    if (csrf) {
       const headers = AxiosHeaders.from(config.headers || {});
-      headers.set('Authorization', `Bearer ${token}`);
+      headers.set(CSRF_HEADER_NAME, csrf);
       config.headers = headers;
     }
   }
@@ -168,34 +193,31 @@ axiosClient.interceptors.request.use((config) => {
 // ---------------------------------------------------------------------------
 let refreshPromise: Promise<boolean> | null = null;
 
-type RefreshResponse = {
-  access_token: string;
-  refresh_token: string;
-};
-
 async function attemptTokenRefresh(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
     try {
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) return false;
+      // The refresh token rides in the httpOnly cookie — send an empty body and
+      // let the server rotate the cookie pair. Bail early if there's no session
+      // signal at all, to avoid a pointless 401.
+      if (!isAuthenticated()) return false;
 
       const endpoint = isAdminSession() ? '/api/admin/auth/refresh' : '/api/auth/refresh';
-      const response = await axiosClient.post<RefreshResponse>(
+      await axiosClient.post(
         endpoint,
-        { refresh_token: refreshToken },
+        {},
         {
           _requiresAuth: false,
           _isRetry: true,
         } as InternalRequestConfig
       );
 
-      const data = response.data;
+      // New cookies are set by the server; refresh the local session marker.
       if (isAdminSession()) {
-        setTokensSilent(data.access_token, data.refresh_token);
+        markAdminAuthenticated();
       } else {
-        setTokens(data.access_token, data.refresh_token);
+        markAuthenticated();
       }
       return true;
     } catch {
@@ -221,16 +243,12 @@ axiosClient.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest._requiresAuth && !originalRequest._isRetry) {
       const refreshed = await attemptTokenRefresh();
       if (refreshed) {
+        // The refreshed access token is in a cookie now — just replay the
+        // request; the browser re-attaches credentials automatically.
         originalRequest._isRetry = true;
-        const token = getAccessToken();
-        if (token) {
-          // originalRequest.headers is always an AxiosHeaders instance at runtime;
-          // the wide static type on AxiosRequestConfig just can't express that.
-          (originalRequest.headers as AxiosHeaders).set('Authorization', `Bearer ${token}`);
-        }
         return axiosClient.request(originalRequest);
       }
-      clearTokens();
+      clearAuthState();
     }
 
     if (axios.isCancel(error)) {
@@ -293,10 +311,18 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
         ? resolvedInput.toString()
         : resolvedInput.url;
 
+  // Send cookies, and echo the CSRF token on state-changing requests.
+  const headers = new Headers(init.headers || {});
+  if (!CSRF_SAFE_METHODS.has(method.toLowerCase())) {
+    const csrf = getCsrfToken();
+    if (csrf) headers.set(CSRF_HEADER_NAME, csrf);
+  }
+  const finalInit: RequestInit = { credentials: 'include', ...init, headers };
+
   logRequest(method, url, init.body);
 
   try {
-    const response = await fetch(resolvedInput, init);
+    const response = await fetch(resolvedInput, finalInit);
     const responseData = await readFetchResponseData(response);
     logResponse(method, url, response.status, responseData);
     return response;

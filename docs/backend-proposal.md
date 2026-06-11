@@ -69,7 +69,7 @@ Technical Approach
 - Deployment: Separate service alongside the existing frontend
 - Authentication: All auth flows route through the backend; frontend never touches the database directly
 
-The existing 13 database tables remain unchanged. The backend sits between the frontend and all external services (managed database, OpenAI, Stripe, SendGrid).
+The existing 13 database tables remain unchanged. The backend sits between the frontend and all external services (managed database, OpenAI, Stripe, Brevo).
 
 
 4-Week Delivery Schedule
@@ -149,7 +149,7 @@ Expected Outcomes
 
 After implementation:
 
-1. No API keys exposed in the browser — OpenAI, Stripe secret key, SendGrid all server-side only
+1. No API keys exposed in the browser — OpenAI, Stripe secret key, Brevo all server-side only
 2. Admin actions verified on every request — permission bypass is no longer possible
 3. Consistent PDF output — professional reports regardless of user's browser or device
 4. Background processing — users don't wait for 2-minute analysis; they get an email when it's done

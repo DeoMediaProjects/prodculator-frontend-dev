@@ -7,12 +7,11 @@ import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import {
   apiClient,
-  clearTokens,
-  getAccessToken,
-  getRefreshToken,
+  clearAuthState,
   isAdminSession,
-  setTokens,
-  setTokensSilent,
+  isAuthenticated,
+  markAdminAuthenticated,
+  markAuthenticated,
   subscribeAuthState,
 } from './api';
 
@@ -65,7 +64,7 @@ export class AuthService {
       }
 
       const tokens = data as TokenResponse;
-      setTokens(tokens.access_token, tokens.refresh_token);
+      markAuthenticated();
       return { user: tokens.user, verificationRequired: false, error: null };
     } catch (error) {
       return { user: null, verificationRequired: false, error: error instanceof Error ? error.message : 'Sign up failed' };
@@ -75,7 +74,7 @@ export class AuthService {
   async verifyEmailToken(token: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
       const data = await apiClient.post<TokenResponse>('/api/auth/verify-email', { token });
-      setTokens(data.access_token, data.refresh_token);
+      markAuthenticated();
       return { user: data.user, error: null };
     } catch (error) {
       return { user: null, error: error instanceof Error ? error.message : 'Verification failed' };
@@ -85,7 +84,7 @@ export class AuthService {
   async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
       const data = await apiClient.post<TokenResponse>('/api/auth/signin', { email, password });
-      setTokens(data.access_token, data.refresh_token);
+      markAuthenticated();
       return { user: data.user, error: null };
     } catch (error) {
       return { user: null, error: error instanceof Error ? error.message : 'Sign in failed' };
@@ -95,18 +94,17 @@ export class AuthService {
   async signOut(): Promise<{ error: string | null }> {
     try {
       await apiClient.post('/api/auth/signout', undefined, { auth: true });
-      clearTokens();
+      clearAuthState();
       return { error: null };
     } catch (error) {
-      clearTokens();
+      clearAuthState();
       return { error: error instanceof Error ? error.message : 'Sign out failed' };
     }
   }
 
   async getCurrentUser(): Promise<AuthUser | null> {
     try {
-      const token = getAccessToken();
-      if (!token) {
+      if (!isAuthenticated()) {
         return null;
       }
       return await apiClient.get<AuthUser>('/api/auth/me', { auth: true });
@@ -121,6 +119,18 @@ export class AuthService {
       return { error: null };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Reset password failed' };
+    }
+  }
+
+  async confirmPasswordReset(token: string, newPassword: string): Promise<{ error: string | null }> {
+    try {
+      await apiClient.post('/api/auth/reset-password/confirm', {
+        token,
+        new_password: newPassword,
+      });
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to reset password' };
     }
   }
 
@@ -144,18 +154,16 @@ export class AuthService {
 
   async refreshSession(): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) {
-        return { user: null, error: 'No refresh token available' };
+      if (!isAuthenticated()) {
+        return { user: null, error: 'No active session' };
       }
 
-      const data = await apiClient.post<TokenResponse>('/api/auth/refresh', {
-        refresh_token: refreshToken,
-      });
-      setTokens(data.access_token, data.refresh_token);
+      // The refresh token rides in the httpOnly cookie — no body needed.
+      const data = await apiClient.post<TokenResponse>('/api/auth/refresh', {});
+      markAuthenticated();
       return { user: data.user, error: null };
     } catch (error) {
-      clearTokens();
+      clearAuthState();
       return { user: null, error: error instanceof Error ? error.message : 'Token refresh failed' };
     }
   }
@@ -173,6 +181,8 @@ export class AuthService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_token: idToken }),
+        // Needed so the Set-Cookie auth cookies from the response are stored.
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -186,8 +196,8 @@ export class AuthService {
 
       const data: TokenResponse = await response.json();
 
-      // Step 4: Store backend JWT
-      setTokens(data.access_token, data.refresh_token);
+      // Step 4: Backend JWT is now in httpOnly cookies; just mark the session.
+      markAuthenticated();
       return { user: data.user, error: null };
     } catch (error) {
       return { user: null, error: error instanceof Error ? error.message : 'Google sign in failed' };
@@ -197,10 +207,10 @@ export class AuthService {
   async adminSignIn(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
       const data = await apiClient.post<TokenResponse>('/api/admin/auth/signin', { email, password });
-      // Use silent setter: stores tokens without emitting a regular auth-state
-      // change, so the onAuthStateChange listener won't call /api/auth/me with
-      // an admin token and produce spurious 401s.
-      setTokensSilent(data.access_token, data.refresh_token);
+      // Mark the admin session WITHOUT emitting a regular auth-state change, so
+      // the onAuthStateChange listener won't call /api/auth/me with an admin
+      // session and produce spurious 401s.
+      markAdminAuthenticated();
       return { user: data.user, error: null };
     } catch (error) {
       return { user: null, error: error instanceof Error ? error.message : 'Admin sign in failed' };
@@ -210,7 +220,7 @@ export class AuthService {
   async adminSignOut(): Promise<{ error: string | null }> {
     try {
       await apiClient.post('/api/admin/auth/signout', undefined, { auth: true });
-      clearTokens();
+      clearAuthState();
       return { error: null };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Admin sign out failed' };
@@ -219,8 +229,7 @@ export class AuthService {
 
   async getAdminUser(): Promise<AuthUser | null> {
     try {
-      const token = getAccessToken();
-      if (!token || !isAdminSession()) return null;
+      if (!isAuthenticated() || !isAdminSession()) return null;
       return await apiClient.get<AuthUser>('/api/admin/auth/me', { auth: true });
     } catch (_error) {
       return null;

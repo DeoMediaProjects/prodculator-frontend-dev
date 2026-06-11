@@ -139,7 +139,7 @@ export function PrivacyPolicy() {
           </Typography>
           <ul>
             <li><strong>Payment Processors:</strong> Stripe (for payment processing)</li>
-            <li><strong>Email Service:</strong> SendGrid/AWS SES (for transactional emails and automated B2B report delivery)</li>
+            <li><strong>Email Service:</strong> Brevo/AWS SES (for transactional emails and automated B2B report delivery)</li>
             <li><strong>Cloud Infrastructure:</strong> AWS/Google Cloud (for hosting and data storage)</li>
             <li><strong>Analytics:</strong> Google Analytics (anonymized usage data only; no PII)</li>
             <li><strong>Legal Requirements:</strong> When required by law, court order, or to protect our rights</li>
