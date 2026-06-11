@@ -66,6 +66,7 @@ interface AuthContextType {
   // Admin auth
   adminUser: AdminUser | null;
   isAdminAuthenticated: boolean;
+  isAdminAuthLoading: boolean;
   adminLogin: (email: string, password: string) => Promise<boolean>;
   adminLogout: () => Promise<{ error: string | null }>;
   hasAdminPermission: (permission: keyof AdminPermissions) => boolean;
@@ -125,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [usedEmails, setUsedEmails] = useState<Set<string>>(new Set());
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [isAdminAuthLoading, setIsAdminAuthLoading] = useState(true);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -144,17 +146,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const checkAdminSession = async () => {
-      const adminProfile = await authService.getAdminUser();
-      if (adminProfile) {
-        const role = (adminProfile.role as AdminRole) || 'support_admin';
-        setAdminUser({
-          id: adminProfile.id,
-          email: adminProfile.email,
-          name: adminProfile.name || adminProfile.email,
-          role,
-          permissions: ROLE_PERMISSIONS[role],
-          createdAt: '',
-        });
+      try {
+        const adminProfile = await authService.getAdminUser();
+        if (adminProfile) {
+          const role = (adminProfile.role as AdminRole) || 'support_admin';
+          setAdminUser({
+            id: adminProfile.id,
+            email: adminProfile.email,
+            name: adminProfile.name || adminProfile.email,
+            role,
+            permissions: ROLE_PERMISSIONS[role],
+            createdAt: '',
+          });
+        }
+      } finally {
+        setIsAdminAuthLoading(false);
       }
     };
 
@@ -284,6 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       createdAt: '',
       lastLogin: new Date().toISOString(),
     });
+    setIsAdminAuthLoading(false);
 
     return true;
   };
@@ -292,6 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await authService.adminSignOut();
     if (!result.error) {
       setAdminUser(null);
+      setIsAdminAuthLoading(false);
     }
     return result;
   };
@@ -315,6 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userLogout,
         adminUser,
         isAdminAuthenticated: !!adminUser,
+        isAdminAuthLoading,
         adminLogin,
         adminLogout,
         hasAdminPermission,
