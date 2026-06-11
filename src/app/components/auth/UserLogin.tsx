@@ -11,11 +11,20 @@ import {
   IconButton,
   Alert,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  CircularProgress,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { authService } from '@/services/auth.service';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
-import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+
+// Simple, pragmatic email shape check — non-empty local part, "@", domain with a dot.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function UserLogin() {
   const navigate = useNavigate();
@@ -26,18 +35,56 @@ export function UserLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Forgot-password dialog state
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  // Tracks whether the user has interacted with the field, so we don't flag the
+  // email as invalid before they've had a chance to type.
+  const [forgotTouched, setForgotTouched] = useState(false);
+
+  const isForgotEmailValid = EMAIL_REGEX.test(forgotEmail.trim());
+  // Only flag the field once the user has actually typed something invalid — an
+  // empty field is never shown as an error (the disabled submit button covers it).
+  const showForgotEmailError = forgotTouched && forgotEmail.trim().length > 0 && !isForgotEmailValid;
+
+  const openForgot = () => {
+    setForgotEmail(email);
+    setForgotSent(false);
+    setForgotTouched(false);
+    setForgotOpen(true);
+  };
+
+  const handleForgotSubmit = async () => {
+    if (!isForgotEmailValid) {
+      setForgotTouched(true);
+      return;
+    }
+    setForgotLoading(true);
+    // The API responds with a generic success regardless of whether the address is
+    // registered, so we always show the same confirmation (no account enumeration).
+    await authService.resetPassword(forgotEmail.trim());
+    setForgotLoading(false);
+    setForgotSent(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const success = await userLogin(email, password);
-      
+      const { success, error: loginError, needsVerification } = await userLogin(email, password);
+
       if (success) {
         navigate('/dashboard');
+      } else if (needsVerification) {
+        // Credentials were valid but the email isn't verified — send them to the
+        // "check your email" screen, which can resend the verification link.
+        navigate('/verify-email', { state: { email } });
       } else {
-        setError('Invalid credentials. Please check your email and password.');
+        setError(loginError || 'Invalid credentials. Please check your email and password.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -107,13 +154,13 @@ export function UserLogin() {
           }}
         >
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            {/* <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
               <img 
                 src={exampleLogo} 
                 alt="Prodculator" 
                 style={{ height: '48px', width: 'auto' }}
               />
-            </Box>
+            </Box> */}
             <Typography variant="h4" sx={{ color: '#D4AF37', fontWeight: 700, mb: 1 }}>
               Welcome Back
             </Typography>
@@ -174,6 +221,7 @@ export function UserLogin() {
 
             <Box sx={{ textAlign: 'right', mb: 4 }}>
               <Button
+                onClick={openForgot}
                 sx={{
                   color: '#D4AF37',
                   textTransform: 'none',
@@ -213,11 +261,11 @@ export function UserLogin() {
             </Button>
           </Box>
 
-          <Divider sx={{ my: 3, borderColor: 'rgba(212, 175, 55, 0.2)' }}>
+          {/* <Divider sx={{ my: 3, borderColor: 'rgba(212, 175, 55, 0.2)' }}>
             <Typography variant="body2" sx={{ color: '#666', px: 1 }}>
               or
             </Typography>
-          </Divider>
+          </Divider> */}
 
           <Button
             fullWidth
@@ -238,6 +286,7 @@ export function UserLogin() {
               color: '#FFFFFF',
               fontWeight: 600,
               py: 1.5,
+              mt: 3,
               fontSize: '1rem',
               '&:hover': {
                 borderColor: '#D4AF37',
@@ -295,6 +344,83 @@ export function UserLogin() {
           </Box>
         </Paper>
       </Container>
+
+      <Dialog
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
+        PaperProps={{
+          sx: {
+            bgcolor: '#0a0a0a',
+            border: '2px solid rgba(212, 175, 55, 0.3)',
+            borderRadius: 3,
+            color: '#fff',
+            maxWidth: 440,
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>Reset your password</DialogTitle>
+        <DialogContent>
+          {forgotSent ? (
+            <Alert
+              severity="success"
+              sx={{
+                bgcolor: 'rgba(76, 175, 80, 0.1)',
+                color: '#81c784',
+                border: '1px solid rgba(76, 175, 80, 0.3)',
+              }}
+            >
+              If an account exists for that email, we've sent a link to reset your password.
+              Check your inbox (and spam folder).
+            </Alert>
+          ) : (
+            <>
+              <DialogContentText sx={{ color: '#a0a0a0', mb: 2 }}>
+                Enter your account email and we'll send you a link to reset your password.
+              </DialogContentText>
+              <TextField
+                fullWidth
+                autoFocus
+                type="email"
+                label="Email Address"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                onBlur={() => setForgotTouched(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleForgotSubmit();
+                  }
+                }}
+                error={showForgotEmailError}
+                helperText={showForgotEmailError ? 'Enter a valid email address.' : ' '}
+                inputProps={{ inputMode: 'email', maxLength: 254 }}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setForgotOpen(false)} sx={{ color: '#a0a0a0' }}>
+            {forgotSent ? 'Close' : 'Cancel'}
+          </Button>
+          {!forgotSent && (
+            <Button
+              onClick={handleForgotSubmit}
+              variant="contained"
+              disabled={forgotLoading || !isForgotEmailValid}
+              startIcon={forgotLoading ? <CircularProgress size={18} sx={{ color: '#000' }} /> : undefined}
+              sx={{
+                bgcolor: '#D4AF37',
+                color: '#000',
+                fontWeight: 700,
+                '&:hover': { bgcolor: '#B8941F' },
+                '&:disabled': { bgcolor: '#665827', color: '#000' },
+              }}
+            >
+              {forgotLoading ? 'Sending…' : 'Send Reset Link'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

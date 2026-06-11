@@ -124,6 +124,18 @@ export class AuthService {
     }
   }
 
+  async confirmPasswordReset(token: string, newPassword: string): Promise<{ error: string | null }> {
+    try {
+      await apiClient.post('/api/auth/reset-password/confirm', {
+        token,
+        new_password: newPassword,
+      });
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to reset password' };
+    }
+  }
+
   async resendVerification(email: string): Promise<{ error: string | null }> {
     try {
       await apiClient.post('/api/auth/resend-verification', { email });

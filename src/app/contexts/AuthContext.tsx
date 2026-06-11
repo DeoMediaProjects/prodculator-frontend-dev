@@ -58,7 +58,7 @@ interface AuthContextType {
   markFreeReportUsed: (email: string) => void;
 
   // User auth
-  userLogin: (email: string, password: string) => Promise<boolean>;
+  userLogin: (email: string, password: string) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>;
   userSignup: (userData: SignupData) => Promise<{ status: 'success' | 'verification_required' | 'error'; error?: string }>;
   googleLogin: () => Promise<boolean>;
   userLogout: () => void;
@@ -188,12 +188,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsedEmails(prev => new Set(prev).add(email.toLowerCase()));
   };
 
-  const userLogin = async (email: string, password: string): Promise<boolean> => {
+  const userLogin = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string; needsVerification?: boolean }> => {
     const { user: authUser, error } = await authService.signIn(email, password);
 
     if (error || !authUser) {
       console.error('Login error:', error);
-      return false;
+      // The API returns a 403 with a "verify your email" message when the account
+      // exists but hasn't been verified yet — surface that distinctly so the UI can
+      // route the user to the resend-verification screen instead of showing
+      // "invalid credentials".
+      const needsVerification = !!error && /verify your email/i.test(error);
+      return { success: false, error: error ?? undefined, needsVerification };
     }
 
     setUser({
@@ -203,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       reportsLimit: authUser.credits_remaining || 0,
     });
 
-    return true;
+    return { success: true };
   };
 
   const googleLogin = async (): Promise<boolean> => {
