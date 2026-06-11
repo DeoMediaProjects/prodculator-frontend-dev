@@ -22,6 +22,7 @@ import {
   Grid,
   Checkbox,
   FormControlLabel,
+  Link,
   Skeleton,
 } from '@mui/material';
 import {
@@ -235,6 +236,8 @@ export function ScriptUpload() {
       if (!generated.id) {
         throw new Error('Report completed but did not return a report ID.');
       }
+      // Reset consent so each upload is its own explicit processing/consent event.
+      setAcceptedTerms(false);
       navigate(`/report/${generated.id}`);
     } catch (err: any) {
       if (err instanceof ReportTimeoutError) {
@@ -833,12 +836,46 @@ export function ScriptUpload() {
                     You've used your report limit. Upgrade to generate more.
                   </Alert>
                 )}
+                {isAuthenticated && (
+                  <FormControlLabel
+                    sx={{ mb: 2, alignItems: 'flex-start' }}
+                    control={
+                      <Checkbox
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        sx={{ color: '#D4AF37', mt: '-2px' }}
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
+                        By generating this report, I agree to the{' '}
+                        <Link href="/terms" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                          Terms of Service
+                        </Link>
+                        ,{' '}
+                        <Link href="/privacy" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                          Privacy Policy
+                        </Link>
+                        {' '}and{' '}
+                        <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                          Acceptable Use Policy
+                        </Link>
+                        . This includes use of anonymised production metadata in aggregate market intelligence reports{' '}
+                        <Link href="/terms#section-6-3" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37', fontSize: '0.7rem' }}>
+                          (see §6.3)
+                        </Link>
+                        .
+                      </Typography>
+                    }
+                  />
+                )}
                 <Button
                   fullWidth
                   variant="contained"
                   size="large"
                   onClick={handleGenerateReport}
-                  disabled={isAuthenticated && quotaBlocked}
+                  disabled={(isAuthenticated && quotaBlocked) || (isAuthenticated && !acceptedTerms)}
                   sx={{
                     py: 2,
                     fontSize: '1.1rem',
@@ -872,10 +909,27 @@ export function ScriptUpload() {
             sx={{ mb: 2 }}
           />
           <FormControlLabel
-            control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} sx={{ color: '#D4AF37' }} />}
+            sx={{ alignItems: 'flex-start' }}
+            control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} sx={{ color: '#D4AF37', mt: '-2px' }} />}
             label={
-              <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                I agree to the Terms of Service and Privacy Policy. I understand this is a preview and non commercial data.
+              <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
+                By continuing, I agree to the{' '}
+                <Link href="/terms" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                  Terms of Service
+                </Link>
+                ,{' '}
+                <Link href="/privacy" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                  Privacy Policy
+                </Link>
+                {' '}and{' '}
+                <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                  Acceptable Use Policy
+                </Link>
+                . This includes use of anonymised production metadata in aggregate market intelligence reports{' '}
+                <Link href="/terms#section-6-3" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37', fontSize: '0.7rem' }}>
+                  (see §6.3)
+                </Link>
+                .
               </Typography>
             }
           />

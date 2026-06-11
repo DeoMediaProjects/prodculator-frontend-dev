@@ -446,6 +446,13 @@ export function LandingPage() {
                 >
                   Privacy Policy
                 </Box>
+                <Box
+                  component="a"
+                  href="/acceptable-use"
+                  sx={{ fontSize: 13, color: '#000000', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                >
+                  Acceptable Use
+                </Box>
               </Box>
             </Box>
 

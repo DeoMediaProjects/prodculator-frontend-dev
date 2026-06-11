@@ -105,7 +105,7 @@ export function TermsOfService() {
           <Typography>
             <strong>6.2 User Scripts:</strong> You retain all rights to scripts you upload. By uploading, you grant us a limited, non exclusive license to process your script solely for the purpose of generating intelligence reports.
           </Typography>
-          <Typography>
+          <Typography id="section-6-3" sx={{ scrollMarginTop: '96px' }}>
             <strong>6.3 Anonymized Metadata for Production Intelligence:</strong> When you upload a script, we automatically extract anonymized metadata (crew size estimates, equipment requirements, cast scale indicators, production complexity) to power our Production Intelligence Dashboard. This data is aggregated with data from other users to show industry trends (e.g., "Average crew size for action productions: 85 people"). Your script's specific content, title, character names, dialogue, and plot are NEVER used or shared. Only non identifiable production logistics metadata is extracted. This aggregated data may be shared with enterprise clients (film commissions, studios, equipment rental companies) as part of market intelligence reports.
           </Typography>
           <Typography>
