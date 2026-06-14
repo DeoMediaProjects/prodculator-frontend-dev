@@ -86,7 +86,7 @@ export function UserLogin() {
       } else {
         setError(loginError || 'Invalid credentials. Please check your email and password.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);

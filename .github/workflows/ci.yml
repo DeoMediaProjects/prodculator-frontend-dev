@@ -1,0 +1,43 @@
+name: CI
+
+# Quality gate for the SPA. Runs on every PR and on pushes to main so the Vercel/
+# Amplify deploy never builds from a branch that fails type-check, lint, or tests.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Typecheck, Lint, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # --legacy-peer-deps matches the Vercel install command (MUI 7 / React 18
+      # peer ranges).
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Block on known CVEs in *production* dependencies. Dev-only build-tool
+      # advisories (esbuild/vite) are excluded here and tracked separately as a
+      # Vite major-upgrade follow-up.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

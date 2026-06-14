@@ -92,7 +92,7 @@ export class EmailService {
     template: EmailTemplate,
     to: string,
     data: EmailData,
-    attachments?: Array<{ filename: string; content: string | Buffer; type: string }>
+    attachments?: Array<{ filename: string; content: string; type: string }>
   ): Promise<void> {
     try {
       const result = await apiClient.post('/api/emails', {

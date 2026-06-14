@@ -85,16 +85,6 @@ export function AdminUsersManager() {
   const [formRole, setFormRole] = useState<AdminRole>('support_admin');
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Permission gate
-  if (!hasAdminPermission('canManageAdmins')) {
-    return (
-      <AdminAccessDenied
-        requiredPermission="Manage Admin Users"
-        requiredRole="Master Admin"
-      />
-    );
-  }
-
   const fetchAdminUsers = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     const { data, error: fetchError } = await adminApi.getAdminUsers(50, 0, signal);
@@ -112,6 +102,19 @@ export function AdminUsersManager() {
     fetchAdminUsers(controller.signal);
     return () => controller.abort();
   }, [fetchAdminUsers]);
+
+  // Permission gate — must run AFTER all hooks so hook order stays stable across
+  // renders (Rules of Hooks). Previously this early return preceded the
+  // useCallback/useEffect above, so the hook count changed when the permission
+  // flag flipped between renders, which crashes React.
+  if (!hasAdminPermission('canManageAdmins')) {
+    return (
+      <AdminAccessDenied
+        requiredPermission="Manage Admin Users"
+        requiredRole="Master Admin"
+      />
+    );
+  }
 
   const handleAddAdmin = async () => {
     setSaving(true);
