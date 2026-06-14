@@ -71,10 +71,10 @@ export function clearAuthState() {
 }
 
 function isDevelopmentMode(): boolean {
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV) {
-    return process.env.NODE_ENV === 'development';
-  }
-  return import.meta.env.MODE === 'development';
+  // Vite statically replaces import.meta.env.DEV — the canonical dev-mode signal
+  // in a Vite app. (Previously also probed Node's `process.env`, which doesn't
+  // exist in the browser and isn't typed here.)
+  return import.meta.env.DEV;
 }
 
 const IS_DEVELOPMENT = isDevelopmentMode();

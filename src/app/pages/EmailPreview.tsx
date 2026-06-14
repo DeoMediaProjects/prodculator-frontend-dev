@@ -194,14 +194,25 @@ export function EmailPreview() {
               {previewError}
             </Alert>
           ) : (
+            // Render the email HTML inside a sandboxed iframe (no allow-scripts)
+            // instead of dangerouslySetInnerHTML. The sandbox prevents any script
+            // in the markup from executing while preserving the email's full
+            // document styling, which a DOM sanitiser would strip.
             <Box
+              component="iframe"
+              title="Email preview"
+              srcDoc={previewHtml}
+              sandbox=""
               sx={{
+                display: 'block',
+                width: '100%',
                 maxWidth: '600px',
+                height: '800px',
                 margin: '0 auto',
+                border: 'none',
                 bgcolor: '#ffffff',
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
               }}
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
           )}
         </Paper>

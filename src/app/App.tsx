@@ -1,66 +1,69 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, createTheme } from '@mui/material';
+import { ThemeProvider, CssBaseline, createTheme, Box, CircularProgress } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
 import { Toast } from '@/app/components/common/Toast';
 import { HelmetProvider } from 'react-helmet-async';
-import React from 'react';
+import { lazy, Suspense } from 'react';
 
-// Contexts
+// Contexts (eager — always mounted)
 import { AuthProvider } from '../app/contexts/AuthContext';
 import { ScriptProvider } from '../app/contexts/ScriptContext';
 
-// User Pages
-import { LandingPage } from '../app/components/user/LandingPage';
-import { UserLogin } from '../app/components/auth/UserLogin';
-import { UserSignup } from '../app/components/auth/UserSignup';
-import { ScriptUpload } from '../app/components/user/ScriptUpload';
-import { ReportViewer } from '../app/components/user/ReportViewer';
-import { Pricing } from '../app/components/user/Pricing';
-import { SampleReport } from '../app/components/user/SampleReport';
-import { UserDashboard } from '../app/components/user/UserDashboard';
-import { TerritoryComparison } from '../app/components/user/TerritoryComparison';
-import { WhatIfCalculator } from '../app/components/user/WhatIfCalculator';
-import { PublicWhatIfCalculator } from '../app/components/user/PublicWhatIfCalculator';
-import { SharedReportViewer } from '../app/components/user/SharedReportViewer';
-
-// Static Pages
-import { FAQ } from '../app/pages/FAQ';
-import { TermsOfService } from '../app/pages/TermsOfService';
-import { PrivacyPolicy } from '../app/pages/PrivacyPolicy';
-import { AcceptableUse } from '../app/pages/AcceptableUse';
-
-// B2B
-import { B2BSolutions } from '../app/components/B2BSolutions';
-
-// Admin Pages
-import { AdminLogin } from '../app/components/admin/AdminLogin';
-import { AdminLayout } from '../app/components/admin/AdminLayout';
-import { AdminOverview } from '../app/components/admin/AdminOverview';
-import { IncentiveDataManager } from '../app/components/admin/IncentiveDataManager';
-import { GrantsManager } from '../app/components/admin/GrantsManager';
-import { FestivalsManager } from '../app/components/admin/FestivalsManager';
-import { CrewCostsManager } from '../app/components/admin/CrewCostsManager';
-import { ComparableProductionsManager } from '../app/components/admin/ComparableProductionsManager';
-import { DataSourcesManager } from '../app/components/admin/DataSourcesManager';
-import { AdminUsersManager } from '../app/components/admin/AdminUsersManager';
-import { B2BClientManager } from '../app/components/admin/B2BClientManager';
-import { EmailGatingManager } from '../app/components/admin/EmailGatingManager';
-import { PDFReportsManager } from '../app/components/admin/PDFReportsManager';
-import { BusinessMetrics } from '../app/components/admin/BusinessMetrics';
-import { ScriptAIOverview } from '../app/components/admin/ScriptAIOverview';
-import { ProductionIntelligence } from '../app/components/admin/ProductionIntelligence';
-
-// Route Protection
+// Route-protection wrapper — tiny, kept eager so it can wrap lazy children.
 import { ProtectedRoute } from '../app/components/common/ProtectedRoute';
 
-// Test Pages
-import { ScriptAnalysisTester } from '../app/pages/ScriptAnalysisTester';
-import { PDFReportPreview } from '../app/pages/PDFReportPreview';
-import { EmailPreview } from '../app/pages/EmailPreview';
-import { APIConnectionTester } from '../app/pages/APIConnectionTester';
-import { VerifyEmail } from '../app/pages/VerifyEmail';
-import { EmailVerifyCallback } from '../app/pages/EmailVerifyCallback';
-import { ResetPassword } from '../app/pages/ResetPassword';
+// LandingPage is the most common first paint — keep it eager to avoid a flash.
+import { LandingPage } from '../app/components/user/LandingPage';
+
+// Every other route component is lazy-loaded so the initial bundle stays small;
+// the admin tooling, chart-heavy pages, and PDF/preview code split into their own
+// chunks fetched on demand. These are named exports, so map them to the `default`
+// shape React.lazy expects.
+const UserLogin = lazy(() => import('../app/components/auth/UserLogin').then(m => ({ default: m.UserLogin })));
+const UserSignup = lazy(() => import('../app/components/auth/UserSignup').then(m => ({ default: m.UserSignup })));
+const ScriptUpload = lazy(() => import('../app/components/user/ScriptUpload').then(m => ({ default: m.ScriptUpload })));
+const ReportViewer = lazy(() => import('../app/components/user/ReportViewer').then(m => ({ default: m.ReportViewer })));
+const Pricing = lazy(() => import('../app/components/user/Pricing').then(m => ({ default: m.Pricing })));
+const SampleReport = lazy(() => import('../app/components/user/SampleReport').then(m => ({ default: m.SampleReport })));
+const UserDashboard = lazy(() => import('../app/components/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
+const TerritoryComparison = lazy(() => import('../app/components/user/TerritoryComparison').then(m => ({ default: m.TerritoryComparison })));
+const WhatIfCalculator = lazy(() => import('../app/components/user/WhatIfCalculator').then(m => ({ default: m.WhatIfCalculator })));
+const PublicWhatIfCalculator = lazy(() => import('../app/components/user/PublicWhatIfCalculator').then(m => ({ default: m.PublicWhatIfCalculator })));
+const SharedReportViewer = lazy(() => import('../app/components/user/SharedReportViewer').then(m => ({ default: m.SharedReportViewer })));
+
+const FAQ = lazy(() => import('../app/pages/FAQ').then(m => ({ default: m.FAQ })));
+const TermsOfService = lazy(() => import('../app/pages/TermsOfService').then(m => ({ default: m.TermsOfService })));
+const PrivacyPolicy = lazy(() => import('../app/pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const AcceptableUse = lazy(() => import('../app/pages/AcceptableUse').then(m => ({ default: m.AcceptableUse })));
+
+const B2BSolutions = lazy(() => import('../app/components/B2BSolutions').then(m => ({ default: m.B2BSolutions })));
+
+const AdminLogin = lazy(() => import('../app/components/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const AdminLayout = lazy(() => import('../app/components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminOverview = lazy(() => import('../app/components/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const IncentiveDataManager = lazy(() => import('../app/components/admin/IncentiveDataManager').then(m => ({ default: m.IncentiveDataManager })));
+const GrantsManager = lazy(() => import('../app/components/admin/GrantsManager').then(m => ({ default: m.GrantsManager })));
+const FestivalsManager = lazy(() => import('../app/components/admin/FestivalsManager').then(m => ({ default: m.FestivalsManager })));
+const CrewCostsManager = lazy(() => import('../app/components/admin/CrewCostsManager').then(m => ({ default: m.CrewCostsManager })));
+const ComparableProductionsManager = lazy(() => import('../app/components/admin/ComparableProductionsManager').then(m => ({ default: m.ComparableProductionsManager })));
+const DataSourcesManager = lazy(() => import('../app/components/admin/DataSourcesManager').then(m => ({ default: m.DataSourcesManager })));
+const AdminUsersManager = lazy(() => import('../app/components/admin/AdminUsersManager').then(m => ({ default: m.AdminUsersManager })));
+const B2BClientManager = lazy(() => import('../app/components/admin/B2BClientManager').then(m => ({ default: m.B2BClientManager })));
+const EmailGatingManager = lazy(() => import('../app/components/admin/EmailGatingManager').then(m => ({ default: m.EmailGatingManager })));
+const PDFReportsManager = lazy(() => import('../app/components/admin/PDFReportsManager').then(m => ({ default: m.PDFReportsManager })));
+const BusinessMetrics = lazy(() => import('../app/components/admin/BusinessMetrics').then(m => ({ default: m.BusinessMetrics })));
+const ScriptAIOverview = lazy(() => import('../app/components/admin/ScriptAIOverview').then(m => ({ default: m.ScriptAIOverview })));
+const ProductionIntelligence = lazy(() => import('../app/components/admin/ProductionIntelligence').then(m => ({ default: m.ProductionIntelligence })));
+
+const VerifyEmail = lazy(() => import('../app/pages/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
+const EmailVerifyCallback = lazy(() => import('../app/pages/EmailVerifyCallback').then(m => ({ default: m.EmailVerifyCallback })));
+const ResetPassword = lazy(() => import('../app/pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
+
+// Test/preview pages (dev-only routes) — also lazy so they never enter the prod bundle.
+const ScriptAnalysisTester = lazy(() => import('../app/pages/ScriptAnalysisTester').then(m => ({ default: m.ScriptAnalysisTester })));
+const PDFReportPreview = lazy(() => import('../app/pages/PDFReportPreview').then(m => ({ default: m.PDFReportPreview })));
+const EmailPreview = lazy(() => import('../app/pages/EmailPreview').then(m => ({ default: m.EmailPreview })));
+const APIConnectionTester = lazy(() => import('../app/pages/APIConnectionTester').then(m => ({ default: m.APIConnectionTester })));
 
 // MUI Theme Configuration
 const theme = createTheme({
@@ -193,16 +196,19 @@ const theme = createTheme({
   },
 });
 
-// Wrapper component to prevent Figma data attributes from reaching ThemeProvider
-function SafeThemeProvider({ children }: { children: React.ReactNode }) {
-  // Use React.createElement to ensure no extra props are passed
-  return React.createElement(ThemeProvider, { theme }, children);
+// Shown while a lazy route chunk is being fetched.
+function PageLoader() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <CircularProgress sx={{ color: '#D4AF37' }} />
+    </Box>
+  );
 }
 
 function AppContent() {
   return (
     <HelmetProvider>
-      <SafeThemeProvider>
+      <ThemeProvider theme={theme}>
         <CssBaseline />
         <SnackbarProvider
           maxSnack={3}
@@ -212,6 +218,7 @@ function AppContent() {
           <AuthProvider>
             <ScriptProvider>
               <BrowserRouter>
+                <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public Routes */}
                   <Route path="/" element={<LandingPage />} />
@@ -256,25 +263,31 @@ function AppContent() {
                     <Route path="production-intel" element={<ProductionIntelligence />} />
                   </Route>
 
-                  {/* Test/Preview Routes */}
-                  <Route path="/test/script-analysis" element={<ScriptAnalysisTester />} />
-                  <Route path="/test/pdf-preview" element={<PDFReportPreview />} />
-                  <Route path="/test/email-preview" element={<EmailPreview />} />
-                  <Route path="/test/api-connection" element={<APIConnectionTester />} />
+                  {/* Test/Preview Routes — DEV ONLY. These expose internal tooling
+                      (raw-HTML email preview, API connection details) and must never
+                      be reachable in a production build. */}
+                  {import.meta.env.DEV && (
+                    <>
+                      <Route path="/test/script-analysis" element={<ScriptAnalysisTester />} />
+                      <Route path="/test/pdf-preview" element={<PDFReportPreview />} />
+                      <Route path="/test/email-preview" element={<EmailPreview />} />
+                      <Route path="/test/api-connection" element={<APIConnectionTester />} />
+                    </>
+                  )}
 
                   {/* Catch-all redirect */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                </Suspense>
               </BrowserRouter>
             </ScriptProvider>
           </AuthProvider>
         </SnackbarProvider>
-      </SafeThemeProvider>
+      </ThemeProvider>
     </HelmetProvider>
   );
 }
 
-export default function App(_props: any) {
-  // Explicitly ignore all props to prevent Figma data attributes from being passed down
+export default function App() {
   return <AppContent />;
 }

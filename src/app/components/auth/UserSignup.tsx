@@ -77,7 +77,7 @@ export function UserSignup() {
       } else {
         setError(signupError || 'An error occurred during signup. Please try again.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
