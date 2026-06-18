@@ -5,19 +5,7 @@
  * This keeps the integration at PCI SAQ-A compliance level.
  */
 
-import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { apiClient } from './api';
-
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
-
-let stripePromise: Promise<Stripe | null> | null = null;
-
-export const getStripe = () => {
-  if (!stripePromise) {
-    stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
-  }
-  return stripePromise;
-};
 
 export const STRIPE_PRICES = {
   // ── Pay-per-report (one-time) ──────────────────────────────────────────────
@@ -125,23 +113,6 @@ export const STRIPE_PRICES = {
   },
 };
 
-export async function createCheckoutSession(
-  priceId: string,
-  _userEmail: string,
-  metadata?: Record<string, string>
-): Promise<{ sessionId: string; url?: string; error?: string }> {
-  try {
-    const data = await apiClient.post<{ session_id: string; url: string }>(
-      '/api/payments/checkout',
-      { price_id: priceId, metadata },
-      { auth: true }
-    );
-    return { sessionId: data.session_id, url: data.url };
-  } catch (error) {
-    return { sessionId: '', error: error instanceof Error ? error.message : 'Failed to create checkout session' };
-  }
-}
-
 export async function redirectToCheckout(checkoutUrl: string) {
   if (!checkoutUrl) {
     throw new Error('No checkout URL provided');
@@ -182,22 +153,6 @@ export async function createSubscriptionCheckout(
   }
 }
 
-export async function updatePaymentMethod(
-  customerId: string,
-  paymentMethodId: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    await apiClient.post(
-      '/api/payments/update-payment-method',
-      { customer_id: customerId, payment_method_id: paymentMethodId },
-      { auth: true }
-    );
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to update payment method' };
-  }
-}
-
 export async function getCustomerPortalUrl(customerId: string): Promise<{ url: string; error?: string }> {
   try {
     const data = await apiClient.post<{ url: string }>(
@@ -218,35 +173,8 @@ export function detectUserCurrency(country?: string): 'usd' | 'gbp' {
   return 'usd';
 }
 
-export function getPriceForCurrency(
-  planType: 'singleReport' | 'proMonthly' | 'producerAnnual' | 'studioMonthly',
-  currency: 'usd' | 'gbp'
-) {
-  const key = `${planType}${currency.toUpperCase()}` as keyof typeof STRIPE_PRICES;
-  return STRIPE_PRICES[key];
-}
-
 export function formatPrice(amount: number, currency: string): string {
   const symbol = currency === 'gbp' ? '£' : '$';
   const formattedAmount = (amount / 100).toFixed(2);
   return `${symbol}${formattedAmount}`;
 }
-
-export function getPlanNameFromPriceId(priceId: string): string {
-  const entry = Object.entries(STRIPE_PRICES).find(([_, config]) => config.priceId === priceId);
-  return entry ? entry[1].name : 'Unknown Plan';
-}
-
-export default {
-  getStripe,
-  createCheckoutSession,
-  redirectToCheckout,
-  createSubscriptionCheckout,
-  updatePaymentMethod,
-  getCustomerPortalUrl,
-  detectUserCurrency,
-  getPriceForCurrency,
-  formatPrice,
-  getPlanNameFromPriceId,
-  STRIPE_PRICES,
-};

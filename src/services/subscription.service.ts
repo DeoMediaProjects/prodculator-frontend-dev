@@ -78,10 +78,3 @@ export async function cancelScheduledChange(): Promise<{ cancelled: boolean }> {
     { auth: true },
   );
 }
-
-export default {
-  getCurrentSubscription,
-  previewPlanChange,
-  changePlan,
-  cancelScheduledChange,
-};

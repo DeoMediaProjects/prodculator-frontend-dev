@@ -41,11 +41,3 @@ export interface Festival {
   averageBudgetOfAcceptedFilms?: string;
   notes?: string;
 }
-
-export interface FestivalFilterOptions {
-  genres?: string[];
-  budgetTier?: 'micro' | 'low' | 'mid' | 'high';
-  premiereStatus?: 'world' | 'international' | 'us' | 'regional' | 'none';
-  tier?: ('a-list' | 'tier-2' | 'regional' | 'specialized')[];
-  status?: ('upcoming' | 'early-bird-open' | 'regular-open' | 'late-open' | 'closed')[];
-}

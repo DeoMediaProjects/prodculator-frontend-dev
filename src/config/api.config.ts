@@ -96,25 +96,6 @@ export const API_CONFIG = {
 };
 
 /**
- * Validate that required API keys are present
- */
-export function validateAPIConfig(): { valid: boolean; missing: string[] } {
-  const required = [
-    { key: 'VITE_API_BASE_URL', value: API_CONFIG.app.apiBaseURL },
-    { key: 'VITE_STRIPE_PUBLISHABLE_KEY', value: API_CONFIG.stripe.publishableKey },
-  ];
-
-  const missing = required
-    .filter(({ value }) => !value || value === '')
-    .map(({ key }) => key);
-
-  return {
-    valid: missing.length === 0,
-    missing,
-  };
-}
-
-/**
  * Get API status for admin dashboard
  */
 export function getAPIStatus() {
