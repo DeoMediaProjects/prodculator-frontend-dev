@@ -253,5 +253,3 @@ function Row({ label, value, emphasis = false }: { label: string; value: string;
     </Box>
   );
 }
-
-export default ChangePlanModal;

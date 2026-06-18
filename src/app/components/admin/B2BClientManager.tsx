@@ -1,914 +1,373 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSnackbar } from 'notistack';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
+  Card,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Stack,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Alert,
   Tabs,
-  Tab,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Switch,
-  FormControlLabel,
-  Tooltip,
+  TextField,
+  Typography,
 } from '@mui/material';
-import Grid from '@mui/material/Grid';
 import {
   Add,
-  Edit,
-  Delete,
-  MonetizationOn,
-  Api,
-  Assessment,
-  CheckCircle,
-  Warning,
-  Email,
-  Public,
-  Schedule,
-  Description,
-  VpnKey,
-  Send,
-  Visibility,
   CloudDownload,
-  ContentCopy,
+  Edit,
+  Email,
+  Refresh,
+  Send,
 } from '@mui/icons-material';
+import {
+  adminB2BService,
+  type AdminB2BManualSubscriptionPayload,
+  type AdminB2BSubscriptionUpdate,
+  type B2BDeliveryFrequency,
+  type B2BIntelligenceRequest,
+  type B2BProductType,
+  type B2BSubscription,
+} from '@/services/b2b.service';
+import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 
-interface B2BClient {
-  id: string;
-  name: string;
-  companyName: string;
-  email: string;
-  phone: string;
-  website: string;
-  plan: 'starter' | 'professional' | 'enterprise';
-  status: 'active' | 'inactive' | 'trial';
-  apiKey: string;
-  scriptsProcessed: number;
-  reportsGenerated: number;
-  autoDeliveryEnabled: boolean;
-  webhookUrl?: string;
-  billingCycle: 'monthly' | 'annual';
-  monthlyQuota: number;
-  usedQuota: number;
-  territory: string;
-  currency: 'GBP' | 'USD';
-  lastActive: string;
-  createdAt: string;
-  notes: string;
+const PRODUCT_LABELS: Record<B2BProductType, string> = {
+  camera_equipment: 'Camera & Equipment',
+  production_services: 'Production Services',
+  crew_casting: 'Crew & Casting',
+  production_trend: 'Production Trend',
+  enterprise: 'Enterprise Slate',
+};
+
+const PRODUCT_OPTIONS = Object.entries(PRODUCT_LABELS) as [B2BProductType, string][];
+
+function currency(amount?: number | null, code?: string | null) {
+  if (!amount || !code) return 'Manual';
+  return new Intl.NumberFormat(code.toLowerCase() === 'gbp' ? 'en-GB' : 'en-US', {
+    style: 'currency',
+    currency: code.toUpperCase(),
+    maximumFractionDigits: 0,
+  }).format(amount / 100);
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  value: number;
-  index: number;
+function metricSummary(request: B2BIntelligenceRequest) {
+  const metrics = request.metrics || {};
+  const sourceCount = typeof metrics.source_signal_count === 'number' ? metrics.source_signal_count : null;
+  const suppressed = Array.isArray(metrics.suppressed_segments) ? metrics.suppressed_segments.length : 0;
+  const insufficient = metrics.insufficient_data === true;
+  return `${sourceCount ?? 'N/A'} signals, ${suppressed} suppressed${insufficient ? ', insufficient overall data' : ''}`;
 }
 
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
+function blankToNull(value: string | null | undefined) {
+  const trimmed = (value || '').trim();
+  return trimmed ? trimmed : null;
 }
 
 export function B2BClientManager() {
-  const [currentTab, setCurrentTab] = useState(0);
-  const [clients, setClients] = useState<B2BClient[]>([
-    {
-      id: '1',
-      name: 'John Smith',
-      companyName: 'Paramount Pictures UK',
-      email: 'john.smith@paramount.com',
-      phone: '+44 20 7xxx xxxx',
-      website: 'https://www.paramount.com',
-      plan: 'enterprise',
-      status: 'active',
-      apiKey: 'pk_prod_xxxxxxxxxxxxxxxx',
-      scriptsProcessed: 145,
-      reportsGenerated: 145,
-      autoDeliveryEnabled: true,
-      webhookUrl: 'https://paramount.com/webhooks/prodculator',
-      billingCycle: 'annual',
-      monthlyQuota: 500,
-      usedQuota: 145,
-      territory: 'UK',
-      currency: 'GBP',
-      lastActive: '2026-01-27',
-      createdAt: '2025-06-15',
-      notes: 'Key enterprise client with custom integration',
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      companyName: 'Warner Bros. Studios',
-      email: 'sarah.j@warnerbros.com',
-      phone: '+1 818 xxx xxxx',
-      website: 'https://www.warnerbros.com',
-      plan: 'professional',
-      status: 'active',
-      apiKey: 'pk_prod_yyyyyyyyyyyyyyyy',
-      scriptsProcessed: 87,
-      reportsGenerated: 87,
-      autoDeliveryEnabled: true,
-      billingCycle: 'monthly',
-      monthlyQuota: 100,
-      usedQuota: 87,
-      territory: 'US',
-      currency: 'USD',
-      lastActive: '2026-01-26',
-      createdAt: '2025-08-20',
-      notes: 'Regular user, consistent monthly usage',
-    },
-    {
-      id: '3',
-      name: 'Michael Chen',
-      companyName: 'Sony Pictures Entertainment',
-      email: 'm.chen@sonypictures.com',
-      phone: '+1 310 xxx xxxx',
-      website: 'https://www.sonypictures.com',
-      plan: 'starter',
-      status: 'trial',
-      apiKey: 'pk_test_zzzzzzzzzzzzzzzz',
-      scriptsProcessed: 12,
-      reportsGenerated: 12,
-      autoDeliveryEnabled: false,
-      billingCycle: 'monthly',
-      monthlyQuota: 20,
-      usedQuota: 12,
-      territory: 'US',
-      currency: 'USD',
-      lastActive: '2026-01-25',
-      createdAt: '2026-01-10',
-      notes: 'Trial period follows up needed',
-    },
-  ]);
+  const { enqueueSnackbar } = useSnackbar();
+  const [tab, setTab] = useState(0);
+  const [subscriptions, setSubscriptions] = useState<B2BSubscription[]>([]);
+  const [requests, setRequests] = useState<B2BIntelligenceRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<B2BSubscription | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState<AdminB2BSubscriptionUpdate>({});
+  const [manualForm, setManualForm] = useState<AdminB2BManualSubscriptionPayload>({
+    user_email: '',
+    product_type: 'enterprise',
+    delivery_frequency: 'monthly',
+    status: 'active',
+    extra_recipient_email: '',
+    company_name: '',
+    admin_notes: '',
+  });
 
-  const [selectedClient, setSelectedClient] = useState<B2BClient | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [sendReportDialogOpen, setSendReportDialogOpen] = useState(false);
-  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const stats = useMemo(() => {
+    const active = subscriptions.filter((item) => ['active', 'trialing'].includes(item.status));
+    const mrr = active.reduce((sum, item) => sum + (item.amount_cents || 0), 0);
+    return {
+      total: subscriptions.length,
+      active: active.length,
+      requests: requests.length,
+      mrr,
+    };
+  }, [subscriptions, requests]);
 
-  const stats = {
-    totalClients: clients.length,
-    activeClients: clients.filter(c => c.status === 'active').length,
-    trialClients: clients.filter(c => c.status === 'trial').length,
-    totalRevenue: clients
-      .filter(c => c.status === 'active')
-      .reduce((sum, c) => {
-        const monthlyRevenue = c.plan === 'enterprise' ? 1500 : c.plan === 'professional' ? 299 : 71;
-        return sum + monthlyRevenue;
-      }, 0),
-    scriptsProcessed: clients.reduce((sum, c) => sum + c.scriptsProcessed, 0),
-  };
-
-  const handleOpenDialog = (client?: B2BClient) => {
-    setSelectedClient(client || null);
-    setDialogOpen(true);
-  };
-
-  const handleSendReport = (client: B2BClient) => {
-    setSelectedClient(client);
-    setSendReportDialogOpen(true);
-  };
-
-  const handleViewApiKey = (client: B2BClient) => {
-    setSelectedClient(client);
-    setApiKeyDialogOpen(true);
-  };
-
-  const handleDeleteClient = (client: B2BClient) => {
-    setSelectedClient(client);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleCloseDialogs = () => {
-    setDialogOpen(false);
-    setSendReportDialogOpen(false);
-    setApiKeyDialogOpen(false);
-    setDeleteDialogOpen(false);
-    setSelectedClient(null);
-  };
-
-  const handleSaveClient = () => {
-    // In production: call backend API to save client
-    handleCloseDialogs();
-  };
-
-  const handleConfirmDelete = () => {
-    if (selectedClient) {
-      setClients(clients.filter(c => c.id !== selectedClient.id));
-      handleCloseDialogs();
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [subscriptionRows, requestRows] = await Promise.all([
+        adminB2BService.getSubscriptions(),
+        adminB2BService.getRequests(),
+      ]);
+      setSubscriptions(subscriptionRows);
+      setRequests(requestRows);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load B2B clients');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusColor = (status: B2BClient['status']) => {
-    switch (status) {
-      case 'active':
-        return '#66bb6a';
-      case 'trial':
-        return '#ffa726';
-      case 'inactive':
-        return '#ef5350';
-      default:
-        return '#999';
+  useEffect(() => {
+    load();
+  }, []);
+
+  const openEdit = (subscription: B2BSubscription) => {
+    setSelected(subscription);
+    setEditForm({
+      status: subscription.status,
+      delivery_frequency: subscription.delivery_frequency as B2BDeliveryFrequency,
+      extra_recipient_email: subscription.extra_recipient_email || '',
+      next_delivery_at: subscription.next_delivery_at || '',
+      company_name: subscription.company_name || '',
+      admin_notes: subscription.admin_notes || '',
+    });
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const payload: AdminB2BSubscriptionUpdate = {
+        ...editForm,
+        extra_recipient_email: blankToNull(editForm.extra_recipient_email),
+        company_name: blankToNull(editForm.company_name),
+        admin_notes: blankToNull(editForm.admin_notes),
+      };
+      if (!payload.next_delivery_at) delete payload.next_delivery_at;
+      await adminB2BService.updateSubscription(selected.id, payload);
+      enqueueSnackbar('B2B subscription updated and user notified.', { variant: 'success' });
+      setEditOpen(false);
+      setSelected(null);
+      await load();
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update subscription', { variant: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getPlanColor = (plan: B2BClient['plan']) => {
-    switch (plan) {
-      case 'enterprise':
-        return '#D4AF37';
-      case 'professional':
-        return '#d4af37';
-      case 'starter':
-        return '#999';
-      default:
-        return '#666';
+  const createManual = async () => {
+    setSaving(true);
+    try {
+      await adminB2BService.createManualSubscription({
+        ...manualForm,
+        extra_recipient_email: blankToNull(manualForm.extra_recipient_email),
+        company_name: blankToNull(manualForm.company_name),
+        admin_notes: blankToNull(manualForm.admin_notes),
+      });
+      enqueueSnackbar('Manual B2B subscription created.', { variant: 'success' });
+      setManualOpen(false);
+      setManualForm({
+        user_email: '',
+        product_type: 'enterprise',
+        delivery_frequency: 'monthly',
+        status: 'active',
+        extra_recipient_email: '',
+        company_name: '',
+        admin_notes: '',
+      });
+      await load();
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create manual subscription', { variant: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
+
+  const resend = async (request: B2BIntelligenceRequest) => {
+    try {
+      const response = await adminB2BService.resendRequest(request.id);
+      enqueueSnackbar(`Resent to ${response.recipients.join(', ')}`, { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to resend PDF', { variant: 'error' });
+    }
+  };
+
+  const download = async (request: B2BIntelligenceRequest) => {
+    try {
+      await adminB2BService.downloadRequestPdf(request);
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to download PDF', { variant: 'error' });
+    }
+  };
+
+  if (loading) return <LoadingSpinner overlay message="Loading B2B clients..." />;
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37' }}>
-          B2B Client Management
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-          sx={{
-            bgcolor: '#D4AF37',
-            color: '#000',
-            '&:hover': { bgcolor: '#d4af37' },
-          }}
-        >
-          Add Client
-        </Button>
-      </Box>
-
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(102, 187, 106, 0.3)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ color: '#66bb6a' }}><CheckCircle /></Box>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                  {stats.activeClients}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#999' }}>
-                  Active Clients
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ color: '#D4AF37' }}><MonetizationOn /></Box>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                  ${stats.totalRevenue.toLocaleString()}/mo
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#999' }}>
-                  Monthly Revenue
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(255, 167, 38, 0.3)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ color: '#ffa726' }}><Assessment /></Box>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                  {stats.scriptsProcessed}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#999' }}>
-                  Scripts Processed
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(255, 167, 38, 0.3)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ color: '#ffa726' }}><Schedule /></Box>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                  {stats.trialClients}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#999' }}>
-                  Trial Clients
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Tabs */}
-      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid #333' }}>
-        <Tabs
-          value={currentTab}
-          onChange={(_, newValue) => setCurrentTab(newValue)}
-          sx={{
-            borderBottom: '1px solid #333',
-            '& .MuiTab-root': { color: '#999' },
-            '& .Mui-selected': { color: '#D4AF37' },
-            '& .MuiTabs-indicator': { bgcolor: '#D4AF37' },
-          }}
-        >
-          <Tab label="All Clients" />
-          <Tab label="Active" />
-          <Tab label="Trial" />
-          <Tab label="API Access" />
-        </Tabs>
-
-        <TabPanel value={currentTab} index={0}>
-          <ClientsTable
-            clients={clients}
-            onEdit={handleOpenDialog}
-            onDelete={handleDeleteClient}
-            onViewApiKey={handleViewApiKey}
-            onSendReport={handleSendReport}
-            getStatusColor={getStatusColor}
-            getPlanColor={getPlanColor}
-          />
-        </TabPanel>
-
-        <TabPanel value={currentTab} index={1}>
-          <ClientsTable
-            clients={clients.filter(c => c.status === 'active')}
-            onEdit={handleOpenDialog}
-            onDelete={handleDeleteClient}
-            onViewApiKey={handleViewApiKey}
-            onSendReport={handleSendReport}
-            getStatusColor={getStatusColor}
-            getPlanColor={getPlanColor}
-          />
-        </TabPanel>
-
-        <TabPanel value={currentTab} index={2}>
-          <ClientsTable
-            clients={clients.filter(c => c.status === 'trial')}
-            onEdit={handleOpenDialog}
-            onDelete={handleDeleteClient}
-            onViewApiKey={handleViewApiKey}
-            onSendReport={handleSendReport}
-            getStatusColor={getStatusColor}
-            getPlanColor={getPlanColor}
-          />
-        </TabPanel>
-
-        <TabPanel value={currentTab} index={3}>
-          <ApiAccessPanel clients={clients} />
-        </TabPanel>
-      </Paper>
-
-      {/* Edit/Add Client Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={handleCloseDialogs}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid #333' } }}
-      >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>
-          {selectedClient ? 'Edit Client' : 'Add New Client'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-            <TextField
-              label="Contact Name"
-              defaultValue={selectedClient?.name || ''}
-              fullWidth
-              sx={{ input: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <TextField
-              label="Company Name"
-              defaultValue={selectedClient?.companyName || ''}
-              fullWidth
-              sx={{ input: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <TextField
-              label="Email"
-              type="email"
-              defaultValue={selectedClient?.email || ''}
-              fullWidth
-              sx={{ input: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <TextField
-              label="Phone"
-              defaultValue={selectedClient?.phone || ''}
-              fullWidth
-              sx={{ input: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <TextField
-              label="Website"
-              defaultValue={selectedClient?.website || ''}
-              fullWidth
-              sx={{ input: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: '#999' }}>Plan</InputLabel>
-                  <Select
-                    defaultValue={selectedClient?.plan || 'starter'}
-                    label="Plan"
-                    sx={{ color: '#fff' }}
-                  >
-                    <MenuItem value="starter">Starter</MenuItem>
-                    <MenuItem value="professional">Professional</MenuItem>
-                    <MenuItem value="enterprise">Enterprise</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: '#999' }}>Status</InputLabel>
-                  <Select
-                    defaultValue={selectedClient?.status || 'trial'}
-                    label="Status"
-                    sx={{ color: '#fff' }}
-                  >
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="trial">Trial</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: '#999' }}>Territory</InputLabel>
-                  <Select
-                    defaultValue={selectedClient?.territory || 'UK'}
-                    label="Territory"
-                    sx={{ color: '#fff' }}
-                  >
-                    <MenuItem value="UK">UK</MenuItem>
-                    <MenuItem value="US">US</MenuItem>
-                    <MenuItem value="Canada">Canada</MenuItem>
-                    <MenuItem value="Australia">Australia</MenuItem>
-                    <MenuItem value="New Zealand">New Zealand</MenuItem>
-                    <MenuItem value="Malta">Malta</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel sx={{ color: '#999' }}>Currency</InputLabel>
-                  <Select
-                    defaultValue={selectedClient?.currency || 'USD'}
-                    label="Currency"
-                    sx={{ color: '#fff' }}
-                  >
-                    <MenuItem value="GBP">GBP</MenuItem>
-                    <MenuItem value="USD">USD</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-            <TextField
-              label="Webhook URL (Optional)"
-              defaultValue={selectedClient?.webhookUrl || ''}
-              fullWidth
-              sx={{ input: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <TextField
-              label="Notes"
-              defaultValue={selectedClient?.notes || ''}
-              multiline
-              rows={3}
-              fullWidth
-              sx={{ textarea: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <FormControlLabel
-              control={<Switch defaultChecked={selectedClient?.autoDeliveryEnabled || false} />}
-              label="Enable Auto Delivery"
-              sx={{ color: '#999' }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialogs} sx={{ color: '#999' }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveClient}
-            variant="contained"
-            sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* API Key Dialog */}
-      <Dialog
-        open={apiKeyDialogOpen}
-        onClose={handleCloseDialogs}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid #333' } }}
-      >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>API Access</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-            <Alert severity="info" sx={{ bgcolor: 'rgba(33, 150, 243, 0.1)' }}>
-              Keep this API key secure. It grants access to your B2B services.
-            </Alert>
-            <TextField
-              label="API Key"
-              value={selectedClient?.apiKey || ''}
-              fullWidth
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <IconButton size="small">
-                    <ContentCopy fontSize="small" />
-                  </IconButton>
-                ),
-              }}
-              sx={{ input: { color: '#fff', fontFamily: 'monospace' }, label: { color: '#999' } }}
-            />
-            <Box>
-              <Typography variant="body2" sx={{ color: '#999', mb: 1 }}>
-                Usage This Month:
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#fff' }}>
-                {selectedClient?.usedQuota} / {selectedClient?.monthlyQuota} scripts
-              </Typography>
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialogs} sx={{ color: '#999' }}>
-            Close
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
-          >
-            Regenerate Key
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Send Report Dialog */}
-      <Dialog
-        open={sendReportDialogOpen}
-        onClose={handleCloseDialogs}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid #333' } }}
-      >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 700 }}>Send Test Report</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-            <Typography sx={{ color: '#999' }}>
-              Send a test report to {selectedClient?.companyName}
-            </Typography>
-            <TextField
-              label="Script Title"
-              placeholder="Enter script title"
-              fullWidth
-              sx={{ input: { color: '#fff' }, label: { color: '#999' } }}
-            />
-            <FormControl fullWidth>
-              <InputLabel sx={{ color: '#999' }}>Report Type</InputLabel>
-              <Select defaultValue="full" label="Report Type" sx={{ color: '#fff' }}>
-                <MenuItem value="full">Full Report</MenuItem>
-                <MenuItem value="summary">Summary Report</MenuItem>
-                <MenuItem value="financial">Financial Only</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialogs} sx={{ color: '#999' }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Send />}
-            sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#d4af37' } }}
-          >
-            Send Report
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleCloseDialogs}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid #333' } }}
-      >
-        <DialogTitle sx={{ color: '#ef5350', fontWeight: 700 }}>Delete Client</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ color: '#999' }}>
-            Are you sure you want to delete {selectedClient?.companyName}? This action cannot be undone.
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} sx={{ mb: 3 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#D4AF37' }}>
+            B2B Client Management
           </Typography>
+          <Typography sx={{ color: '#bbb' }}>
+            Manage B2B subscriptions, manual contracts, delivery schedules, recipients, PDFs, and metrics.
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button startIcon={<Refresh />} onClick={load}>Refresh</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={() => setManualOpen(true)}>
+            Manual Contract
+          </Button>
+        </Stack>
+      </Stack>
+
+      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
+        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Total Subscriptions</Typography><Typography variant="h4">{stats.total}</Typography></Card>
+        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Active</Typography><Typography variant="h4">{stats.active}</Typography></Card>
+        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Requests</Typography><Typography variant="h4">{stats.requests}</Typography></Card>
+        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Listed MRR</Typography><Typography variant="h4">{currency(stats.mrr, 'gbp')}</Typography></Card>
+      </Stack>
+
+      <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+        <Tab label="Subscriptions" />
+        <Tab label="Requests & Metrics" />
+      </Tabs>
+
+      {tab === 0 && (
+        <TableContainer sx={{ mt: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Product</TableCell>
+                <TableCell>User</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Source</TableCell>
+                <TableCell>Cadence</TableCell>
+                <TableCell>Extra Recipient</TableCell>
+                <TableCell>Next Delivery</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {subscriptions.length === 0 ? (
+                <TableRow><TableCell colSpan={8}>No B2B subscriptions yet.</TableCell></TableRow>
+              ) : subscriptions.map((subscription) => (
+                <TableRow key={subscription.id}>
+                  <TableCell>{PRODUCT_LABELS[subscription.product_type]}</TableCell>
+                  <TableCell>{subscription.user_id}</TableCell>
+                  <TableCell><Chip size="small" label={subscription.status} /></TableCell>
+                  <TableCell>{subscription.source}</TableCell>
+                  <TableCell>{subscription.delivery_frequency}</TableCell>
+                  <TableCell>{subscription.extra_recipient_email || 'None'}</TableCell>
+                  <TableCell>{subscription.next_delivery_at ? new Date(subscription.next_delivery_at).toLocaleString() : 'Not scheduled'}</TableCell>
+                  <TableCell align="right">
+                    <Button size="small" startIcon={<Edit />} onClick={() => openEdit(subscription)}>Edit</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {tab === 1 && (
+        <TableContainer sx={{ mt: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Product</TableCell>
+                <TableCell>User</TableCell>
+                <TableCell>Period</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Metrics</TableCell>
+                <TableCell>Delivered</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {requests.length === 0 ? (
+                <TableRow><TableCell colSpan={7}>No B2B intelligence requests yet.</TableCell></TableRow>
+              ) : requests.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell>{PRODUCT_LABELS[request.product_type]}</TableCell>
+                  <TableCell>{request.user_id}</TableCell>
+                  <TableCell>{request.period_start} to {request.period_end}</TableCell>
+                  <TableCell><Chip size="small" label={request.status} /></TableCell>
+                  <TableCell>{metricSummary(request)}</TableCell>
+                  <TableCell>{request.delivered_at ? new Date(request.delivered_at).toLocaleString() : 'No'}</TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button size="small" startIcon={<CloudDownload />} disabled={request.status !== 'completed'} onClick={() => download(request)}>
+                        PDF
+                      </Button>
+                      <Button size="small" startIcon={<Send />} disabled={request.status !== 'completed'} onClick={() => resend(request)}>
+                        Resend
+                      </Button>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit B2B Subscription</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField select label="Status" value={editForm.status || 'active'} onChange={(event) => setEditForm({ ...editForm, status: event.target.value })}>
+              {['active', 'trialing', 'past_due', 'cancelled', 'inactive'].map((status) => <MenuItem key={status} value={status}>{status}</MenuItem>)}
+            </TextField>
+            <TextField select label="Delivery cadence" value={editForm.delivery_frequency || 'monthly'} onChange={(event) => setEditForm({ ...editForm, delivery_frequency: event.target.value as B2BDeliveryFrequency })}>
+              <MenuItem value="monthly">Monthly</MenuItem>
+              <MenuItem value="quarterly">Quarterly</MenuItem>
+            </TextField>
+            <TextField label="Extra recipient" value={editForm.extra_recipient_email || ''} onChange={(event) => setEditForm({ ...editForm, extra_recipient_email: event.target.value })} InputProps={{ startAdornment: <Email sx={{ mr: 1, color: '#999' }} /> }} />
+            <TextField label="Next delivery ISO timestamp" value={editForm.next_delivery_at || ''} onChange={(event) => setEditForm({ ...editForm, next_delivery_at: event.target.value })} />
+            <TextField label="Company" value={editForm.company_name || ''} onChange={(event) => setEditForm({ ...editForm, company_name: event.target.value })} />
+            <TextField label="Admin notes" multiline minRows={3} value={editForm.admin_notes || ''} onChange={(event) => setEditForm({ ...editForm, admin_notes: event.target.value })} />
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialogs} sx={{ color: '#999' }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            variant="contained"
-            sx={{ bgcolor: '#ef5350', color: '#fff', '&:hover': { bgcolor: '#d32f2f' } }}
-          >
-            Delete
-          </Button>
+          <Button onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
+          <Button variant="contained" onClick={saveEdit} disabled={saving}>Save</Button>
         </DialogActions>
       </Dialog>
-    </Box>
-  );
-}
 
-// Clients Table Component
-interface ClientsTableProps {
-  clients: B2BClient[];
-  onEdit: (client: B2BClient) => void;
-  onDelete: (client: B2BClient) => void;
-  onViewApiKey: (client: B2BClient) => void;
-  onSendReport: (client: B2BClient) => void;
-  getStatusColor: (status: B2BClient['status']) => string;
-  getPlanColor: (plan: B2BClient['plan']) => string;
-}
-
-function ClientsTable({
-  clients,
-  onEdit,
-  onDelete,
-  onViewApiKey,
-  onSendReport,
-  getStatusColor,
-  getPlanColor,
-}: ClientsTableProps) {
-  return (
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Company</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Contact</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Plan</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Usage</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Auto Delivery</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Territory</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Last Active</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {clients.map((client) => (
-            <TableRow key={client.id} hover>
-              <TableCell>
-                <Box>
-                  <Typography sx={{ color: '#fff', fontWeight: 600 }}>{client.companyName}</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                    {client.website && (
-                      <Tooltip title="Visit Website">
-                        <IconButton size="small" sx={{ color: '#999' }}>
-                          <Public fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {client.email && (
-                      <Tooltip title={client.email}>
-                        <IconButton size="small" sx={{ color: '#999' }}>
-                          <Email fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Typography sx={{ color: '#fff' }}>{client.name}</Typography>
-                <Typography variant="body2" sx={{ color: '#999' }}>
-                  {client.phone}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={client.plan.toUpperCase()}
-                  size="small"
-                  sx={{
-                    bgcolor: getPlanColor(client.plan),
-                    color: '#000',
-                    fontWeight: 700,
-                  }}
-                />
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={client.status}
-                  size="small"
-                  sx={{
-                    bgcolor: getStatusColor(client.status),
-                    color: '#fff',
-                  }}
-                />
-              </TableCell>
-              <TableCell>
-                <Typography sx={{ color: '#fff' }}>
-                  {client.usedQuota} / {client.monthlyQuota}
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#999' }}>
-                  {((client.usedQuota / client.monthlyQuota) * 100).toFixed(0)}% used
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Chip
-                  icon={client.autoDeliveryEnabled ? <CheckCircle /> : <Warning />}
-                  label={client.autoDeliveryEnabled ? 'Enabled' : 'Disabled'}
-                  size="small"
-                  sx={{
-                    bgcolor: client.autoDeliveryEnabled
-                      ? 'rgba(102, 187, 106, 0.2)'
-                      : 'rgba(255, 167, 38, 0.2)',
-                    color: client.autoDeliveryEnabled ? '#66bb6a' : '#ffa726',
-                  }}
-                />
-              </TableCell>
-              <TableCell>
-                <Typography sx={{ color: '#fff' }}>{client.territory}</Typography>
-                <Typography variant="caption" sx={{ color: '#999' }}>
-                  {client.currency}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography sx={{ color: '#fff' }}>{client.lastActive}</Typography>
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  <Tooltip title="View API Key">
-                    <IconButton size="small" onClick={() => onViewApiKey(client)} sx={{ color: '#D4AF37' }}>
-                      <VpnKey fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Send Test Report">
-                    <IconButton size="small" onClick={() => onSendReport(client)} sx={{ color: '#66bb6a' }}>
-                      <Send fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Edit">
-                    <IconButton size="small" onClick={() => onEdit(client)} sx={{ color: '#999' }}>
-                      <Edit fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton size="small" onClick={() => onDelete(client)} sx={{ color: '#ef5350' }}>
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-}
-
-// API Access Panel Component
-function ApiAccessPanel({ clients }: { clients: B2BClient[] }) {
-  return (
-    <Box>
-      <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2 }}>
-        API Documentation & Access
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid #333' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Api sx={{ color: '#D4AF37' }} />
-                <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>
-                  API Endpoints
-                </Typography>
-              </Box>
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <Description sx={{ color: '#66bb6a' }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="POST /api/v1/scripts/analyze"
-                    secondary="Submit script for analysis"
-                    primaryTypographyProps={{ color: '#fff', fontFamily: 'monospace', fontSize: '0.875rem' }}
-                    secondaryTypographyProps={{ color: '#999' }}
-                  />
-                </ListItem>
-                <Divider sx={{ bgcolor: '#333' }} />
-                <ListItem>
-                  <ListItemIcon>
-                    <CloudDownload sx={{ color: '#66bb6a' }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="GET /api/v1/reports/:id"
-                    secondary="Retrieve generated report"
-                    primaryTypographyProps={{ color: '#fff', fontFamily: 'monospace', fontSize: '0.875rem' }}
-                    secondaryTypographyProps={{ color: '#999' }}
-                  />
-                </ListItem>
-                <Divider sx={{ bgcolor: '#333' }} />
-                <ListItem>
-                  <ListItemIcon>
-                    <Visibility sx={{ color: '#66bb6a' }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="GET /api/v1/usage"
-                    secondary="Check API usage and quota"
-                    primaryTypographyProps={{ color: '#fff', fontFamily: 'monospace', fontSize: '0.875rem' }}
-                    secondaryTypographyProps={{ color: '#999' }}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid #333' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Assessment sx={{ color: '#D4AF37' }} />
-                <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>
-                  Usage Statistics
-                </Typography>
-              </Box>
-              <List>
-                {clients.slice(0, 3).map((client) => (
-                  <Box key={client.id}>
-                    <ListItem>
-                      <ListItemText
-                        primary={client.companyName}
-                        secondary={`${client.usedQuota} / ${client.monthlyQuota} scripts (${((client.usedQuota / client.monthlyQuota) * 100).toFixed(0)}%)`}
-                        primaryTypographyProps={{ color: '#fff', fontWeight: 600 }}
-                        secondaryTypographyProps={{ color: '#999' }}
-                      />
-                    </ListItem>
-                    <Divider sx={{ bgcolor: '#333' }} />
-                  </Box>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Alert severity="info" sx={{ mt: 3, bgcolor: 'rgba(33, 150, 243, 0.1)' }}>
-        <Typography variant="body2" sx={{ color: '#fff', mb: 1 }}>
-          <strong>API Authentication:</strong>
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#999' }}>
-          All API requests must include the header: <code style={{ color: '#D4AF37' }}>Authorization: Bearer YOUR_API_KEY</code>
-        </Typography>
-      </Alert>
+      <Dialog open={manualOpen} onClose={() => setManualOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Create Manual B2B Contract</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label="User email" value={manualForm.user_email} onChange={(event) => setManualForm({ ...manualForm, user_email: event.target.value })} />
+            <TextField select label="Product" value={manualForm.product_type} onChange={(event) => setManualForm({ ...manualForm, product_type: event.target.value as B2BProductType })}>
+              {PRODUCT_OPTIONS.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
+            </TextField>
+            <TextField select label="Delivery cadence" value={manualForm.delivery_frequency} onChange={(event) => setManualForm({ ...manualForm, delivery_frequency: event.target.value as B2BDeliveryFrequency })}>
+              <MenuItem value="monthly">Monthly</MenuItem>
+              <MenuItem value="quarterly">Quarterly</MenuItem>
+            </TextField>
+            <TextField label="Extra recipient" value={manualForm.extra_recipient_email || ''} onChange={(event) => setManualForm({ ...manualForm, extra_recipient_email: event.target.value })} />
+            <TextField label="Company" value={manualForm.company_name || ''} onChange={(event) => setManualForm({ ...manualForm, company_name: event.target.value })} />
+            <TextField label="Admin notes" multiline minRows={3} value={manualForm.admin_notes || ''} onChange={(event) => setManualForm({ ...manualForm, admin_notes: event.target.value })} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setManualOpen(false)} disabled={saving}>Cancel</Button>
+          <Button variant="contained" onClick={createManual} disabled={saving}>Create</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

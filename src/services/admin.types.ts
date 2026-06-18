@@ -332,9 +332,6 @@ export interface DataSourceUpdate {
   sync_schedule?: DataSourceSyncSchedule;
 }
 
-export interface DataSourceListResponse extends PaginatedResponse<DataSource> {
-}
-
 export interface DataSourceTestResult {
   slug: string;
   status: Exclude<DataSourceStatus, 'unknown'>;

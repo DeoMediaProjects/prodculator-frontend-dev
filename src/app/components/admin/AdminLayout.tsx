@@ -47,7 +47,7 @@ export function AdminLayout() {
   const menuItems: { label: string; path: string; icon: JSX.Element; permission?: keyof AdminPermissions }[] = [
     { label: 'Overview', path: '/admin/overview', icon: <Dashboard /> },
     { label: 'Business Metrics', path: '/admin/metrics', icon: <TrendingUp />, permission: 'canViewBusinessMetrics' },
-    { label: 'B2B Clients', path: '/admin/b2b-clients', icon: <BusinessCenter /> },
+    { label: 'B2B Clients', path: '/admin/b2b-clients', icon: <BusinessCenter />, permission: 'canManageB2B' },
     { label: 'Production Intelligence', path: '/admin/production-intel', icon: <Videocam />, permission: 'canViewPlatformEconomics' },
     { label: 'Script AI Overview', path: '/admin/script-ai', icon: <AccountCircle /> },
     { label: 'Incentive Data', path: '/admin/incentives', icon: <AttachMoney />, permission: 'canEditIncentiveData' },
