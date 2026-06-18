@@ -15,6 +15,7 @@ export interface AdminPermissions {
   canManageEmailGating: boolean;
   canManagePDFReports: boolean;
   canViewPlatformEconomics: boolean;
+  canManageB2B: boolean;
 }
 
 type PlanType = 'free' | 'single' | 'professional' | 'producer' | 'studio';
@@ -86,6 +87,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageEmailGating: true,
     canManagePDFReports: true,
     canViewPlatformEconomics: true,
+    canManageB2B: true,
   },
   senior_admin: {
     canManageAdmins: false,
@@ -97,6 +99,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageEmailGating: true,
     canManagePDFReports: true,
     canViewPlatformEconomics: true,
+    canManageB2B: true,
   },
   data_admin: {
     canManageAdmins: false,
@@ -108,6 +111,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageEmailGating: false,
     canManagePDFReports: false,
     canViewPlatformEconomics: false,
+    canManageB2B: false,
   },
   support_admin: {
     canManageAdmins: false,
@@ -119,6 +123,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageEmailGating: true,
     canManagePDFReports: true,
     canViewPlatformEconomics: false,
+    canManageB2B: false,
   },
 };
 
