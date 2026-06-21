@@ -501,7 +501,10 @@ export function B2BSolutions() {
       setExtraRecipient(active.extra_recipient_email || '');
     } else {
       if (!product.self_service) {
-        enqueueSnackbar('Enterprise B2B access is admin/manual-contract only.', { variant: 'info' });
+        // Enterprise/manual-contract products aren't self-serve — route the
+        // prospect to the contact form pre-set to a sales enquiry instead of
+        // dead-ending on a disabled button.
+        navigate('/contact?type=sales');
         return;
       }
       setModalMode('checkout');
@@ -700,10 +703,9 @@ export function B2BSolutions() {
                         fullWidth
                         startIcon={active ? <Description /> : <CreditCard />}
                         onClick={() => openProduct(product)}
-                        disabled={!product.self_service && !active}
                         sx={{ height: 48, border: '2px solid rgba(212,175,55,0.55)', color: '#B8941F', fontWeight: 800 }}
                       >
-                        {active ? 'Generate PDF' : product.self_service ? 'Subscribe' : 'Admin managed'}
+                        {active ? 'Generate PDF' : product.self_service ? 'Subscribe' : 'Contact Sales'}
                       </Button>
                     </Box>
                   </Card>
