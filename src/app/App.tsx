@@ -35,6 +35,7 @@ const FAQ = lazy(() => import('../app/pages/FAQ').then(m => ({ default: m.FAQ })
 const TermsOfService = lazy(() => import('../app/pages/TermsOfService').then(m => ({ default: m.TermsOfService })));
 const PrivacyPolicy = lazy(() => import('../app/pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const AcceptableUse = lazy(() => import('../app/pages/AcceptableUse').then(m => ({ default: m.AcceptableUse })));
+const Contact = lazy(() => import('../app/pages/Contact').then(m => ({ default: m.Contact })));
 
 const B2BSolutions = lazy(() => import('../app/components/B2BSolutions').then(m => ({ default: m.B2BSolutions })));
 
@@ -238,6 +239,7 @@ function AppContent() {
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/acceptable-use" element={<AcceptableUse />} />
+                  <Route path="/contact" element={<Contact />} />
                   <Route path="/b2b" element={<ProtectedRoute><B2BSolutions /></ProtectedRoute>} />
                   <Route path="/tools/comparison" element={<TerritoryComparison />} />
                   <Route path="/tools/what-if" element={<ProtectedRoute plan="professional"><WhatIfCalculator /></ProtectedRoute>} />

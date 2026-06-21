@@ -101,6 +101,20 @@ export function LandingPage() {
                 >
                   FAQ
                 </Button>
+                <Button
+                  variant="text"
+                  onClick={() => navigate('/contact')}
+                  sx={{
+                    color: '#000000',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    '&:hover': {
+                      bgcolor: 'rgba(212, 175, 55, 0.08)',
+                    }
+                  }}
+                >
+                  Contact
+                </Button>
               </Box>
               {isAuthenticated ? (
                 <>
@@ -354,6 +368,21 @@ export function LandingPage() {
               <Typography sx={{ fontSize: 13, fontWeight: 800, color: '#000000', mb: 1.5, letterSpacing: '0.08em' }}>
                 GET IN TOUCH
               </Typography>
+              <Box
+                onClick={() => navigate('/contact')}
+                sx={{
+                  display: 'inline-block',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: '#000000',
+                  cursor: 'pointer',
+                  mb: 1.5,
+                  textDecoration: 'underline',
+                  '&:hover': { opacity: 0.65 },
+                }}
+              >
+                Send us a message →
+              </Box>
               <Typography sx={{ fontSize: 13, color: '#000000', mb: 0.5 }}>
                 <Box component="span" sx={{ fontWeight: 700 }}>General:</Box>{' '}
                 <Box

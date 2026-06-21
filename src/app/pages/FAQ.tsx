@@ -682,7 +682,7 @@ export default function FAQ() {
           <Typography sx={{ color: '#d1d5db', maxWidth: 900, mx: 'auto', fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Everything you need to know about Prodculator's Scripteligence AI, from getting started to advanced
             features. Can't find what you're looking for?{' '}
-            <Link href="mailto:support@prodculator.com" underline="none" sx={{ color: '#D4AF37', '&:hover': { color: '#F4CF67' } }}>
+            <Link onClick={() => navigate('/contact')} underline="none" sx={{ color: '#D4AF37', cursor: 'pointer', '&:hover': { color: '#F4CF67' } }}>
               Contact us
             </Link>
             .
@@ -756,10 +756,17 @@ export default function FAQ() {
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
             <Button
-              href="mailto:support@prodculator.com"
+              onClick={() => navigate('/contact')}
               variant="contained"
               startIcon={<Mail size={18} />}
               sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#F4CF67' } }}
+            >
+              Contact Us
+            </Button>
+            <Button
+              href="mailto:support@prodculator.com"
+              variant="outlined"
+              sx={{ borderColor: '#D4AF37', color: '#D4AF37', '&:hover': { borderColor: '#F4CF67', color: '#F4CF67' } }}
             >
               Email Support
             </Button>
