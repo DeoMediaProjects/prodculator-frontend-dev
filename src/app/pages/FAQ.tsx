@@ -763,13 +763,6 @@ export default function FAQ() {
             >
               Contact Us
             </Button>
-            <Button
-              href="mailto:support@prodculator.com"
-              variant="outlined"
-              sx={{ borderColor: '#D4AF37', color: '#D4AF37', '&:hover': { borderColor: '#F4CF67', color: '#F4CF67' } }}
-            >
-              Email Support
-            </Button>
           </Stack>
         
         </Container>
