@@ -202,7 +202,7 @@ export function PublicWhatIfCalculator() {
   );
 
   return (
-    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100vh', fontFamily: font }}>
+    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100dvh', fontFamily: font }}>
       {/* Navigation Bar */}
       <Box sx={{ bgcolor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.08)', py: 2 }}>
         <Container maxWidth="xl">
@@ -474,7 +474,7 @@ export function PublicWhatIfCalculator() {
               </Box>
             )}
 
-            <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ overflowX: 'auto', display: { xs: 'none', md: 'block' } }}>
               {/* Header Row */}
               <Box
                 sx={{
@@ -588,6 +588,70 @@ export function PublicWhatIfCalculator() {
                   );
                 })}
               </Box>
+            </Box>
+
+            {/* Mobile card view — same data as the table above, stacked one card per territory */}
+            <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+              {territories.map((t, index) => {
+                const isTopScore = index === 0;
+                const cells = [
+                  { label: 'Programme', value: t.programme, valueColor: '#111111' },
+                  { label: 'Incentive Rate', value: t.rate_display, valueColor: '#111111' },
+                  {
+                    label: 'Est. Incentive',
+                    value: t.vfx_uplift_display
+                      ? `${t.estimated_rebate_display} (+${t.vfx_uplift_display} VFX)`
+                      : t.estimated_rebate_display,
+                    valueColor: '#1A8C4E',
+                  },
+                ];
+                return (
+                  <Box
+                    key={t.territory}
+                    sx={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px', p: 2, mb: 1.5, bgcolor: '#FFFFFF' }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Typography sx={{ fontSize: '20px' }}>{isoToFlag(t.iso)}</Typography>
+                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: '#111111', flex: 1 }}>
+                        {t.territory}
+                      </Typography>
+                      {isTopScore && (
+                        <Chip
+                          label="TOP"
+                          sx={{
+                            bgcolor: '#F5C800', color: '#000000', fontFamily: font, fontWeight: 700,
+                            fontSize: '10px', height: '20px', textTransform: 'uppercase', borderRadius: '10px',
+                          }}
+                        />
+                      )}
+                      <Typography
+                        sx={{
+                          fontFamily: font, fontWeight: 700, fontSize: '15px',
+                          color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999',
+                        }}
+                      >
+                        {t.overall_score}
+                        <Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>
+                          /100
+                        </Typography>
+                      </Typography>
+                    </Box>
+                    {cells.map((cell) => (
+                      <Box
+                        key={cell.label}
+                        sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5, borderTop: '1px solid rgba(0,0,0,0.04)' }}
+                      >
+                        <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#999999' }}>
+                          {cell.label}
+                        </Typography>
+                        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '13px', color: cell.valueColor, textAlign: 'right' }}>
+                          {cell.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                );
+              })}
             </Box>
           </Box>
         )}

@@ -12,13 +12,14 @@ import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import grantifyBanner from '@/assets/524910a57dfd11f1e00b5b105577b194b5ba8e33.png';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { IntroAnimation } from '@/app/components/common/IntroAnimation';
+import { MobileNavDrawer } from '@/app/components/common/MobileNavDrawer';
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}  >
+    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', position: 'relative', overflow: 'hidden' }}  >
       <IntroAnimation />
 
       {/* Atmospheric gradient effect */}
@@ -56,7 +57,7 @@ export function LandingPage() {
               />
             </Box>
             <Box sx={{ display: 'flex', gap: { xs: 1, md: 3 }, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: 3, alignItems: 'center' }}>
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 3, alignItems: 'center' }}>
                 {isAuthenticated && (
                   <Button
                     variant="text"
@@ -116,6 +117,7 @@ export function LandingPage() {
                   Contact
                 </Button>
               </Box>
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: { xs: 1, md: 2 }, alignItems: 'center' }}>
               {isAuthenticated ? (
                 <>
                   <Button
@@ -173,6 +175,8 @@ export function LandingPage() {
                   </Button>
                 </>
               )}
+              </Box>
+              <MobileNavDrawer iconColor="#000000" />
             </Box>
           </Box>
         </Container>
@@ -183,7 +187,7 @@ export function LandingPage() {
         sx={{ 
           position: 'relative',
           zIndex: 1,
-          minHeight: 'calc(100vh - 80px)',
+          minHeight: 'calc(100dvh - 80px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

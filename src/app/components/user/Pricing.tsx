@@ -359,7 +359,7 @@ export function Pricing() {
   ];
 
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh' }}>
       {/* Header */}
       <Box
         sx={{

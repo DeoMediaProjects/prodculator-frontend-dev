@@ -47,7 +47,7 @@ export function SharedReportViewer() {
 
   if (loading) {
     return (
-      <Box sx={{ bgcolor: '#000', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ bgcolor: '#000', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box sx={{ textAlign: 'center' }}>
           <CircularProgress sx={{ color: '#D4AF37', mb: 2 }} />
           <Typography sx={{ color: '#a0a0a0' }}>Loading shared report…</Typography>
@@ -58,7 +58,7 @@ export function SharedReportViewer() {
 
   if (error || !report) {
     return (
-      <Box sx={{ bgcolor: '#000', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ bgcolor: '#000', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
           <Typography variant="h5" sx={{ color: '#fff', mb: 2 }}>{error || 'Report not found'}</Typography>
           <Button variant="outlined" onClick={() => navigate('/')} startIcon={<ArrowBack />}>
@@ -75,7 +75,7 @@ export function SharedReportViewer() {
   const executiveSummary = analysis?.executiveSummary;
 
   return (
-    <Box sx={{ bgcolor: '#000', minHeight: '100vh', pb: 8 }}>
+    <Box sx={{ bgcolor: '#000', minHeight: '100dvh', pb: 8 }}>
       {/* Shared report banner */}
       <Box sx={{ bgcolor: 'rgba(212,175,55,0.08)', borderBottom: '1px solid rgba(212,175,55,0.25)', py: 1, px: 2 }}>
         <Container maxWidth="lg">

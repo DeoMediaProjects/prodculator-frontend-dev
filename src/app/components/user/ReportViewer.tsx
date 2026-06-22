@@ -295,7 +295,7 @@ export function ReportViewer() {
 
   if (isFetchingReport || (!analysis && !fetchError)) {
     return (
-      <Box sx={{ bgcolor: '#000000', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box sx={{ textAlign: 'center' }}>
           <CircularProgress sx={{ color: '#D4AF37', mb: 2 }} />
           <Typography variant="body1" sx={{ color: '#a0a0a0' }}>Loading report…</Typography>
@@ -306,7 +306,7 @@ export function ReportViewer() {
 
   if (!analysis) {
     return (
-      <Box sx={{ bgcolor: '#000000', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Container maxWidth="md" sx={{ textAlign: 'center' }}>
           <Typography variant="h5" gutterBottom sx={{ color: '#ffffff' }}>
             {fetchError || 'No report data found'}
@@ -380,7 +380,7 @@ export function ReportViewer() {
 
 
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh' }}>
       {/* Header */}
       <Box sx={{ bgcolor: 'rgba(255, 255, 255, 0.98)', borderBottom: '1px solid rgba(0,0,0,0.1)', py: 2 }}>
         <Container maxWidth="lg">

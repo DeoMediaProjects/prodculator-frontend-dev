@@ -640,7 +640,7 @@ export default function FAQ() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#000', color: '#fff' }}>
+    <Box sx={{ minHeight: '100dvh', bgcolor: '#000', color: '#fff' }}>
         <Box 
         sx={{ 
           bgcolor: 'rgba(255, 255, 255, 0.98)', 
