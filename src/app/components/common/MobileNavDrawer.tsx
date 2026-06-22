@@ -43,11 +43,18 @@ interface MobileNavDrawerProps {
  */
 export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps) {
   const [open, setOpen] = useState(false);
+  // Scroll lock is kept separate from `open` and toggled by the slide
+  // transition's start/end callbacks. Flipping <body> to `position: fixed`
+  // forces a full page reflow (and re-rasterises the blurred hero blob), so
+  // doing it mid-slide drops frames. We lock only once the drawer has finished
+  // opening and release once it has finished closing — the animation itself
+  // runs against a static page. (The hook still cleans up on unmount, so a
+  // navigation that unmounts mid-transition can't leave the body pinned.)
+  const [locked, setLocked] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  // Pin the page behind the drawer (works on iOS, unlike MUI's own lock).
-  useScrollLock(open);
+  useScrollLock(locked);
 
   const go = (path: string) => {
     setOpen(false);
@@ -72,7 +79,15 @@ export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps)
         onClose={() => setOpen(false)}
         // We lock scroll ourselves via useScrollLock (MUI's lock leaks on iOS).
         disableScrollLock
-        slotProps={{ paper: { sx: { width: 280, maxWidth: '85vw', bgcolor: '#0A0A0A', color: '#fff' } } }}
+        slotProps={{
+          paper: { sx: { width: 280, maxWidth: '85vw', bgcolor: '#0A0A0A', color: '#fff' } },
+          // Lock after the open slide ends, release after the close slide ends,
+          // so the reflow never competes with the animation.
+          transition: {
+            onEntered: () => setLocked(true),
+            onExited: () => setLocked(false),
+          },
+        }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
           <IconButton aria-label="Close navigation menu" onClick={() => setOpen(false)} sx={{ color: '#fff' }}>
