@@ -57,6 +57,7 @@ import { TerritoryComparison } from '@/app/components/user/TerritoryComparison';
 import { ProductionTimeline } from '@/app/components/user/ProductionTimeline';
 import { SupportContactWidget } from '@/app/components/user/SupportContactWidget';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
+import { useScrollLock } from '@/app/hooks/useScrollLock';
 import { useSnackbar } from 'notistack';
 
 const PLAN_LABEL: Record<string, string> = {
@@ -235,6 +236,8 @@ export function UserDashboard() {
   const [invoicesLoaded, setInvoicesLoaded] = useState(false);
   // Mobile-only header actions menu (New Analysis / Back to Home).
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
+  // Pin the page behind the menu (works on iOS, unlike MUI's own lock).
+  useScrollLock(Boolean(mobileMenuAnchor));
 
   const {
     data: subscriptionData,
@@ -439,6 +442,7 @@ export function UserDashboard() {
                 anchorEl={mobileMenuAnchor}
                 open={Boolean(mobileMenuAnchor)}
                 onClose={() => setMobileMenuAnchor(null)}
+                disableScrollLock
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                 slotProps={{ paper: { sx: { bgcolor: '#1A1A1A', color: '#fff', minWidth: 200, border: '1px solid rgba(212,175,55,0.2)' } } }}
