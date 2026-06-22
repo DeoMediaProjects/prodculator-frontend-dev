@@ -2,7 +2,7 @@ import { Box, Container, Typography } from '@mui/material';
 
 export function AcceptableUse() {
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100vh', color: '#ffffff', py: 8 }}>
+    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', color: '#ffffff', py: 8 }}>
       <Container maxWidth="md">
         <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: '#D4AF37' }}>
           Acceptable Use Policy

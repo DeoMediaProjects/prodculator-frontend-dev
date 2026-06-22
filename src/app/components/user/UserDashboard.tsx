@@ -399,7 +399,7 @@ export function UserDashboard() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#000000' }}>
+    <Box sx={{ minHeight: '100dvh', bgcolor: '#000000' }}>
       {/* Header */}
       <Box sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', py: { xs: 2, sm: 3 } }}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, sm: 3, md: 4 } }}>

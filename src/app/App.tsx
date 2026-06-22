@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, createTheme, Box, CircularProgress } from '@mui/material';
+import { ThemeProvider, CssBaseline, createTheme, responsiveFontSizes, Box, CircularProgress } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
 import { Toast } from '@/app/components/common/Toast';
 import { HelmetProvider } from 'react-helmet-async';
@@ -67,7 +67,7 @@ const EmailPreview = lazy(() => import('../app/pages/EmailPreview').then(m => ({
 const APIConnectionTester = lazy(() => import('../app/pages/APIConnectionTester').then(m => ({ default: m.APIConnectionTester })));
 
 // MUI Theme Configuration
-const theme = createTheme({
+let theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
@@ -137,6 +137,16 @@ const theme = createTheme({
     },
   },
   components: {
+    // Global safety net for mobile: prevent any single element from forcing
+    // horizontal page scroll. `clip` (not `hidden`) avoids creating a scroll
+    // container, so it won't break `position: sticky` ancestors.
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: { overflowX: 'clip' },
+        body: { overflowX: 'clip' },
+        'img, video': { maxWidth: '100%' },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -196,6 +206,11 @@ const theme = createTheme({
     },
   },
 });
+
+// Scale down the large desktop heading/body sizes on smaller breakpoints so
+// bare <Typography variant="hN"> no longer overflows on phones. Desktop sizes
+// are unchanged (they are the largest in the generated range).
+theme = responsiveFontSizes(theme);
 
 // Shown while a lazy route chunk is being fetched.
 function PageLoader() {

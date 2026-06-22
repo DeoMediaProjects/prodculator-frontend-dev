@@ -71,7 +71,7 @@ export function ResetPassword() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         bgcolor: '#000000',
         display: 'flex',
         alignItems: 'center',

@@ -107,7 +107,7 @@ export function Contact() {
   };
 
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100vh', color: '#ffffff' }}>
+    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', color: '#ffffff' }}>
       {/* Header */}
       <Box sx={{ bgcolor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.1)', py: 2.5 }}>
         <Container maxWidth="lg">

@@ -266,7 +266,7 @@ export function WhatIfCalculator() {
   );
 
   return (
-    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100vh', fontFamily: font }}>
+    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100dvh', fontFamily: font }}>
       {/* Navigation Bar */}
       <Box sx={{ bgcolor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.08)', py: 2 }}>
         <Container maxWidth="xl">

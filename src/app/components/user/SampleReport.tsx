@@ -1028,7 +1028,7 @@ export function SampleReport() {
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100dvh' }}>
       {/* Header */}
       <Box sx={{ bgcolor: 'white', borderBottom: 1, borderColor: 'divider', py: 2, position: 'sticky', top: 0, zIndex: 1000 }}>
         <Container maxWidth="lg">

@@ -600,7 +600,7 @@ export function B2BSolutions() {
 
   return (
     <ThemeProvider theme={b2bTheme}>
-    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100vh', fontFamily: "'Montserrat', sans-serif" }}>
+    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100dvh', fontFamily: "'Montserrat', sans-serif" }}>
       <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid rgba(0,0,0,0.1)', py: 2 }}>
         <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -941,6 +941,7 @@ export function B2BSolutions() {
                       {section.title}
                     </Typography>
                     <Typography sx={{ fontSize: 13, color: '#555', mb: 1 }}>{section.summary}</Typography>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow sx={{ '& th': { bgcolor: '#f7f7f7', fontWeight: 700, fontSize: 12 } }}>
@@ -961,6 +962,7 @@ export function B2BSolutions() {
                         ))}
                       </TableBody>
                     </Table>
+                    </TableContainer>
                   </Box>
                 ))}
 
