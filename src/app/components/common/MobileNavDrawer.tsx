@@ -12,6 +12,7 @@ import {
 import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useScrollLock } from '@/app/hooks/useScrollLock';
 
 interface NavLink {
   label: string;
@@ -45,6 +46,9 @@ export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps)
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
+  // Pin the page behind the drawer (works on iOS, unlike MUI's own lock).
+  useScrollLock(open);
+
   const go = (path: string) => {
     setOpen(false);
     navigate(path);
@@ -66,6 +70,8 @@ export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps)
         anchor="right"
         open={open}
         onClose={() => setOpen(false)}
+        // We lock scroll ourselves via useScrollLock (MUI's lock leaks on iOS).
+        disableScrollLock
         slotProps={{ paper: { sx: { width: 280, maxWidth: '85vw', bgcolor: '#0A0A0A', color: '#fff' } } }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
