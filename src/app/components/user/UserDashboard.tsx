@@ -22,6 +22,10 @@ import {
   CircularProgress,
   Divider,
   Grid,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 
 import {
@@ -41,6 +45,7 @@ import {
   Logout,
   Receipt,
   OpenInNew,
+  Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
@@ -228,6 +233,8 @@ export function UserDashboard() {
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
   const [invoicesLoaded, setInvoicesLoaded] = useState(false);
+  // Mobile-only header actions menu (New Analysis / Back to Home).
+  const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
 
   const {
     data: subscriptionData,
@@ -415,8 +422,36 @@ export function UserDashboard() {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              {/* Desktop / tablet: inline buttons */}
               <Button startIcon={<Home />} onClick={() => navigate('/')} sx={{ color: '#a0a0a0', display: { xs: 'none', sm: 'flex' } }}>Back to Home</Button>
-              <Button variant="contained" startIcon={<Movie />} onClick={() => navigate('/upload')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>New Analysis</Button>
+              <Button variant="contained" startIcon={<Movie />} onClick={() => navigate('/upload')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, fontSize: { xs: '0.8rem', sm: '0.875rem' }, display: { xs: 'none', sm: 'flex' } }}>New Analysis</Button>
+
+              {/* Mobile only: hamburger dropdown with the same actions */}
+              <IconButton
+                aria-label="Open dashboard menu"
+                aria-haspopup="true"
+                onClick={(e) => setMobileMenuAnchor(e.currentTarget)}
+                sx={{ display: { xs: 'inline-flex', sm: 'none' }, color: '#D4AF37' }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Menu
+                anchorEl={mobileMenuAnchor}
+                open={Boolean(mobileMenuAnchor)}
+                onClose={() => setMobileMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{ paper: { sx: { bgcolor: '#1A1A1A', color: '#fff', minWidth: 200, border: '1px solid rgba(212,175,55,0.2)' } } }}
+              >
+                <MenuItem onClick={() => { setMobileMenuAnchor(null); navigate('/upload'); }} sx={{ py: 1.25 }}>
+                  <ListItemIcon sx={{ color: '#D4AF37' }}><Movie fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="New Analysis" />
+                </MenuItem>
+                <MenuItem onClick={() => { setMobileMenuAnchor(null); navigate('/'); }} sx={{ py: 1.25 }}>
+                  <ListItemIcon sx={{ color: '#a0a0a0' }}><Home fontSize="small" /></ListItemIcon>
+                  <ListItemText primary="Back to Home" />
+                </MenuItem>
+              </Menu>
             </Box>
           </Box>
         </Box>

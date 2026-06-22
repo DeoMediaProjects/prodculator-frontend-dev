@@ -21,12 +21,9 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { label: 'Home', path: '/' },
   { label: 'Pricing', path: '/pricing' },
   { label: 'FAQ', path: '/faq' },
   { label: 'Contact', path: '/contact' },
-  { label: 'Sample Report', path: '/sample' },
-  { label: 'What If Calculator', path: '/what-if' },
   { label: 'B2B Solutions', path: '/b2b', authOnly: true },
 ];
 
