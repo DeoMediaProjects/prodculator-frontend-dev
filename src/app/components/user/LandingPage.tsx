@@ -58,22 +58,20 @@ export function LandingPage() {
             </Box>
             <Box sx={{ display: 'flex', gap: { xs: 1, md: 3 }, alignItems: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 3, alignItems: 'center' }}>
-                {isAuthenticated && (
-                  <Button
-                    variant="text"
-                    onClick={() => navigate('/b2b')}
-                    sx={{
-                      color: '#000000',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      '&:hover': {
-                        bgcolor: 'rgba(212, 175, 55, 0.08)',
-                      }
-                    }}
-                  >
-                    B2B Solutions
-                  </Button>
-                )}
+                <Button
+                  variant="text"
+                  onClick={() => navigate('/b2b')}
+                  sx={{
+                    color: '#000000',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    '&:hover': {
+                      bgcolor: 'rgba(212, 175, 55, 0.08)',
+                    }
+                  }}
+                >
+                  B2B Solutions
+                </Button>
                 <Button 
                   variant="text"
                   onClick={() => navigate('/pricing')}

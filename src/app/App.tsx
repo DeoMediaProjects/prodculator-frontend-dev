@@ -255,7 +255,7 @@ function AppContent() {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/acceptable-use" element={<AcceptableUse />} />
                   <Route path="/contact" element={<Contact />} />
-                  <Route path="/b2b" element={<ProtectedRoute><B2BSolutions /></ProtectedRoute>} />
+                  <Route path="/b2b" element={<B2BSolutions />} />
                   <Route path="/tools/comparison" element={<TerritoryComparison />} />
                   <Route path="/tools/what-if" element={<ProtectedRoute plan="professional"><WhatIfCalculator /></ProtectedRoute>} />
                   <Route path="/what-if" element={<PublicWhatIfCalculator />} />

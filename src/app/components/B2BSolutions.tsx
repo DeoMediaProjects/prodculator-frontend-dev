@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useSnackbar } from 'notistack';
 import {
@@ -32,7 +32,6 @@ import {
   Typography,
 } from '@mui/material';
 import {
-  ArrowBack,
   CheckCircle,
   CloudDownload,
   CreditCard,
@@ -340,6 +339,95 @@ function sampleSectionsFor(productType: B2BProductType): SampleSection[] {
 // Illustrative reporting window shown in the preview only.
 const SAMPLE_PERIOD = { start: '2026-01-01', end: '2026-03-31' };
 
+// Mirrors the backend B2B_PRODUCTS catalog for signed-out visitors. Authenticated
+// users still load the live API catalog so admin/backend changes take precedence.
+const PUBLIC_B2B_PRODUCTS: B2BProduct[] = [
+  {
+    product_type: 'camera_equipment',
+    title: 'Camera & Equipment Demand Intelligence',
+    audience: 'Equipment Rental & Camera Houses',
+    description: 'Aggregated production volume, territory, format, genre, and camera equipment demand signals from anonymised platform metadata.',
+    features: [
+      'Territory-specific production volume trends',
+      'Camera and equipment demand mix',
+      'Production type distribution',
+      'Genre-based equipment implications',
+      'Seasonal trend analysis',
+    ],
+    price_gbp_cents: 160,
+    price_usd_cents: 200,
+    self_service: true,
+    stripe_price_configured: { gbp: false, usd: false },
+  },
+  {
+    product_type: 'production_services',
+    title: 'Production Services Intelligence',
+    audience: 'Payroll, Accounting, Insurance & Logistics',
+    description: 'Crew size, cast demand, production scale, format, and budget range analytics for production service planning.',
+    features: [
+      'Crew size trend analytics by territory',
+      'Cast demand analytics',
+      'Production scale distribution reports',
+      'Total headcount trend analysis',
+      'Budget range breakdowns',
+    ],
+    price_gbp_cents: 160,
+    price_usd_cents: 200,
+    self_service: true,
+    stripe_price_configured: { gbp: false, usd: false },
+  },
+  {
+    product_type: 'crew_casting',
+    title: 'Crew & Casting Demand Intelligence',
+    audience: 'Casting Agencies & Crew Agencies',
+    description: 'Aggregated genre, scale, territory, and cast-volume signals for crew and casting demand planning.',
+    features: [
+      'Genre distribution by territory and budget',
+      'Principal and supporting cast volume trends',
+      'Extras demand by territory',
+      'Submission timing clusters',
+      'Budget tier breakdown by format',
+    ],
+    price_gbp_cents: 160,
+    price_usd_cents: 200,
+    self_service: true,
+    stripe_price_configured: { gbp: false, usd: false },
+  },
+  {
+    product_type: 'production_trend',
+    title: 'Strategic Production Trend Intelligence',
+    audience: 'Studios, Streamers, Agencies & Industry Bodies',
+    description: 'Strategic trend signals across territory, genre, budget, and format from anonymised production planning metadata.',
+    features: [
+      'Territory demand distribution',
+      'Budget range movement by format',
+      'Genre and format trend signals',
+      'Monthly production planning volume',
+      'Emerging territory demand signals',
+    ],
+    price_gbp_cents: 160,
+    price_usd_cents: 200,
+    self_service: true,
+    stripe_price_configured: { gbp: false, usd: false },
+  },
+  {
+    product_type: 'enterprise',
+    title: 'Enterprise Slate Intelligence',
+    audience: 'Enterprise & Manual Contract Clients',
+    description: 'Custom production intelligence agreements with admin-managed access, recipients, cadence, and reporting scope.',
+    features: [
+      'Custom commercial contract',
+      'Admin-managed delivery cadence',
+      'Enterprise request history',
+      'Custom metrics review',
+    ],
+    price_gbp_cents: null,
+    price_usd_cents: null,
+    self_service: false,
+    stripe_price_configured: {},
+  },
+];
+
 function dateInput(value: Date) {
   return value.toISOString().slice(0, 10);
 }
@@ -431,7 +519,7 @@ function CurrencyToggle({ value, onChange }: { value: B2BCurrency; onChange: (cu
 export function B2BSolutions() {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { isUK } = useGeoCurrency();
   const [products, setProducts] = useState<B2BProduct[]>([]);
   const [subscriptions, setSubscriptions] = useState<B2BSubscription[]>([]);
@@ -467,10 +555,12 @@ export function B2BSolutions() {
     return map;
   }, [subscriptions]);
 
-  const productTitle = (request: B2BIntelligenceRequest) =>
-    products.find((p) => p.product_type === request.product_type)?.title || request.product_type;
+  const visibleProducts = isAuthenticated ? products : PUBLIC_B2B_PRODUCTS;
 
-  const load = async () => {
+  const productTitle = (request: B2BIntelligenceRequest) =>
+    visibleProducts.find((p) => p.product_type === request.product_type)?.title || request.product_type;
+
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -487,13 +577,24 @@ export function B2BSolutions() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    load();
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const timeout = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [isAuthenticated, load]);
+
   const openProduct = (product: B2BProduct) => {
+    if (!isAuthenticated) {
+      navigate('/signup');
+      return;
+    }
+
     const active = subscriptionsByProduct.get(product.product_type);
     if (active) {
       setModalMode('request');
@@ -598,6 +699,8 @@ export function B2BSolutions() {
     );
   };
 
+  const previewRecipient = user?.email || 'your account email';
+
   return (
     <ThemeProvider theme={b2bTheme}>
     <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100dvh', fontFamily: "'Montserrat', sans-serif" }}>
@@ -610,8 +713,11 @@ export function B2BSolutions() {
               style={{ height: 32, width: 'auto', cursor: 'pointer' }}
               onClick={() => navigate('/')}
             />
-            <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard')} sx={{ color: '#000' }}>
-              Dashboard
+            <Button
+              onClick={() => navigate(isAuthenticated ? '/dashboard' : '/signup')}
+              sx={{ color: '#000' }}
+            >
+              {isAuthenticated ? 'Dashboard' : 'Sign Up'}
             </Button>
           </Box>
         </Container>
@@ -630,7 +736,7 @@ export function B2BSolutions() {
 
       <Container maxWidth="xl" sx={{ py: 5 }}>
         {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-        {loading ? (
+        {isAuthenticated && loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress sx={{ color: '#D4AF37' }} />
           </Box>
@@ -650,8 +756,8 @@ export function B2BSolutions() {
             </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
-              {products.map((product) => {
-                const active = subscriptionsByProduct.get(product.product_type);
+              {visibleProducts.map((product) => {
+                const active = isAuthenticated ? subscriptionsByProduct.get(product.product_type) : undefined;
                 const amount = priceAmount(product, currency);
                 return (
                   <Card key={product.product_type} sx={{ bgcolor: '#fff', color: '#111', p: 3, borderRadius: 2, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column' }}>
@@ -713,6 +819,7 @@ export function B2BSolutions() {
               })}
             </Box>
 
+            {isAuthenticated && (
             <Box sx={{ mt: 6, bgcolor: '#fff', borderRadius: 2, p: { xs: 2.5, md: 3 }, color: '#111' }}>
               <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
                 <History sx={{ color: '#D4AF37' }} />
@@ -799,6 +906,7 @@ export function B2BSolutions() {
                 </>
               )}
             </Box>
+            )}
           </>
         )}
       </Container>
@@ -897,7 +1005,7 @@ export function B2BSolutions() {
                   <MailOutline sx={{ color: '#1A8C4E' }} />
                   <Box sx={{ minWidth: 0 }}>
                     <Typography sx={{ fontWeight: 700 }}>Your B2B intelligence PDF is ready</Typography>
-                    <Typography sx={{ color: '#888', fontSize: 13, wordBreak: 'break-all' }}>to {user?.email}</Typography>
+                    <Typography sx={{ color: '#888', fontSize: 13, wordBreak: 'break-all' }}>to {previewRecipient}</Typography>
                   </Box>
                 </Stack>
                 <Divider sx={{ mb: 1.5 }} />
@@ -973,7 +1081,7 @@ export function B2BSolutions() {
             </DialogContent>
             <DialogActions sx={{ px: 3, py: 2 }}>
               <Button onClick={() => setPreviewProduct(null)}>Close</Button>
-              {previewProduct.self_service && !subscriptionsByProduct.get(previewProduct.product_type) && (
+              {previewProduct.self_service && (!isAuthenticated || !subscriptionsByProduct.get(previewProduct.product_type)) && (
                 <Button
                   variant="contained"
                   startIcon={<CreditCard />}
