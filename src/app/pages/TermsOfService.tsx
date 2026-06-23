@@ -48,9 +48,9 @@ export function TermsOfService() {
           </Typography>
           <ul>
             <li><strong>Free Tier:</strong> 1 free intelligence report with watermarked output, 3 territory comparisons/month (max 2 territories), 5 what if calculator uses/month, watermarked exports</li>
-            <li><strong>Pro Monthly:</strong> $49/month 5 reports/month, unlimited territory comparisons (up to 4 territories), unlimited what if calculator, PDF/Excel exports, 7 day shareable links</li>
-            <li><strong>Producer Annual:</strong> $470/year ($39/month) 15 reports/month, unlimited comparison tools, save up to 10 scenarios, advanced features, priority support</li>
-            <li><strong>Studio Tier:</strong> $149/month Unlimited reports, unlimited comparison tools with custom branding, permanent shareable links, API access, white label reports, dedicated support</li>
+            <li><strong>Pro Monthly:</strong> $1/month 5 reports/month, unlimited territory comparisons (up to 4 territories), unlimited what if calculator, PDF/Excel exports, 7 day shareable links</li>
+            <li><strong>Producer Annual:</strong> $12/year ($1/month) 15 reports/month, unlimited comparison tools, save up to 10 scenarios, advanced features, priority support</li>
+            <li><strong>Studio Tier:</strong> $1/month Unlimited reports, unlimited comparison tools with custom branding, permanent shareable links, API access, white label reports, dedicated support</li>
           </ul>
           <Typography>
             <strong>4.2 Billing:</strong> Subscriptions are billed in advance on a monthly or annual basis in USD or GBP (based on payment currency, not user location). All fees are non refundable except as required by law.
