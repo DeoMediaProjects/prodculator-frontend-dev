@@ -25,7 +25,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'Pricing', path: '/pricing' },
   { label: 'FAQ', path: '/faq' },
   { label: 'Contact', path: '/contact' },
-  { label: 'B2B Solutions', path: '/b2b', authOnly: true },
+  { label: 'B2B Solutions', path: '/b2b' },
 ];
 
 interface MobileNavDrawerProps {
@@ -43,13 +43,6 @@ interface MobileNavDrawerProps {
  */
 export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps) {
   const [open, setOpen] = useState(false);
-  // Scroll lock is kept separate from `open` and toggled by the slide
-  // transition's start/end callbacks. Flipping <body> to `position: fixed`
-  // forces a full page reflow (and re-rasterises the blurred hero blob), so
-  // doing it mid-slide drops frames. We lock only once the drawer has finished
-  // opening and release once it has finished closing — the animation itself
-  // runs against a static page. (The hook still cleans up on unmount, so a
-  // navigation that unmounts mid-transition can't leave the body pinned.)
   const [locked, setLocked] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
