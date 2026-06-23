@@ -19,13 +19,13 @@ const mockPost = vi.mocked(apiClient.post);
 describe('STRIPE_PRICES', () => {
   // ── Professional ─────────────────────────────────────────────────────────
 
-  it('professional monthly USD has amount 6100 (= $61.00)', () => {
-    expect(STRIPE_PRICES.professionalMonthlyUSD.amount).toBe(6100);
+  it('professional monthly USD has amount 100 (= $1.00)', () => {
+    expect(STRIPE_PRICES.professionalMonthlyUSD.amount).toBe(100);
     expect(STRIPE_PRICES.professionalMonthlyUSD.currency).toBe('usd');
   });
 
-  it('professional monthly GBP has amount 4900 (= £49.00)', () => {
-    expect(STRIPE_PRICES.professionalMonthlyGBP.amount).toBe(4900);
+  it('professional monthly GBP has amount 79 (= £0.79)', () => {
+    expect(STRIPE_PRICES.professionalMonthlyGBP.amount).toBe(79);
     expect(STRIPE_PRICES.professionalMonthlyGBP.currency).toBe('gbp');
   });
 
@@ -35,20 +35,20 @@ describe('STRIPE_PRICES', () => {
     expect(STRIPE_PRICES.professionalAnnualGBP.reportLimit).toBe(1);
   });
 
-  it('professional annual GBP has amount 3900 (= £39.00/month)', () => {
-    expect(STRIPE_PRICES.professionalAnnualGBP.amount).toBe(3900);
+  it('professional annual GBP has amount 79 (= £0.79/month)', () => {
+    expect(STRIPE_PRICES.professionalAnnualGBP.amount).toBe(79);
     expect(STRIPE_PRICES.professionalAnnualGBP.currency).toBe('gbp');
   });
 
   // ── Producer ──────────────────────────────────────────────────────────────
 
-  it('producer monthly USD has amount 14900 (= $149.00)', () => {
-    expect(STRIPE_PRICES.producerMonthlyUSD.amount).toBe(14900);
+  it('producer monthly USD has amount 100 (= $1.00)', () => {
+    expect(STRIPE_PRICES.producerMonthlyUSD.amount).toBe(100);
     expect(STRIPE_PRICES.producerMonthlyUSD.currency).toBe('usd');
   });
 
-  it('producer monthly GBP has amount 11900 (= £119.00)', () => {
-    expect(STRIPE_PRICES.producerMonthlyGBP.amount).toBe(11900);
+  it('producer monthly GBP has amount 79 (= £0.79)', () => {
+    expect(STRIPE_PRICES.producerMonthlyGBP.amount).toBe(79);
     expect(STRIPE_PRICES.producerMonthlyGBP.currency).toBe('gbp');
   });
 
@@ -58,15 +58,15 @@ describe('STRIPE_PRICES', () => {
     expect(STRIPE_PRICES.producerAnnualGBP.reportLimit).toBe(3);
   });
 
-  it('producer annual GBP has amount 9500 (= £95.00/month)', () => {
-    expect(STRIPE_PRICES.producerAnnualGBP.amount).toBe(9500);
+  it('producer annual GBP has amount 79 (= £0.79/month)', () => {
+    expect(STRIPE_PRICES.producerAnnualGBP.amount).toBe(79);
     expect(STRIPE_PRICES.producerAnnualGBP.currency).toBe('gbp');
   });
 
   // ── Studio ───────────────────────────────────────────────────────────────
 
-  it('studio monthly USD has amount 29900 (= $299.00)', () => {
-    expect(STRIPE_PRICES.studioMonthlyUSD.amount).toBe(29900);
+  it('studio monthly USD has amount 100 (= $1.00)', () => {
+    expect(STRIPE_PRICES.studioMonthlyUSD.amount).toBe(100);
   });
 
   it('studio plans have reportLimit of 10', () => {
@@ -75,8 +75,8 @@ describe('STRIPE_PRICES', () => {
     expect(STRIPE_PRICES.studioAnnualGBP.reportLimit).toBe(10);
   });
 
-  it('studio annual GBP has amount 19900 (= ~£199/month)', () => {
-    expect(STRIPE_PRICES.studioAnnualGBP.amount).toBe(19900);
+  it('studio annual GBP has amount 79 (= £0.79/month)', () => {
+    expect(STRIPE_PRICES.studioAnnualGBP.amount).toBe(79);
     expect(STRIPE_PRICES.studioAnnualGBP.currency).toBe('gbp');
   });
 });

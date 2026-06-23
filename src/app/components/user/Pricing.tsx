@@ -283,10 +283,10 @@ export function Pricing() {
     },
     {
       name: 'Professional',
-      monthlyUSD: 61,
-      monthlyGBP: 49,
-      annualUSD: 49,
-      annualGBP: 39,
+      monthlyUSD: 1,
+      monthlyGBP: 0.79,
+      annualUSD: 1,
+      annualGBP: 0.79,
       period: 'month',
       description: 'Full production intelligence',
       features: [
@@ -304,10 +304,10 @@ export function Pricing() {
     },
     {
       name: 'Producer',
-      monthlyUSD: 149,
-      monthlyGBP: 119,
-      annualUSD: 119,
-      annualGBP: 95,
+      monthlyUSD: 1,
+      monthlyGBP: 0.79,
+      annualUSD: 1,
+      annualGBP: 0.79,
       period: 'month',
       description: 'Scale your productions',
       badge: 'BEST VALUE',
@@ -326,10 +326,10 @@ export function Pricing() {
     },
     {
       name: 'Studio',
-      monthlyUSD: 299,
-      monthlyGBP: 239,
-      annualUSD: 239,
-      annualGBP: 191,
+      monthlyUSD: 1,
+      monthlyGBP: 0.79,
+      annualUSD: 1,
+      annualGBP: 0.79,
       period: 'month',
       description: 'Your brand. Your reports.',
       badge: 'FOR PRODUCTION COMPANIES',
@@ -730,7 +730,7 @@ export function Pricing() {
                 }}
               >
                 <Typography variant="h2" sx={{ color: '#D4AF37', fontWeight: 700, lineHeight: 1 }}>
-                  {isGBP ? '£35' : '$40'}
+                  {isGBP ? '£0.79' : '$1'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5, mb: 3 }}>
                   one time &nbsp;·&nbsp; no subscription &nbsp;·&nbsp; never expires

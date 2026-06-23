@@ -7,17 +7,20 @@
 
 import { apiClient } from './api';
 
+// B2C pricing flattened to $1.00 USD / £0.79 GBP across every plan and cycle.
+// These amounts are display/reference only — the charged amount comes from the
+// Stripe price ID (VITE_STRIPE_PRICE_*). New $1 Stripe prices must back these IDs.
 export const STRIPE_PRICES = {
   // ── Pay-per-report (one-time) ──────────────────────────────────────────────
   singleReportUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE_USD || '',
-    amount: 4000,
+    amount: 100,
     currency: 'usd',
     name: 'Single Script Report (USD)',
   },
   singleReportGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE_GBP || '',
-    amount: 3500,
+    amount: 79,
     currency: 'gbp',
     name: 'Single Script Report (GBP)',
   },
@@ -25,28 +28,28 @@ export const STRIPE_PRICES = {
   // ── Professional ───────────────────────────────────────────────────────────
   professionalMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_USD || '',
-    amount: 6100,
+    amount: 100,
     currency: 'usd',
     name: 'Professional Monthly (USD)',
     reportLimit: 1,
   },
   professionalMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_GBP || '',
-    amount: 4900,
+    amount: 79,
     currency: 'gbp',
     name: 'Professional Monthly (GBP)',
     reportLimit: 1,
   },
   professionalAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_USD || '',
-    amount: 4900,  // $49/mo billed annually = $588/yr (~20% off $61/mo)
+    amount: 100,
     currency: 'usd',
     name: 'Professional Annual (USD)',
     reportLimit: 1,
   },
   professionalAnnualGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_GBP || '',
-    amount: 3900,  // £39/mo billed annually = £468/yr
+    amount: 79,
     currency: 'gbp',
     name: 'Professional Annual (GBP)',
     reportLimit: 1,
@@ -55,28 +58,28 @@ export const STRIPE_PRICES = {
   // ── Producer ───────────────────────────────────────────────────────────────
   producerMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_USD || '',
-    amount: 14900,
+    amount: 100,
     currency: 'usd',
     name: 'Producer Monthly (USD)',
     reportLimit: 3,
   },
   producerMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_GBP || '',
-    amount: 11900,
+    amount: 79,
     currency: 'gbp',
     name: 'Producer Monthly (GBP)',
     reportLimit: 3,
   },
   producerAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_USD || '',
-    amount: 11900,  // $119/mo billed annually = $1,428/yr (~20% off $149/mo)
+    amount: 100,
     currency: 'usd',
     name: 'Producer Annual (USD)',
     reportLimit: 3,
   },
   producerAnnualGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_GBP || '',
-    amount: 9500,  // £95/mo billed annually = £1,140/yr
+    amount: 79,
     currency: 'gbp',
     name: 'Producer Annual (GBP)',
     reportLimit: 3,
@@ -85,28 +88,28 @@ export const STRIPE_PRICES = {
   // ── Studio ─────────────────────────────────────────────────────────────────
   studioMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_USD || '',
-    amount: 29900,
+    amount: 100,
     currency: 'usd',
     name: 'Studio Monthly (USD)',
     reportLimit: 10,
   },
   studioMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_GBP || '',
-    amount: 23900,
+    amount: 79,
     currency: 'gbp',
     name: 'Studio Monthly (GBP)',
     reportLimit: 10,
   },
   studioAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_USD || '',
-    amount: 23900,  // $239/mo billed annually = $2,868/yr (~20% off $299/mo)
+    amount: 100,
     currency: 'usd',
     name: 'Studio Annual (USD)',
     reportLimit: 10,
   },
   studioAnnualGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_GBP || '',
-    amount: 19900,  // £199/mo billed annually = £2,388/yr
+    amount: 79,
     currency: 'gbp',
     name: 'Studio Annual (GBP)',
     reportLimit: 10,
