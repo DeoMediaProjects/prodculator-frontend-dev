@@ -8,12 +8,6 @@ import {
   Alert,
   Paper,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Grid,
   Card,
   CardContent,
@@ -628,49 +622,6 @@ export function SampleReport() {
             </Card>
           ))}
 
-          <Paper sx={{ p: 3, mt: 4, bgcolor: 'rgba(212, 175, 55, 0.08)', boxShadow: 'none', border: '1px solid #D4AF37' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#000' }}>
-              Crew Cost Comparison
-            </Typography>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>UK</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Malta</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Spain</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>Director</TableCell>
-                    <TableCell>{data.crewCosts.uk.director}</TableCell>
-                    <TableCell>{data.crewCosts.malta.director}</TableCell>
-                    <TableCell>{data.crewCosts.spain.director}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>DOP</TableCell>
-                    <TableCell>{data.crewCosts.uk.dop}</TableCell>
-                    <TableCell>{data.crewCosts.malta.dop}</TableCell>
-                    <TableCell>{data.crewCosts.spain.dop}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Production Designer</TableCell>
-                    <TableCell>{data.crewCosts.uk.productionDesigner}</TableCell>
-                    <TableCell>{data.crewCosts.malta.productionDesigner}</TableCell>
-                    <TableCell>{data.crewCosts.spain.productionDesigner}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700, bgcolor: 'rgba(212, 175, 55, 0.1)' }}>Total Estimate</TableCell>
-                    <TableCell sx={{ fontWeight: 700, bgcolor: 'rgba(212, 175, 55, 0.1)' }}>{data.crewCosts.uk.totalEstimate}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, bgcolor: 'rgba(212, 175, 55, 0.1)' }}>{data.crewCosts.malta.totalEstimate}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, bgcolor: 'rgba(212, 175, 55, 0.1)' }}>{data.crewCosts.spain.totalEstimate}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
         </Box>
       );
     }

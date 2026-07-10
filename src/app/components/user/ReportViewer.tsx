@@ -30,7 +30,6 @@ import {
   ArrowBack,
   Public,
   AttachMoney,
-  People,
   Movie,
   WbSunny,
   TrendingUp,
@@ -325,7 +324,7 @@ export function ReportViewer() {
     { label: 'Location Rankings', icon: <Public /> },
     { label: 'Tax Incentives', icon: <AttachMoney /> },
     { label: 'Financial Analysis', icon: <BarChart />, locked: isPreview },
-    { label: 'Crew & Cost', icon: <People />, locked: isPreview },
+    { label: 'Festivals & Distributors', icon: <TrendingUp />, locked: isPreview },
     { label: 'Comparables', icon: <Movie />, locked: isPreview },
     { label: 'Weather & Logistics', icon: <WbSunny />, locked: isPreview },
     { label: 'Funding & Festivals', icon: <TrendingUp />, locked: isPreview },
@@ -1124,76 +1123,100 @@ export function ReportViewer() {
             <TabPanel value={tabValue} index={4}>
               {isPreview ? (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Crew Insights by Territory</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Festival & Distributor Strategy</Typography>
                   <Grid container spacing={3}>
-                    {analysis.locationRankings.map((loc, i) => (
+                    {[0, 1, 2, 3].map((i) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{loc.name}</Typography>
-                            <Box sx={{ height: 24, width: 64, bgcolor: '#1e1e1e', borderRadius: 1 }} />
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Crew Cost:</Typography>
+                            <Box sx={{ height: 24, width: 180, bgcolor: '#1e1e1e', borderRadius: 1 }} />
                             <LockedBadge />
                           </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Quality Rating:</Typography>
-                            <LockedBadge />
-                          </Box>
-                          <Typography variant="subtitle2" sx={{ color: '#D4AF37', mb: 1 }}>Specialties:</Typography>
-                          <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
-                            {[48, 62, 40].map((w, j) => (
-                              <Box key={j} sx={{ height: 22, width: w, bgcolor: '#1e1e1e', borderRadius: 1 }} />
-                            ))}
-                          </Box>
-                          <Divider sx={{ my: 1, borderColor: '#333' }} />
-                          <Box sx={{ height: 12, width: '85%', bgcolor: '#1a1a1a', borderRadius: 1 }} />
+                          <Box sx={{ height: 12, width: '90%', bgcolor: '#1a1a1a', borderRadius: 1, mb: 1 }} />
+                          <Box sx={{ height: 12, width: '70%', bgcolor: '#1a1a1a', borderRadius: 1 }} />
                         </Paper>
                       </Grid>
                     ))}
                   </Grid>
                   <Box sx={{ textAlign: 'center', mt: 3 }}>
                     <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, px: 5, '&:hover': { bgcolor: '#B8941F' } }}>
-                      Unlock Crew & Cost Intelligence
+                      Unlock Festival & Distributor Strategy
                     </Button>
                   </Box>
                 </>
               ) : (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Crew Insights by Territory</Typography>
-                  <Grid container spacing={3}>
-                    {analysis.crewInsights.map((crew, i) => (
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Where Your Film Could Be Seen</Typography>
+                  <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>
+                    Matched on format, timing, genre and your declared audience — never inferred.
+                  </Typography>
+                  <Grid container spacing={3} sx={{ mb: 4 }}>
+                    {((analysis as any).festivalRecommendations || []).map((fest: any, i: number) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{crew.territory}</Typography>
-                            <Chip
-                              label={crew.availability}
-                              size="small"
-                              sx={{
-                                bgcolor: crew.availability === 'High' ? 'rgba(76, 175, 80, 0.2)' : crew.availability === 'Medium' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(244, 67, 54, 0.2)',
-                                color: crew.availability === 'High' ? '#4caf50' : crew.availability === 'Medium' ? '#D4AF37' : '#f44336',
-                                fontWeight: 600,
-                              }}
-                            />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{fest.name}</Typography>
+                            {fest.tier && (
+                              <Chip label={fest.tier} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37', fontWeight: 600 }} />
+                            )}
                           </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Crew Cost:</Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>{crew.costVsUSD}</Typography>
+                          <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1 }}>
+                            {fest.location}{fest.oscarQualifying ? ' · Oscar-qualifying' : ''}
+                          </Typography>
+                          {fest.deadlinePattern && (
+                            <Typography variant="body2" sx={{ color: '#888', mb: 1 }}>
+                              Submissions: {fest.deadlinePattern}
+                            </Typography>
+                          )}
+                          {fest.whyMatched && (
+                            <Typography variant="body2" sx={{ color: '#ccc', fontStyle: 'italic', borderTop: '1px solid #333', pt: 1 }}>
+                              {fest.whyMatched}
+                            </Typography>
+                          )}
+                        </Paper>
+                      </Grid>
+                    ))}
+                    {((analysis as any).festivalRecommendations || []).length === 0 && (
+                      <Grid size={{ xs: 12 }}>
+                        <Alert severity="info" sx={{ bgcolor: '#111', color: '#a0a0a0' }}>
+                          No festival matches for this production's format and timing.
+                        </Alert>
+                      </Grid>
+                    )}
+                  </Grid>
+
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Who Could Buy Your Film</Typography>
+                  <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>
+                    Distributors are ranked partly on whether they actively scout the festivals recommended above.
+                  </Typography>
+                  <Grid container spacing={3}>
+                    {((analysis as any).distributorRecommendations || []).map((dist: any, i: number) => (
+                      <Grid size={{ xs: 12, md: 6 }} key={i}>
+                        <Paper sx={{ p: 3, bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
+                          {dist.scoutsRecommendedFestivals?.length > 0 && (
+                            <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', mb: 1 }}>
+                              ⟶ Scouts {dist.scoutsRecommendedFestivals[0]}
+                            </Typography>
+                          )}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="h6" sx={{ color: '#D4AF37' }}>{dist.name}</Typography>
+                            {dist.verified && (
+                              <Chip label="Verified" size="small" sx={{ bgcolor: 'rgba(76, 175, 80, 0.2)', color: '#4caf50', fontWeight: 600 }} />
+                            )}
                           </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>Quality Rating:</Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>{crew.qualityRating.toFixed(1)}/5</Typography>
-                          </Box>
-                          <Typography variant="subtitle2" sx={{ color: '#D4AF37', mb: 1 }}>Specialties:</Typography>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                            {crew.specialties.map((s, si) => (
-                              <Chip key={si} label={s} size="small" sx={{ bgcolor: '#222', color: '#a0a0a0', fontSize: '0.75rem' }} />
-                            ))}
-                          </Box>
-                          <Divider sx={{ my: 1, borderColor: '#333' }} />
-                          <Typography variant="body2" sx={{ color: '#888', fontStyle: 'italic' }}>{crew.tradeoff}</Typography>
+                          <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1 }}>
+                            {dist.primaryMarket}{dist.rightsType ? ` · ${String(dist.rightsType).replace(/_/g, ' ')}` : ''}
+                          </Typography>
+                          {dist.whyMatched && (
+                            <Typography variant="body2" sx={{ color: '#ccc', fontStyle: 'italic', borderTop: '1px solid #333', pt: 1 }}>
+                              {dist.whyMatched}
+                            </Typography>
+                          )}
+                          {dist.submissionProcess && (
+                            <Typography variant="body2" sx={{ color: '#888', mt: 1 }}>
+                              {dist.submissionProcess}
+                            </Typography>
+                          )}
                         </Paper>
                       </Grid>
                     ))}
@@ -1202,7 +1225,6 @@ export function ReportViewer() {
               )}
             </TabPanel>
 
-            {/* Tab 6: Comparables */}
             <TabPanel value={tabValue} index={5}>
               {isPreview ? (
                 <>

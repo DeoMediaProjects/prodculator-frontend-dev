@@ -190,7 +190,7 @@ export function SharedReportViewer() {
         <Paper sx={{ p: 4, bgcolor: '#0a0a0a', border: '1px solid rgba(212,175,55,0.3)', textAlign: 'center' }}>
           <Typography variant="h6" sx={{ color: '#D4AF37', mb: 1 }}>Get your own production intelligence report</Typography>
           <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>
-            Upload your script and receive a full territory analysis, tax incentives, crew costs, and funding opportunities.
+            Upload your script and receive a full territory analysis, tax incentives, festival and distributor strategy, and funding opportunities.
           </Typography>
           <Button
             variant="contained"

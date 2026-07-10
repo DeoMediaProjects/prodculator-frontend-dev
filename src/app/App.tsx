@@ -45,7 +45,6 @@ const AdminOverview = lazy(() => import('../app/components/admin/AdminOverview')
 const IncentiveDataManager = lazy(() => import('../app/components/admin/IncentiveDataManager').then(m => ({ default: m.IncentiveDataManager })));
 const GrantsManager = lazy(() => import('../app/components/admin/GrantsManager').then(m => ({ default: m.GrantsManager })));
 const FestivalsManager = lazy(() => import('../app/components/admin/FestivalsManager').then(m => ({ default: m.FestivalsManager })));
-const CrewCostsManager = lazy(() => import('../app/components/admin/CrewCostsManager').then(m => ({ default: m.CrewCostsManager })));
 const ComparableProductionsManager = lazy(() => import('../app/components/admin/ComparableProductionsManager').then(m => ({ default: m.ComparableProductionsManager })));
 const DataSourcesManager = lazy(() => import('../app/components/admin/DataSourcesManager').then(m => ({ default: m.DataSourcesManager })));
 const AdminUsersManager = lazy(() => import('../app/components/admin/AdminUsersManager').then(m => ({ default: m.AdminUsersManager })));
@@ -268,7 +267,6 @@ function AppContent() {
                     <Route path="incentives" element={<IncentiveDataManager />} />
                     <Route path="grants" element={<GrantsManager />} />
                     <Route path="festivals" element={<FestivalsManager />} />
-                    <Route path="crew-costs" element={<CrewCostsManager />} />
                     <Route path="comparables" element={<ComparableProductionsManager />} />
                     <Route path="data-sources" element={<DataSourcesManager />} />
                     <Route path="users" element={<AdminUsersManager />} />
