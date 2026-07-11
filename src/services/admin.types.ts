@@ -135,6 +135,14 @@ export interface IncentiveData {
   aiRule?: string | null;
   authority?: string | null;
   warningsJson?: string | null;
+  qualifyingSpendType?: string | null;
+  qualifyingSpendCapPct?: number | null;
+  qualifyingSpendMin?: number | null;
+  qualifyingSpendCurrency?: string | null;
+  atl_exempt?: boolean | null;
+  is_supplementary?: boolean | null;
+  payment_reliability?: number | null;
+  lastVerifiedAt?: string | null;
 }
 
 export interface IncentiveCalcRequest {

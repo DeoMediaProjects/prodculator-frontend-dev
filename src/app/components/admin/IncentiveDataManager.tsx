@@ -26,6 +26,12 @@ import {
   Link,
   MenuItem,
   Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  FormControlLabel,
+  Checkbox,
+  useMediaQuery,
   CircularProgress,
 } from '@mui/material';
 import {
@@ -42,6 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
+import { getTerritories } from '@/services/api';
 import type { IncentiveData, IncentiveCalcResult, PendingChange, SyncStatus, SyncSettings, SyncSettingsUpdate } from '@/services/admin.types';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
@@ -114,6 +121,18 @@ function parseWarnings(raw?: string | null): string[] {
 }
 
 const CALC_CURRENCIES = ['GBP', 'USD', 'EUR', 'ZAR', 'CAD', 'AUD', 'HUF', 'CZK', 'NGN'];
+
+// HONEST DEFAULTS for a newly created row — it must NEVER look verified.
+// The admin has to explicitly promote status / verification / confidence.
+const NEW_ROW_DEFAULTS: Partial<IncentiveData> = {
+  status: 'admin_verify_required',
+  verificationStatus: 'verify-required',
+  confidence: 30,
+};
+
+const RATE_TYPES = ['cash_rebate', 'tax_credit', 'enhanced_tax_credit', 'refundable_tax_credit', 'transferable_tax_credit', 'labour_credit', 'grant', 'cash_grant', 'tax_shelter'];
+const REGIONS = ['UK', 'Europe', 'North America', 'Africa', 'Asia', 'Oceania', 'South America'];
+const QS_TYPES = ['total', 'local_spend', 'labour', 'pdv'];
 
 // ── Qualifying Spend Calculator — ALL maths runs server-side
 //    (ReportValidator._compute_corrected_rebate via /api/admin/incentives/calculate)
@@ -239,6 +258,11 @@ function IncentiveDataManagerContent(_props?: any) {
   const [regionFilter, setRegionFilter] = useState('all');
   const [verifFilter, setVerifFilter] = useState('all');
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [warningsText, setWarningsText] = useState('');
+  const formFullScreen = useMediaQuery('(max-width:600px)');
+
 
 
   const didFetch = useRef(false);
@@ -247,6 +271,9 @@ function IncentiveDataManagerContent(_props?: any) {
     if (didFetch.current) return;
     didFetch.current = true;
     (async () => {
+      getTerritories()
+        .then((ts) => setTerritoryOptions(ts.map((t: any) => t.label)))
+        .catch(() => setTerritoryOptions([]));
       const [incentivesRes, syncStatusRes, pendingRes] = await Promise.all([
         adminApi.getIncentives(500, 0),
         adminApi.getIncentiveSyncStatus(),
@@ -303,16 +330,34 @@ function IncentiveDataManagerContent(_props?: any) {
   };
 
   const handleSaveIncentive = async () => {
+    // ── Validation ──
+    const errors: string[] = [];
+    if (!editFormData.territory) errors.push('Territory is required (canonical list).');
+    else if (territoryOptions.length > 0 && !territoryOptions.includes(editFormData.territory)) {
+      errors.push('Territory must be one of the canonical territories.');
+    }
+    if (!editFormData.program?.trim()) errors.push('Programme name is required.');
+    if (!editFormData.sourceUrl?.trim()) errors.push('Source URL is required — no row without a source.');
+    if (errors.length > 0) { setFormErrors(errors); return; }
+    setFormErrors([]);
+
+    // warnings: one per line → JSON array (verbatim — no derivation)
+    const warningLines = warningsText.split('\n').map((w) => w.trim()).filter(Boolean);
+    const payload: Partial<IncentiveData> = {
+      ...editFormData,
+      warningsJson: warningLines.length > 0 ? JSON.stringify(warningLines) : editFormData.warningsJson ?? null,
+    };
+
     if (editingIncentive?.id) {
       const { data, error } = await adminApi.updateIncentive(
         editingIncentive.id,
-        { ...editingIncentive, ...editFormData } as IncentiveData,
+        { ...editingIncentive, ...payload } as IncentiveData,
       );
       if (!error && data) {
         setIncentives(incentives.map(i => i.id === editingIncentive.id ? data : i));
       }
     } else {
-      const { data, error } = await adminApi.createIncentive(editFormData as IncentiveData);
+      const { data, error } = await adminApi.createIncentive(payload as IncentiveData);
       if (!error && data) {
         setIncentives([...incentives, data]);
       }
@@ -381,7 +426,7 @@ function IncentiveDataManagerContent(_props?: any) {
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => setEditDialogOpen(true)}
+            onClick={() => { setEditingIncentive(null); setEditFormData({ ...NEW_ROW_DEFAULTS }); setWarningsText(''); setFormErrors([]); setEditDialogOpen(true); }}
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
@@ -742,6 +787,8 @@ function IncentiveDataManagerContent(_props?: any) {
                             onClick={() => {
                               setEditingIncentive(incentive);
                               setEditFormData(incentive);
+                              setWarningsText(parseWarnings(incentive.warningsJson).join('\n'));
+                              setFormErrors([]);
                               setEditDialogOpen(true);
                             }}
                           >
@@ -924,66 +971,326 @@ function IncentiveDataManagerContent(_props?: any) {
         </DialogActions>
       </Dialog>
 
-      {/* Edit Dialog */}
+      {/* Add / Edit Dialog — full schema coverage, honest defaults */}
       <Dialog
         open={editDialogOpen}
         onClose={() => {
           setEditDialogOpen(false);
           setEditingIncentive(null);
           setEditFormData({});
+          setFormErrors([]);
         }}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
-          },
-        }}
+        fullScreen={formFullScreen}
+        PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' } }}
       >
         <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
-          {editingIncentive ? 'Edit Incentive Data' : 'Add Territory'}
+          {editingIncentive ? 'Edit Incentive Programme' : 'Add Incentive Programme'}
         </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <TextField
-              label="Territory"
-              fullWidth
-              value={editFormData.territory || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, territory: e.target.value })}
-            />
-            <TextField
-              label="Program Name"
-              fullWidth
-              value={editFormData.program || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, program: e.target.value })}
-            />
-            <TextField
-              label="Rate"
-              fullWidth
-              value={editFormData.rate || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, rate: e.target.value })}
-            />
-            <TextField
-              label="Cap"
-              fullWidth
-              value={editFormData.cap || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, cap: e.target.value })}
-            />
-            <TextField
-              label="Source URL"
-              fullWidth
-              value={editFormData.sourceUrl || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, sourceUrl: e.target.value })}
-            />
-          </Box>
+        <DialogContent sx={{ pb: 1 }}>
+          {formErrors.length > 0 && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {formErrors.map((e, i) => <div key={i}>{e}</div>)}
+            </Alert>
+          )}
+          {!editingIncentive && (
+            <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(212,175,55,0.08)', color: '#D4AF37' }}>
+              New rows default to status "Verify Required", verification "verify-required" and confidence 30 —
+              they are excluded from report scoring until an admin explicitly promotes them.
+            </Alert>
+          )}
+          {!editFormData.calcFormula?.trim() && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              calc_formula is empty — the Qualifying Spend Calculator cannot compute this row. Saving is allowed.
+            </Alert>
+          )}
+
+          {/* ── Identity ── */}
+          <Accordion defaultExpanded sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Identity</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField select required fullWidth size="small" label="Territory (canonical)"
+                    value={editFormData.territory || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, territory: e.target.value })}>
+                    {territoryOptions.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField required fullWidth size="small" label="Programme name"
+                    value={editFormData.program || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, program: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField select fullWidth size="small" label="Region"
+                    value={editFormData.region || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, region: e.target.value })}>
+                    {REGIONS.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField select fullWidth size="small" label="Rate type"
+                    value={editFormData.rateType || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, rateType: e.target.value })}>
+                    {RATE_TYPES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField select fullWidth size="small" label="Status"
+                    value={editFormData.status || 'admin_verify_required'}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="suspended">Suspended</MenuItem>
+                    <MenuItem value="no_programme">No Programme</MenuItem>
+                    <MenuItem value="admin_verify_required">Verify Required</MenuItem>
+                  </TextField>
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ── Rates ── */}
+          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Rates</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField fullWidth size="small" label="Rate gross — display string"
+                    helperText={'Verbatim (\u201cup to 35%\u201d, tiered, \u201cNone\u201d) — never derived from the numeric'}
+                    value={editFormData.rateGrossDisplay || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, rateGrossDisplay: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField fullWidth size="small" label="Rate net — display string"
+                    helperText="Verbatim — never derived"
+                    value={editFormData.rateNetDisplay || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, rateNetDisplay: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField fullWidth size="small" label="Rate gross % (numeric)" type="number"
+                    value={editFormData.rateGross ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, rateGross: e.target.value === '' ? null : Number(e.target.value) })} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField fullWidth size="small" label="Rate net % (numeric)" type="number"
+                    value={editFormData.rateNet ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, rateNet: e.target.value === '' ? null : Number(e.target.value) })} />
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ── Qualifying spend ── */}
+          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Qualifying spend</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField select fullWidth size="small" label="QS type"
+                    value={editFormData.qualifyingSpendType || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, qualifyingSpendType: e.target.value })}>
+                    {QS_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField fullWidth size="small" label="QS cap %" type="number"
+                    value={editFormData.qualifyingSpendCapPct ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, qualifyingSpendCapPct: e.target.value === '' ? null : Number(e.target.value) })} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField fullWidth size="small" label="QS minimum (amount)" type="number"
+                    value={editFormData.qualifyingSpendMin ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, qualifyingSpendMin: e.target.value === '' ? null : Number(e.target.value) })} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField fullWidth size="small" label="QS min currency"
+                    value={editFormData.qualifyingSpendCurrency || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, qualifyingSpendCurrency: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={2} label="QS basis (prose)"
+                    value={editFormData.qsBasis || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, qsBasis: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <FormControlLabel
+                    control={<Checkbox checked={editFormData.atl_exempt === true}
+                      indeterminate={editFormData.atl_exempt == null}
+                      onChange={(e) => setEditFormData({ ...editFormData, atl_exempt: e.target.checked })}
+                      sx={{ color: '#D4AF37' }} />}
+                    label="ATL costs included in qualifying spend (atl_exempt)" />
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ── Caps & ceilings ── */}
+          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Caps &amp; ceilings</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField fullWidth size="small" label="Per-project cap (display string)"
+                    value={editFormData.rebateCapDisplay || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, rebateCapDisplay: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField fullWidth size="small" label="Per-person cap (display string)"
+                    value={editFormData.perPersonCapDisplay || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, perPersonCapDisplay: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField select fullWidth size="small" label="Cap type"
+                    value={editFormData.capType || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, capType: e.target.value })}>
+                    <MenuItem value="output">output (rebate ceiling)</MenuItem>
+                    <MenuItem value="qualifying_spend">qualifying_spend (spend ceiling)</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={2} label="Annual programme cap / pool"
+                    value={editFormData.annualProgrammeCap || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, annualProgrammeCap: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={2} label="Budget eligibility ceiling"
+                    value={editFormData.budgetEligibilityCeiling || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, budgetEligibilityCeiling: e.target.value })} />
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ── Engine ── */}
+          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Engine</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField select fullWidth size="small" label="Mechanism pattern"
+                    value={editFormData.mechanismPattern || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, mechanismPattern: e.target.value })}>
+                    <MenuItem value="A">A</MenuItem>
+                    <MenuItem value="B">B</MenuItem>
+                    <MenuItem value="C">C</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={3} label="Calc formula"
+                    helperText="The calculator cannot compute this row without it"
+                    value={editFormData.calcFormula || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, calcFormula: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <FormControlLabel
+                    control={<Checkbox checked={editFormData.is_supplementary === true}
+                      onChange={(e) => setEditFormData({ ...editFormData, is_supplementary: e.target.checked })}
+                      sx={{ color: '#D4AF37' }} />}
+                    label="Supplementary credit (spend-subset uplift — never a full-budget alternative)" />
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ── Payment ── */}
+          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Payment</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, sm: 3 }}>
+                  <TextField fullWidth size="small" label="Payment reliability (0–1)" type="number"
+                    inputProps={{ step: 0.01, min: 0, max: 1 }}
+                    value={editFormData.payment_reliability ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, payment_reliability: e.target.value === '' ? null : Number(e.target.value) })} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 9 }}>
+                  <TextField fullWidth size="small" label="Payment timeline (display string)"
+                    value={editFormData.paymentTimeline || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, paymentTimeline: e.target.value })} />
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ── Governance ── */}
+          <Accordion defaultExpanded sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
+              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Governance &amp; verification</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12 }}>
+                  <TextField required fullWidth size="small" label="Source URL"
+                    helperText="Required — no row without a source"
+                    value={editFormData.sourceUrl || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, sourceUrl: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField select fullWidth size="small" label="Authority"
+                    value={editFormData.authority || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, authority: e.target.value })}>
+                    <MenuItem value="government">government</MenuItem>
+                    <MenuItem value="government_agency">government_agency</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <TextField fullWidth size="small" label="Last verified (YYYY-MM-DD)"
+                    value={editFormData.lastVerifiedAt || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, lastVerifiedAt: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <TextField fullWidth size="small" label="Verification status"
+                    helperText={editingIncentive ? undefined : 'Defaults to verify-required'}
+                    value={editFormData.verificationStatus || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, verificationStatus: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <TextField fullWidth size="small" label="Confidence (0–100)" type="number"
+                    inputProps={{ min: 0, max: 100 }}
+                    helperText={editingIncentive ? undefined : 'Defaults to 30 — set explicitly'}
+                    value={editFormData.confidence ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, confidence: e.target.value === '' ? null : Number(e.target.value) })} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={3} label="Warnings (one per line)"
+                    value={warningsText}
+                    onChange={(e) => setWarningsText(e.target.value)} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={2} label="AI rule"
+                    value={editFormData.aiRule || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, aiRule: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={2} label="Notes"
+                    value={editFormData.notes || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} />
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 0 }}>
+        <DialogActions sx={{ p: 2, position: 'sticky', bottom: 0, bgcolor: '#0a0a0a', borderTop: '1px solid rgba(212,175,55,0.25)', zIndex: 1 }}>
           <Button
             onClick={() => {
               setEditDialogOpen(false);
               setEditingIncentive(null);
               setEditFormData({});
+              setFormErrors([]);
             }}
             sx={{ color: '#a0a0a0' }}
           >
@@ -992,11 +1299,7 @@ function IncentiveDataManagerContent(_props?: any) {
           <Button
             variant="contained"
             onClick={handleSaveIncentive}
-            sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
-            }}
+            sx={{ bgcolor: '#D4AF37', color: '#000000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}
           >
             Save
           </Button>
