@@ -18,26 +18,24 @@ import {
   DialogActions,
   TextField,
   MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Alert,
   Tabs,
   Tab,
   Grid,
   Card,
   CardContent,
-  Tooltip,
-  Switch,
   FormControlLabel,
   CircularProgress,
   Collapse,
+  Link,
+  Checkbox,
 } from '@mui/material';
 import {
   Add,
   Edit,
   Delete,
   Visibility,
+  OpenInNew,
   CheckCircle,
   Warning,
   Sync,
@@ -48,10 +46,10 @@ import {
   Refresh,
   ExpandMore,
   ExpandLess,
-  MonetizationOn,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
+import { getTerritories } from '@/services/api';
 import type {
   Grant,
   CreateGrantPayload,
@@ -155,7 +153,7 @@ function GrantsManagerContent() {
       setSyncErrorMessage(null);
 
       const [grantsRes, syncStatusRes, pendingRes] = await Promise.all([
-        adminApi.getGrants(),
+        adminApi.getGrants(500, 0),
         adminApi.getGrantSyncStatus(),
         adminApi.getGrantPendingChanges(),
       ]);
@@ -185,7 +183,7 @@ function GrantsManagerContent() {
   const loadGrants = async () => {
     setLoading(true);
     setFetchError(null);
-    const { data, error } = await adminApi.getGrants();
+    const { data, error } = await adminApi.getGrants(500, 0);
     if (error) {
       setFetchError(error);
     } else {
@@ -220,8 +218,10 @@ function GrantsManagerContent() {
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState({
+  // Form state — HONEST DEFAULTS: a new grant never looks verified.
+  // verified=false, no verification date, status unset ('' — excluded from
+  // reports until the admin explicitly chooses one).
+  const EMPTY_GRANT_FORM = {
     title: '',
     territory: '',
     fundingBody: '',
@@ -232,74 +232,154 @@ function GrantsManagerContent() {
     eligibility: '',
     websiteUrl: '',
     verified: false,
-  });
+    lastVerifiedAt: '',
+    status: '',
+    continent: '',
+    grant_type: '',
+    recurrence: '',
+    eligible_formats: '' as string,   // comma-separated in the form
+    genre_tags: '' as string,         // comma-separated in the form
+    nationality_required: false,
+    co_production_required: false,
+    productionStage: '',
+    emergingFilmmaker: null as boolean | null,
+    budget_min_usd: '' as string,
+    budget_max_usd: '' as string,
+    amount_usd_approx: '' as string,
+  };
+  const [formData, setFormData] = useState<any>({ ...EMPTY_GRANT_FORM });
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [formWarnings, setFormWarnings] = useState<string[]>([]);
+  const [dupeWarned, setDupeWarned] = useState(false);
 
-  const territories = ['UK', 'Canada', 'USA', 'Malta', 'South Africa'];
-  const currencies = ['GBP', 'USD', 'CAD', 'EUR', 'ZAR'];
+  const [territories, setTerritories] = useState<string[]>([]);
+  useEffect(() => {
+    getTerritories()
+      .then((ts) => setTerritories(['Global', ...ts.map((t: any) => t.label)]))
+      .catch(() => setTerritories([]));
+  }, []);
+  const currencies = ['GBP', 'USD', 'CAD', 'EUR', 'ZAR', 'AUD', 'HUF', 'CZK', 'NGN', 'INR', 'JPY', 'KRW'];
 
-  const getStatusColor = (status: Grant['status']) => {
-    switch (status) {
-      case 'opening-soon': return '#2196F3';
+  // Filters + search
+  const [search, setSearch] = useState('');
+  const [filterContinent, setFilterContinent] = useState('all');
+  const [filterType, setFilterType] = useState('all');
+  const [filterFormat, setFilterFormat] = useState('all');
+  const [filterGenre, setFilterGenre] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterVerified, setFilterVerified] = useState('all');
+  const [filterEmerging, setFilterEmerging] = useState('all');
+
+  const normStatus = (status?: string) => (status || '').replace(/-/g, '_');
+  const getStatusColor = (status?: string) => {
+    switch (normStatus(status)) {
+      case 'opening_soon': return '#2196F3';
       case 'open': return '#4caf50';
-      case 'closing-soon': return '#ff9800';
+      case 'closing_soon': return '#ff9800';
       case 'closed': return '#666666';
       default: return '#666666';
     }
   };
 
-  const getStatusIcon = (status: Grant['status']) => {
-    switch (status) {
-      case 'opening-soon': return <Schedule />;
+  const getStatusIcon = (status?: string) => {
+    switch (normStatus(status)) {
+      case 'opening_soon': return <Schedule />;
       case 'open': return <CheckCircle />;
-      case 'closing-soon': return <Warning />;
+      case 'closing_soon': return <Warning />;
       case 'closed': return <Event />;
       default: return <Event />;
     }
   };
 
+  // Shared validation for add/edit. Errors block; warnings inform.
+  const validateGrantForm = (isEdit: boolean): { errors: string[]; warnings: string[] } => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    if (!formData.title?.trim()) errors.push('Grant title is required.');
+    if (!formData.websiteUrl?.trim()) errors.push('Website / source URL is required — no grant without a source.');
+    if (!formData.territory) errors.push('Territory is required.');
+    else if (territories.length > 0 && !territories.includes(formData.territory)) {
+      errors.push('Territory must be a canonical territory (or Global).');
+    }
+    for (const [label, v] of [['Budget min (USD)', formData.budget_min_usd], ['Budget max (USD)', formData.budget_max_usd], ['Approx amount (USD)', formData.amount_usd_approx]] as const) {
+      if (v !== '' && v != null && Number.isNaN(Number(v))) errors.push(`${label} must be a number.`);
+    }
+    for (const [label, v] of [['Opens', formData.applicationOpens], ['Deadline', formData.applicationDeadline]] as const) {
+      if (v && v.toLowerCase() !== 'rolling' && !/^tbc/i.test(v) && Number.isNaN(Date.parse(v))) {
+        errors.push(`${label} must be a date (YYYY-MM-DD), "rolling", or "tbc…".`);
+      }
+    }
+    if (formData.verified && !formData.lastVerifiedAt) {
+      errors.push('Verified requires an explicit verification date — it is never auto-filled.');
+    }
+    if (!formData.status) warnings.push('Status is unset — this grant is excluded from reports until a status is chosen.');
+    if (!formData.eligible_formats?.trim()) warnings.push('No eligible formats — the grants matcher cannot format-gate this fund.');
+    if (!formData.genre_tags?.trim()) warnings.push('No genre tags set.');
+    if (!isEdit) {
+      const dupe = grants.find(
+        (g) => g.title.trim().toLowerCase() === formData.title.trim().toLowerCase()
+          && (g.fundingBody || '').trim().toLowerCase() === (formData.fundingBody || '').trim().toLowerCase(),
+      );
+      if (dupe) warnings.push(`Possible duplicate: "${dupe.title}" by ${dupe.fundingBody || 'unknown'} already exists.`);
+    }
+    return { errors, warnings };
+  };
+
+  const csv = (s: string): string[] => s.split(',').map((x) => x.trim()).filter(Boolean);
+  const numOrNull = (v: any): number | null => (v === '' || v == null ? null : Number(v));
+
+  const buildGrantPayload = (): Partial<Grant> => ({
+    title: formData.title,
+    territory: formData.territory,
+    fundingBody: formData.fundingBody,
+    maxAmount: formData.maxAmount,
+    currency: formData.currency,
+    applicationOpens: formData.applicationOpens,
+    applicationDeadline: formData.applicationDeadline,
+    // status is the admin's explicit choice — never auto-recomputed
+    status: formData.status || null as any,
+    eligibility: (formData.eligibility || '').split('\n').filter((e: string) => e.trim()),
+    websiteUrl: formData.websiteUrl,
+    verified: formData.verified,
+    // never auto-filled: only what the admin explicitly entered
+    lastVerifiedAt: formData.verified && formData.lastVerifiedAt ? formData.lastVerifiedAt : null,
+    continent: formData.continent || null,
+    grant_type: formData.grant_type || null,
+    recurrence: formData.recurrence || null,
+    eligible_formats: formData.eligible_formats ? csv(formData.eligible_formats) : null,
+    genre_tags: formData.genre_tags ? csv(formData.genre_tags) : null,
+    nationality_required: !!formData.nationality_required,
+    co_production_required: !!formData.co_production_required,
+    productionStage: formData.productionStage || null,
+    emergingFilmmaker: formData.emergingFilmmaker,
+    budget_min_usd: numOrNull(formData.budget_min_usd),
+    budget_max_usd: numOrNull(formData.budget_max_usd),
+    amount_usd_approx: numOrNull(formData.amount_usd_approx),
+  });
+
   const handleAddGrant = async () => {
-    const payload: CreateGrantPayload = {
-      title: formData.title,
-      territory: formData.territory,
-      fundingBody: formData.fundingBody,
-      maxAmount: formData.maxAmount,
-      currency: formData.currency,
-      applicationOpens: formData.applicationOpens,
-      applicationDeadline: formData.applicationDeadline,
-      status: calculateStatus(formData.applicationOpens, formData.applicationDeadline),
-      daysUntilDeadline: calculateDaysUntilDeadline(formData.applicationDeadline),
-      eligibility: formData.eligibility.split('\n').filter(e => e.trim()),
-      websiteUrl: formData.websiteUrl,
-      dataSource: 'manual',
-      verified: formData.verified,
-      isNew: true,
-      lastVerifiedAt: formData.verified ? new Date().toISOString() : undefined,
-    };
+    const { errors, warnings } = validateGrantForm(false);
+    setFormErrors(errors);
+    setFormWarnings(warnings);
+    if (errors.length > 0) return;
+    if (warnings.length > 0 && !dupeWarned) { setDupeWarned(true); return; } // first click warns, second proceeds
+    const payload = { ...buildGrantPayload(), dataSource: 'manual', isNew: true } as CreateGrantPayload;
     const { data, error } = await adminApi.createGrant(payload);
     if (!error && data) {
       setGrants([...grants, data]);
     }
     setAddGrantOpen(false);
+    setDupeWarned(false);
     resetForm();
   };
 
   const handleEditGrant = async () => {
     if (!selectedGrant) return;
-    const payload: Partial<Grant> = {
-      title: formData.title,
-      territory: formData.territory,
-      fundingBody: formData.fundingBody,
-      maxAmount: formData.maxAmount,
-      currency: formData.currency,
-      applicationOpens: formData.applicationOpens,
-      applicationDeadline: formData.applicationDeadline,
-      status: calculateStatus(formData.applicationOpens, formData.applicationDeadline),
-      daysUntilDeadline: calculateDaysUntilDeadline(formData.applicationDeadline),
-      eligibility: formData.eligibility.split('\n').filter(e => e.trim()),
-      websiteUrl: formData.websiteUrl,
-      verified: formData.verified,
-      lastVerifiedAt: formData.verified ? new Date().toISOString() : selectedGrant.lastVerifiedAt,
-    };
+    const { errors, warnings } = validateGrantForm(true);
+    setFormErrors(errors);
+    setFormWarnings(warnings);
+    if (errors.length > 0) return;
+    const payload = buildGrantPayload();
     const { data, error } = await adminApi.updateGrant(selectedGrant.id, payload);
     if (!error && data) {
       setGrants(grants.map(g => g.id === selectedGrant.id ? data : g));
@@ -322,6 +402,7 @@ function GrantsManagerContent() {
   const openEditDialog = (grant: Grant) => {
     setSelectedGrant(grant);
     setFormData({
+      ...EMPTY_GRANT_FORM,
       title: grant.title,
       territory: grant.territory,
       fundingBody: grant.fundingBody,
@@ -329,10 +410,27 @@ function GrantsManagerContent() {
       currency: grant.currency,
       applicationOpens: grant.applicationOpens,
       applicationDeadline: grant.applicationDeadline,
-      eligibility: grant.eligibility.join('\n'),
+      eligibility: (grant.eligibility || []).join('\n'),
       websiteUrl: grant.websiteUrl,
       verified: grant.verified,
+      lastVerifiedAt: grant.lastVerifiedAt ? String(grant.lastVerifiedAt).slice(0, 10) : '',
+      status: normStatus(grant.status) || '',
+      continent: grant.continent || '',
+      grant_type: grant.grant_type || '',
+      recurrence: grant.recurrence || '',
+      eligible_formats: (grant.eligible_formats || []).join(', '),
+      genre_tags: (grant.genre_tags || []).join(', '),
+      nationality_required: !!grant.nationality_required,
+      co_production_required: !!grant.co_production_required,
+      productionStage: grant.productionStage || '',
+      emergingFilmmaker: grant.emergingFilmmaker ?? null,
+      budget_min_usd: grant.budget_min_usd ?? '',
+      budget_max_usd: grant.budget_max_usd ?? '',
+      amount_usd_approx: grant.amount_usd_approx ?? '',
     });
+    setFormErrors([]);
+    setFormWarnings([]);
+    setDupeWarned(false);
     setEditGrantOpen(true);
   };
 
@@ -441,40 +539,18 @@ function GrantsManagerContent() {
   };
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      territory: '',
-      fundingBody: '',
-      maxAmount: '',
-      currency: 'USD',
-      applicationOpens: '',
-      applicationDeadline: '',
-      eligibility: '',
-      websiteUrl: '',
-      verified: false,
-    });
-  };
-
-  const calculateStatus = (opens: string, deadline: string): Grant['status'] => {
-    const now = new Date();
-    const openDate = new Date(opens);
-    const deadlineDate = new Date(deadline);
-    const daysUntil = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (deadlineDate < now) return 'closed';
-    if (daysUntil <= 14) return 'closing-soon';
-    if (openDate <= now) return 'open';
-    return 'opening-soon';
-  };
-
-  const calculateDaysUntilDeadline = (deadline: string): number => {
-    const now = new Date();
-    const deadlineDate = new Date(deadline);
-    return Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    setFormData({ ...EMPTY_GRANT_FORM });
+    setFormErrors([]);
+    setFormWarnings([]);
+    setDupeWarned(false);
   };
 
   const formatCurrency = (amount: string, currency: string) => {
+    // v2 amounts are display strings ("Up to £250,000") — show them verbatim.
     const num = parseFloat(amount);
+    if (Number.isNaN(num) || String(num) !== String(amount).trim()) {
+      return amount;
+    }
     if (num >= 1000000) {
       return `${currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : '$'}${(num / 1000000).toFixed(1)}M`;
     } else if (num >= 1000) {
@@ -486,13 +562,31 @@ function GrantsManagerContent() {
   const stats = {
     total: grants.length,
     verified: grants.filter(g => g.verified).length,
-    open: grants.filter(g => g.status === 'open').length,
-    closingSoon: grants.filter(g => g.status === 'closing-soon').length,
+    open: grants.filter(g => normStatus(g.status) === 'open').length,
+    openingSoon: grants.filter(g => normStatus(g.status) === 'opening_soon').length,
+    closingSoon: grants.filter(g => normStatus(g.status) === 'closing_soon').length,
+    closed: grants.filter(g => normStatus(g.status) === 'closed').length,
+    rolling: grants.filter(g => (g.applicationDeadline || '').toLowerCase() === 'rolling').length,
+    emerging: grants.filter(g => g.emergingFilmmaker === true).length,
   };
+
+  // Client-side filters + search (applied before the tabs' own slicing)
+  const filteredGrants = grants.filter((g) => {
+    const q = search.trim().toLowerCase();
+    if (q && !`${g.title} ${g.fundingBody || ''}`.toLowerCase().includes(q)) return false;
+    if (filterContinent !== 'all' && g.continent !== filterContinent) return false;
+    if (filterType !== 'all' && g.grant_type !== filterType) return false;
+    if (filterFormat !== 'all' && !(g.eligible_formats || []).includes(filterFormat)) return false;
+    if (filterGenre !== 'all' && !(g.genre_tags || []).includes(filterGenre)) return false;
+    if (filterStatus !== 'all' && normStatus(g.status) !== filterStatus) return false;
+    if (filterVerified !== 'all' && String(g.verified) !== filterVerified) return false;
+    if (filterEmerging !== 'all' && String(g.emergingFilmmaker === true) !== filterEmerging) return false;
+    return true;
+  });
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 0.5 }}>
             Grant Management
@@ -501,7 +595,7 @@ function GrantsManagerContent() {
             Manage film funding opportunities and grant programs
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button
             variant="outlined"
             startIcon={<Sync />}
@@ -535,7 +629,7 @@ function GrantsManagerContent() {
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => setAddGrantOpen(true)}
+            onClick={() => { resetForm(); setAddGrantOpen(true); }}
             sx={{
               bgcolor: '#D4AF37',
               color: '#000000',
@@ -560,79 +654,6 @@ function GrantsManagerContent() {
       )}
 
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <MonetizationOn sx={{ color: '#D4AF37', fontSize: 32 }} />
-                <Box>
-                  <Typography variant="h4" sx={{ color: '#D4AF37', fontWeight: 700 }}>
-                    {stats.total}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                    Total Grants
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <CheckCircle sx={{ color: '#4caf50', fontSize: 32 }} />
-                <Box>
-                  <Typography variant="h4" sx={{ color: '#4caf50', fontWeight: 700 }}>
-                    {stats.verified}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                    Verified
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Schedule sx={{ color: '#4caf50', fontSize: 32 }} />
-                <Box>
-                  <Typography variant="h4" sx={{ color: '#4caf50', fontWeight: 700 }}>
-                    {stats.open}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                    Open Now
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Warning sx={{ color: '#ff9800', fontSize: 32 }} />
-                <Box>
-                  <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 700 }}>
-                    {stats.closingSoon}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                    Closing Soon
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* AI Auto-Sync Status */}
       <Card sx={{ mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
@@ -863,6 +884,62 @@ function GrantsManagerContent() {
       </Collapse>
 
       {/* Tabs */}
+      {/* v2 stat header */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        {[
+          ['Total', stats.total, '#D4AF37'],
+          ['Verified', stats.verified, '#66bb6a'],
+          ['Open Now', stats.open, '#4caf50'],
+          ['Opening Soon', stats.openingSoon, '#2196F3'],
+          ['Closing Soon', stats.closingSoon, '#ff9800'],
+          ['Rolling', stats.rolling, '#a0a0a0'],
+          ['Emerging-Friendly', stats.emerging, '#ce93d8'],
+        ].map(([label, value, colour]) => (
+          <Grid size={{ xs: 6, sm: 4, md: 'grow' }} key={String(label)}>
+            <Paper sx={{ p: 1.2, textAlign: 'center', bgcolor: '#0a0a0a', border: '1px solid rgba(212,175,55,0.15)' }}>
+              <Typography variant="h6" sx={{ color: String(colour), fontWeight: 800 }}>{String(value)}</Typography>
+              <Typography variant="caption" sx={{ color: '#777', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.62rem' }}>{String(label)}</Typography>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Search + filters */}
+      <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
+        <TextField size="small" placeholder="Search title or funding body…" value={search}
+          onChange={(e) => setSearch(e.target.value)} sx={{ flex: '2 1 220px', minWidth: 180 }} />
+        <TextField select size="small" label="Continent" value={filterContinent} onChange={(e) => setFilterContinent(e.target.value)} sx={{ flex: '1 1 120px', minWidth: 110 }}>
+          <MenuItem value="all">All</MenuItem>
+          {[...new Set(grants.map(g => g.continent).filter(Boolean))].sort().map(c => <MenuItem key={String(c)} value={String(c)}>{String(c)}</MenuItem>)}
+        </TextField>
+        <TextField select size="small" label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} sx={{ flex: '1 1 130px', minWidth: 120 }}>
+          <MenuItem value="all">All</MenuItem>
+          {[...new Set(grants.map(g => g.grant_type).filter(Boolean))].sort().map(c => <MenuItem key={String(c)} value={String(c)}>{String(c)}</MenuItem>)}
+        </TextField>
+        <TextField select size="small" label="Format" value={filterFormat} onChange={(e) => setFilterFormat(e.target.value)} sx={{ flex: '1 1 120px', minWidth: 110 }}>
+          <MenuItem value="all">All</MenuItem>
+          {[...new Set(grants.flatMap(g => g.eligible_formats || []))].sort().map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+        </TextField>
+        <TextField select size="small" label="Genre" value={filterGenre} onChange={(e) => setFilterGenre(e.target.value)} sx={{ flex: '1 1 120px', minWidth: 110 }}>
+          <MenuItem value="all">All</MenuItem>
+          {[...new Set(grants.flatMap(g => g.genre_tags || []))].sort().map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+        </TextField>
+        <TextField select size="small" label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} sx={{ flex: '1 1 130px', minWidth: 120 }}>
+          <MenuItem value="all">All</MenuItem>
+          {['open', 'opening_soon', 'closing_soon', 'closed'].map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
+        </TextField>
+        <TextField select size="small" label="Verified" value={filterVerified} onChange={(e) => setFilterVerified(e.target.value)} sx={{ flex: '1 1 110px', minWidth: 100 }}>
+          <MenuItem value="all">All</MenuItem>
+          <MenuItem value="true">Verified</MenuItem>
+          <MenuItem value="false">Unverified</MenuItem>
+        </TextField>
+        <TextField select size="small" label="Emerging" value={filterEmerging} onChange={(e) => setFilterEmerging(e.target.value)} sx={{ flex: '1 1 110px', minWidth: 100 }}>
+          <MenuItem value="all">All</MenuItem>
+          <MenuItem value="true">Emerging-friendly</MenuItem>
+          <MenuItem value="false">Not flagged</MenuItem>
+        </TextField>
+      </Box>
+
       <Box sx={{ borderBottom: 1, borderColor: 'rgba(212, 175, 55, 0.2)' }}>
         <Tabs
           value={currentTab}
@@ -881,8 +958,8 @@ function GrantsManagerContent() {
             },
           }}
         >
-          <Tab label={`All Grants (${grants.length})`} />
-          <Tab label={`Unverified (${grants.filter(g => !g.verified).length})`} />
+          <Tab label={`All Grants (${filteredGrants.length})`} />
+          <Tab label={`Unverified (${filteredGrants.filter(g => !g.verified).length})`} />
           <Tab label={`Closing Soon (${stats.closingSoon})`} />
         </Tabs>
       </Box>
@@ -890,7 +967,7 @@ function GrantsManagerContent() {
       {/* Tab Panels */}
       <TabPanel value={currentTab} index={0}>
         <GrantsTable 
-          grants={grants}
+          grants={filteredGrants}
           onEdit={openEditDialog}
           onPreview={openPreviewDialog}
           onDelete={openDeleteDialog}
@@ -903,7 +980,7 @@ function GrantsManagerContent() {
 
       <TabPanel value={currentTab} index={1}>
         <GrantsTable 
-          grants={grants.filter(g => !g.verified)}
+          grants={filteredGrants.filter(g => !g.verified)}
           onEdit={openEditDialog}
           onPreview={openPreviewDialog}
           onDelete={openDeleteDialog}
@@ -916,7 +993,7 @@ function GrantsManagerContent() {
 
       <TabPanel value={currentTab} index={2}>
         <GrantsTable 
-          grants={grants.filter(g => g.status === 'closing-soon')}
+          grants={filteredGrants.filter(g => normStatus(g.status) === 'closing_soon')}
           onEdit={openEditDialog}
           onPreview={openPreviewDialog}
           onDelete={openDeleteDialog}
@@ -941,6 +1018,9 @@ function GrantsManagerContent() {
         setFormData={setFormData}
         territories={territories}
         currencies={currencies}
+        errors={formErrors}
+        warnings={formWarnings}
+        dupeWarned={dupeWarned}
         isEdit={editGrantOpen}
       />
 
@@ -1099,14 +1179,38 @@ function GrantsManagerContent() {
 // Grants Table Component
 interface GrantsTableProps {
   grants: Grant[];
-  onEdit: (grant: Grant) => void;
-  onPreview: (grant: Grant) => void;
-  onDelete: (grant: Grant) => void;
-  onToggleVerified: (grantId: string) => void;
+  onEdit: (g: Grant) => void;
+  onPreview: (g: Grant) => void;
+  onDelete: (g: Grant) => void;
+  onToggleVerified: (id: string) => void;
   formatCurrency: (amount: string, currency: string) => string;
-  getStatusColor: (status: Grant['status']) => string;
-  getStatusIcon: (status: Grant['status']) => JSX.Element;
+  getStatusColor: (s?: string) => string;
+  getStatusIcon: (s?: string) => React.ReactElement;
 }
+
+// Staleness flags — derived for DISPLAY only, from stored dates. The stored
+// status/verification themselves are never recomputed or overwritten.
+function stalenessFlags(g: Grant): { label: string; colour: string }[] {
+  const flags: { label: string; colour: string }[] = [];
+  const dl = g.applicationDeadline || '';
+  if (dl && dl.toLowerCase() !== 'rolling' && !/^tbc/i.test(dl)) {
+    const d = Date.parse(dl);
+    if (!Number.isNaN(d) && d < Date.now()) flags.push({ label: 'DEADLINE PASSED', colour: '#f44336' });
+  }
+  if (g.lastVerifiedAt) {
+    const ageDays = (Date.now() - Date.parse(g.lastVerifiedAt)) / 86400000;
+    if (ageDays > 183) flags.push({ label: 'STALE — RE-VERIFY (>6mo)', colour: '#f44336' });
+    else if (ageDays > 122) flags.push({ label: 'RE-VERIFY (>4mo)', colour: '#ff9800' });
+  } else {
+    flags.push({ label: 'NEVER VERIFIED', colour: '#f44336' });
+  }
+  return flags;
+}
+
+const grantHeadCell = {
+  color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase',
+  fontSize: '0.7rem', letterSpacing: 1, whiteSpace: 'nowrap',
+} as const;
 
 function GrantsTable({
   grants,
@@ -1121,148 +1225,190 @@ function GrantsTable({
   if (grants.length === 0) {
     return (
       <Paper sx={{ p: 6, textAlign: 'center', bgcolor: '#0a0a0a', border: '1px dashed rgba(212, 175, 55, 0.3)' }}>
-        <Typography variant="h6" sx={{ color: '#a0a0a0', mb: 1 }}>
-          No grants found
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#666666' }}>
-          Add your first grant to get started
-        </Typography>
+        <Typography variant="h6" sx={{ color: '#a0a0a0', mb: 1 }}>No grants found</Typography>
+        <Typography variant="body2" sx={{ color: '#666666' }}>Adjust the filters or add a grant</Typography>
       </Paper>
     );
   }
 
+  const fmtDate = (s?: string | null) => {
+    if (!s) return null;
+    if (s.toLowerCase?.() === 'rolling') return 'Rolling';
+    if (/^tbc/i.test(s)) return s.toUpperCase();
+    const d = Date.parse(s);
+    return Number.isNaN(d) ? s : new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   return (
-    <TableContainer component={Paper} sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-      <Table>
-        <TableHead>
-          <TableRow sx={{ borderBottom: '2px solid rgba(212, 175, 55, 0.2)' }}>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Grant Title</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Territory</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Max Amount</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Deadline</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Source</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Verified</TableCell>
-            <TableCell sx={{ color: '#D4AF37', fontWeight: 700 }}>Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {grants.map((grant) => {
-            const source = (typeof grant.dataSource === 'string' ? grant.dataSource : 'manual') as Grant['dataSource'];
-            const isManual = source === 'manual';
-            return (
-              <TableRow key={grant.id} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
-              <TableCell sx={{ color: '#ffffff' }}>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {grant.title}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                    {grant.fundingBody}
-                  </Typography>
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={grant.territory}
-                  size="small"
-                  sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.2)',
-                    color: '#D4AF37',
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ color: '#4caf50', fontWeight: 600 }}>
-                {formatCurrency(grant.maxAmount, grant.currency)}
-              </TableCell>
-              <TableCell>
-                <Box>
-                  <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                    {new Date(grant.applicationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: grant.daysUntilDeadline <= 14 ? '#ff9800' : '#a0a0a0' }}>
-                    {grant.daysUntilDeadline > 0 ? `${grant.daysUntilDeadline} days left` : 'Expired'}
-                  </Typography>
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Chip
-                  icon={getStatusIcon(grant.status)}
-                  label={grant.status.replace('-', ' ').toUpperCase()}
-                  size="small"
-                  sx={{
-                    bgcolor: `${getStatusColor(grant.status)}20`,
-                    color: getStatusColor(grant.status),
-                    border: `1px solid ${getStatusColor(grant.status)}`,
-                    fontWeight: 600,
-                  }}
-                />
-              </TableCell>
-              <TableCell>
-                <Chip
-                  label={source.toUpperCase()}
-                  size="small"
-                  sx={{
-                    bgcolor: isManual ? 'rgba(33, 150, 243, 0.2)' : 'rgba(156, 39, 176, 0.2)',
-                    color: isManual ? '#2196F3' : '#9C27B0',
-                  }}
-                />
-              </TableCell>
-              <TableCell>
-                <Tooltip title={grant.verified ? 'Mark as unverified' : 'Mark as verified'}>
-                  <Switch
-                    checked={grant.verified}
-                    onChange={() => onToggleVerified(grant.id)}
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: '#4caf50',
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: '#4caf50',
-                      },
-                    }}
-                  />
-                </Tooltip>
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  <Tooltip title="Preview">
-                    <IconButton size="small" onClick={() => onPreview(grant)} sx={{ color: '#2196F3' }}>
-                      <Visibility />
+    <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)', maxWidth: '100%' }}>
+      <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+        <Table size="small" sx={{ minWidth: 1150 }}>
+          <TableHead>
+            <TableRow sx={{ borderBottom: '2px solid rgba(212, 175, 55, 0.2)' }}>
+              <TableCell sx={{ ...grantHeadCell, position: 'sticky', left: 0, zIndex: 3, bgcolor: '#0a0a0a' }}>Grant</TableCell>
+              <TableCell sx={grantHeadCell}>Territory</TableCell>
+              <TableCell sx={grantHeadCell}>Type · Recurrence</TableCell>
+              <TableCell sx={grantHeadCell}>Formats / Genres</TableCell>
+              <TableCell sx={grantHeadCell}>Amount</TableCell>
+              <TableCell sx={grantHeadCell}>Deadline</TableCell>
+              <TableCell sx={grantHeadCell}>Status · Verification</TableCell>
+              <TableCell sx={grantHeadCell}>Source</TableCell>
+              <TableCell sx={grantHeadCell}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {grants.map((grant) => {
+              const flags = stalenessFlags(grant);
+              const formats = grant.eligible_formats || [];
+              const genres = grant.genre_tags || [];
+              const genresShown = genres.length > 4 ? genres.slice(0, 4) : genres;
+              return (
+                <TableRow key={grant.id} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
+                  <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: '#0a0a0a', minWidth: 200, maxWidth: 260 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#fff' }}>{grant.title}</Typography>
+                    <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block' }}>{grant.fundingBody}</Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.4, flexWrap: 'wrap' }}>
+                      {grant.emergingFilmmaker === true && (
+                        <Chip size="small" label="Emerging" sx={{ bgcolor: 'rgba(206,147,216,0.15)', color: '#ce93d8', fontSize: '0.62rem', height: 18 }} />
+                      )}
+                      {grant.productionStage && (
+                        <Chip size="small" label={grant.productionStage} sx={{ bgcolor: '#161616', color: '#a0a0a0', fontSize: '0.62rem', height: 18 }} />
+                      )}
+                      {grant.nationality_required && (
+                        <Chip size="small" label="NATIONALITY" sx={{ bgcolor: 'rgba(255,152,0,0.15)', color: '#ff9800', fontSize: '0.6rem', height: 18, fontWeight: 700 }} />
+                      )}
+                      {grant.co_production_required && (
+                        <Chip size="small" label="CO-PRO REQ" sx={{ bgcolor: 'rgba(79,131,204,0.15)', color: '#4f83cc', fontSize: '0.6rem', height: 18, fontWeight: 700 }} />
+                      )}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={grant.territory} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }} />
+                    {grant.continent && (
+                      <Typography variant="caption" sx={{ color: '#777', display: 'block', mt: 0.3 }}>{grant.continent}</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="caption" sx={{ color: '#ccc', display: 'block' }}>{grant.grant_type || '—'}</Typography>
+                    <Typography variant="caption" sx={{ color: '#777' }}>{grant.recurrence || ''}</Typography>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 190 }}>
+                    <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap' }}>
+                      {formats.map((f) => (
+                        <Chip key={f} size="small" label={f} sx={{ bgcolor: 'rgba(102,187,106,0.12)', color: '#66bb6a', fontSize: '0.62rem', height: 18 }} />
+                      ))}
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap', mt: 0.4 }}>
+                      {genresShown.map((g2) => (
+                        <Chip key={g2} size="small" label={g2} sx={{ bgcolor: '#161616', color: '#888', fontSize: '0.6rem', height: 16 }} />
+                      ))}
+                      {genres.length > genresShown.length && (
+                        <Typography variant="caption" sx={{ color: '#666' }}>+{genres.length - genresShown.length}</Typography>
+                      )}
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 130 }}>
+                    <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>
+                      {grant.maxAmount ? formatCurrency(grant.maxAmount, grant.currency) : '—'}
+                    </Typography>
+                    {grant.amount_usd_approx != null && (
+                      <Typography variant="caption" sx={{ color: '#777', display: 'block' }}>≈ ${grant.amount_usd_approx.toLocaleString()} USD</Typography>
+                    )}
+                    {(grant.budget_min_usd != null || grant.budget_max_usd != null) && (
+                      <Typography variant="caption" sx={{ color: '#777', display: 'block' }}>
+                        budget {grant.budget_min_usd != null ? `$${grant.budget_min_usd.toLocaleString()}` : 'any'} – {grant.budget_max_usd != null ? `$${grant.budget_max_usd.toLocaleString()}` : 'any'}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 120 }}>
+                    <Typography variant="body2" sx={{ color: '#fff' }}>{fmtDate(grant.applicationDeadline) || '—'}</Typography>
+                    {grant.applicationOpens && (
+                      <Typography variant="caption" sx={{ color: '#777', display: 'block' }}>opens {fmtDate(grant.applicationOpens)}</Typography>
+                    )}
+                    {grant.daysUntilDeadline != null && grant.daysUntilDeadline > 0 && (
+                      <Typography variant="caption" sx={{ color: grant.daysUntilDeadline <= 14 ? '#ff9800' : '#a0a0a0' }}>
+                        {grant.daysUntilDeadline ?? '—'} days left (at last verification)
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell sx={{ minWidth: 165 }}>
+                    {grant.status ? (
+                      <Chip
+                        icon={getStatusIcon(grant.status)}
+                        label={String(grant.status).replace(/[-_]/g, ' ').toUpperCase()}
+                        size="small"
+                        sx={{
+                          bgcolor: `${getStatusColor(grant.status)}20`,
+                          color: getStatusColor(grant.status),
+                          border: `1px solid ${getStatusColor(grant.status)}`,
+                          fontWeight: 600,
+                        }}
+                      />
+                    ) : (
+                      <Chip size="small" label="STATUS UNSET" sx={{ bgcolor: '#161616', color: '#777' }} />
+                    )}
+                    <Typography variant="caption" sx={{ color: '#777', display: 'block', mt: 0.4 }}>
+                      {grant.lastVerifiedAt ? `verified ${fmtDate(grant.lastVerifiedAt)}` : 'no verification date'}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap', mt: 0.3 }}>
+                      {flags.map((f) => (
+                        <Chip key={f.label} size="small" label={f.label}
+                          sx={{ bgcolor: `${f.colour}18`, color: f.colour, fontSize: '0.58rem', height: 16, fontWeight: 700 }} />
+                      ))}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    {grant.websiteUrl ? (
+                      <Link href={grant.websiteUrl} target="_blank" rel="noopener"
+                        sx={{ color: '#D4AF37', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
+                        Source <OpenInNew sx={{ fontSize: 13 }} />
+                      </Link>
+                    ) : (
+                      <Typography variant="caption" sx={{ color: '#f44336', fontWeight: 700 }}>NO SOURCE</Typography>
+                    )}
+                    <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>{grant.dataSource}</Typography>
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <IconButton size="small" onClick={() => onPreview(grant)}>
+                      <Visibility sx={{ color: '#a0a0a0', fontSize: 18 }} />
                     </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Edit">
-                    <IconButton size="small" onClick={() => onEdit(grant)} sx={{ color: '#D4AF37' }}>
-                      <Edit />
+                    <IconButton size="small" onClick={() => onEdit(grant)}>
+                      <Edit sx={{ color: '#D4AF37', fontSize: 18 }} />
                     </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton size="small" onClick={() => onDelete(grant)} sx={{ color: '#f44336' }}>
-                      <Delete />
+                    <IconButton size="small" onClick={() => onToggleVerified(grant.id)}>
+                      {grant.verified
+                        ? <CheckCircle sx={{ color: '#66bb6a', fontSize: 18 }} />
+                        : <CheckCircle sx={{ color: '#444', fontSize: 18 }} />}
                     </IconButton>
-                  </Tooltip>
-                </Box>
-              </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
+                    <IconButton size="small" onClick={() => onDelete(grant)}>
+                      <Delete sx={{ color: '#f44336', fontSize: 18 }} />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
   );
 }
 
-// Grant Form Dialog Component
 interface GrantFormDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
   formData: any;
-  setFormData: (data: any) => void;
+  setFormData: (d: any) => void;
   territories: string[];
   currencies: string[];
   isEdit: boolean;
+  errors?: string[];
+  warnings?: string[];
+  dupeWarned?: boolean;
 }
+
+const formSection = { color: '#D4AF37', fontWeight: 700, mt: 2.5, mb: 1, fontSize: '0.8rem', letterSpacing: 1, textTransform: 'uppercase' } as const;
 
 function GrantFormDialog({
   open,
@@ -1273,240 +1419,170 @@ function GrantFormDialog({
   territories,
   currencies,
   isEdit,
+  errors = [],
+  warnings = [],
+  dupeWarned = false,
 }: GrantFormDialogProps) {
+  const set = (k: string) => (e: any) => setFormData({ ...formData, [k]: e.target.value });
   return (
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          bgcolor: '#1a1a1a',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
-        },
-      }}
+      PaperProps={{ sx: { bgcolor: '#1a1a1a', border: '1px solid rgba(212, 175, 55, 0.2)' } }}
     >
       <DialogTitle sx={{ color: '#ffffff', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
         {isEdit ? 'Edit Grant' : 'Add New Grant'}
       </DialogTitle>
       <DialogContent sx={{ pt: 3 }}>
+        {errors.length > 0 && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errors.map((e, i) => <div key={i}>{e}</div>)}
+          </Alert>
+        )}
+        {warnings.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {warnings.map((w, i) => <div key={i}>{w}</div>)}
+            {!isEdit && dupeWarned && <div style={{ marginTop: 6, fontWeight: 700 }}>Click Save again to proceed anyway.</div>}
+          </Alert>
+        )}
+
+        <Typography sx={formSection}>Identity</Typography>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Grant Title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              sx={{
-                '& .MuiInputLabel-root': { color: '#a0a0a0' },
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover fieldset': { borderColor: '#D4AF37' },
-                  '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-                },
-              }}
-            />
+            <TextField fullWidth size="small" label="Grant Title *" value={formData.title} onChange={set('title')} />
           </Grid>
-
           <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ color: '#a0a0a0' }}>Territory</InputLabel>
-              <Select
-                value={formData.territory}
-                label="Territory"
-                onChange={(e) => setFormData({ ...formData, territory: e.target.value })}
-                sx={{
-                  color: '#ffffff',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D4AF37' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#D4AF37' },
-                }}
-              >
-                {territories.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-              </Select>
-            </FormControl>
+            <TextField select fullWidth size="small" label="Territory *" value={formData.territory} onChange={set('territory')}>
+              {territories.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            </TextField>
           </Grid>
-
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              label="Funding Body"
-              value={formData.fundingBody}
-              onChange={(e) => setFormData({ ...formData, fundingBody: e.target.value })}
-              sx={{
-                '& .MuiInputLabel-root': { color: '#a0a0a0' },
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover fieldset': { borderColor: '#D4AF37' },
-                  '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-                },
-              }}
-            />
+            <TextField fullWidth size="small" label="Funding Body" value={formData.fundingBody} onChange={set('fundingBody')} />
           </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              label="Max Amount"
-              type="number"
-              value={formData.maxAmount}
-              onChange={(e) => setFormData({ ...formData, maxAmount: e.target.value })}
-              sx={{
-                '& .MuiInputLabel-root': { color: '#a0a0a0' },
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover fieldset': { borderColor: '#D4AF37' },
-                  '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-                },
-              }}
-            />
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <TextField fullWidth size="small" label="Continent" value={formData.continent} onChange={set('continent')} />
           </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ color: '#a0a0a0' }}>Currency</InputLabel>
-              <Select
-                value={formData.currency}
-                label="Currency"
-                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                sx={{
-                  color: '#ffffff',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D4AF37' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#D4AF37' },
-                }}
-              >
-                {currencies.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-              </Select>
-            </FormControl>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <TextField select fullWidth size="small" label="Grant type" value={formData.grant_type} onChange={set('grant_type')}>
+              <MenuItem value="">—</MenuItem>
+              {['public_fund', 'broadcaster', 'foundation', 'co_production'].map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            </TextField>
           </Grid>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <TextField select fullWidth size="small" label="Recurrence" value={formData.recurrence} onChange={set('recurrence')}>
+              <MenuItem value="">—</MenuItem>
+              <MenuItem value="annual">annual</MenuItem>
+              <MenuItem value="rolling">rolling</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 3 }}>
+            <TextField select fullWidth size="small" label="Production stage" value={formData.productionStage} onChange={set('productionStage')}>
+              <MenuItem value="">— (not stated)</MenuItem>
+              {['development', 'production', 'short', 'multi'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            </TextField>
+          </Grid>
+        </Grid>
 
+        <Typography sx={formSection}>Eligibility &amp; matching</Typography>
+        <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              label="Application Opens"
-              type="date"
+            <TextField fullWidth size="small" label="Eligible formats (comma-separated)"
+              helperText="feature, short, documentary, tv_series, animation — matcher format gate"
+              value={formData.eligible_formats} onChange={set('eligible_formats')} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField fullWidth size="small" label="Genre tags (comma-separated)"
+              helperText="or 'all' for genre-agnostic funds"
+              value={formData.genre_tags} onChange={set('genre_tags')} />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField fullWidth size="small" multiline minRows={3} label="Eligibility criteria (one per line)"
+              value={formData.eligibility} onChange={set('eligibility')} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControlLabel control={<Checkbox checked={!!formData.nationality_required}
+              onChange={(e: any) => setFormData({ ...formData, nationality_required: e.target.checked })} sx={{ color: '#ff9800' }} />}
+              label="Nationality / residency restriction" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControlLabel control={<Checkbox checked={!!formData.co_production_required}
+              onChange={(e: any) => setFormData({ ...formData, co_production_required: e.target.checked })} sx={{ color: '#4f83cc' }} />}
+              label="Co-production required" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControlLabel control={<Checkbox checked={formData.emergingFilmmaker === true}
+              indeterminate={formData.emergingFilmmaker == null}
+              onChange={(e: any) => setFormData({ ...formData, emergingFilmmaker: e.target.checked })} sx={{ color: '#ce93d8' }} />}
+              label="Emerging-filmmaker focus (indeterminate = not stated)" />
+          </Grid>
+        </Grid>
+
+        <Typography sx={formSection}>Amounts &amp; window</Typography>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 8, sm: 4 }}>
+            <TextField fullWidth size="small" label="Max amount (display string)" value={formData.maxAmount} onChange={set('maxAmount')} />
+          </Grid>
+          <Grid size={{ xs: 4, sm: 2 }}>
+            <TextField select fullWidth size="small" label="Currency" value={formData.currency} onChange={set('currency')}>
+              {currencies.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 4, sm: 2 }}>
+            <TextField fullWidth size="small" label="≈ USD" value={formData.amount_usd_approx} onChange={set('amount_usd_approx')} />
+          </Grid>
+          <Grid size={{ xs: 4, sm: 2 }}>
+            <TextField fullWidth size="small" label="Budget min USD" value={formData.budget_min_usd} onChange={set('budget_min_usd')} />
+          </Grid>
+          <Grid size={{ xs: 4, sm: 2 }}>
+            <TextField fullWidth size="small" label="Budget max USD" value={formData.budget_max_usd} onChange={set('budget_max_usd')} />
+          </Grid>
+          <Grid size={{ xs: 6 }}>
+            <TextField fullWidth size="small" label="Opens (YYYY-MM-DD or rolling)" value={formData.applicationOpens} onChange={set('applicationOpens')} />
+          </Grid>
+          <Grid size={{ xs: 6 }}>
+            <TextField fullWidth size="small" label="Deadline (YYYY-MM-DD, rolling or tbc…)" value={formData.applicationDeadline} onChange={set('applicationDeadline')} />
+          </Grid>
+        </Grid>
+
+        <Typography sx={formSection}>Governance — honest defaults, nothing auto-filled</Typography>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12 }}>
+            <TextField fullWidth size="small" label="Website / source URL * (required — no grant without a source)"
+              value={formData.websiteUrl} onChange={set('websiteUrl')} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField select fullWidth size="small" label="Status (explicit — never auto-computed)"
+              helperText="Unset = excluded from reports"
+              value={formData.status} onChange={set('status')}>
+              <MenuItem value="">Not set</MenuItem>
+              {['open', 'opening_soon', 'closing_soon', 'closed'].map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <FormControlLabel control={<Checkbox checked={!!formData.verified}
+              onChange={(e: any) => setFormData({ ...formData, verified: e.target.checked })} sx={{ color: '#66bb6a' }} />}
+              label="Verified (requires date →)" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField fullWidth size="small" type="date" label="Verification date (explicit)"
               InputLabelProps={{ shrink: true }}
-              value={formData.applicationOpens}
-              onChange={(e) => setFormData({ ...formData, applicationOpens: e.target.value })}
-              sx={{
-                '& .MuiInputLabel-root': { color: '#a0a0a0' },
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover fieldset': { borderColor: '#D4AF37' },
-                  '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-                },
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              fullWidth
-              label="Application Deadline"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={formData.applicationDeadline}
-              onChange={(e) => setFormData({ ...formData, applicationDeadline: e.target.value })}
-              sx={{
-                '& .MuiInputLabel-root': { color: '#a0a0a0' },
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover fieldset': { borderColor: '#D4AF37' },
-                  '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-                },
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              label="Website URL"
-              value={formData.websiteUrl}
-              onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-              sx={{
-                '& .MuiInputLabel-root': { color: '#a0a0a0' },
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover fieldset': { borderColor: '#D4AF37' },
-                  '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-                },
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="Eligibility Criteria (one per line)"
-              value={formData.eligibility}
-              onChange={(e) => setFormData({ ...formData, eligibility: e.target.value })}
-              placeholder="UK qualifying productions&#10;High end TV drama&#10;Budget >£1M/hour"
-              sx={{
-                '& .MuiInputLabel-root': { color: '#a0a0a0' },
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                  '&:hover fieldset': { borderColor: '#D4AF37' },
-                  '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
-                },
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.verified}
-                  onChange={(e) => setFormData({ ...formData, verified: e.target.checked })}
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': { color: '#4caf50' },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#4caf50' },
-                  }}
-                />
-              }
-              label={<Typography sx={{ color: '#ffffff' }}>Mark as Verified</Typography>}
-            />
+              value={formData.lastVerifiedAt} onChange={set('lastVerifiedAt')} />
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Button onClick={onClose} sx={{ color: '#a0a0a0' }}>
-          Cancel
-        </Button>
-        <Button
-          onClick={onSave}
-          disabled={!formData.title || !formData.territory || !formData.fundingBody}
-          sx={{
-            bgcolor: '#D4AF37',
-            color: '#000000',
-            fontWeight: 600,
-            '&:hover': { bgcolor: '#D4AF37' },
-            '&:disabled': {
-              bgcolor: 'rgba(212, 175, 55, 0.3)',
-              color: 'rgba(0, 0, 0, 0.5)',
-            },
-          }}
-        >
-          {isEdit ? 'Save Changes' : 'Add Grant'}
+      <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212,175,55,0.2)', position: 'sticky', bottom: 0, bgcolor: '#1a1a1a' }}>
+        <Button onClick={onClose} sx={{ color: '#a0a0a0' }}>Cancel</Button>
+        <Button variant="contained" onClick={onSave}
+          sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}>
+          {isEdit ? 'Save Changes' : (dupeWarned ? 'Save Anyway' : 'Add Grant')}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
 
-// Grant Preview Dialog Component
 interface GrantPreviewDialogProps {
   open: boolean;
   onClose: () => void;
@@ -1570,7 +1646,7 @@ function GrantPreviewDialog({ open, onClose, grant, formatCurrency }: GrantPrevi
             </Grid>
             <Grid size={{ xs: 4 }}>
               <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block' }}>Time Left</Typography>
-              <Typography variant="body2" sx={{ color: grant.daysUntilDeadline <= 14 ? '#ff9800' : '#4caf50', fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ color: (grant.daysUntilDeadline ?? 99) <= 14 ? '#ff9800' : '#4caf50', fontWeight: 600 }}>
                 {grant.daysUntilDeadline} days
               </Typography>
             </Grid>

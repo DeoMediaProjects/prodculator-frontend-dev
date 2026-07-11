@@ -319,20 +319,34 @@ export interface Grant {
   currency: string;
   applicationOpens: string;
   applicationDeadline: string;
-  status: 'opening-soon' | 'open' | 'closing-soon' | 'closed';
-  daysUntilDeadline: number;
+  // Backend uses underscores (opening_soon); legacy hyphens tolerated on read
+  status: 'opening_soon' | 'open' | 'closing_soon' | 'closed' | string;
+  daysUntilDeadline: number | null;
   eligibility: string[];
   websiteUrl: string;
-  dataSource: 'manual' | 'rss' | 'api' | 'scrape';
+  dataSource: string;
   verified: boolean;
   isNew: boolean;
   createdAt: string;
   updatedAt: string;
-  lastVerifiedAt?: string;
+  lastVerifiedAt?: string | null;
+  // Structured v2 fields (all served by the API; blank = not stated, never inferred)
+  continent?: string | null;
+  eligible_formats?: string[] | null;
+  genre_tags?: string[] | null;
+  grant_type?: string | null;
+  recurrence?: string | null;
+  nationality_required?: boolean | null;
+  co_production_required?: boolean | null;
+  productionStage?: string | null;
+  emergingFilmmaker?: boolean | null;
+  budget_min_usd?: number | null;
+  budget_max_usd?: number | null;
+  amount_usd_approx?: number | null;
 }
 
 // Payload for creating a grant — backend sets id, createdAt, updatedAt
-export type CreateGrantPayload = Omit<Grant, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateGrantPayload = Partial<Grant> & { title: string; territory: string };
 
 // Response from bulk import
 export interface BulkImportResult {
