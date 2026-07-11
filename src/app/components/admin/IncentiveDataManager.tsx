@@ -24,6 +24,8 @@ import {
   IconButton,
   Collapse,
   Link,
+  MenuItem,
+  Tooltip,
   CircularProgress,
 } from '@mui/material';
 import {
@@ -40,7 +42,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
-import type { IncentiveData, PendingChange, SyncStatus, SyncSettings, SyncSettingsUpdate } from '@/services/admin.types';
+import type { IncentiveData, IncentiveCalcResult, PendingChange, SyncStatus, SyncSettings, SyncSettingsUpdate } from '@/services/admin.types';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
 export function IncentiveDataManager(props?: any) {
@@ -56,6 +58,164 @@ export function IncentiveDataManager(props?: any) {
   }
 
   return <IncentiveDataManagerContent {...props} />;
+}
+
+
+// ── v4 parity helpers ────────────────────────────────────────────────────────
+
+const REGION_COLOURS: Record<string, string> = {
+  UK: '#D4AF37',
+  Europe: '#4f83cc',
+  'North America': '#7e57c2',
+  North: '#7e57c2',
+  Africa: '#e07b39',
+  Asia: '#26a69a',
+  Oceania: '#66bb6a',
+  'South America': '#ef5350',
+  South: '#ef5350',
+};
+
+function regionColour(region?: string | null): string {
+  return REGION_COLOURS[region || ''] || '#555';
+}
+
+function statusChipProps(status?: string) {
+  const s = (status || '').toLowerCase();
+  if (s === 'active') return { label: 'Active', bg: 'rgba(46,125,50,0.2)', fg: '#66bb6a' };
+  if (s === 'suspended') return { label: 'Suspended', bg: 'rgba(244,67,54,0.2)', fg: '#f44336' };
+  if (s === 'no_programme') return { label: 'No Programme', bg: 'rgba(117,117,117,0.25)', fg: '#bdbdbd' };
+  if (s === 'admin_verify_required') return { label: 'Verify Required', bg: 'rgba(255,152,0,0.2)', fg: '#ffa726' };
+  return { label: status || 'Unknown', bg: 'rgba(117,117,117,0.2)', fg: '#9e9e9e' };
+}
+
+function verificationChipProps(v?: string | null) {
+  const s = (v || '').toLowerCase();
+  if (s.startsWith('verified')) return { label: v || 'Verified', bg: 'rgba(212,175,55,0.18)', fg: '#D4AF37' };
+  if (s.startsWith('verify')) return { label: 'Needs Verify', bg: 'rgba(255,152,0,0.2)', fg: '#ffa726' };
+  if (s.startsWith('inherited')) return { label: v || 'Inherited', bg: 'rgba(117,117,117,0.25)', fg: '#bdbdbd' };
+  return { label: v || '—', bg: 'rgba(117,117,117,0.15)', fg: '#9e9e9e' };
+}
+
+function confidenceColour(c?: number | null): string {
+  if (c == null) return '#555';
+  if (c >= 85) return '#66bb6a';
+  if (c >= 60) return '#D4AF37';
+  return '#f44336';
+}
+
+function parseWarnings(raw?: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [raw];
+  }
+}
+
+const CALC_CURRENCIES = ['GBP', 'USD', 'EUR', 'ZAR', 'CAD', 'AUD', 'HUF', 'CZK', 'NGN'];
+
+// ── Qualifying Spend Calculator — ALL maths runs server-side
+//    (ReportValidator._compute_corrected_rebate via /api/admin/incentives/calculate)
+function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[] }) {
+  const [budget, setBudget] = useState('30000000');
+  const [currency, setCurrency] = useState('GBP');
+  const [selected, setSelected] = useState('');
+  const [result, setResult] = useState<IncentiveCalcResult | null>(null);
+  const [calcError, setCalcError] = useState<string | null>(null);
+  const [calculating, setCalculating] = useState(false);
+
+  const options = incentives
+    .map((i) => ({ key: `${i.territory}|||${i.program}`, label: `${i.territory} — ${i.program}` }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const handleCalculate = async () => {
+    if (!selected) return;
+    const [territory, program] = selected.split('|||');
+    setCalculating(true);
+    setCalcError(null);
+    setResult(null);
+    const { data, error } = await adminApi.calculateIncentive({
+      budgetAmount: Number(budget) || 0,
+      budgetCurrency: currency,
+      territory,
+      program,
+    });
+    setCalculating(false);
+    if (error || !data) { setCalcError(error || 'Calculation failed'); return; }
+    setResult(data);
+  };
+
+  return (
+    <Paper sx={{ mb: 3, p: 2.5, bgcolor: '#0a0a0a', border: '1px solid #D4AF37' }}>
+      <Typography variant="subtitle1" sx={{ color: '#D4AF37', fontWeight: 700, letterSpacing: 1, mb: 0.5 }}>
+        QUALIFYING SPEND CALCULATOR — RESOLVES WHAT A PRODUCTION CAN ACTUALLY CLAIM
+      </Typography>
+      <Typography variant="caption" sx={{ color: '#777', display: 'block', mb: 2 }}>
+        Computed server-side by the report engine (single source of truth) — approximate illustrative FX for non-GBP budgets.
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <TextField
+          label="Budget" size="small" value={budget}
+          onChange={(e) => setBudget(e.target.value.replace(/[^0-9.]/g, ''))}
+          sx={{ width: 160 }}
+        />
+        <TextField select label="Currency" size="small" value={currency} onChange={(e) => setCurrency(e.target.value)} sx={{ width: 110 }}>
+          {CALC_CURRENCIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+        </TextField>
+        <TextField select label="Territory — Programme" size="small" value={selected} onChange={(e) => setSelected(e.target.value)} sx={{ minWidth: 380, flex: 1 }}>
+          {options.map((o) => <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>)}
+        </TextField>
+        <Button
+          variant="contained" onClick={handleCalculate} disabled={calculating || !selected}
+          sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}
+        >
+          {calculating ? 'Calculating…' : 'Calculate'}
+        </Button>
+      </Box>
+
+      {calcError && <Alert severity="error" sx={{ mt: 2 }}>{calcError}</Alert>}
+
+      {result && (
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 1 }}>
+          <Typography variant="subtitle2" sx={{ color: '#fff', fontWeight: 700 }}>
+            {result.territory} — {result.program}
+            {result.mechanismPattern && <Chip size="small" label={`Pattern ${result.mechanismPattern}`} sx={{ ml: 1, bgcolor: '#1a1a1a', color: '#a0a0a0' }} />}
+          </Typography>
+          {result.refusalReason && (
+            <Typography variant="body2" sx={{ color: '#f44336', fontWeight: 600, mt: 1 }}>
+              {result.refusalReason}
+            </Typography>
+          )}
+          {result.available === false && !result.switchedProgramme ? null : (
+            <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mt: 1.5 }}>
+              {[
+                ['Budget', result.budget],
+                [`Qualifying spend (${result.qualifyingSpendPct || '—'})`, result.qualifyingSpend],
+                ['Gross rebate', result.grossRebate],
+                ['Net rebate', result.netRebate],
+                ['Net budget', result.netBudget],
+              ].filter(([, v]) => v).map(([k, v]) => (
+                <Box key={String(k)}>
+                  <Typography variant="caption" sx={{ color: '#777', textTransform: 'uppercase', letterSpacing: 1 }}>{k}</Typography>
+                  <Typography variant="h6" sx={{ color: k === 'Net rebate' ? '#D4AF37' : '#fff', fontWeight: 700 }}>{v}</Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+          {(result.rateGrossDisplay || result.rateNetDisplay) && (
+            <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', mt: 1 }}>
+              Rate: {result.rateGrossDisplay || '—'} gross{result.rateNetDisplay ? ` · ${result.rateNetDisplay} net` : ''}
+            </Typography>
+          )}
+          {(result.notes || []).map((n, i) => (
+            <Typography key={i} variant="caption" sx={{ color: '#888', display: 'block', mt: 0.5 }}>• {n}</Typography>
+          ))}
+          {result.fxNote && <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>{result.fxNote}</Typography>}
+        </Box>
+      )}
+    </Paper>
+  );
 }
 
 function IncentiveDataManagerContent(_props?: any) {
@@ -75,6 +235,11 @@ function IncentiveDataManagerContent(_props?: any) {
   const [syncSettings, setSyncSettings] = useState<SyncSettings | null>(null);
   const [syncSettingsForm, setSyncSettingsForm] = useState<SyncSettingsUpdate>({});
   const [syncSettingsLoading, setSyncSettingsLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [regionFilter, setRegionFilter] = useState('all');
+  const [verifFilter, setVerifFilter] = useState('all');
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
 
   const didFetch = useRef(false);
 
@@ -83,7 +248,7 @@ function IncentiveDataManagerContent(_props?: any) {
     didFetch.current = true;
     (async () => {
       const [incentivesRes, syncStatusRes, pendingRes] = await Promise.all([
-        adminApi.getIncentives(),
+        adminApi.getIncentives(500, 0),
         adminApi.getIncentiveSyncStatus(),
         adminApi.getIncentivePendingChanges(),
       ]);
@@ -118,7 +283,7 @@ function IncentiveDataManagerContent(_props?: any) {
     if (!error) {
       setPendingChanges(pendingChanges.filter(c => c.id !== change.id));
       // Refresh incentives since the approved change updates the underlying record
-      const { data } = await adminApi.getIncentives();
+      const { data } = await adminApi.getIncentives(500, 0);
       if (data) setIncentives(data.items);
     }
   };
@@ -237,6 +402,52 @@ function IncentiveDataManagerContent(_props?: any) {
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress sx={{ color: '#D4AF37' }} />
+        </Box>
+      )}
+
+      {/* v4 Stat Header */}
+      {!loading && incentives.length > 0 && (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {[
+            ['Programmes', incentives.length, '#D4AF37'],
+            ['Active', incentives.filter((i) => (i.status || '').toLowerCase() === 'active').length, '#66bb6a'],
+            ['Verified Jul 2026', incentives.filter((i) => (i.verificationStatus || '').toLowerCase().startsWith('verified')).length, '#D4AF37'],
+            ['Needs Verification', incentives.filter((i) => (i.verificationStatus || '').toLowerCase().startsWith('verify')).length, '#ffa726'],
+            ['Annual Pool Caps', incentives.filter((i) => !!i.annualProgrammeCap).length, '#4f83cc'],
+            ['Territories', new Set(incentives.map((i) => i.territory)).size, '#a0a0a0'],
+          ].map(([label, value, colour]) => (
+            <Grid size={{ xs: 6, md: 2 }} key={String(label)}>
+              <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0a0a0a', border: '1px solid rgba(212,175,55,0.15)' }}>
+                <Typography variant="h5" sx={{ color: String(colour), fontWeight: 800 }}>{String(value)}</Typography>
+                <Typography variant="caption" sx={{ color: '#777', textTransform: 'uppercase', letterSpacing: 0.8 }}>{String(label)}</Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
+      {/* Qualifying Spend Calculator — server-side maths */}
+      {!loading && incentives.length > 0 && <QualifyingSpendCalculator incentives={incentives} />}
+
+      {/* Search + Filters */}
+      {!loading && incentives.length > 0 && (
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          <TextField
+            size="small" placeholder="Search territory, programme…" value={search}
+            onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1, minWidth: 240 }}
+          />
+          <TextField select size="small" label="Region" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} sx={{ width: 170 }}>
+            <MenuItem value="all">All regions</MenuItem>
+            {[...new Set(incentives.map((i) => i.region).filter(Boolean))].sort().map((r) => (
+              <MenuItem key={String(r)} value={String(r)}>{String(r)}</MenuItem>
+            ))}
+          </TextField>
+          <TextField select size="small" label="Verification" value={verifFilter} onChange={(e) => setVerifFilter(e.target.value)} sx={{ width: 210 }}>
+            <MenuItem value="all">All verification statuses</MenuItem>
+            {[...new Set(incentives.map((i) => i.verificationStatus).filter(Boolean))].sort().map((v) => (
+              <MenuItem key={String(v)} value={String(v)}>{String(v)}</MenuItem>
+            ))}
+          </TextField>
         </Box>
       )}
 
@@ -423,173 +634,174 @@ function IncentiveDataManagerContent(_props?: any) {
         </Paper>
       </Collapse>
 
-      {/* Incentives Table */}
+      {/* Incentives Table — v4 parity */}
       <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
         <TableContainer>
-          <Table>
+          <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Territory</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Program</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Rate</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Cap</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Last Updated</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Auto Sync</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Source</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Territory</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Programme</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Rate</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Per-Project Cap</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Annual Pool</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Mechanism</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Status</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Verification</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Confidence</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {incentives.flatMap((incentive, index) => {
-                // Check if we need a country divider
-                const getCountryGroup = (t: string) =>
-                  t.includes('(UK)') || t === 'United Kingdom (National)' ||
-                  t === 'England' || t === 'Scotland' ||
-                  t === 'Wales' || t === 'Northern Ireland' ? 'UK' :
-                  t.includes('(USA)') ? 'USA' :
-                  t.includes('(SA)') || t === 'South Africa (National)' ? 'South Africa' :
-                  t === 'Malta' ? 'Malta' :
-                  ['British Columbia', 'Ontario', 'Quebec', 'Alberta', 'Manitoba', 'Nova Scotia'].includes(t) ? 'Canada' : '';
-
-                const showDivider = index > 0 && getCountryGroup(incentive.territory) !== getCountryGroup(incentives[index - 1].territory);
-
-                const countryLabels: Record<string, string> = {
-                  'UK': '🇬🇧 United Kingdom',
-                  'USA': '🇺🇸 United States',
-                  'South Africa': '🇿🇦 South Africa',
-                  'Malta': '🇲🇹 Malta',
-                  'Canada': '🇨🇦 Canada',
-                };
-                const country = countryLabels[getCountryGroup(incentive.territory)] || '';
-
-                const rows = [];
-
-                if (showDivider) {
-                  rows.push(
-                    <TableRow key={`divider-${incentive.territory}-${index}`}>
-                      <TableCell
-                        colSpan={9}
-                        sx={{
-                          bgcolor: 'rgba(212, 175, 55, 0.15)',
-                          borderTop: '2px solid rgba(212, 175, 55, 0.4)',
-                          borderBottom: '2px solid rgba(212, 175, 55, 0.4)',
-                          py: 1.5,
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle1"
-                          sx={{
-                            color: '#D4AF37',
-                            fontWeight: 700,
-                            letterSpacing: '0.5px',
-                            textTransform: 'uppercase',
-                            fontSize: '0.9rem',
-                          }}
-                        >
-                          {country}
+              {incentives
+                .filter((i) => {
+                  const q = search.trim().toLowerCase();
+                  if (q && !`${i.territory} ${i.program}`.toLowerCase().includes(q)) return false;
+                  if (regionFilter !== 'all' && i.region !== regionFilter) return false;
+                  if (verifFilter !== 'all' && i.verificationStatus !== verifFilter) return false;
+                  return true;
+                })
+                .flatMap((incentive, index) => {
+                  const rowId = incentive.id || `${incentive.territory}-${incentive.program}-${index}`;
+                  const expanded = expandedRowId === rowId;
+                  const status = statusChipProps(incentive.status);
+                  const verif = verificationChipProps(incentive.verificationStatus);
+                  const warnings = parseWarnings(incentive.warningsJson);
+                  const rows = [
+                    <TableRow
+                      key={rowId}
+                      onClick={() => setExpandedRowId(expanded ? null : rowId)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}
+                    >
+                      <TableCell sx={{ color: '#fff', borderLeft: `3px solid ${regionColour(incentive.region)}` }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{incentive.territory}</Typography>
+                        <Typography variant="caption" sx={{ color: '#777' }}>{incentive.region || ''}</Typography>
+                      </TableCell>
+                      <TableCell sx={{ color: '#fff', maxWidth: 260 }}>
+                        <Typography variant="body2">{incentive.program}</Typography>
+                        {incentive.rateType && (
+                          <Typography variant="caption" sx={{ color: '#666' }}>{incentive.rateType}</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: '#D4AF37', fontWeight: 700 }}>
+                          {incentive.rateGrossDisplay || incentive.rate || '—'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#888' }}>
+                          gross{incentive.rateNetDisplay ? ` · net ${incentive.rateNetDisplay}` : ''}
                         </Typography>
                       </TableCell>
-                    </TableRow>
-                  );
-                }
-
-                rows.push(
-                  <TableRow key={`${incentive.territory}-${incentive.program}-${index}`} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
-                    <TableCell sx={{ color: '#ffffff' }}>{incentive.territory}</TableCell>
-                    <TableCell sx={{ color: '#ffffff' }}>{incentive.program}</TableCell>
-                    <TableCell sx={{ color: '#ffffff' }}>{incentive.rate}</TableCell>
-                    <TableCell sx={{ color: '#ffffff' }}>{incentive.cap}</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{incentive.lastUpdated}</TableCell>
-                    <TableCell>
-                      {incentive.autoSyncEnabled ? (
-                        <Box>
-                          <Chip
-                            icon={<CheckCircle sx={{ fontSize: 14 }} />}
-                            label="Enabled"
-                            size="small"
-                            sx={{
-                              bgcolor: 'rgba(46, 125, 50, 0.2)',
-                              color: '#66bb6a',
-                              fontWeight: 600,
-                            }}
-                          />
-                          {incentive.lastAutoCheck && (
-                            <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>
-                              Last: {incentive.lastAutoCheck}
+                      <TableCell sx={{ maxWidth: 190 }}>
+                        <Typography variant="body2" sx={{ color: '#fff' }}>{incentive.rebateCapDisplay || incentive.cap || '—'}</Typography>
+                        {incentive.qsBasis && (
+                          <Tooltip title={incentive.qsBasis}>
+                            <Typography variant="caption" sx={{ color: '#666', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              QS: {incentive.qsBasis}
                             </Typography>
-                          )}
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ maxWidth: 170 }}>
+                        {incentive.annualProgrammeCap ? (
+                          <Tooltip title={incentive.annualProgrammeCap}>
+                            <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {incentive.annualProgrammeCap}
+                            </Typography>
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="caption" sx={{ color: '#555' }}>—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" label={incentive.mechanismPattern ? `Pattern ${incentive.mechanismPattern}` : '—'} sx={{ bgcolor: '#161616', color: '#a0a0a0', fontSize: '0.7rem' }} />
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" label={status.label} sx={{ bgcolor: status.bg, color: status.fg, fontWeight: 700, fontSize: '0.7rem' }} />
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" label={verif.label} sx={{ bgcolor: verif.bg, color: verif.fg, fontWeight: 600, fontSize: '0.7rem' }} />
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 110 }}>
+                        {incentive.confidence != null ? (
+                          <Box>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(100, incentive.confidence)}
+                              sx={{ height: 6, borderRadius: 1, bgcolor: '#1a1a1a', '& .MuiLinearProgress-bar': { bgcolor: confidenceColour(incentive.confidence) } }}
+                            />
+                            <Typography variant="caption" sx={{ color: '#888' }}>{incentive.confidence}</Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" sx={{ color: '#555' }}>—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setEditingIncentive(incentive);
+                              setEditFormData(incentive);
+                              setEditDialogOpen(true);
+                            }}
+                          >
+                            <Edit sx={{ color: '#D4AF37', fontSize: 18 }} />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => incentive.id && handleDeleteIncentive(incentive.id)}
+                          >
+                            <Delete sx={{ color: '#f44336', fontSize: 18 }} />
+                          </IconButton>
                         </Box>
-                      ) : (
-                        <Chip
-                          label="Disabled"
-                          size="small"
-                          sx={{
-                            bgcolor: 'rgba(117, 117, 117, 0.2)',
-                            color: '#9e9e9e',
-                          }}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {incentive.sourceUrl ? (
-                        <Link
-                          href={incentive.sourceUrl ?? undefined}
-                          target="_blank"
-                          rel="noopener"
-                          sx={{
-                            color: '#D4AF37',
-                            textDecoration: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                            fontSize: '0.875rem',
-                            '&:hover': { color: '#D4AF37' },
-                          }}
-                        >
-                          Official Source
-                          <OpenInNew sx={{ fontSize: 14 }} />
-                        </Link>
-                      ) : (
-                        <Typography variant="body2" sx={{ color: '#666' }}>N/A</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={incentive.status}
-                        size="small"
-                        sx={{
-                          bgcolor: incentive.status?.toLowerCase() === 'active' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
-                          color: incentive.status?.toLowerCase() === 'active' ? '#66bb6a' : '#ffa726',
-                          fontWeight: 600,
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setEditingIncentive(incentive);
-                            setEditFormData(incentive);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit sx={{ color: '#D4AF37', fontSize: 18 }} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => incentive.id && handleDeleteIncentive(incentive.id)}
-                        >
-                          <Delete sx={{ color: '#f44336', fontSize: 18 }} />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
+                      </TableCell>
+                    </TableRow>,
+                  ];
 
-                return rows;
-              })}
+                  if (expanded) {
+                    rows.push(
+                      <TableRow key={`${rowId}-detail`}>
+                        <TableCell colSpan={10} sx={{ bgcolor: 'rgba(212,175,55,0.04)', borderBottom: '1px solid rgba(212,175,55,0.25)' }}>
+                          <Box sx={{ py: 1.5, px: 1 }}>
+                            {incentive.calcFormula && (
+                              <Box sx={{ mb: 1.5 }}>
+                                <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 700, letterSpacing: 1 }}>CALC FORMULA</Typography>
+                                <Typography variant="body2" sx={{ color: '#ccc', fontFamily: 'monospace', fontSize: '0.78rem', whiteSpace: 'pre-wrap' }}>
+                                  {incentive.calcFormula}
+                                </Typography>
+                              </Box>
+                            )}
+                            {warnings.length > 0 && (
+                              <Box sx={{ mb: 1.5 }}>
+                                <Typography variant="caption" sx={{ color: '#ffa726', fontWeight: 700, letterSpacing: 1 }}>WARNINGS</Typography>
+                                {warnings.map((w, wi) => (
+                                  <Typography key={wi} variant="body2" sx={{ color: '#ccc', fontSize: '0.8rem' }}>⚠ {w}</Typography>
+                                ))}
+                              </Box>
+                            )}
+                            {incentive.aiRule && (
+                              <Box sx={{ mb: 1 }}>
+                                <Typography variant="caption" sx={{ color: '#4f83cc', fontWeight: 700, letterSpacing: 1 }}>AI RULE</Typography>
+                                <Typography variant="body2" sx={{ color: '#ccc', fontSize: '0.8rem' }}>{incentive.aiRule}</Typography>
+                              </Box>
+                            )}
+                            {incentive.budgetEligibilityCeiling && (
+                              <Typography variant="caption" sx={{ color: '#f44336', display: 'block' }}>
+                                Eligibility ceiling: {incentive.budgetEligibilityCeiling}
+                              </Typography>
+                            )}
+                            {incentive.sourceUrl && (
+                              <Link href={incentive.sourceUrl} target="_blank" rel="noopener" sx={{ color: '#D4AF37', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                Official Source <OpenInNew sx={{ fontSize: 13 }} />
+                              </Link>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+                  return rows;
+                })}
             </TableBody>
           </Table>
         </TableContainer>

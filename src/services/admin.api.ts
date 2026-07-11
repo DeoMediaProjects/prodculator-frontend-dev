@@ -258,6 +258,17 @@ async function getIncentives(limit = 50, offset = 0, signal?: AbortSignal): ApiR
   }
 }
 
+async function calculateIncentive(payload: import('./admin.types').IncentiveCalcRequest): ApiResult<import('./admin.types').IncentiveCalcResult> {
+  try {
+    const data = await apiClient.post<import('./admin.types').IncentiveCalcResult>(
+      `${ADMIN_INCENTIVES_URL}/calculate`, payload, { auth: true },
+    );
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Calculation failed' };
+  }
+}
+
 async function createIncentive(payload: IncentiveData): ApiResult<IncentiveData> {
   try {
     const data = await apiClient.post<IncentiveData>(ADMIN_INCENTIVES_URL, { payload }, { auth: true });
@@ -1007,6 +1018,7 @@ export const adminApi = {
   getMetrics,
   getProductionSignals,
   getIncentives,
+  calculateIncentive,
   createIncentive,
   updateIncentive,
   deleteIncentive,

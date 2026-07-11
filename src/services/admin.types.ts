@@ -111,6 +111,65 @@ export interface IncentiveData {
   lastAutoCheck?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  // v4 source-of-truth fields (all optional — returned by the admin API)
+  region?: string | null;
+  rateGross?: number | null;
+  rateNet?: number | null;
+  rateType?: string | null;
+  rateGrossDisplay?: string | null;
+  rateNetDisplay?: string | null;
+  rebateCapDisplay?: string | null;
+  perPersonCapDisplay?: string | null;
+  annualProgrammeCap?: string | null;
+  budgetEligibilityCeiling?: string | null;
+  mechanismPattern?: string | null;
+  verificationStatus?: string | null;
+  confidence?: number | null;
+  bankPts?: number | null;
+  qsBasis?: string | null;
+  calcFormula?: string | null;
+  regionalFundsNote?: string | null;
+  capType?: string | null;
+  paymentTimeline?: string | null;
+  notes?: string | null;
+  aiRule?: string | null;
+  authority?: string | null;
+  warningsJson?: string | null;
+}
+
+export interface IncentiveCalcRequest {
+  budgetAmount: number;
+  budgetCurrency: string;
+  territory: string;
+  program: string;
+}
+
+export interface IncentiveCalcResult {
+  territory: string;
+  program: string;
+  status: string;
+  available: boolean;
+  refusalReason?: string | null;
+  programmeNote?: string | null;
+  switchedProgramme?: string | null;
+  mechanismPattern?: string | null;
+  budgetEligibilityCeiling?: string | null;
+  rateGrossDisplay?: string | null;
+  rateNetDisplay?: string | null;
+  fxNote?: string | null;
+  currency?: string;
+  budget?: string | null;
+  qualifyingSpend?: string | null;
+  netQualifyingSpend?: string | null;
+  qualifyingSpendPct?: string | null;
+  grossRebate?: string | null;
+  netRebate?: string | null;
+  netBudget?: string | null;
+  rateGross?: string | null;
+  rateNet?: string | null;
+  notes?: string[];
+  qsBasis?: string | null;
+  calcFormula?: string | null;
 }
 
 export interface PendingChange {
