@@ -32,6 +32,7 @@ import {
   BusinessCenter,
   Videocam,
   Menu as MenuIcon,
+  Groups,
 } from '@mui/icons-material';
 import { useAuth, type AdminPermissions } from '@/app/contexts/AuthContext';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
@@ -55,6 +56,7 @@ export function AdminLayout() {
     { label: 'Incentive Data', path: '/admin/incentives', icon: <AttachMoney />, permission: 'canEditIncentiveData' },
     { label: 'Grants Manager', path: '/admin/grants', icon: <MonetizationOn />, permission: 'canEditIncentiveData' },
     { label: 'Festivals Manager', path: '/admin/festivals', icon: <EmojiEvents />, permission: 'canEditIncentiveData' },
+    { label: 'Crew Depth & Bankability', path: '/admin/crew-depth', icon: <Groups />, permission: 'canEditIncentiveData' },
     { label: 'Comparable Productions', path: '/admin/comparables', icon: <Movie />, permission: 'canEditComparables' },
     { label: 'API & Data Sources', path: '/admin/data-sources', icon: <Settings />, permission: 'canManageDataSources' },
     { label: 'Email Gating', path: '/admin/email-gating', icon: <Email />, permission: 'canManageEmailGating' },

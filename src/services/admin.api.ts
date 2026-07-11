@@ -337,6 +337,49 @@ async function deleteCrewRate(id: string): ApiResult<void> {
 }
 
 // ── Incentive Sync ───────────────────────────────────────────────────────────
+
+// ── Territory Profiles (Crew Depth + Bankability) ─────────────────────────────
+const ADMIN_TERRITORY_PROFILES_URL = '/api/admin/territory-profiles';
+
+async function getTerritoryProfiles(limit = 100, offset = 0, signal?: AbortSignal): ApiResult<PaginatedResponse<import('./admin.types').TerritoryProfileData>> {
+  try {
+    const data = await apiClient.get<PaginatedResponse<import('./admin.types').TerritoryProfileData>>(
+      `${ADMIN_TERRITORY_PROFILES_URL}${paginationQuery(limit, offset)}`,
+      { auth: true, signal },
+    );
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch territory profiles' };
+  }
+}
+
+async function createTerritoryProfile(payload: Partial<import('./admin.types').TerritoryProfileData>): ApiResult<import('./admin.types').TerritoryProfileData> {
+  try {
+    const data = await apiClient.post<import('./admin.types').TerritoryProfileData>(ADMIN_TERRITORY_PROFILES_URL, { payload }, { auth: true });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to create territory profile' };
+  }
+}
+
+async function updateTerritoryProfile(id: string, payload: Partial<import('./admin.types').TerritoryProfileData>): ApiResult<import('./admin.types').TerritoryProfileData> {
+  try {
+    const data = await apiClient.patch<import('./admin.types').TerritoryProfileData>(`${ADMIN_TERRITORY_PROFILES_URL}/${id}`, { payload }, { auth: true });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to update territory profile' };
+  }
+}
+
+async function deleteTerritoryProfile(id: string): ApiResult<void> {
+  try {
+    await apiClient.delete(`${ADMIN_TERRITORY_PROFILES_URL}/${id}`, { auth: true });
+    return { data: undefined as void, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to delete territory profile' };
+  }
+}
+
 async function getIncentiveSyncStatus(signal?: AbortSignal): ApiResult<SyncStatus> {
   try {
     const data = await apiClient.get<SyncStatus>(ADMIN_INCENTIVES_SYNC_STATUS_URL, { auth: true, signal });
@@ -1019,6 +1062,10 @@ export const adminApi = {
   getProductionSignals,
   getIncentives,
   calculateIncentive,
+  getTerritoryProfiles,
+  createTerritoryProfile,
+  updateTerritoryProfile,
+  deleteTerritoryProfile,
   createIncentive,
   updateIncentive,
   deleteIncentive,

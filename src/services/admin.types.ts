@@ -194,6 +194,37 @@ export interface PendingChange {
   resolvedAt: string | null;
 }
 
+
+// ── Territory Profiles (Crew Depth + Bankability) ────────────────────────────
+export interface TerritoryProfileData {
+  id?: string;
+  territory: string;
+  isoCode?: string | null;
+  region?: string | null;
+  hemisphere?: string | null;
+  crewDepthTier?: string | null;
+  crewDepthScore?: number | null;
+  crewDepthNotes?: string | null;
+  infrastructureTier?: string | null;
+  infrastructureScore?: number | null;
+  infrastructureNotes?: string | null;
+  certWeeksMin?: number | null;
+  certWeeksMax?: number | null;
+  paymentWeeksMin?: number | null;
+  paymentWeeksMax?: number | null;
+  bankabilitySourceQuality?: string | null;
+  bankabilitySourceNote?: string | null;
+  bankabilityRealWorldConfirms?: boolean | null;
+  bankabilitySuspended?: boolean | null;
+  bankabilitySourceUrl?: string | null;
+  bankabilityAiRule?: string | null;
+  lastReviewedAt?: string | null;
+  reviewedBy?: string | null;
+  reviewNotes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
 // ── Crew Costs ────────────────────────────────────────────────────────────────
 export interface CrewRate {
   id: string;
