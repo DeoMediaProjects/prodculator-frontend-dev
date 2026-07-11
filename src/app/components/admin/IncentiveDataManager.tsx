@@ -158,17 +158,17 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
         <TextField
           label="Budget" size="small" value={budget}
           onChange={(e) => setBudget(e.target.value.replace(/[^0-9.]/g, ''))}
-          sx={{ width: 160 }}
+          sx={{ flex: '1 1 130px', minWidth: 120, maxWidth: { sm: 180 } }}
         />
-        <TextField select label="Currency" size="small" value={currency} onChange={(e) => setCurrency(e.target.value)} sx={{ width: 110 }}>
+        <TextField select label="Currency" size="small" value={currency} onChange={(e) => setCurrency(e.target.value)} sx={{ flex: '0 1 110px', minWidth: 96 }}>
           {CALC_CURRENCIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </TextField>
-        <TextField select label="Territory — Programme" size="small" value={selected} onChange={(e) => setSelected(e.target.value)} sx={{ minWidth: 380, flex: 1 }}>
+        <TextField select label="Territory — Programme" size="small" value={selected} onChange={(e) => setSelected(e.target.value)} sx={{ flex: '1 1 100%', minWidth: 0, width: { xs: '100%', md: 'auto' }, order: { xs: 3, md: 0 } }}>
           {options.map((o) => <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>)}
         </TextField>
         <Button
           variant="contained" onClick={handleCalculate} disabled={calculating || !selected}
-          sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}
+          sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' }, order: { xs: 4, md: 0 }, flexShrink: 0 }}
         >
           {calculating ? 'Calculating…' : 'Calculate'}
         </Button>
@@ -353,7 +353,7 @@ function IncentiveDataManagerContent(_props?: any) {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
             Incentive Data Management
@@ -362,7 +362,7 @@ function IncentiveDataManagerContent(_props?: any) {
             Manage tax incentive data with AI powered quarterly auto sync from official sources
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Button
             variant="outlined"
             startIcon={<Schedule />}
@@ -436,13 +436,13 @@ function IncentiveDataManagerContent(_props?: any) {
             size="small" placeholder="Search territory, programme…" value={search}
             onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1, minWidth: 240 }}
           />
-          <TextField select size="small" label="Region" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} sx={{ width: 170 }}>
+          <TextField select size="small" label="Region" value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} sx={{ flex: '1 1 140px', minWidth: 130 }}>
             <MenuItem value="all">All regions</MenuItem>
             {[...new Set(incentives.map((i) => i.region).filter(Boolean))].sort().map((r) => (
               <MenuItem key={String(r)} value={String(r)}>{String(r)}</MenuItem>
             ))}
           </TextField>
-          <TextField select size="small" label="Verification" value={verifFilter} onChange={(e) => setVerifFilter(e.target.value)} sx={{ width: 210 }}>
+          <TextField select size="small" label="Verification" value={verifFilter} onChange={(e) => setVerifFilter(e.target.value)} sx={{ flex: '1 1 170px', minWidth: 150 }}>
             <MenuItem value="all">All verification statuses</MenuItem>
             {[...new Set(incentives.map((i) => i.verificationStatus).filter(Boolean))].sort().map((v) => (
               <MenuItem key={String(v)} value={String(v)}>{String(v)}</MenuItem>
@@ -454,7 +454,7 @@ function IncentiveDataManagerContent(_props?: any) {
       {/* Auto-Sync Status Card */}
       <Card sx={{ mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Sync sx={{ color: '#D4AF37', fontSize: 28 }} />
               <Box>
@@ -635,12 +635,12 @@ function IncentiveDataManagerContent(_props?: any) {
       </Collapse>
 
       {/* Incentives Table — v4 parity */}
-      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <TableContainer>
-          <Table size="small">
+      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)', maxWidth: '100%' }}>
+        <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+          <Table size="small" sx={{ minWidth: 1180 }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Territory</TableCell>
+                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1, position: 'sticky', left: 0, zIndex: 3, bgcolor: '#0a0a0a' }}>Territory</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Programme</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Rate</TableCell>
                 <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Per-Project Cap</TableCell>
@@ -673,7 +673,7 @@ function IncentiveDataManagerContent(_props?: any) {
                       onClick={() => setExpandedRowId(expanded ? null : rowId)}
                       sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}
                     >
-                      <TableCell sx={{ color: '#fff', borderLeft: `3px solid ${regionColour(incentive.region)}` }}>
+                      <TableCell sx={{ color: '#fff', borderLeft: `3px solid ${regionColour(incentive.region)}`, position: 'sticky', left: 0, zIndex: 2, bgcolor: '#0a0a0a', minWidth: 130 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{incentive.territory}</Typography>
                         <Typography variant="caption" sx={{ color: '#777' }}>{incentive.region || ''}</Typography>
                       </TableCell>
@@ -762,6 +762,7 @@ function IncentiveDataManagerContent(_props?: any) {
                     rows.push(
                       <TableRow key={`${rowId}-detail`}>
                         <TableCell colSpan={10} sx={{ bgcolor: 'rgba(212,175,55,0.04)', borderBottom: '1px solid rgba(212,175,55,0.25)' }}>
+                          <Box sx={{ position: 'sticky', left: 0, maxWidth: 'calc(100vw - 48px)' }}>
                           <Box sx={{ py: 1.5, px: 1 }}>
                             {incentive.calcFormula && (
                               <Box sx={{ mb: 1.5 }}>
@@ -795,6 +796,7 @@ function IncentiveDataManagerContent(_props?: any) {
                                 Official Source <OpenInNew sx={{ fontSize: 13 }} />
                               </Link>
                             )}
+                          </Box>
                           </Box>
                         </TableCell>
                       </TableRow>

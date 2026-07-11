@@ -3,6 +3,7 @@ import { Navigate, Outlet, useNavigate, useLocation } from 'react-router';
 import {
   Box,
   Drawer,
+  IconButton,
   AppBar,
   Toolbar,
   Typography,
@@ -30,6 +31,7 @@ import {
   EmojiEvents,
   BusinessCenter,
   Videocam,
+  Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useAuth, type AdminPermissions } from '@/app/contexts/AuthContext';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
@@ -41,6 +43,7 @@ export function AdminLayout() {
   const location = useLocation();
   const { adminLogout, hasAdminPermission, isAdminAuthenticated, isAdminAuthLoading } = useAuth();
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const menuItems: { label: string; path: string; icon: JSX.Element; permission?: keyof AdminPermissions }[] = [
@@ -84,6 +87,14 @@ export function AdminLayout() {
     <Box sx={{ display: 'flex' }}>
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
+          <IconButton
+            aria-label="Open navigation"
+            edge="start"
+            onClick={() => setMobileOpen(true)}
+            sx={{ mr: 1.5, color: '#D4AF37', display: { xs: 'inline-flex', md: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Prodculator Admin
           </Typography>
@@ -95,6 +106,7 @@ export function AdminLayout() {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
+          display: { xs: 'none', md: 'block' },
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
@@ -150,10 +162,71 @@ export function AdminLayout() {
           </Box>
         </Box>
       </Drawer>
-      
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' },
+        }}
+        onClick={() => setMobileOpen(false)}
+      >
         <Toolbar />
-        <Container maxWidth="xl">
+        <Box sx={{ overflow: 'auto', mt: 2 }}>
+          <List>
+            {visibleMenuItems.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => navigate(item.path)}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+          
+          {/* Divider and User Links */}
+          {/* <Box sx={{ borderTop: '1px solid rgba(212, 175, 55, 0.2)', mt: 2, pt: 2 }}>
+            <List>
+              <ListItem disablePadding>
+                <ListItemButton onClick={() => navigate('/')}>
+                  <ListItemIcon><Home /></ListItemIcon>
+                  <ListItemText primary="Home" />
+                </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemButton onClick={() => navigate('/dashboard')}>
+                  <ListItemIcon><AccountCircle /></ListItemIcon>
+                  <ListItemText primary="User Dashboard" />
+                </ListItemButton>
+              </ListItem>
+            </List>
+          </Box> */}
+          
+          {/* Admin Actions */}
+          <Box sx={{ mt: 2 }}>
+            <List>
+              <ListItem disablePadding>
+                <ListItemButton onClick={handleLogout} disabled={loggingOut}>
+                  <ListItemIcon>
+                    {loggingOut ? <LoadingSpinner size={20} /> : <Logout />}
+                  </ListItemIcon>
+                  <ListItemText primary="Logout" />
+                </ListItemButton>
+              </ListItem>
+            </List>
+          </Box>
+        </Box>
+      </Drawer>
+
+      
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, p: { xs: 1.5, sm: 3 }, overflowX: 'hidden' }}>
+        <Toolbar />
+        <Container maxWidth="xl" disableGutters sx={{ px: { xs: 0.5, sm: 2 } }}>
           <Outlet />
         </Container>
       </Box>
