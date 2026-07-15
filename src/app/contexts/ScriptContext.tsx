@@ -184,6 +184,9 @@ interface ScriptMetadata {
   targetAudience?: string;
   language?: string;
   email?: string;
+  // Business Intelligence consent — explicit opt-in to aggregate this
+  // production's anonymised signals. Defaults to false when omitted.
+  biConsent?: boolean;
 }
 
 interface ScriptContextType {
@@ -255,6 +258,8 @@ function buildReportRequestBody(
   if (metadata.targetAudience) body.target_audience = metadata.targetAudience;
   if (metadata.language) body.language = metadata.language;
   if (metadata.email) body.email = metadata.email;
+  // Explicit boolean either way — the backend's consent gate treats absence as refusal.
+  body.b2b_consent = metadata.biConsent === true;
   return body;
 }
 

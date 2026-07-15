@@ -71,6 +71,9 @@ export function ScriptUpload() {
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // Business Intelligence consent — OPTIONAL opt-in, separate from the required
+  // terms acceptance. Never blocks report generation.
+  const [biConsent, setBiConsent] = useState(false);
   const [quotaBlocked, setQuotaBlocked] = useState(false);
 
   useEffect(() => {
@@ -230,6 +233,7 @@ export function ScriptUpload() {
         principalCast: principalCast ? Number(principalCast) : undefined,
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
         language: language || undefined,
+        biConsent,
       };
 
       const generated = await generateAnalysis(file!, metadata);
@@ -238,6 +242,7 @@ export function ScriptUpload() {
       }
       // Reset consent so each upload is its own explicit processing/consent event.
       setAcceptedTerms(false);
+      setBiConsent(false);
       navigate(`/report/${generated.id}`);
     } catch (err: any) {
       if (err instanceof ReportTimeoutError) {
@@ -301,6 +306,7 @@ export function ScriptUpload() {
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
         language: language || undefined,
         email,
+        biConsent,
       };
 
       await generatePreview(metadata);
@@ -870,6 +876,28 @@ export function ScriptUpload() {
                     }
                   />
                 )}
+                {isAuthenticated && (
+                  <FormControlLabel
+                    sx={{ mb: 2, alignItems: 'flex-start' }}
+                    control={
+                      <Checkbox
+                        checked={biConsent}
+                        onChange={(e) => setBiConsent(e.target.checked)}
+                        sx={{ color: '#D4AF37', mt: '-2px' }}
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
+                        {/* PLACEHOLDER consent copy — replace with solicitor wording when supplied. */}
+                        Optional: I consent to Prodculator including this production's anonymised,
+                        aggregated details (never the script itself) in Business Intelligence market
+                        reports. You can withdraw consent by re-running the report with this box
+                        unticked.
+                      </Typography>
+                    }
+                  />
+                )}
                 <Button
                   fullWidth
                   variant="contained"
@@ -930,6 +958,18 @@ export function ScriptUpload() {
                   (see §6.3)
                 </Link>
                 .
+              </Typography>
+            }
+          />
+          <FormControlLabel
+            sx={{ alignItems: 'flex-start', mt: 1 }}
+            control={<Checkbox checked={biConsent} onChange={(e) => setBiConsent(e.target.checked)} sx={{ color: '#D4AF37', mt: '-2px' }} size="small" />}
+            label={
+              <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
+                {/* PLACEHOLDER consent copy — replace with solicitor wording when supplied. */}
+                Optional: I consent to Prodculator including this production's anonymised,
+                aggregated details (never the script itself) in Business Intelligence market
+                reports.
               </Typography>
             }
           />
