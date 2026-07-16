@@ -181,7 +181,16 @@ interface ScriptMetadata {
   crewSize?: number;
   principalCast?: number;
   supportingCast?: number;
-  targetAudience?: string;
+  // Intake contract fields (intake_schema.json)
+  completionDate?: string;            // required by the form; festival timing window
+  mustFilmIn?: string;                // hard territory constraint
+  coProductionInterest?: 'yes' | 'no' | 'undecided';
+  targetAudience?: string[];          // declared age quadrants — never inferred
+  audienceSegments?: string[];        // e.g. lgbtq_audience (routed from skew dropdown)
+  audienceSkew?: string;              // female_leaning / male_leaning / balanced — stored, not scored
+  representationGender?: string;      // strict opt-in
+  representationMinority?: string[];  // strict opt-in
+  primaryLanguages?: string[];        // max 5
   language?: string;
   email?: string;
   // Business Intelligence consent — explicit opt-in to aggregate this
@@ -255,7 +264,15 @@ function buildReportRequestBody(
   if (metadata.crewSize) body.crew_size = metadata.crewSize;
   if (metadata.principalCast) body.principal_cast = metadata.principalCast;
   if (metadata.supportingCast) body.supporting_cast = metadata.supportingCast;
-  if (metadata.targetAudience) body.target_audience = metadata.targetAudience;
+  if (metadata.completionDate) body.completion_date = metadata.completionDate;
+  if (metadata.mustFilmIn) body.must_film_in = metadata.mustFilmIn;
+  if (metadata.coProductionInterest) body.co_production_interest = metadata.coProductionInterest;
+  if (metadata.targetAudience?.length) body.target_audience = metadata.targetAudience;
+  if (metadata.audienceSegments?.length) body.audience_segments = metadata.audienceSegments;
+  if (metadata.audienceSkew) body.audience_skew = metadata.audienceSkew;
+  if (metadata.representationGender) body.representation_gender = metadata.representationGender;
+  if (metadata.representationMinority?.length) body.representation_minority = metadata.representationMinority;
+  if (metadata.primaryLanguages?.length) body.primary_languages = metadata.primaryLanguages;
   if (metadata.language) body.language = metadata.language;
   if (metadata.email) body.email = metadata.email;
   // Explicit boolean either way — the backend's consent gate treats absence as refusal.
@@ -277,7 +294,7 @@ function normaliseAnalysisData(
   return {
     id: analysisData.id,
     genre: analysisData.genre || (metadata.genre.length ? metadata.genre.join(', ') : 'Unknown'),
-    tone: analysisData.tone || metadata.targetAudience || 'Production-ready with balanced commercial and creative intent',
+    tone: analysisData.tone || metadata.targetAudience?.join(', ') || 'Production-ready with balanced commercial and creative intent',
     scale: analysisData.scale || metadata.format || 'Unknown format',
     complexity: normaliseComplexity(analysisData.complexity),
     executiveSummary: analysisData.executiveSummary ?? null,
@@ -420,7 +437,7 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
   return {
     id: report?.id,
     genre,
-    tone: metadata.targetAudience || 'Production-ready with balanced commercial and creative intent',
+    tone: metadata.targetAudience?.join(', ') || 'Production-ready with balanced commercial and creative intent',
     scale: `${productionDetails.format || metadata.format || 'feature'} • ${productionDetails.crewSize || metadata.crewSize || 'medium'} crew`,
     complexity: complexityFromDays(shootingDays),
     executiveSummary: reportData.executiveSummary ?? null,

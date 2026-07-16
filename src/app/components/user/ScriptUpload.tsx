@@ -67,6 +67,16 @@ export function ScriptUpload() {
   const [supportingCast, setSupportingCast] = useState('');
   const [filmingStart, setFilmingStart] = useState('');
   const [filmingDuration, setFilmingDuration] = useState('');
+  // Intake contract fields (intake_schema.json)
+  const [completionDate, setCompletionDate] = useState('');
+  const [mustFilmIn, setMustFilmIn] = useState('');
+  const [coProductionInterest, setCoProductionInterest] = useState('');
+  const [targetAudience, setTargetAudience] = useState<string[]>([]);
+  // The skew dropdown includes "LGBTQ+ audience" which is a SEGMENT, not a skew —
+  // routed into audience_segments at submit, never into audience_skew.
+  const [audienceSkewChoice, setAudienceSkewChoice] = useState('');
+  const [representationGender, setRepresentationGender] = useState('');
+  const [representationMinority, setRepresentationMinority] = useState<string[]>([]);
   
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -87,8 +97,14 @@ export function ScriptUpload() {
   const [timeoutModalOpen, setTimeoutModalOpen] = useState(false);
   const [_timedOutReportId, setTimedOutReportId] = useState<string | null>(null);
 
-  const [_targetAudience, _setTargetAudience] = useState('');
-  const [language, _setLanguage] = useState('');
+  // Primary languages: free-text entries per the contract (max 5), captured
+  // comma-separated and split at submit.
+  const [languagesInput, setLanguagesInput] = useState('');
+  const primaryLanguages = languagesInput
+    .split(',')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 5);
 
   // Production strategy fields
   const [locationStrategy, setLocationStrategy] = useState('');
@@ -102,11 +118,13 @@ export function ScriptUpload() {
     'Western', 'Animation', 'Musical', 'Crime', 'War', 'Sports', 'Family'
   ];
 
-  // ✅ SECTION 2c: Format options - expanded list
+  // Format options per the intake contract (intake_schema.json) — 7 options,
+  // each mapping to a canonical value the matchers' hard gates support.
+  // (Legacy options Commercial/Music Video/Interactive/VR etc. removed per
+  // contract; backend still accepts them on old reports.)
   const formatOptions = [
-    'Feature Film', 'Short Film', 'TV Series', 'Limited Series', 'Mini Series',
-    'Documentary', 'Docuseries', 'Animation', 'Animated Feature', 'Animation Series',
-    'Commercial', 'Music Video', 'Interactive', 'VR',
+    'Feature Film', 'TV Series', 'TV Pilot', 'Limited Series', 'Short',
+    'Documentary', 'Animated Feature',
   ];
 
   // ✅ SECTION 2e: Camera equipment - full expanded list
@@ -174,9 +192,24 @@ export function ScriptUpload() {
     if (!budgetAmount || Number(budgetAmount) <= 0) return 'Please enter a budget amount greater than 0';
     if (!format) return 'Format is required';
     if (!country) return 'Primary production country is required';
+    if (!completionDate) return 'Expected completion date is required';
     if (!locationStrategy) return 'Please select a location strategy';
     return null;
   };
+
+  // Shared intake-contract fields for both the full-report and preview flows.
+  // Skew routing rule: "LGBTQ+ audience" is a segment, never a skew value.
+  const contractFields = () => ({
+    completionDate,
+    mustFilmIn: mustFilmIn || undefined,
+    coProductionInterest: (coProductionInterest || undefined) as 'yes' | 'no' | 'undecided' | undefined,
+    targetAudience: targetAudience.length ? targetAudience : undefined,
+    audienceSegments: audienceSkewChoice === 'lgbtq_audience' ? ['lgbtq_audience'] : undefined,
+    audienceSkew: audienceSkewChoice && audienceSkewChoice !== 'lgbtq_audience' ? audienceSkewChoice : undefined,
+    representationGender: representationGender || undefined,
+    representationMinority: representationMinority.length ? representationMinority : undefined,
+    primaryLanguages: primaryLanguages.length ? primaryLanguages : undefined,
+  });
 
   const handleGenerateReport = async () => {
     if (!isAuthenticated) {
@@ -232,7 +265,7 @@ export function ScriptUpload() {
         crewSize: crewSize ? Number(crewSize) : undefined,
         principalCast: principalCast ? Number(principalCast) : undefined,
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
-        language: language || undefined,
+        ...contractFields(),
         biConsent,
       };
 
@@ -304,7 +337,7 @@ export function ScriptUpload() {
         crewSize: crewSize ? Number(crewSize) : undefined,
         principalCast: principalCast ? Number(principalCast) : undefined,
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
-        language: language || undefined,
+        ...contractFields(),
         email,
         biConsent,
       };
@@ -818,11 +851,145 @@ export function ScriptUpload() {
 <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
-                      label={<>Primary Language<InfoTip text="The primary spoken language(s) in your script." /></>}
-                      placeholder="e.g. English"
-                      value={language}
-                      onChange={(e) => _setLanguage(e.target.value)}
+                      type="date"
+                      label={<>Expected Completion<InfoTip text="When you expect the finished film — drives festival submission-window matching." /></>}
+                      slotProps={{ inputLabel: { shrink: true } }}
+                      value={completionDate}
+                      onChange={(e) => setCompletionDate(e.target.value)}
+                      required
                     />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label={<>Primary Language(s)<InfoTip text="The primary spoken language(s) in your script. Separate with commas, up to 5." /></>}
+                      placeholder="e.g. English, Yoruba"
+                      value={languagesInput}
+                      onChange={(e) => setLanguagesInput(e.target.value)}
+                    />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label={<>Must Film In<InfoTip text="A territory you are contractually or creatively locked to, if any." /></>}
+                      placeholder="e.g. Scotland"
+                      value={mustFilmIn}
+                      onChange={(e) => setMustFilmIn(e.target.value)}
+                    />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Open to Official Co-Production?</InputLabel>
+                      <Select
+                        value={coProductionInterest}
+                        label="Open to Official Co-Production?"
+                        onChange={(e) => setCoProductionInterest(e.target.value)}
+                      >
+                        <MenuItem value="">Not specified</MenuItem>
+                        <MenuItem value="yes">Yes</MenuItem>
+                        <MenuItem value="no">No</MenuItem>
+                        <MenuItem value="undecided">Undecided</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Target Audience<InfoTip text="Who the film is for. Declared only — never guessed from genre." /></InputLabel>
+                      <Select<string[]>
+                        multiple
+                        value={targetAudience}
+                        onChange={(e) => setTargetAudience(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                        input={<OutlinedInput label="Target Audience" />}
+                        renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {selected.map((value) => (
+                              <Chip
+                                key={value}
+                                label={{ kids_family: 'Kids & Family', under_25: 'Under 25', adults_25_plus: 'Adults 25+' }[value] || value}
+                                size="small"
+                                sx={{ bgcolor: '#D4AF37', color: '#000' }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      >
+                        <MenuItem value="kids_family">Kids &amp; Family</MenuItem>
+                        <MenuItem value="under_25">Under 25</MenuItem>
+                        <MenuItem value="adults_25_plus">Adults 25+</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Audience Skew</InputLabel>
+                      <Select
+                        value={audienceSkewChoice}
+                        label="Audience Skew"
+                        onChange={(e) => setAudienceSkewChoice(e.target.value)}
+                      >
+                        <MenuItem value="">Not specified</MenuItem>
+                        <MenuItem value="female_leaning">Female-leaning</MenuItem>
+                        <MenuItem value="male_leaning">Male-leaning</MenuItem>
+                        <MenuItem value="balanced">Balanced</MenuItem>
+                        <MenuItem value="lgbtq_audience">LGBTQ+ audience</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Representation — strictly opt-in (who made the film, not who it is for).
+                      Leaving these blank never affects matching. */}
+                  <Grid size={{ xs: 12 }}>
+                    <Box sx={{ mt: 2, p: 2, border: '1px solid rgba(212, 175, 55, 0.2)', borderRadius: '8px' }}>
+                      <Typography variant="body2" sx={{ color: '#a0a0a0', fontWeight: 600, mb: 0.5 }}>
+                        Representation (optional)
+                        <InfoTip text="Who made the film. Strictly opt-in: only used to surface representation-focused festivals and distributors when you choose to share it. Leaving it blank changes nothing else." />
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 2 }}>
+                        Share only if you want representation-focused festival and distributor matches.
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <FormControl fullWidth>
+                            <InputLabel>Director/Lead Creator Gender</InputLabel>
+                            <Select
+                              value={representationGender}
+                              label="Director/Lead Creator Gender"
+                              onChange={(e) => setRepresentationGender(e.target.value)}
+                            >
+                              <MenuItem value="">Prefer not to say</MenuItem>
+                              <MenuItem value="Woman">Woman</MenuItem>
+                              <MenuItem value="Man">Man</MenuItem>
+                              <MenuItem value="Non-binary">Non-binary</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <FormControl fullWidth>
+                            <InputLabel>Creator Communities</InputLabel>
+                            <Select<string[]>
+                              multiple
+                              value={representationMinority}
+                              onChange={(e) => setRepresentationMinority(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                              input={<OutlinedInput label="Creator Communities" />}
+                              renderValue={(selected) => (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                  {selected.map((value) => <Chip key={value} label={value} size="small" sx={{ bgcolor: '#D4AF37', color: '#000' }} />)}
+                                </Box>
+                              )}
+                            >
+                              <MenuItem value="LGBTQ+">LGBTQ+</MenuItem>
+                              <MenuItem value="Racial/Ethnic minority">Racial/Ethnic minority</MenuItem>
+                              <MenuItem value="Disability">Disability</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                      </Grid>
+                    </Box>
                   </Grid>
                 </Grid>
               </Paper>
