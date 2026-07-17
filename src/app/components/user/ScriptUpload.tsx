@@ -80,6 +80,8 @@ export function ScriptUpload() {
   
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
+  // Synchronous in-flight guard against double-submit (see handleGenerateReport).
+  const submittingRef = useRef(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   // Business Intelligence consent — OPTIONAL opt-in, separate from the required
   // terms acceptance. Never blocks report generation.
@@ -247,6 +249,11 @@ export function ScriptUpload() {
   });
 
   const handleGenerateReport = async () => {
+    // Synchronous re-entry guard: React state updates are async, so two rapid
+    // clicks could both pass a state-based check before a re-render. A ref
+    // blocks the second click immediately and prevents a double-submit.
+    if (submittingRef.current) return;
+
     if (!isAuthenticated) {
       // Preview — file not required
       const validationError = validateForm(false);
@@ -255,16 +262,25 @@ export function ScriptUpload() {
         return;
       }
       setEmailModalOpen(true);
-    } else {
-      // Full report — file required
-      const validationError = validateForm(true);
-      if (validationError) {
-        showError(validationError);
-        return;
-      }
-      // Check with the backend whether this user can generate a report.
+      return;
+    }
+
+    // Full report — file required
+    const validationError = validateForm(true);
+    if (validationError) {
+      showError(validationError);
+      return;
+    }
+
+    submittingRef.current = true;
+    // Flip into the processing state immediately — before the async quota
+    // check — so the form (and its button) is instantly replaced by the
+    // "Analyzing…" panel and the user gets feedback that the click worked.
+    setProcessing(true);
+    try {
       const { canGenerate, reason } = await databaseService.canGenerateReport('');
       if (!canGenerate) {
+        setProcessing(false);
         showError(reason || 'Please upgrade your plan to generate more reports.', {
           action: (
             <Button size="small" sx={{ color: '#fff', fontWeight: 600 }} onClick={() => navigate('/pricing')}>
@@ -275,7 +291,9 @@ export function ScriptUpload() {
         });
         return;
       }
-      runFullAnalysis();
+      await runFullAnalysis();
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -336,6 +354,8 @@ export function ScriptUpload() {
   };
 
   const handleFreePreview = async () => {
+    if (submittingRef.current) return;
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       showError('Please enter a valid email address');
       return;
@@ -351,6 +371,7 @@ export function ScriptUpload() {
       return;
     }
 
+    submittingRef.current = true;
     setEmailModalOpen(false);
     setProcessing(true);
 
@@ -384,6 +405,7 @@ export function ScriptUpload() {
       console.error('Preview generation failed:', err);
       showError(err.message || 'Failed to generate preview. Please try again.');
       setProcessing(false);
+      submittingRef.current = false;
     }
   };
 
