@@ -9,7 +9,6 @@ export interface AdminPermissions {
   canManageAdmins: boolean;
   canViewBusinessMetrics: boolean;
   canEditIncentiveData: boolean;
-  canEditCrewCosts: boolean;
   canEditComparables: boolean;
   canManageDataSources: boolean;
   canManageEmailGating: boolean;
@@ -81,7 +80,6 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageAdmins: true,
     canViewBusinessMetrics: true,
     canEditIncentiveData: true,
-    canEditCrewCosts: true,
     canEditComparables: true,
     canManageDataSources: true,
     canManageEmailGating: true,
@@ -93,7 +91,6 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageAdmins: false,
     canViewBusinessMetrics: true,
     canEditIncentiveData: true,
-    canEditCrewCosts: true,
     canEditComparables: true,
     canManageDataSources: true,
     canManageEmailGating: true,
@@ -105,7 +102,6 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageAdmins: false,
     canViewBusinessMetrics: false,
     canEditIncentiveData: true,
-    canEditCrewCosts: true,
     canEditComparables: true,
     canManageDataSources: false,
     canManageEmailGating: false,
@@ -117,7 +113,6 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManageAdmins: false,
     canViewBusinessMetrics: false,
     canEditIncentiveData: false,
-    canEditCrewCosts: false,
     canEditComparables: false,
     canManageDataSources: false,
     canManageEmailGating: true,

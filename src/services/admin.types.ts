@@ -225,45 +225,7 @@ export interface TerritoryProfileData {
   updatedAt?: string | null;
 }
 
-// ── Crew Costs ────────────────────────────────────────────────────────────────
-export interface CrewRate {
-  id: string;
-  // Legacy fields (may be null for newer records)
-  territory: string | null;
-  category: string | null;
-  dayRate: number | null;
-  weekRate: number | null;
-  union: string | null;
-  lastUpdated: string | null;
-  source: string | null;
-  currency: string | null;
-  // Core fields always present
-  role: string;
-  createdAt: string | null;
-  updatedAt: string | null;
-  // New structured fields from API
-  country: string;
-  region: string;
-  roleCategory: string;
-  department: string;
-  unionRateCents: number;
-  nonUnionRateCents: number;
-  rateCurrency: string;
-  workingDayHours: number;
-  fringeRatePct: number;
-  fringeDescription: string | null;
-  sourceName: string;
-  sourceUrl: string | null;
-  sourceType: string;
-  confidenceScore: number;
-  effectiveFrom: string | null;
-  notes: string | null;
-  budgetBand: string | null;
-  rateNotes: string | null;
-  lastVerifiedAt: string | null;
-}
-
-// ── Sync System (shared by incentives & crew costs) ──────────────────────────
+// ── Sync System (shared by incentives etc.) ──────────────────────────────────
 export interface SyncStatus {
   territoriesSyncing: number;
   pendingChanges: number;

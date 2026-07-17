@@ -7,8 +7,6 @@ import {
   ADMIN_PRODUCTION_SIGNALS_URL,
   ADMIN_INCENTIVES_URL,
   adminIncentiveUrl,
-  ADMIN_CREW_COSTS_URL,
-  adminCrewCostUrl,
   ADMIN_COMPARABLES_URL,
   ADMIN_COMPARABLES_SYNC_TMDB_URL,
   adminComparableUrl,
@@ -40,12 +38,6 @@ import {
   adminIncentivePendingChangeRejectUrl,
   ADMIN_INCENTIVES_SYNC_URL,
   ADMIN_INCENTIVES_SYNC_SETTINGS_URL,
-  ADMIN_CREW_COSTS_SYNC_STATUS_URL,
-  ADMIN_CREW_COSTS_PENDING_CHANGES_URL,
-  adminCrewCostPendingChangeApproveUrl,
-  adminCrewCostPendingChangeRejectUrl,
-  ADMIN_CREW_COSTS_SYNC_URL,
-  ADMIN_CREW_COSTS_SYNC_SETTINGS_URL,
   ADMIN_SUBSCRIBERS_URL,
   ADMIN_SUBSCRIBERS_METRICS_URL,
   adminSubscriberBlockUrl,
@@ -68,7 +60,6 @@ import type {
   ProductionSignal,
   ProductionSignalsResponse,
   IncentiveData,
-  CrewRate,
   ComparableProduction,
   Grant,
   CreateGrantPayload,
@@ -296,46 +287,6 @@ async function deleteIncentive(id: string): ApiResult<void> {
   }
 }
 
-// ── Crew Costs ────────────────────────────────────────────────────────────────
-async function getCrewRates(limit = 50, offset = 0, signal?: AbortSignal): ApiResult<PaginatedResponse<CrewRate>> {
-  try {
-    const data = await apiClient.get<PaginatedResponse<CrewRate>>(
-      `${ADMIN_CREW_COSTS_URL}${paginationQuery(limit, offset)}`,
-      { auth: true, signal },
-    );
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch crew rates' };
-  }
-}
-
-async function createCrewRate(payload: CrewRate): ApiResult<CrewRate> {
-  try {
-    const data = await apiClient.post<CrewRate>(ADMIN_CREW_COSTS_URL, { payload }, { auth: true });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to create crew rate' };
-  }
-}
-
-async function updateCrewRate(id: string, payload: CrewRate): ApiResult<CrewRate> {
-  try {
-    const data = await apiClient.patch<CrewRate>(adminCrewCostUrl(id), { payload }, { auth: true });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to update crew rate' };
-  }
-}
-
-async function deleteCrewRate(id: string): ApiResult<void> {
-  try {
-    await apiClient.delete(adminCrewCostUrl(id), { auth: true });
-    return { data: null, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to delete crew rate' };
-  }
-}
-
 // ── Incentive Sync ───────────────────────────────────────────────────────────
 
 // ── Territory Profiles (Crew Depth + Bankability) ─────────────────────────────
@@ -440,70 +391,6 @@ async function updateIncentiveSyncSettings(payload: SyncSettingsUpdate): ApiResu
     return { data, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Failed to update incentive sync settings' };
-  }
-}
-
-// ── Crew Cost Sync ───────────────────────────────────────────────────────────
-async function getCrewCostSyncStatus(signal?: AbortSignal): ApiResult<SyncStatus> {
-  try {
-    const data = await apiClient.get<SyncStatus>(ADMIN_CREW_COSTS_SYNC_STATUS_URL, { auth: true, signal });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch crew cost sync status' };
-  }
-}
-
-async function getCrewCostPendingChanges(signal?: AbortSignal): ApiResult<PendingChange[]> {
-  try {
-    const data = await apiClient.get<PendingChange[]>(ADMIN_CREW_COSTS_PENDING_CHANGES_URL, { auth: true, signal });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch crew cost pending changes' };
-  }
-}
-
-async function approveCrewCostPendingChange(changeId: string): ApiResult<PendingChange> {
-  try {
-    const data = await apiClient.post<PendingChange>(adminCrewCostPendingChangeApproveUrl(changeId), {}, { auth: true });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to approve pending change' };
-  }
-}
-
-async function rejectCrewCostPendingChange(changeId: string): ApiResult<PendingChange> {
-  try {
-    const data = await apiClient.post<PendingChange>(adminCrewCostPendingChangeRejectUrl(changeId), {}, { auth: true });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to reject pending change' };
-  }
-}
-
-async function triggerCrewCostSync(): ApiResult<SyncTriggerResponse> {
-  try {
-    const data = await apiClient.post<SyncTriggerResponse>(ADMIN_CREW_COSTS_SYNC_URL, {}, { auth: true });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to trigger crew cost sync' };
-  }
-}
-
-async function getCrewCostSyncSettings(signal?: AbortSignal): ApiResult<SyncSettings> {
-  try {
-    const data = await apiClient.get<SyncSettings>(ADMIN_CREW_COSTS_SYNC_SETTINGS_URL, { auth: true, signal });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch crew cost sync settings' };
-  }
-}
-
-async function updateCrewCostSyncSettings(payload: SyncSettingsUpdate): ApiResult<SyncSettings> {
-  try {
-    const data = await apiClient.patch<SyncSettings>(ADMIN_CREW_COSTS_SYNC_SETTINGS_URL, payload, { auth: true });
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Failed to update crew cost sync settings' };
   }
 }
 
@@ -1076,17 +963,6 @@ export const adminApi = {
   triggerIncentiveSync,
   getIncentiveSyncSettings,
   updateIncentiveSyncSettings,
-  getCrewRates,
-  createCrewRate,
-  updateCrewRate,
-  deleteCrewRate,
-  getCrewCostSyncStatus,
-  getCrewCostPendingChanges,
-  approveCrewCostPendingChange,
-  rejectCrewCostPendingChange,
-  triggerCrewCostSync,
-  getCrewCostSyncSettings,
-  updateCrewCostSyncSettings,
   getComparables,
   createComparable,
   updateComparable,

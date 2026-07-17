@@ -6,7 +6,7 @@ describe('TOOLTIP_TEXTS', () => {
   it('contains public scoring-dimension explanations', () => {
     expect(TOOLTIP_TEXTS.incentiveStrength).toContain('verified incentive database');
     expect(TOOLTIP_TEXTS.incentiveReliability).toContain('bankable');
-    expect(TOOLTIP_TEXTS.costEfficiency).toContain('hard data calculation');
+    expect(TOOLTIP_TEXTS.costEfficiency).toContain('curated Cost Efficiency rating');
     expect(TOOLTIP_TEXTS.currencyAdvantage).toContain('budget currency');
     expect(TOOLTIP_TEXTS.crewDepth).toContain('Established, Growing, or Emerging');
     expect(TOOLTIP_TEXTS.infrastructure).toContain('physical production ecosystem');

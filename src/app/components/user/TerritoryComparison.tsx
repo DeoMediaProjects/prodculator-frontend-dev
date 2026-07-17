@@ -136,7 +136,7 @@ export function TerritoryComparison() {
     if (!comparedTerritories.length) return;
     const header = [
       'Territory', 'Tax Rebate', 'Post Production Bonus', 'Min Spend',
-      'Avg Crew Cost', 'Payment Timeline', 'Labor Requirement',
+      'Payment Timeline', 'Labor Requirement',
       'Highlights', 'Restrictions',
     ];
     const rows = comparedTerritories.map((t) => [
@@ -144,7 +144,6 @@ export function TerritoryComparison() {
       t.incentive?.tax_rebate || 'N/A',
       t.incentive?.post_production_bonus || 'N/A',
       t.incentive?.min_spend || 'N/A',
-      t.crew_costs?.avg_day_rate_display || 'N/A',
       t.incentive?.payment_timeline || 'N/A',
       t.labor_requirement || 'N/A',
       t.highlights.join('; '),
@@ -274,7 +273,7 @@ export function TerritoryComparison() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {['Tax Rebate', 'Programme', 'Post Production / VFX Bonus', 'Minimum Spend', 'Avg Crew Cost', 'Payment Timeline', 'Highlights', 'Restrictions'].map((row) => (
+                {['Tax Rebate', 'Programme', 'Post Production / VFX Bonus', 'Minimum Spend', 'Payment Timeline', 'Highlights', 'Restrictions'].map((row) => (
                   <TableRow key={row}>
                     <TableCell sx={{ color: '#ffffff', fontWeight: 700, borderBottom: '1px solid #222', whiteSpace: 'nowrap' }}>{row}</TableCell>
                     {selectedLabels.map((label) => (
@@ -396,36 +395,6 @@ export function TerritoryComparison() {
                   ))}
                 </ComparisonRow>
 
-                {/* Avg Crew Cost */}
-                <ComparisonRow label="Avg Crew Cost">
-                  {comparedTerritories.map((t) => (
-                    <TableCell key={t.label} sx={dataCellSx}>
-                      <Typography sx={{ color: '#ffffff' }}>
-                        {t.crew_costs?.avg_day_rate_display || 'N/A'}
-                      </Typography>
-                    </TableCell>
-                  ))}
-                </ComparisonRow>
-
-                {/* Crew Roles Sample */}
-                <ComparisonRow label="Sample Crew Rates">
-                  {comparedTerritories.map((t) => (
-                    <TableCell key={t.label} sx={dataCellSx}>
-                      {t.crew_costs?.sample_roles && Object.keys(t.crew_costs.sample_roles).length > 0 ? (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-                          {Object.entries(t.crew_costs.sample_roles).slice(0, 4).map(([role, rate]) => (
-                            <Typography key={role} variant="caption" sx={{ color: '#a0a0a0' }}>
-                              {role}: <span style={{ color: '#ffffff' }}>{rate}</span>
-                            </Typography>
-                          ))}
-                        </Box>
-                      ) : (
-                        <Typography sx={{ color: '#666' }}>N/A</Typography>
-                      )}
-                    </TableCell>
-                  ))}
-                </ComparisonRow>
-
                 {/* Cap */}
                 <ComparisonRow label="Rebate Cap">
                   {comparedTerritories.map((t) => (
@@ -543,7 +512,7 @@ export function TerritoryComparison() {
           }}
         >
           <Typography variant="body2">
-            <strong>Disclaimer:</strong> All rebate rates, crew costs, and requirements are indicative estimates.
+            <strong>Disclaimer:</strong> All rebate rates and requirements are indicative estimates.
             Always verify with official sources and consult tax professionals before making production decisions.
           </Typography>
         </Alert>

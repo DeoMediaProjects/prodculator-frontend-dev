@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Alert,
@@ -92,6 +92,26 @@ export function ScriptUpload() {
       if (!canGenerate) setQuotaBlocked(true);
     });
   }, [isAuthenticated]);
+
+  // Prefill Expected Completion from Filming Start + Duration using the same
+  // formula as the festival-matching engine: shoot end + 20 weeks post-
+  // production. Only overwrites values we suggested ourselves, so a date the
+  // user typed manually is never clobbered.
+  const lastSuggestedCompletion = useRef('');
+  useEffect(() => {
+    if (!filmingStart || !filmingDuration) return;
+    const weeks = Number(filmingDuration);
+    if (!Number.isFinite(weeks) || weeks <= 0) return;
+    const start = new Date(filmingStart);
+    if (Number.isNaN(start.getTime())) return;
+    const POST_PRODUCTION_WEEKS = 20;
+    const completion = new Date(start.getTime() + (weeks + POST_PRODUCTION_WEEKS) * 7 * 86400_000);
+    const suggested = completion.toISOString().slice(0, 10);
+    if (completionDate === '' || completionDate === lastSuggestedCompletion.current) {
+      setCompletionDate(suggested);
+      lastSuggestedCompletion.current = suggested;
+    }
+  }, [filmingStart, filmingDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timeout modal — shown when report generation is still running after the polling window
   const [timeoutModalOpen, setTimeoutModalOpen] = useState(false);
@@ -196,6 +216,21 @@ export function ScriptUpload() {
     if (!locationStrategy) return 'Please select a location strategy';
     return null;
   };
+
+  // Mandatory-field completeness — drives the Generate button's disabled state
+  // and the "missing" hint. Mirrors validateForm(), which stays as the
+  // belt-and-braces check at submit time.
+  const missingFields: string[] = [
+    ...(isAuthenticated && !file ? ['Script file'] : []),
+    ...(!title ? ['Project title'] : []),
+    ...(genres.length === 0 ? ['Genre(s)'] : []),
+    ...(!budgetAmount || Number(budgetAmount) <= 0 ? ['Budget amount'] : []),
+    ...(!format ? ['Format'] : []),
+    ...(!country ? ['Production country'] : []),
+    ...(!completionDate ? ['Expected completion'] : []),
+    ...(!locationStrategy ? ['Location strategy'] : []),
+  ];
+  const formComplete = missingFields.length === 0;
 
   // Shared intake-contract fields for both the full-report and preview flows.
   // Skew routing rule: "LGBTQ+ audience" is a segment, never a skew value.
@@ -457,6 +492,7 @@ export function ScriptUpload() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
+                      required
                       label="Project Title"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
@@ -464,7 +500,7 @@ export function ScriptUpload() {
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth required>
                       <InputLabel>Genre(s)</InputLabel>
                       <Select<string[]>
                         multiple
@@ -485,7 +521,7 @@ export function ScriptUpload() {
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth required>
                       <InputLabel>Format</InputLabel>
                       <Select
                         value={format}
@@ -500,7 +536,7 @@ export function ScriptUpload() {
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth required>
                       <InputLabel>Production Country<InfoTip text="Where you or your production company is based" /></InputLabel>
                       <Select
                         value={country}
@@ -547,6 +583,7 @@ export function ScriptUpload() {
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
+                      required
                       label={
                         <>
                           Budget Amount
@@ -587,7 +624,8 @@ export function ScriptUpload() {
                   <Grid size={{ xs: 12 }}>
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2" sx={{ color: '#a0a0a0', fontWeight: 600, mb: 1.5 }}>
-                        Location strategy<InfoTip text={TOOLTIP_TEXTS.locationStrategy} />
+                        Location strategy <span style={{ color: '#D4AF37' }}>*</span>
+                        <InfoTip text={TOOLTIP_TEXTS.locationStrategy} />
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                         {[
@@ -1065,12 +1103,17 @@ export function ScriptUpload() {
                     }
                   />
                 )}
+                {!formComplete && (
+                  <Typography variant="caption" sx={{ color: '#D4AF37', display: 'block', mb: 1.5 }}>
+                    Required to continue: {missingFields.join(', ')}
+                  </Typography>
+                )}
                 <Button
                   fullWidth
                   variant="contained"
                   size="large"
                   onClick={handleGenerateReport}
-                  disabled={(isAuthenticated && quotaBlocked) || (isAuthenticated && !acceptedTerms)}
+                  disabled={!formComplete || (isAuthenticated && quotaBlocked) || (isAuthenticated && !acceptedTerms)}
                   sx={{
                     py: 2,
                     fontSize: '1.1rem',

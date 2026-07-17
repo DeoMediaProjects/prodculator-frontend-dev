@@ -39,12 +39,11 @@ export interface TerritoryScenario {
   territory_currency: string;
   fx_rate: number | null;
   fx_rate_date: string | null;
-  crew_cost_index: number | null;
+  cost_efficiency_score: number | null;
   crew_depth_score?: number | null;
   crew_depth_tier?: 'established' | 'growing' | 'emerging' | string | null;
   infrastructure_score?: number | null;
   infrastructure_tier?: 'established' | 'growing' | 'emerging' | string | null;
-  crew_rates: Record<string, string>;
   net_saving: number;
   net_saving_display: string;
   payment_timeline: string | null;

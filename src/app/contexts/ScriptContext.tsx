@@ -75,9 +75,6 @@ interface ScriptAnalysis {
   // Tab 3: Tax Incentives
   incentiveEstimates: IncentiveEstimate[];
 
-  // Tab 4: Crew & Costs
-  crewInsights: CrewInsight[];
-
   // Tab 5: Comparable Productions
   comparables: ComparableProduction[];
 
@@ -121,15 +118,6 @@ interface IncentiveEstimate {
   dataSource: string;
   lastUpdated: string;
   bankabilityLabel?: 'BANKABLE' | 'VERIFY FIRST' | 'NOT BANKABLE' | null;
-}
-
-interface CrewInsight {
-  territory: string;
-  availability: 'High' | 'Medium' | 'Low';
-  costVsUSD: string;
-  qualityRating: number;
-  specialties: string[];
-  tradeoff: string;
 }
 
 interface ComparableProduction {
@@ -302,7 +290,6 @@ function normaliseAnalysisData(
     sectionExplainers: analysisData.sectionExplainers ?? null,
     locationRankings: toArray<LocationRanking>(analysisData.locationRankings),
     incentiveEstimates: toArray<IncentiveEstimate>(analysisData.incentiveEstimates),
-    crewInsights: toArray<CrewInsight>(analysisData.crewInsights),
     comparables: toArray<ComparableProduction>(analysisData.comparables),
     weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
     fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities),
@@ -318,13 +305,12 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
 
   const locationRankings: LocationRanking[] = territoryAnalysis.map((territory: any) => {
     const incentive = toArray<any>(territory.incentives)[0];
-    const crewTotal = Number(territory.estimatedCrewCosts?.totalForProduction || 0);
 
     return {
       name: territory.territory || 'Unknown Territory',
       country: territory.country || 'Unknown',
       score: clampScore(Number(territory.overallScore || 0)),
-      costEfficiency: clampScore(100 - Math.min(crewTotal / 25000, 100)),
+      costEfficiency: clampScore(Number(territory.costEfficiencyScore ?? 60)),
       crewDepth: clampScore(Number(territory.locationMatch?.score || 60)),
       infrastructure: clampScore(Number(territory.locationMatch?.score || 65)),
       crewDepthTier: territory.crewDepthTier ?? null,
@@ -375,23 +361,6 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
       lastUpdated: new Date().toISOString(),
       bankabilityLabel: inc.bankabilityLabel ?? territory.bankabilityLabel ?? null,
     }));
-  });
-
-  const crewInsights: CrewInsight[] = territoryAnalysis.map((territory: any) => {
-    const estimatedCrewCosts = territory.estimatedCrewCosts || {};
-    const breakdown = toArray<any>(estimatedCrewCosts.breakdown);
-    const specialties = breakdown.slice(0, 5).map((item: any) => item.role || 'Crew Role');
-
-    return {
-      territory: territory.territory || 'Unknown Territory',
-      availability: breakdown.length >= 8 ? 'High' : breakdown.length >= 4 ? 'Medium' : 'Low',
-      costVsUSD: `${formatCurrency(Number(estimatedCrewCosts.dailyTotal || 0))}/day`,
-      qualityRating: clampScore(Number(territory.locationMatch?.score || 65)) / 20,
-      specialties: specialties.length ? specialties : ['General production crew'],
-      tradeoff: toArray<string>(territory.cons).length
-        ? toArray<string>(territory.cons).join(' • ')
-        : 'Balanced option for cost, logistics, and incentives.',
-    };
   });
 
   const comparables: ComparableProduction[] = toArray<any>(reportData.comparableProductions).map((item: any) => ({
@@ -445,7 +414,6 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
     sectionExplainers: reportData.sectionExplainers ?? null,
     locationRankings,
     incentiveEstimates,
-    crewInsights,
     comparables,
     weatherLogistics,
     fundingOpportunities,
@@ -581,7 +549,6 @@ export type {
   ScriptAnalysis,
   LocationRanking,
   IncentiveEstimate,
-  CrewInsight,
   ComparableProduction,
   WeatherLogistics,
   FundingOpportunity,

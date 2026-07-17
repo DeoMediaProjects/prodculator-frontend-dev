@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Public } from '@mui/icons-material';
 import { apiClient } from '@/services/api';
+import { renderNarrative } from './ReportViewer';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
 interface SharedReport {
@@ -119,7 +120,15 @@ export function SharedReportViewer() {
           <Box sx={{ mb: 4 }}>
             <Typography variant="h5" sx={{ color: '#D4AF37', fontWeight: 700, mb: 2 }}>Executive Summary</Typography>
             <Paper sx={{ p: 3, bgcolor: '#0a0a0a', border: '1px solid #222' }}>
-              <Typography sx={{ color: '#a0a0a0' }}>{executiveSummary.keyInsights}</Typography>
+              {String(executiveSummary.keyInsights)
+                .split(/\n\n+/)
+                .map((p) => p.trim())
+                .filter(Boolean)
+                .map((paragraph, i, arr) => (
+                  <Typography key={i} sx={{ color: '#a0a0a0', mb: i < arr.length - 1 ? 2 : 0 }}>
+                    {renderNarrative(paragraph)}
+                  </Typography>
+                ))}
             </Paper>
           </Box>
         )}

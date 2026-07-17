@@ -23,20 +23,20 @@ export function TermsOfService() {
             Prodculator is a professional platform for film producers that provides:
           </Typography>
           <ul>
-            <li><strong>Individual Subscriptions:</strong> Script analysis, production location strategy, tax incentive calculations, crew cost estimates, comparable productions intelligence, territory comparison tools, and interactive what if calculators for individual producers, directors, and studios.</li>
+            <li><strong>Individual Subscriptions:</strong> Script analysis, production location strategy, tax incentive calculations, comparable productions intelligence, territory comparison tools, and interactive what if calculators for individual producers, directors, and studios.</li>
             <li><strong>Comparison Tools:</strong> Side by side territory comparison tool and interactive what if calculator for scenario planning, available to all tiers with usage limits based on subscription level.</li>
             <li><strong>Enterprise Solutions (B2B):</strong> Territory intelligence reports, production APIs, aggregate market data, and custom reporting for film commissions, government agencies, streamers, studios, equipment rental companies, and production service providers.</li>
           </ul>
 
           <Typography variant="h4">3. Data Accuracy & Limitations</Typography>
           <Typography>
-            <strong>3.1 Indicative Data:</strong> All production data, tax incentive rates, crew costs, and market intelligence provided through the Platform are indicative estimates based on cached datasets, third party APIs, and internally curated sources. Data is versioned and includes "last verified" dates.
+            <strong>3.1 Indicative Data:</strong> All production data, tax incentive rates, cost data, and market intelligence provided through the Platform are indicative estimates based on cached datasets, third party APIs, and internally curated sources. Data is versioned and includes "last verified" dates.
           </Typography>
           <Typography>
             <strong>3.2 Not Real Time:</strong> Data is NOT real time and should not be relied upon as the sole basis for financial, legal, or production decisions. Users must independently verify all data with official government sources, legal counsel, tax advisors, and industry professionals.
           </Typography>
           <Typography>
-            <strong>3.3 No Guarantee:</strong> We do not guarantee the accuracy, completeness, or timeliness of any data. Tax incentive rates, crew costs, and location availability are subject to change without notice by external authorities.
+            <strong>3.3 No Guarantee:</strong> We do not guarantee the accuracy, completeness, or timeliness of any data. Tax incentive rates, production costs, and location availability are subject to change without notice by external authorities.
           </Typography>
           <Typography>
             <strong>3.4 User Responsibility:</strong> Users are solely responsible for verifying all information before making production, financial, or legal commitments.
@@ -77,7 +77,7 @@ export function TermsOfService() {
           </Typography>
           <ul>
             <li><strong>Territory Intelligence Reports:</strong> Market analysis for film commissions (monthly, quarterly, or annual delivery)</li>
-            <li><strong>Production API Access:</strong> RESTful API for real time production location data, incentive tracking, and crew costs</li>
+            <li><strong>Production API Access:</strong> RESTful API for real time production location data and incentive tracking</li>
             <li><strong>Market Demand Forecasting:</strong> Production pipeline forecasts for equipment rental and service providers</li>
             <li><strong>Custom Report Builder:</strong> White label report generation with custom branding</li>
             <li><strong>Aggregate Data Licensing:</strong> Anonymized production trend data for commercial use</li>

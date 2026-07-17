@@ -106,7 +106,7 @@ export const SCORE_WEIGHTS_INFO = {
   full: [
     { label: 'Incentive Strength', pct: '30%', note: 'rebate/credit value' },
     { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment track record' },
-    { label: 'Cost Efficiency', pct: '20%', noteKey: 'crew' as const },
+    { label: 'Cost Efficiency', pct: '20%', note: 'curated territory cost rating' },
     { label: 'Currency Advantage', pct: '15%', note: 'your budget vs local currency' },
     { label: 'Crew Depth', pct: '10%', note: 'territory tier rating' },
     { label: 'Infrastructure', pct: '10%', note: 'territory tier rating' },
@@ -114,7 +114,7 @@ export const SCORE_WEIGHTS_INFO = {
   incentive: [
     { label: 'Incentive Strength', pct: '45%', note: 'rebate/credit value' },
     { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment track record' },
-    { label: 'Cost Efficiency', pct: '15%', noteKey: 'crew' as const },
+    { label: 'Cost Efficiency', pct: '15%', note: 'curated territory cost rating' },
     { label: 'Currency Advantage', pct: '15%', note: 'your budget vs local currency' },
     { label: 'Crew Depth', pct: '5%', note: 'territory tier rating' },
     { label: 'Infrastructure', pct: '5%', note: 'territory tier rating' },
@@ -122,7 +122,7 @@ export const SCORE_WEIGHTS_INFO = {
   location: [
     { label: 'Crew Depth', pct: '25%', note: 'territory tier rating' },
     { label: 'Infrastructure', pct: '20%', note: 'territory tier rating' },
-    { label: 'Cost Efficiency', pct: '20%', noteKey: 'crew' as const },
+    { label: 'Cost Efficiency', pct: '20%', note: 'curated territory cost rating' },
     { label: 'Incentive Strength', pct: '15%', note: 'rebate/credit value' },
     { label: 'Incentive Reliability', pct: '10%', note: 'bankability & payment track record' },
     { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
@@ -198,13 +198,12 @@ export function WhatIfCalculator() {
 
     const header = [
       'Territory', 'Programme', 'Rate', 'Bankability', 'FRS', 'FRS Verdict', 'Est. Incentive', 'Currency Advantage Score',
-      'Crew Cost Index', 'Net Saving', 'Min Spend', 'Payment Timeline', 'Overall Score',
+      'Net Saving', 'Min Spend', 'Payment Timeline', 'Overall Score',
     ];
     const rows = territories.map((t) => [
       t.territory, t.programme, t.rate_display,
       t.bankability_label ?? '', t.financial_return_score != null ? String(t.financial_return_score) : '', t.financial_return_verdict ?? '',
       t.estimated_rebate_display, String(t.currency_advantage_score),
-      t.crew_cost_index != null ? String(t.crew_cost_index) : '',
       t.net_saving_display, t.min_spend ?? '', t.payment_timeline ?? '',
       String(t.overall_score),
     ]);
@@ -227,12 +226,6 @@ export function WhatIfCalculator() {
     return budget * (t.currency_advantage_score - 50) / 200;
   }
 
-  // ── Crew saving as monetary value ─────────────────────────────────────────
-  function crewValue(t: TerritoryScenario): number {
-    if (t.crew_cost_index == null) return 0;
-    return budget * (t.crew_cost_index - 50) / 200;
-  }
-
   // ── Score tooltip content ─────────────────────────────────────────────────
   const scoreWeights = SCORE_WEIGHTS_INFO[priority];
   const scoreTooltipContent = (
@@ -246,7 +239,7 @@ export function WhatIfCalculator() {
         </strong> mode:
       </Typography>
       {scoreWeights.map((w) => {
-        const note = 'noteKey' in w ? `crew day rates vs ${baseline === 'US' ? 'US' : 'UK'} baseline` : 'note' in w ? w.note : '';
+        const note = 'note' in w ? w.note : '';
         return (
           <Box key={w.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
             <Typography sx={{ fontSize: '11px', color: '#ccc' }}>
@@ -440,7 +433,7 @@ export function WhatIfCalculator() {
                   <Box sx={{ mb: 1 }}>
                     <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Full Picture</Typography>
                     <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
-                      Balances incentives, currency advantages, and crew costs for total net savings
+                      Balances incentives, currency advantages, and cost efficiency for total net savings
                     </Typography>
                   </Box>
                   <Box>
@@ -523,7 +516,7 @@ export function WhatIfCalculator() {
                   minWidth: '1320px', gap: 2,
                 }}
               >
-                {['Territory', 'Programme', 'Incentive Rate', 'Est. Incentive', 'Currency Adv.', 'Crew Saving', 'NET SAVING', 'Min Spend', 'Payment', 'Score /100'].map((col) => (
+                {['Territory', 'Programme', 'Incentive Rate', 'Est. Incentive', 'Currency Adv.', 'NET SAVING', 'Min Spend', 'Payment', 'Score /100'].map((col) => (
                   <Box key={col} sx={{ flex: col === 'Territory' ? '0 0 200px' : '0 0 120px' }}>
                     <Typography sx={{ ...headerCellSx }}>{col}</Typography>
                   </Box>
@@ -540,7 +533,7 @@ export function WhatIfCalculator() {
                   }}
                 >
                   <Box sx={{ flex: '0 0 200px', height: 14, bgcolor: '#E8E8E8', borderRadius: 1 }} />
-                  {[120, 80, 110, 110, 100, 110, 90, 100, 70].map((w, j) => (
+                  {[120, 80, 110, 110, 110, 90, 100, 70].map((w, j) => (
                     <Box key={j} sx={{ flex: `0 0 ${w}px`, height: 12, bgcolor: '#EEEEEE', borderRadius: 1 }} />
                   ))}
                 </Box>
@@ -587,7 +580,7 @@ export function WhatIfCalculator() {
                 display: 'flex', bgcolor: 'rgba(245,200,0,0.1)',
                 height: '44px', alignItems: 'center', px: 2,
                 borderBottom: '1px solid rgba(0,0,0,0.04)',
-                minWidth: '1540px',
+                minWidth: '1420px',
               }}
             >
               <Box sx={{ width: '200px' }}><Typography sx={headerCellSx}>Territory</Typography></Box>
@@ -611,7 +604,6 @@ export function WhatIfCalculator() {
               </Box>
               <Box sx={{ width: '140px' }}><Typography sx={headerCellSx}>Est. Incentive</Typography></Box>
               <Box sx={{ width: '140px' }}><Tooltip title="Estimated from territory score. Upload script for exact figures." placement="top"><Typography sx={headerCellSx}>~ Currency Adv.</Typography></Tooltip></Box>
-              <Box sx={{ width: '120px' }}><Tooltip title="Estimated from territory score. Upload script for exact figures." placement="top"><Typography sx={headerCellSx}>~ Crew Saving</Typography></Tooltip></Box>
               <Box sx={{ width: '140px' }}><Typography sx={headerCellSx}>NET SAVING</Typography></Box>
               <Box sx={{ width: '110px' }}><Typography sx={headerCellSx}>Min Spend</Typography></Box>
               <Box sx={{ width: '120px' }}><Typography sx={headerCellSx}>Payment</Typography></Box>
@@ -643,7 +635,6 @@ export function WhatIfCalculator() {
               {/* Data Rows */}
               {territories.map((t, index) => {
                 const caVal = caValue(t);
-                const crewVal = crewValue(t);
                 const isTopScore = index === 0;
 
                 return (
@@ -654,7 +645,7 @@ export function WhatIfCalculator() {
                       bgcolor: index % 2 === 0 ? '#FFFFFF' : '#FAFAF8',
                       minHeight: '52px', alignItems: 'center', px: 2,
                       borderBottom: '1px solid rgba(0,0,0,0.04)',
-                      minWidth: '1540px',
+                      minWidth: '1420px',
                       '&:hover': { bgcolor: 'rgba(245,200,0,0.04)' },
                     }}
                   >
@@ -751,17 +742,6 @@ export function WhatIfCalculator() {
                             {caVal > 0 ? '+' : ''}{formatLargeNumber(Math.round(caVal), sym)}
                           </Typography>
                         </Tooltip>
-                      ) : (
-                        <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999999' }}>N/A</Typography>
-                      )}
-                    </Box>
-
-                    {/* Crew Saving */}
-                    <Box sx={{ width: '120px' }}>
-                      {crewVal !== 0 ? (
-                        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: valueColor(crewVal) }}>
-                          {crewVal > 0 ? '+' : ''}{formatLargeNumber(Math.round(crewVal), sym)}
-                        </Typography>
                       ) : (
                         <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999999' }}>N/A</Typography>
                       )}
