@@ -460,9 +460,9 @@ function generatePDFHTML(analysis: ScriptAnalysis): string {
     <div class="disclaimer-item">
       <div class="disclaimer-title">Production Cost Data</div>
       <div class="disclaimer-text">
-        Crew costs, location expenses, and production budgets are estimated based on industry averages and may 
-        not reflect current market conditions, currency fluctuations, or specific production requirements. Always 
-        obtain binding quotes from local vendors and crew representatives.
+        Location expenses and production budgets are estimated based on industry averages and may
+        not reflect current market conditions, currency fluctuations, or specific production requirements. Always
+        obtain binding quotes from local vendors.
       </div>
     </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router';
 import {
   Box,
@@ -75,6 +75,23 @@ const DIMENSION_TOOLTIP_KEYS = {
   'Currency Advantage': 'currencyAdvantage',
   'Incentive Reliability': 'incentiveReliability',
 } as const satisfies Record<string, keyof typeof TOOLTIP_TEXTS>;
+
+/** Render the backend's markdown-lite narrative text: `**text**` becomes bold,
+ * single newlines become line breaks. Used for executive-summary paragraphs. */
+export function renderNarrative(text: string) {
+  return text.split('\n').map((line, li) => (
+    <Fragment key={li}>
+      {li > 0 && <br />}
+      {line.split(/(\*\*[^*]+\*\*)/g).map((seg, si) =>
+        seg.startsWith('**') && seg.endsWith('**') ? (
+          <strong key={si} style={{ color: '#ffffff' }}>{seg.slice(2, -2)}</strong>
+        ) : (
+          <Fragment key={si}>{seg}</Fragment>
+        )
+      )}
+    </Fragment>
+  ));
+}
 
 export function ReportViewer() {
   const navigate = useNavigate();
@@ -516,7 +533,7 @@ export function ReportViewer() {
       <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
         {isPreview && (
           <Alert severity="warning" sx={{ mb: 4, bgcolor: '#D4AF37', color: '#000', '& .MuiAlert-icon': { color: '#000' } }}>
-            This is a <strong>Free Preview</strong>. Access to technical crew costs, comparable production data, and weather logistics is restricted.
+            This is a <strong>Free Preview</strong>. Access to comparable production data and weather logistics is restricted.
           </Alert>
         )}
 
@@ -580,7 +597,7 @@ export function ReportViewer() {
                             fontSize: '0.95rem',
                           }}
                         >
-                          {paragraph}
+                          {renderNarrative(paragraph)}
                         </Typography>
                       ))}
                   </Paper>

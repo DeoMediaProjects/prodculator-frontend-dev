@@ -10,7 +10,6 @@ export const ADMIN_SYSTEM_STATUS_URL = '/api/admin/system-status';
 export const ADMIN_TASKS_URL = '/api/admin/tasks';
 export const ADMIN_PRODUCTION_SIGNALS_URL = '/api/admin/production-signals';
 export const ADMIN_INCENTIVES_URL = '/api/admin/incentives';
-export const ADMIN_CREW_COSTS_URL = '/api/admin/crew-costs';
 export const ADMIN_COMPARABLES_URL = '/api/admin/comparables';
 export const ADMIN_COMPARABLES_SYNC_TMDB_URL = '/api/admin/comparables/sync-tmdb';
 export const ADMIN_GRANTS_URL = '/api/admin/grants';
@@ -41,7 +40,6 @@ export const adminSubscriberCreditUrl  = (userId: string) => `/api/admin/subscri
 
 // ── Item endpoints (parameterised) ────────────────────────────────────────────
 export const adminIncentiveUrl  = (id: string) => `/api/admin/incentives/${id}`;
-export const adminCrewCostUrl   = (id: string) => `/api/admin/crew-costs/${id}`;
 export const adminComparableUrl = (id: string) => `/api/admin/comparables/${id}`;
 export const adminGrantUrl      = (id: string) => `/api/admin/grants/${id}`;
 export const adminFestivalUrl   = (id: string) => `/api/admin/festivals/${id}`;
@@ -66,11 +64,3 @@ export const ADMIN_PDF_REPORTS_URL = '/api/admin/pdf-reports';
 export const adminPdfReportPreviewUrl = (id: string) => `/api/admin/pdf-reports/${id}/preview`;
 export const adminPdfReportDownloadUrl = (id: string) => `/api/admin/pdf-reports/${id}/download`;
 export const adminPdfReportResendUrl = (id: string) => `/api/admin/pdf-reports/${id}/resend`;
-
-// ── Crew costs sync endpoints ────────────────────────────────────────────────
-export const ADMIN_CREW_COSTS_SYNC_STATUS_URL        = '/api/admin/crew-costs/sync-status';
-export const ADMIN_CREW_COSTS_PENDING_CHANGES_URL    = '/api/admin/crew-costs/pending-changes';
-export const adminCrewCostPendingChangeApproveUrl    = (changeId: string) => `/api/admin/crew-costs/pending-changes/${changeId}/approve`;
-export const adminCrewCostPendingChangeRejectUrl     = (changeId: string) => `/api/admin/crew-costs/pending-changes/${changeId}/reject`;
-export const ADMIN_CREW_COSTS_SYNC_URL               = '/api/admin/crew-costs/sync';
-export const ADMIN_CREW_COSTS_SYNC_SETTINGS_URL      = '/api/admin/crew-costs/sync-settings';

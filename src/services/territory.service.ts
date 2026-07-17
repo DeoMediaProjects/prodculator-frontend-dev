@@ -33,20 +33,12 @@ export interface IncentiveInfo {
   expiry_date: string | null;
 }
 
-export interface CrewCostInfo {
-  avg_day_rate: number | null;
-  avg_day_rate_display: string | null;
-  currency: string;
-  sample_roles: Record<string, string>;
-}
-
 export interface TerritoryCompareItem {
   label: string;
   iso: string;
   level: 'national' | 'regional';
   parent: string | null;
   incentive: IncentiveInfo | null;
-  crew_costs: CrewCostInfo | null;
   labor_requirement: string | null;
   highlights: string[];
   restrictions: string[];

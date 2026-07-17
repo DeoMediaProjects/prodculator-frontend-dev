@@ -56,7 +56,7 @@ export default function FAQ() {
               </p>
               <ul>
                 <li><strong>Production Location Strategy</strong> Where your script makes the most financial sense to shoot, based on what's actually in it</li>
-                <li><strong>Full Financial Picture</strong> Tax incentives, currency purchasing power, crew cost differentials, and infrastructure, all calculated together, not just the headline rebate</li>
+                <li><strong>Full Financial Picture</strong> Tax incentives, currency purchasing power, cost efficiency, and infrastructure, all calculated together, not just the headline rebate</li>
                 <li><strong>Investor Summary Panel</strong> A structured financial breakdown designed for use with investors, gap financiers, and co production partners</li>
                 <li><strong>Comparable Productions</strong> Real films and series with similar profiles, showing where they shot and what incentives they used</li>
                 <li><strong>Strategic Festival Recommendations</strong> Ranked festival targets based on your script's genre, format, and territory profile</li>
@@ -77,7 +77,7 @@ export default function FAQ() {
                 <li><strong>Producers & Executive Producers</strong> Make the financial case for a location before committing to it</li>
                 <li><strong>Investors & Gap Financiers</strong> Evaluate the incentive return and total financial upside of a production's location choices</li>
                 <li><strong>Commissioning Editors & Studio Executives</strong> Assess location feasibility and budget efficiency at script stage</li>
-                <li><strong>Line Producers & Production Managers</strong> Get a credible starting point for crew costs, territory comparisons, and schedule planning</li>
+                <li><strong>Line Producers & Production Managers</strong> Get a credible starting point for territory comparisons, budget efficiency, and schedule planning</li>
                 <li><strong>Entertainment Accountants & Tax Advisors</strong> Use our Studio plan to generate white label reports for multiple clients simultaneously</li>
                 <li><strong>Directors & Writers/Showrunners</strong> Understand what your script's production requirements mean financially</li>
                 <li><strong>Development Executives</strong> Conduct early stage location and budget feasibility before greenlight</li>
@@ -112,7 +112,7 @@ export default function FAQ() {
               <p>Most tools give you a rebate percentage and leave you to do the rest. Prodculator thinks for the producer.</p>
               <ul>
                 <li><strong>Scripteligence, not just a calculator</strong> We read your actual screenplay to understand what your production physically requires, not just what you tell a form. A script with 78% interior scenes has very different location logic than one shot mostly outdoors.</li>
-                <li><strong>Four layer financial analysis</strong> Every territory is assessed on incentive return, currency purchasing power, crew cost differential, and infrastructure, combined into one total saving figure. The incentive is often not the biggest number.</li>
+                <li><strong>Four layer financial analysis</strong> Every territory is assessed on incentive return, currency purchasing power, cost efficiency, and infrastructure, combined into one total saving figure. The incentive is often not the biggest number.</li>
                 <li><strong>The full picture, for investors</strong> Our Investor Summary panel separates "safe for investor documents" figures from figures that require verification. This is a real distinction that matters in production finance.</li>
                 <li><strong>15 territories, deeply analysed</strong> Not 5 countries with surface level data. Every territory includes programme reliability scoring, payment timeline, minimum spend thresholds, and investor safety flags.</li>
                 <li><strong>Production viability intelligence</strong> If you have exterior scenes and a filming date, we cross reference your schedule against historical climate data for each territory and flag any conflicts. We think about what your shoot will actually encounter.</li>
@@ -246,11 +246,11 @@ export default function FAQ() {
               <div>
                 <p><strong>Layer 1 Tax Incentive:</strong> The rebate or credit available from the territory's government programme, applied to your qualifying spend. Rate, minimum spend, payment timeline, and reliability score are all shown.</p>
                 <p><strong>Layer 2 Currency Purchasing Power:</strong> If your budget is in GBP and you're shooting somewhere with a weaker currency, your money buys more locally. We calculate what your GBP budget is actually worth in local purchasing power for all local costs: crew, locations, catering, transport, accommodation, extras. This is shown as a concrete GBP equivalent saving, not just an exchange rate.</p>
-                <p><strong>Layer 3 Crew Cost Differential:</strong> We compare UK BECTU minimum rates against published local crew rate guides for each territory. For the number of crew and shoot days you've specified, we calculate the saving from paying local rates instead of UK rates.</p>
+                <p><strong>Layer 3 Cost Efficiency:</strong> Our curated Cost Efficiency rating for each territory, benchmarked against the UK market, reflects how far your budget stretches on local production costs. Where no sourced data exists for a territory, this layer is marked as unavailable rather than estimated.</p>
                 <p><strong>Layer 4 Infrastructure & Logistics:</strong> Practical notes on studio facilities, visa requirements, seasonal viability, and any production specific flags raised by your script or camera equipment choices.</p>
               </div>
               <p>
-                The <strong>Total Saving</strong> figure you see is the sum of Layers 1 to 3, with Layer 4 as contextual information. This is why South Africa can show a larger total saving than Malta even though Malta's incentive rate is higher, because South Africa's currency and crew advantages can exceed the incentive difference for many productions.
+                The <strong>Total Saving</strong> figure you see is the sum of Layers 1 to 3, with Layer 4 as contextual information. This is why South Africa can show a larger total saving than Malta even though Malta's incentive rate is higher, because South Africa's currency and cost advantages can exceed the incentive difference for many productions.
               </p>
             </div>
           ),
@@ -357,7 +357,7 @@ export default function FAQ() {
                 A score of 1.0 means the programme is fully reliable. Payments are made on the stated schedule and the programme is well established. A score below 0.5 means there have been significant issues: funding delays, programme changes, or uncertainty that makes us flag the territory for verification before investor use.
               </p>
               <p>
-                <strong>South Africa</strong> is the most important example. Its DTI/NFVF programme has experienced funding delays in 2023 to 2025, giving it a reliability score below 0.5. Our report flags this clearly. The incentive figure is shown with a caution indicator and is not marked as safe for investor documents. However, and this is critical, South Africa's currency and crew advantages are completely separate from the incentive programme and are shown normally. A producer can still benefit enormously from shooting in South Africa on the strength of those two layers alone, without relying on the incentive.
+                <strong>South Africa</strong> is the most important example. Its DTI/NFVF programme has experienced funding delays in 2023 to 2025, giving it a reliability score below 0.5. Our report flags this clearly. The incentive figure is shown with a caution indicator and is not marked as safe for investor documents. However, and this is critical, South Africa's currency and cost advantages are completely separate from the incentive programme and are shown normally. A producer can still benefit enormously from shooting in South Africa on the strength of those two layers alone, without relying on the incentive.
               </p>
             </div>
           ),
@@ -550,10 +550,10 @@ export default function FAQ() {
           answer: (
             <div>
               <p>
-                Every financial figure in a Prodculator report, including incentive amounts, currency savings, and crew cost differentials, is an estimate based on our datasets at the time of calculation. It is <strong>indicative:</strong> directionally accurate and useful for planning, but not a quote, not a guarantee, and not a figure you can contractually rely upon.
+                Every financial figure in a Prodculator report, including incentive amounts and currency savings, is an estimate based on our datasets at the time of calculation. It is <strong>indicative:</strong> directionally accurate and useful for planning, but not a quote, not a guarantee, and not a figure you can contractually rely upon.
               </p>
               <p>
-                Incentive programme rates change. Exchange rates move daily. Crew costs vary by role, experience level, and negotiation. We give you the best estimate we can from the data we have, but the actual numbers for your specific production will be determined by qualified professionals working with current, verified information.
+                Incentive programme rates change. Exchange rates move daily. Local production costs vary by supplier and negotiation. We give you the best estimate we can from the data we have, but the actual numbers for your specific production will be determined by qualified professionals working with current, verified information.
               </p>
             </div>
           ),

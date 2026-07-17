@@ -92,7 +92,7 @@ export const SCORE_WEIGHTS_INFO = {
   full: [
     { label: 'Incentive Strength', pct: '30%', note: 'rebate/credit value' },
     { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment track record' },
-    { label: 'Cost Efficiency', pct: '20%', noteKey: 'crew' as const },
+    { label: 'Cost Efficiency', pct: '20%', note: 'curated territory cost rating' },
     { label: 'Currency Advantage', pct: '15%', note: 'your budget vs local currency' },
     { label: 'Crew Depth', pct: '10%', note: 'territory tier rating' },
     { label: 'Infrastructure', pct: '10%', note: 'territory tier rating' },
@@ -100,7 +100,7 @@ export const SCORE_WEIGHTS_INFO = {
   incentive: [
     { label: 'Incentive Strength', pct: '45%', note: 'rebate/credit value' },
     { label: 'Incentive Reliability', pct: '15%', note: 'bankability & payment track record' },
-    { label: 'Cost Efficiency', pct: '15%', noteKey: 'crew' as const },
+    { label: 'Cost Efficiency', pct: '15%', note: 'curated territory cost rating' },
     { label: 'Currency Advantage', pct: '15%', note: 'your budget vs local currency' },
     { label: 'Crew Depth', pct: '5%', note: 'territory tier rating' },
     { label: 'Infrastructure', pct: '5%', note: 'territory tier rating' },
@@ -108,7 +108,7 @@ export const SCORE_WEIGHTS_INFO = {
   location: [
     { label: 'Crew Depth', pct: '25%', note: 'territory tier rating' },
     { label: 'Infrastructure', pct: '20%', note: 'territory tier rating' },
-    { label: 'Cost Efficiency', pct: '20%', noteKey: 'crew' as const },
+    { label: 'Cost Efficiency', pct: '20%', note: 'curated territory cost rating' },
     { label: 'Incentive Strength', pct: '15%', note: 'rebate/credit value' },
     { label: 'Incentive Reliability', pct: '10%', note: 'bankability & payment track record' },
     { label: 'Currency Advantage', pct: '10%', note: 'your budget vs local currency' },
@@ -182,7 +182,7 @@ export function PublicWhatIfCalculator() {
         </strong> mode:
       </Typography>
       {scoreWeights.map((w) => {
-        const note = 'noteKey' in w ? `crew day rates vs ${baseline === 'US' ? 'US' : 'UK'} baseline` : 'note' in w ? w.note : '';
+        const note = 'note' in w ? w.note : '';
         return (
           <Box key={w.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
             <Typography sx={{ fontSize: '11px', color: '#ccc' }}>
@@ -386,7 +386,7 @@ export function PublicWhatIfCalculator() {
                   <Box sx={{ mb: 1 }}>
                     <Typography sx={{ fontWeight: 600, fontSize: '12px', color: '#fff' }}>Full Picture</Typography>
                     <Typography sx={{ fontSize: '11px', color: '#A0A7B8' }}>
-                      Balances incentives, currency advantages, and crew costs for total net savings
+                      Balances incentives, currency advantages, and cost efficiency for total net savings
                     </Typography>
                   </Box>
                   <Box>
@@ -672,7 +672,7 @@ export function PublicWhatIfCalculator() {
               Unlock the full picture
             </Typography>
             <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#a0a0a0', lineHeight: 1.6 }}>
-              Sign up for free to see currency advantage, crew savings, net saving, minimum spend,
+              Sign up for free to see currency advantage, net saving, minimum spend,
               payment timelines, and upload your own script for a complete production report.
             </Typography>
           </Box>

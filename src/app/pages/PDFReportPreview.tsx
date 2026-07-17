@@ -203,7 +203,7 @@ export function PDFReportPreview() {
                 { name: '1. Script Analysis Overview', page: 4 },
                 { name: '2. Production Location Strategy', page: 6 },
                 { name: '3. Tax Incentive Analysis', page: 9 },
-                { name: '4. Crew Cost Estimates', page: 12 },
+                { name: '4. Production Cost Overview', page: 12 },
                 { name: '5. Comparable Productions', page: 14 },
                 { name: '6. Regional Film Fund Opportunities', page: 16 },
                 { name: '7. Production Economics Summary', page: 18 },
@@ -599,7 +599,7 @@ export function PDFReportPreview() {
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
               {[
                 'Tax Incentive Analysis',
-                'Crew Cost Estimates',
+                'Production Cost Overview',
                 'Comparable Productions',
                 'Film Fund Opportunities',
                 'Production Economics',
