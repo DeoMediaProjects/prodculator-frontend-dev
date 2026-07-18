@@ -130,7 +130,7 @@ export const SCORE_WEIGHTS_INFO = {
 } as const;
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function WhatIfCalculator() {
+export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = {}) {
   const { hasAccess } = usePlanGate('professional');
 
   // Inputs
@@ -259,14 +259,17 @@ export function WhatIfCalculator() {
   );
 
   return (
-    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100dvh', fontFamily: font }}>
-      {/* Navigation Bar */}
-      <Box sx={{ bgcolor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.08)', py: 2 }}>
+    <Box sx={{ bgcolor: '#F8F6F0', fontFamily: font, ...(embedded ? { borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(212,175,55,0.2)' } : { minHeight: '100dvh' }) }}>
+      {/* Navigation Bar — the logo is dropped when embedded in the dashboard,
+          which already carries the branding; the Export action is kept. */}
+      <Box sx={{ bgcolor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.08)', py: embedded ? 1.5 : 2 }}>
         <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <img src={logoBlack} alt="Prodculator" style={{ height: '32px', width: 'auto' }} />
-            </Box>
+          <Box sx={{ display: 'flex', justifyContent: embedded ? 'flex-end' : 'space-between', alignItems: 'center' }}>
+            {!embedded && (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <img src={logoBlack} alt="Prodculator" style={{ height: '32px', width: 'auto' }} />
+              </Box>
+            )}
             <Button
               onClick={handleExport}
               disabled={!territories.length}

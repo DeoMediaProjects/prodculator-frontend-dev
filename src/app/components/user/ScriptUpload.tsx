@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Alert,
@@ -21,10 +21,28 @@ import {
   DialogActions,
   Grid,
   Checkbox,
+  ListItemText,
+  FormHelperText,
   FormControlLabel,
   Link,
   Skeleton,
 } from '@mui/material';
+
+// Caps long dropdown menus so they scroll inside a fixed container instead of
+// covering the page (e.g. the 20-item Genre list).
+// Shared menu props for every dropdown. The key fix for the "floating menu"
+// bug is `variant: 'menu'` — MUI's default Select variant is 'selectedMenu',
+// which runs its own positioning logic (aligning the selected row over the
+// anchor) and IGNORES anchorOrigin/transformOrigin, so the popover lands in
+// the wrong place and drifts on scroll. 'menu' uses plain anchor-based
+// positioning: the list opens directly below the field, capped in height so
+// long lists scroll inside the menu rather than pushing the page.
+const SCROLLABLE_MENU = {
+  variant: 'menu',
+  PaperProps: { sx: { maxHeight: 320 } },
+  anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+  transformOrigin: { vertical: 'top', horizontal: 'left' },
+} as const;
 import {
   CloudUpload,
   CheckCircle,
@@ -43,6 +61,36 @@ import { useTerritories } from '@/app/hooks/useTerritories';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
+// Territory picker grouping: continent → country, with sub-regions (e.g.
+// California) nested under their parent country via Territory.parent.
+const CONTINENT_ORDER = ['Europe', 'North America', 'Africa', 'Asia', 'Oceania', 'South America', 'Other'] as const;
+const CONTINENT_BY_COUNTRY: Record<string, string> = {
+  'United Kingdom': 'Europe', 'Ireland': 'Europe', 'France': 'Europe', 'Germany': 'Europe',
+  'Spain': 'Europe', 'Italy': 'Europe', 'Malta': 'Europe', 'Czech Republic': 'Europe',
+  'Hungary': 'Europe', 'Belgium': 'Europe', 'Netherlands': 'Europe', 'Portugal': 'Europe',
+  'Romania': 'Europe', 'Serbia': 'Europe', 'Iceland': 'Europe',
+  'United States': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
+  'South Africa': 'Africa', 'Morocco': 'Africa', 'Nigeria': 'Africa',
+  'India': 'Asia', 'Japan': 'Asia', 'South Korea': 'Asia', 'Singapore': 'Asia',
+  'Australia': 'Oceania', 'New Zealand': 'Oceania',
+  'Brazil': 'South America',
+};
+
+// Suggested budget currency by production country. Every country in the picker
+// maps to a value in the backend's accepted currency set (see budget_currency
+// Literal in reports/schemas.py). Countries whose local currency has no backend
+// FX rate (INR, MXN, BRL) map to 'OTHER' rather than an unsupported code.
+const CURRENCY_BY_COUNTRY: Record<string, string> = {
+  'United Kingdom': 'GBP',
+  'Ireland': 'EUR', 'France': 'EUR', 'Germany': 'EUR', 'Spain': 'EUR', 'Italy': 'EUR',
+  'Malta': 'EUR', 'Belgium': 'EUR', 'Netherlands': 'EUR', 'Portugal': 'EUR',
+  'United States': 'USD', 'Canada': 'CAD', 'Australia': 'AUD', 'New Zealand': 'NZD',
+  'Nigeria': 'NGN', 'South Africa': 'ZAR', 'Hungary': 'HUF', 'Czech Republic': 'CZK',
+  'Morocco': 'MAD', 'Romania': 'RON', 'Serbia': 'RSD', 'Iceland': 'ISK',
+  'Japan': 'JPY', 'South Korea': 'KRW', 'Singapore': 'SGD',
+  'India': 'OTHER', 'Mexico': 'OTHER', 'Brazil': 'OTHER',
+};
+
 export function ScriptUpload() {
   const navigate = useNavigate();
   const { generateAnalysis, generatePreview } = useScript();
@@ -57,7 +105,9 @@ export function ScriptUpload() {
   const [email, setEmail] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [budgetAmount, setBudgetAmount] = useState<number | ''>('');
-  const [budgetCurrency, setBudgetCurrency] = useState('GBP');
+  // No hardcoded default — the currency is suggested from the Production
+  // Country (see effect below) and must be explicitly present before submit.
+  const [budgetCurrency, setBudgetCurrency] = useState('');
   const [format, setFormat] = useState('');
   const [country, setCountry] = useState('');
   const [stateProvince, setStateProvince] = useState('');
@@ -80,6 +130,8 @@ export function ScriptUpload() {
   
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
+  // Synchronous in-flight guard against double-submit (see handleGenerateReport).
+  const submittingRef = useRef(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   // Business Intelligence consent — OPTIONAL opt-in, separate from the required
   // terms acceptance. Never blocks report generation.
@@ -113,6 +165,20 @@ export function ScriptUpload() {
     }
   }, [filmingStart, filmingDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Suggest the budget currency from the selected Production Country (the script
+  // itself isn't analysed until after Generate, so country is the signal we have
+  // at form time). Only overwrites a value we suggested — a manual choice stays.
+  const lastAutoCurrency = useRef('');
+  useEffect(() => {
+    if (!country) return;
+    const suggested = CURRENCY_BY_COUNTRY[country];
+    if (!suggested) return;
+    if (budgetCurrency === '' || budgetCurrency === lastAutoCurrency.current) {
+      setBudgetCurrency(suggested);
+      lastAutoCurrency.current = suggested;
+    }
+  }, [country]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Timeout modal — shown when report generation is still running after the polling window
   const [timeoutModalOpen, setTimeoutModalOpen] = useState(false);
   const [_timedOutReportId, setTimedOutReportId] = useState<string | null>(null);
@@ -127,7 +193,8 @@ export function ScriptUpload() {
     .slice(0, 5);
 
   // Production strategy fields
-  const [locationStrategy, setLocationStrategy] = useState('');
+  // Location strategy removed — it was redundant with "Territories considering"
+  // (the engine already treats an absent strategy as "open").
   const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>([]);
   const [productionPriority, setProductionPriority] = useState('full');
 
@@ -213,7 +280,7 @@ export function ScriptUpload() {
     if (!format) return 'Format is required';
     if (!country) return 'Primary production country is required';
     if (!completionDate) return 'Expected completion date is required';
-    if (!locationStrategy) return 'Please select a location strategy';
+    if (!budgetCurrency) return 'Please select a currency';
     return null;
   };
 
@@ -227,10 +294,43 @@ export function ScriptUpload() {
     ...(!budgetAmount || Number(budgetAmount) <= 0 ? ['Budget amount'] : []),
     ...(!format ? ['Format'] : []),
     ...(!country ? ['Production country'] : []),
+    ...(!budgetCurrency ? ['Currency'] : []),
     ...(!completionDate ? ['Expected completion'] : []),
-    ...(!locationStrategy ? ['Location strategy'] : []),
   ];
   const formComplete = missingFields.length === 0;
+
+  // Group territories continent → country, nesting sub-regions under their parent.
+  const territoryGroups = useMemo(() => {
+    const countries = allTerritories.filter((t) => !t.isSubTerritory);
+    const subs = allTerritories.filter((t) => t.isSubTerritory);
+    const byContinent = new Map<string, { country: typeof countries[number]; regions: typeof subs }[]>();
+    for (const c of countries) {
+      const cont = CONTINENT_BY_COUNTRY[c.label] || 'Other';
+      if (!byContinent.has(cont)) byContinent.set(cont, []);
+      byContinent.get(cont)!.push({ country: c, regions: subs.filter((s) => s.parent === c.label) });
+    }
+    return CONTINENT_ORDER
+      .filter((cont) => (byContinent.get(cont)?.length ?? 0) > 0)
+      .map((cont) => ({
+        continent: cont as string,
+        countries: byContinent.get(cont)!.sort((a, b) => a.country.label.localeCompare(b.country.label)),
+      }));
+  }, [allTerritories]);
+
+  const openToAll = territoriesConsidering.includes('Open to all');
+  const atTerritoryLimit = maxTerritories !== null && territoriesConsidering.length >= maxTerritories;
+  const toggleTerritory = (label: string) => {
+    if (openToAll && label !== 'Open to all') return; // locked while "Open to all"
+    if (label === 'Open to all') {
+      setTerritoriesConsidering(openToAll ? [] : ['Open to all']);
+      return;
+    }
+    if (territoriesConsidering.includes(label)) {
+      setTerritoriesConsidering(territoriesConsidering.filter((t) => t !== label));
+    } else if (!atTerritoryLimit) {
+      setTerritoriesConsidering([...territoriesConsidering.filter((t) => t !== 'Open to all'), label]);
+    }
+  };
 
   // Shared intake-contract fields for both the full-report and preview flows.
   // Skew routing rule: "LGBTQ+ audience" is a segment, never a skew value.
@@ -247,6 +347,11 @@ export function ScriptUpload() {
   });
 
   const handleGenerateReport = async () => {
+    // Synchronous re-entry guard: React state updates are async, so two rapid
+    // clicks could both pass a state-based check before a re-render. A ref
+    // blocks the second click immediately and prevents a double-submit.
+    if (submittingRef.current) return;
+
     if (!isAuthenticated) {
       // Preview — file not required
       const validationError = validateForm(false);
@@ -255,16 +360,25 @@ export function ScriptUpload() {
         return;
       }
       setEmailModalOpen(true);
-    } else {
-      // Full report — file required
-      const validationError = validateForm(true);
-      if (validationError) {
-        showError(validationError);
-        return;
-      }
-      // Check with the backend whether this user can generate a report.
+      return;
+    }
+
+    // Full report — file required
+    const validationError = validateForm(true);
+    if (validationError) {
+      showError(validationError);
+      return;
+    }
+
+    submittingRef.current = true;
+    // Flip into the processing state immediately — before the async quota
+    // check — so the form (and its button) is instantly replaced by the
+    // "Analyzing…" panel and the user gets feedback that the click worked.
+    setProcessing(true);
+    try {
       const { canGenerate, reason } = await databaseService.canGenerateReport('');
       if (!canGenerate) {
+        setProcessing(false);
         showError(reason || 'Please upgrade your plan to generate more reports.', {
           action: (
             <Button size="small" sx={{ color: '#fff', fontWeight: 600 }} onClick={() => navigate('/pricing')}>
@@ -275,7 +389,9 @@ export function ScriptUpload() {
         });
         return;
       }
-      runFullAnalysis();
+      await runFullAnalysis();
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -290,7 +406,6 @@ export function ScriptUpload() {
         budgetCurrency,
         format,
         country,
-        locationStrategy,
         productionPriority,
         stateProvince: stateProvince || undefined,
         territoriesConsidering: territoriesConsidering.length ? territoriesConsidering : undefined,
@@ -336,6 +451,8 @@ export function ScriptUpload() {
   };
 
   const handleFreePreview = async () => {
+    if (submittingRef.current) return;
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       showError('Please enter a valid email address');
       return;
@@ -351,6 +468,7 @@ export function ScriptUpload() {
       return;
     }
 
+    submittingRef.current = true;
     setEmailModalOpen(false);
     setProcessing(true);
 
@@ -362,7 +480,6 @@ export function ScriptUpload() {
         budgetCurrency,
         format,
         country,
-        locationStrategy,
         productionPriority,
         stateProvince: stateProvince || undefined,
         territoriesConsidering: territoriesConsidering.length ? territoriesConsidering : undefined,
@@ -384,6 +501,7 @@ export function ScriptUpload() {
       console.error('Preview generation failed:', err);
       showError(err.message || 'Failed to generate preview. Please try again.');
       setProcessing(false);
+      submittingRef.current = false;
     }
   };
 
@@ -507,6 +625,7 @@ export function ScriptUpload() {
                         value={genres}
                         onChange={(e) => setGenres(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
                         input={<OutlinedInput label="Genre(s)" />}
+                        MenuProps={SCROLLABLE_MENU}
                         renderValue={(selected) => (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                             {selected.map((value) => <Chip key={value} label={value} size="small" sx={{ bgcolor: '#D4AF37', color: '#000' }} />)}
@@ -514,9 +633,13 @@ export function ScriptUpload() {
                         )}
                       >
                         {genreOptions.map(g => (
-                          <MenuItem key={g} value={g}>{g}</MenuItem>
+                          <MenuItem key={g} value={g}>
+                            <Checkbox checked={genres.includes(g)} size="small" sx={{ color: '#D4AF37', '&.Mui-checked': { color: '#D4AF37' }, py: 0.25 }} />
+                            <ListItemText primary={g} />
+                          </MenuItem>
                         ))}
                       </Select>
+                      <FormHelperText sx={{ color: '#8a8a8a' }}>Select one or more</FormHelperText>
                     </FormControl>
                   </Grid>
 
@@ -542,6 +665,7 @@ export function ScriptUpload() {
                         value={country}
                         label={<>Production Country<InfoTip text="Where you or your production company is based" /></>}
                         onChange={(e) => setCountry(e.target.value)}
+                        MenuProps={SCROLLABLE_MENU}
                       >
                         {countryOptions.map((t) => (
                           <MenuItem key={t.iso} value={t.label}>{t.label}</MenuItem>
@@ -551,12 +675,13 @@ export function ScriptUpload() {
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth required>
                       <InputLabel>Currency</InputLabel>
                       <Select
                         value={budgetCurrency}
                         label="Currency"
                         onChange={(e) => setBudgetCurrency(e.target.value)}
+                        MenuProps={SCROLLABLE_MENU}
                       >
                         {[
                           { value: 'GBP', label: '£ GBP' },
@@ -572,6 +697,10 @@ export function ScriptUpload() {
                           { value: 'NZD', label: '$ NZD' },
                           { value: 'RON', label: 'lei RON' },
                           { value: 'RSD', label: 'din RSD' },
+                          { value: 'ISK', label: 'kr ISK' },
+                          { value: 'JPY', label: '¥ JPY' },
+                          { value: 'KRW', label: '₩ KRW' },
+                          { value: 'SGD', label: '$ SGD' },
                           { value: 'OTHER', label: 'Other' },
                         ].map((c) => (
                           <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
@@ -620,49 +749,6 @@ export function ScriptUpload() {
                     </Grid>
                   )}
 
-                  {/* Location Strategy */}
-                  <Grid size={{ xs: 12 }}>
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" sx={{ color: '#a0a0a0', fontWeight: 600, mb: 1.5 }}>
-                        Location strategy <span style={{ color: '#D4AF37' }}>*</span>
-                        <InfoTip text={TOOLTIP_TEXTS.locationStrategy} />
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-                        {[
-                          { value: 'domestic', label: 'Shooting domestically' },
-                          { value: 'open', label: 'Open to international' },
-                          { value: 'international', label: 'Specifically international' },
-                        ].map((strategy) => (
-                          <Button
-                            key={strategy.value}
-                            variant={locationStrategy === strategy.value ? 'contained' : 'outlined'}
-                            onClick={() => setLocationStrategy(strategy.value)}
-                            sx={{
-                              px: 2.5,
-                              py: 1,
-                              borderRadius: '20px',
-                              textTransform: 'none',
-                              fontSize: '0.95rem',
-                              fontWeight: 500,
-                              ...(locationStrategy === strategy.value ? {
-                                bgcolor: '#D4AF37',
-                                color: '#000000',
-                                border: 'none',
-                                '&:hover': { bgcolor: '#D4AF37' },
-                              } : {
-                                borderColor: 'rgba(212, 175, 55, 0.5)',
-                                color: '#D4AF37',
-                                '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
-                              }),
-                            }}
-                          >
-                            {strategy.label}
-                          </Button>
-                        ))}
-                      </Box>
-                    </Box>
-                  </Grid>
-
                   {/* Territories Considering */}
                   <Grid size={{ xs: 12 }}>
                     <Box sx={{ mt: 2 }}>
@@ -677,69 +763,117 @@ export function ScriptUpload() {
                           </Typography>
                         )}
                       </Box>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        {territoriesLoading ? (
-                          Array.from({ length: 10 }).map((_, i) => (
-                            <Skeleton
-                              key={i}
-                              variant="rounded"
-                              width={80 + (i % 3) * 24}
-                              height={32}
-                              sx={{ bgcolor: 'rgba(212, 175, 55, 0.08)', borderRadius: '16px' }}
-                            />
-                          ))
-                        ) : (
-                          [
-                            ...allTerritories,
-                            // "Open to all" only for Producer+ (unlimited plans)
-                            ...(maxTerritories === null ? [{ label: 'Open to all', iso: 'ALL', parent: null, isSubTerritory: false }] : []),
-                          ].map((territory) => {
-                            const isSelected = territoriesConsidering.includes(territory.label);
-                            const atLimit = maxTerritories !== null && territoriesConsidering.length >= maxTerritories;
-                            const isDisabled = !isSelected && (atLimit || territoriesConsidering.includes('Open to all'));
-                            return (
-                              <Chip
-                                key={territory.iso}
-                                label={territory.label}
-                                onClick={() => {
-                                  if (territory.label === 'Open to all') {
-                                    setTerritoriesConsidering(['Open to all']);
-                                  } else if (isSelected) {
-                                    setTerritoriesConsidering(territoriesConsidering.filter(t => t !== territory.label));
-                                  } else if (!isDisabled) {
-                                    setTerritoriesConsidering([...territoriesConsidering.filter(t => t !== 'Open to all'), territory.label]);
-                                  }
-                                }}
-                                sx={{
-                                  px: 1.5,
-                                  height: 32,
-                                  fontSize: '0.875rem',
-                                  fontWeight: 500,
-                                  cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                  transition: 'opacity 0.15s',
-                                  ...(isSelected ? {
-                                    bgcolor: '#D4AF37',
-                                    color: '#000000',
-                                    '&:hover': { bgcolor: '#D4AF37' },
-                                  } : {
-                                    bgcolor: 'rgba(212, 175, 55, 0.1)',
-                                    color: '#D4AF37',
-                                    border: '1px solid rgba(212, 175, 55, 0.5)',
-                                    opacity: isDisabled ? 0.3 : 1,
-                                    '&:hover': isDisabled ? {} : { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.2)' },
-                                  }),
-                                }}
-                              />
-                            );
-                          })
-                        )}
-                      </Box>
-                      {territoriesConsidering.includes('Open to all') && (
+                      {/* Producer+ shortcut */}
+                      {maxTerritories === null && (
+                        <Chip
+                          label={openToAll ? '✓ Open to all territories' : 'Open to all territories'}
+                          onClick={() => toggleTerritory('Open to all')}
+                          sx={{
+                            mb: 2, px: 1.5, height: 34, fontWeight: 600, cursor: 'pointer',
+                            ...(openToAll
+                              ? { bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#D4AF37' } }
+                              : { bgcolor: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.5)', '&:hover': { bgcolor: 'rgba(212,175,55,0.2)' } }),
+                          }}
+                        />
+                      )}
+
+                      {territoriesLoading ? (
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          {Array.from({ length: 10 }).map((_, i) => (
+                            <Skeleton key={i} variant="rounded" width={80 + (i % 3) * 24} height={32}
+                              sx={{ bgcolor: 'rgba(212, 175, 55, 0.08)', borderRadius: '16px' }} />
+                          ))}
+                        </Box>
+                      ) : (
+                        territoryGroups.map((group) => (
+                          <Box key={group.continent} sx={{ mb: 2 }}>
+                            <Typography variant="overline" sx={{ color: '#8a7a3a', letterSpacing: 1.2, display: 'block', mb: 1, borderBottom: '1px solid rgba(212,175,55,0.15)', pb: 0.5 }}>
+                              {group.continent}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
+                              {group.countries.map(({ country: c }) => {
+                                const selected = territoriesConsidering.includes(c.label);
+                                const disabled = !selected && (openToAll || atTerritoryLimit);
+                                return (
+                                  <Chip
+                                    key={c.iso}
+                                    label={c.label}
+                                    size="medium"
+                                    onClick={() => { if (!disabled) toggleTerritory(c.label); }}
+                                    sx={{
+                                      height: 32,
+                                      fontSize: '0.875rem',
+                                      fontWeight: 500,
+                                      cursor: disabled ? 'not-allowed' : 'pointer',
+                                      transition: 'opacity 0.15s',
+                                      ...(selected
+                                        ? { bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#D4AF37' } }
+                                        : {
+                                            bgcolor: 'rgba(212,175,55,0.1)',
+                                            color: '#D4AF37',
+                                            border: '1px solid rgba(212,175,55,0.5)',
+                                            opacity: disabled ? 0.3 : 1,
+                                            '&:hover': disabled ? {} : { borderColor: '#D4AF37', bgcolor: 'rgba(212,175,55,0.2)' },
+                                          }),
+                                    }}
+                                  />
+                                );
+                              })}
+                            </Box>
+                            {/* Dynamic reveal: a country's regions only appear once
+                                that country is selected, so the picker starts clean
+                                and shows sub-territories in context. */}
+                            {group.countries.map(({ country: c, regions }) => {
+                              const anyRegionSelected = regions.some((r) => territoriesConsidering.includes(r.label));
+                              const show = regions.length > 0 && (territoriesConsidering.includes(c.label) || anyRegionSelected);
+                              if (!show) return null;
+                              return (
+                                <Box key={`${c.iso}-regions`} sx={{ mt: 1, ml: 1.5, pl: 1.5, borderLeft: '2px solid rgba(212,175,55,0.25)' }}>
+                                  <Typography variant="caption" sx={{ color: '#8a8a8a', display: 'block', mb: 0.75 }}>
+                                    Regions in {c.label} <span style={{ opacity: 0.7 }}>(optional — narrows the analysis)</span>
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    {regions.map((r) => {
+                                      const rSelected = territoriesConsidering.includes(r.label);
+                                      const rDisabled = !rSelected && (openToAll || atTerritoryLimit);
+                                      return (
+                                        <Chip
+                                          key={r.iso}
+                                          label={r.label}
+                                          size="small"
+                                          onClick={() => { if (!rDisabled) toggleTerritory(r.label); }}
+                                          sx={{
+                                            height: 26,
+                                            fontSize: '0.75rem',
+                                            fontWeight: 400,
+                                            cursor: rDisabled ? 'not-allowed' : 'pointer',
+                                            transition: 'opacity 0.15s',
+                                            ...(rSelected
+                                              ? { bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#D4AF37' } }
+                                              : {
+                                                  bgcolor: 'transparent',
+                                                  color: '#D4AF37',
+                                                  border: '1px solid rgba(212,175,55,0.3)',
+                                                  opacity: rDisabled ? 0.3 : 1,
+                                                  '&:hover': rDisabled ? {} : { borderColor: '#D4AF37', bgcolor: 'rgba(212,175,55,0.2)' },
+                                                }),
+                                          }}
+                                        />
+                                      );
+                                    })}
+                                  </Box>
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        ))
+                      )}
+                      {openToAll && (
                         <Typography variant="caption" sx={{ color: '#4caf50', display: 'block', mt: 1 }}>
                           We'll rank all available territories and recommend the best fit.
                         </Typography>
                       )}
-                      {maxTerritories !== null && territoriesConsidering.length >= maxTerritories && (
+                      {atTerritoryLimit && !openToAll && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
                           <Typography variant="caption" sx={{ color: '#D4AF37' }}>
                             {isFree ? 'Explorer plan is limited to 3 territories.' : 'Professional plan is limited to 5 territories.'}
@@ -844,6 +978,7 @@ export function ScriptUpload() {
                         value={cameraEquipment}
                         onChange={(e) => setCameraEquipment(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
                         input={<OutlinedInput label="Camera Equipment" />}
+                        MenuProps={SCROLLABLE_MENU}
                         renderValue={(selected) => (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                             {selected.map((value) => <Chip key={value} label={value} size="small" sx={{ bgcolor: '#D4AF37', color: '#000' }} />)}
@@ -851,9 +986,13 @@ export function ScriptUpload() {
                         )}
                       >
                         {cameraOptions.map(c => (
-                          <MenuItem key={c} value={c}>{c}</MenuItem>
+                          <MenuItem key={c} value={c}>
+                            <Checkbox checked={cameraEquipment.includes(c)} size="small" sx={{ color: '#D4AF37', '&.Mui-checked': { color: '#D4AF37' }, py: 0.25 }} />
+                            <ListItemText primary={c} />
+                          </MenuItem>
                         ))}
                       </Select>
+                      <FormHelperText sx={{ color: '#8a8a8a' }}>Optional · select any that apply</FormHelperText>
                     </FormControl>
                   </Grid>
 
@@ -955,10 +1094,18 @@ export function ScriptUpload() {
                           </Box>
                         )}
                       >
-                        <MenuItem value="kids_family">Kids &amp; Family</MenuItem>
-                        <MenuItem value="under_25">Under 25</MenuItem>
-                        <MenuItem value="adults_25_plus">Adults 25+</MenuItem>
+                        {[
+                          { v: 'kids_family', l: 'Kids & Family' },
+                          { v: 'under_25', l: 'Under 25' },
+                          { v: 'adults_25_plus', l: 'Adults 25+' },
+                        ].map((o) => (
+                          <MenuItem key={o.v} value={o.v}>
+                            <Checkbox checked={targetAudience.includes(o.v)} size="small" sx={{ color: '#D4AF37', '&.Mui-checked': { color: '#D4AF37' }, py: 0.25 }} />
+                            <ListItemText primary={o.l} />
+                          </MenuItem>
+                        ))}
                       </Select>
+                      <FormHelperText sx={{ color: '#8a8a8a' }}>Optional · select any that apply</FormHelperText>
                     </FormControl>
                   </Grid>
 
@@ -1014,16 +1161,21 @@ export function ScriptUpload() {
                               value={representationMinority}
                               onChange={(e) => setRepresentationMinority(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
                               input={<OutlinedInput label="Creator Communities" />}
+                              MenuProps={SCROLLABLE_MENU}
                               renderValue={(selected) => (
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                                   {selected.map((value) => <Chip key={value} label={value} size="small" sx={{ bgcolor: '#D4AF37', color: '#000' }} />)}
                                 </Box>
                               )}
                             >
-                              <MenuItem value="LGBTQ+">LGBTQ+</MenuItem>
-                              <MenuItem value="Racial/Ethnic minority">Racial/Ethnic minority</MenuItem>
-                              <MenuItem value="Disability">Disability</MenuItem>
+                              {['LGBTQ+', 'Racial/Ethnic minority', 'Disability'].map((o) => (
+                                <MenuItem key={o} value={o}>
+                                  <Checkbox checked={representationMinority.includes(o)} size="small" sx={{ color: '#D4AF37', '&.Mui-checked': { color: '#D4AF37' }, py: 0.25 }} />
+                                  <ListItemText primary={o} />
+                                </MenuItem>
+                              ))}
                             </Select>
+                            <FormHelperText sx={{ color: '#8a8a8a' }}>Optional · select any that apply</FormHelperText>
                           </FormControl>
                         </Grid>
                       </Grid>

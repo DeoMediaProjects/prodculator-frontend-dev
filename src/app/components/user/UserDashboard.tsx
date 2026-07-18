@@ -229,6 +229,24 @@ export function UserDashboard() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteReport = async (id: string, title: string) => {
+    if (!window.confirm(`Delete "${title}"? This permanently removes the report and cannot be undone.`)) return;
+    setDeletingId(id);
+    // Optimistic removal — restore the row if the request fails.
+    const previous = reports;
+    setReports((rs) => rs.filter((r) => r.id !== id));
+    try {
+      await apiClient.delete(`/api/reports/${id}`, { auth: true });
+    } catch (error) {
+      console.error('Delete failed:', error);
+      setReports(previous);
+      window.alert('Could not delete the report. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [usageLoading, setUsageLoading] = useState(true);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
@@ -675,7 +693,19 @@ export function UserDashboard() {
                                   <FileDownload fontSize="small" />
                                 )}
                               </IconButton>
-                              <IconButton size="small" sx={{ color: '#666' }}><Delete fontSize="small" /></IconButton>
+                              <IconButton
+                                size="small"
+                                sx={{ color: '#b04a4a' }}
+                                disabled={deletingId === report.id}
+                                onClick={() => handleDeleteReport(report.id, report.title)}
+                                aria-label={`Delete ${report.title}`}
+                              >
+                                {deletingId === report.id ? (
+                                  <CircularProgress size={18} sx={{ color: '#b04a4a' }} />
+                                ) : (
+                                  <Delete fontSize="small" />
+                                )}
+                              </IconButton>
                             </Box>
                           </TableCell>
                         </TableRow>
@@ -689,7 +719,7 @@ export function UserDashboard() {
         </TabPanel>
 
         <TabPanel value={currentTab} index={1}><TerritoryComparison /></TabPanel>
-        <TabPanel value={currentTab} index={2}><WhatIfCalculator /></TabPanel>
+        <TabPanel value={currentTab} index={2}><WhatIfCalculator embedded /></TabPanel>
         <TabPanel value={currentTab} index={3}>
           <ProductionTimeline
             userPlan={(user?.plan as 'free' | 'professional' | 'studio') || 'free'}

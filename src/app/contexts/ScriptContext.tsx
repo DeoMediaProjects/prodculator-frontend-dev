@@ -160,7 +160,9 @@ interface ScriptMetadata {
   format: string;
   country: string;
   stateProvince?: string;
-  locationStrategy: string;
+  // Location strategy removed from the intake form (redundant with
+  // territoriesConsidering); optional for backward compatibility.
+  locationStrategy?: string;
   productionPriority: string;
   territoriesConsidering?: string[];
   filmingStart?: string;
@@ -241,9 +243,10 @@ function buildReportRequestBody(
     budget_currency: metadata.budgetCurrency,
     format: metadata.format,
     country: metadata.country,
-    location_strategy: metadata.locationStrategy,
     production_priority: metadata.productionPriority,
   };
+  // Only sent if a caller still supplies it; the backend defaults to "open".
+  if (metadata.locationStrategy) body.location_strategy = metadata.locationStrategy;
   if (metadata.stateProvince) body.state_province = metadata.stateProvince;
   if (metadata.territoriesConsidering?.length) body.territories_considering = metadata.territoriesConsidering;
   if (metadata.filmingStart) body.filming_start_date = metadata.filmingStart;
