@@ -88,7 +88,7 @@ const CURRENCY_BY_COUNTRY: Record<string, string> = {
   'Nigeria': 'NGN', 'South Africa': 'ZAR', 'Hungary': 'HUF', 'Czech Republic': 'CZK',
   'Morocco': 'MAD', 'Romania': 'RON', 'Serbia': 'RSD', 'Iceland': 'ISK',
   'Japan': 'JPY', 'South Korea': 'KRW', 'Singapore': 'SGD',
-  'India': 'OTHER', 'Mexico': 'OTHER', 'Brazil': 'OTHER',
+  'India': 'INR', 'Mexico': 'MXN', 'Brazil': 'BRL',
 };
 
 export function ScriptUpload() {
@@ -701,6 +701,9 @@ export function ScriptUpload() {
                           { value: 'JPY', label: '¥ JPY' },
                           { value: 'KRW', label: '₩ KRW' },
                           { value: 'SGD', label: '$ SGD' },
+                          { value: 'INR', label: '₹ INR' },
+                          { value: 'MXN', label: 'Mex$ MXN' },
+                          { value: 'BRL', label: 'R$ BRL' },
                           { value: 'OTHER', label: 'Other' },
                         ].map((c) => (
                           <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
