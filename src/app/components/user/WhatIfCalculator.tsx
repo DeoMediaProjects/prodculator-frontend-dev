@@ -258,11 +258,59 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
     </Box>
   );
 
+  // Palette: the standalone /what-if and /tools/what-if pages stay light; when
+  // embedded in the dashboard the calculator re-themes to the app's black/gold
+  // so it matches the surrounding surfaces (and the sibling TerritoryComparison).
+  const pal = embedded
+    ? {
+        pageBg: 'transparent', navBg: '#0a0a0a', navBorder: 'rgba(212,175,55,0.2)',
+        cardBg: '#0f0f0f', cardBorder: 'rgba(212,175,55,0.2)', cardShadow: 'none',
+        headStripe: 'rgba(212,175,55,0.08)', rowBorder: 'rgba(212,175,55,0.08)',
+        rowAlt: 'rgba(255,255,255,0.02)', rowBase: 'transparent', rowHover: 'rgba(212,175,55,0.08)',
+        heading: '#ffffff', subtext: '#a0a0a0', label: '#8a8a8a', value: '#ffffff',
+        muted: '#777777', toggleBg: '#000000', toggleBorder: 'rgba(212,175,55,0.25)',
+        toggleInactive: '#a0a0a0', toggleHover: 'rgba(212,175,55,0.12)',
+        skeleton: 'rgba(255,255,255,0.08)', skeleton2: 'rgba(255,255,255,0.05)',
+        overlay: 'rgba(0,0,0,0.6)', accent: '#D4AF37', accentText: '#000000',
+      }
+    : {
+        pageBg: '#F8F6F0', navBg: '#FFFFFF', navBorder: 'rgba(0,0,0,0.08)',
+        cardBg: '#FFFFFF', cardBorder: 'rgba(0,0,0,0.06)', cardShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        headStripe: 'rgba(245,200,0,0.1)', rowBorder: 'rgba(0,0,0,0.04)',
+        rowAlt: '#FAFAF8', rowBase: '#FFFFFF', rowHover: 'rgba(245,200,0,0.04)',
+        heading: '#111111', subtext: '#555555', label: '#999999', value: '#111111',
+        muted: '#999999', toggleBg: '#FFFFFF', toggleBorder: 'rgba(0,0,0,0.08)',
+        toggleInactive: '#999999', toggleHover: 'rgba(0,0,0,0.04)',
+        skeleton: '#E8E8E8', skeleton2: '#EEEEEE',
+        overlay: 'rgba(255,255,255,0.7)', accent: '#F5C800', accentText: '#000000',
+      };
+  const sliderSxLocal = embedded
+    ? {
+        ...sliderSx, color: pal.accent,
+        '& .MuiSlider-track': { bgcolor: pal.accent, border: 'none' },
+        '& .MuiSlider-rail': { bgcolor: 'rgba(255,255,255,0.15)' },
+        '& .MuiSlider-thumb': {
+          bgcolor: pal.accent, width: 20, height: 20, border: '3px solid #0a0a0a',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+          '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 8px rgba(212,175,55,0.18)' },
+        },
+      }
+    : sliderSx;
+  const selectSxLocal = embedded
+    ? {
+        fontFamily: font, fontWeight: 600, fontSize: '13px', color: '#ffffff', height: '36px',
+        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.35)' },
+        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.6)' },
+        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: pal.accent },
+        '& .MuiSvgIcon-root': { color: pal.accent },
+      }
+    : selectSx;
+
   return (
-    <Box sx={{ bgcolor: '#F8F6F0', fontFamily: font, ...(embedded ? { borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(212,175,55,0.2)' } : { minHeight: '100dvh' }) }}>
+    <Box sx={{ bgcolor: pal.pageBg, fontFamily: font, ...(embedded ? { borderRadius: 3, overflow: 'hidden', border: `1px solid ${pal.cardBorder}` } : { minHeight: '100dvh' }) }}>
       {/* Navigation Bar — the logo is dropped when embedded in the dashboard,
           which already carries the branding; the Export action is kept. */}
-      <Box sx={{ bgcolor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.08)', py: embedded ? 1.5 : 2 }}>
+      <Box sx={{ bgcolor: pal.navBg, borderBottom: `1px solid ${pal.navBorder}`, py: embedded ? 1.5 : 2 }}>
         <Container maxWidth="xl">
           <Box sx={{ display: 'flex', justifyContent: embedded ? 'flex-end' : 'space-between', alignItems: 'center' }}>
             {!embedded && (
@@ -294,7 +342,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: '#111111' }}>
+            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: pal.heading }}>
               What If Calculator
             </Typography>
             {!hasAccess && (
@@ -305,7 +353,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
               />
             )}
           </Box>
-          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: '#555555' }}>
+          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: pal.subtext }}>
             {hasAccess
               ? `Compare financial returns across ${territories.length || '...'} territories at your budget`
               : 'Configure your production parameters, upgrade to see results across all territories'}
@@ -315,27 +363,27 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
         {/* Controls Card */}
         <Box
           sx={{
-            bgcolor: '#FFFFFF', borderRadius: '12px',
-            border: '1px solid rgba(0,0,0,0.06)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            bgcolor: pal.cardBg, borderRadius: '12px',
+            border: `1px solid ${pal.cardBorder}`,
+            boxShadow: pal.cardShadow,
             p: { xs: 2, sm: 4 }, mb: 3,
           }}
         >
           <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>
             {/* Budget Slider */}
             <Box sx={{ flex: 1, minWidth: '240px' }}>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: pal.label, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
                 Total Production Budget
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 2 }}>
-                <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '22px', color: '#111111' }}>
+                <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '22px', color: pal.value }}>
                   {formatCurrencyLabel(budget, sym)}
                 </Typography>
                 <Select
                   value={budgetCurrency}
                   onChange={(e: SelectChangeEvent) => setBudgetCurrency(e.target.value)}
                   size="small"
-                  sx={{ ...selectSx, minWidth: '80px' }}
+                  sx={{ ...selectSxLocal, minWidth: '80px' }}
                 >
                   {CURRENCIES.map((c) => (
                     <MenuItem key={c} value={c}>{c}</MenuItem>
@@ -346,42 +394,42 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                 value={budget}
                 onChange={(_, value) => setBudget(value as number)}
                 min={500000} max={50000000} step={100000}
-                sx={sliderSx}
+                sx={sliderSxLocal}
               />
-              <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#999999', mt: 1 }}>
+              <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: pal.label, mt: 1 }}>
                 Range: {sym}500K to {sym}50M
               </Typography>
             </Box>
 
             {/* VFX Slider */}
             <Box sx={{ flex: 1, minWidth: '240px' }}>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: pal.label, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
                 VFX Budget Allocation
               </Typography>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '22px', color: '#111111', mb: 2 }}>
+              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '22px', color: pal.value, mb: 2 }}>
                 {vfxAllocation}%
               </Typography>
               <Slider
                 value={vfxAllocation}
                 onChange={(_, value) => setVfxAllocation(value as number)}
                 min={0} max={60} step={1}
-                sx={sliderSx}
+                sx={sliderSxLocal}
               />
-              <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#999999', mt: 1, fontStyle: 'italic' }}>
+              <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: pal.label, mt: 1, fontStyle: 'italic' }}>
                 Applies supplementary VFX credits where available
               </Typography>
             </Box>
 
             {/* Format selector */}
             <Box sx={{ minWidth: '180px' }}>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: pal.label, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
                 Production Format
               </Typography>
               <Select
                 value={format}
                 onChange={(e: SelectChangeEvent) => setFormat(e.target.value)}
                 size="small"
-                sx={{ ...selectSx, width: '100%', mt: 1 }}
+                sx={{ ...selectSxLocal, width: '100%', mt: 1 }}
               >
                 {FORMATS.map((f) => (
                   <MenuItem key={f} value={f}>{f}</MenuItem>
@@ -395,22 +443,22 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
           {/* Baseline toggle */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: pal.label, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Baseline
             </Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
+            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
               {(['US', 'GB'] as const).map((b) => (
                 <Button
                   key={b}
                   onClick={() => setBaseline(b)}
                   sx={{
-                    bgcolor: baseline === b ? '#F5C800' : 'transparent',
-                    color: baseline === b ? '#000000' : '#999999',
+                    bgcolor: baseline === b ? pal.accent : 'transparent',
+                    color: baseline === b ? pal.accentText : pal.toggleInactive,
                     fontFamily: font,
                     fontWeight: baseline === b ? 700 : 400,
                     fontSize: '12px', px: 2, py: 0.5,
                     borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
-                    '&:hover': { bgcolor: baseline === b ? '#F5C800' : 'rgba(0,0,0,0.04)' },
+                    '&:hover': { bgcolor: baseline === b ? pal.accent : pal.toggleHover },
                   }}
                 >
                   {b === 'US' ? '\u{1F1FA}\u{1F1F8} US' : '\u{1F1EC}\u{1F1E7} UK'}
@@ -459,23 +507,23 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                 },
               }}
             >
-              <IconButton sx={{ color: '#F5C800', width: '32px', height: '32px', '&:hover': { bgcolor: 'rgba(245,200,0,0.1)' } }}>
+              <IconButton sx={{ color: pal.accent, width: '32px', height: '32px', '&:hover': { bgcolor: 'rgba(245,200,0,0.1)' } }}>
                 <InfoOutlined sx={{ fontSize: '18px' }} />
               </IconButton>
             </Tooltip>
-            <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
+            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
               {(['incentive', 'full', 'location'] as const).map((p) => (
                 <Button
                   key={p}
                   onClick={() => setPriority(p)}
                   sx={{
-                    bgcolor: priority === p ? '#F5C800' : 'transparent',
-                    color: priority === p ? '#000000' : '#999999',
+                    bgcolor: priority === p ? pal.accent : 'transparent',
+                    color: priority === p ? pal.accentText : pal.toggleInactive,
                     fontFamily: font,
                     fontWeight: priority === p ? 700 : 400,
                     fontSize: '13px', px: 3, py: 1,
                     borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
-                    '&:hover': { bgcolor: priority === p ? '#F5C800' : 'rgba(0,0,0,0.04)' },
+                    '&:hover': { bgcolor: priority === p ? pal.accent : pal.toggleHover },
                   }}
                 >
                   {p === 'incentive' ? 'Maximise Incentive' : p === 'full' ? 'Full Picture' : 'Location First'}
@@ -504,18 +552,18 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
           <ResultsGate plan="professional" featureName="What If Calculator">
             <Box
               sx={{
-                bgcolor: '#FFFFFF', borderRadius: '12px',
-                border: '1px solid rgba(0,0,0,0.06)',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                bgcolor: pal.cardBg, borderRadius: '12px',
+                border: `1px solid ${pal.cardBorder}`,
+                boxShadow: pal.cardShadow,
                 overflow: 'hidden',
               }}
             >
               {/* Preview header row */}
               <Box
                 sx={{
-                  display: 'flex', bgcolor: 'rgba(245,200,0,0.1)',
+                  display: 'flex', bgcolor: pal.headStripe,
                   height: '44px', alignItems: 'center', px: 2,
-                  borderBottom: '1px solid rgba(0,0,0,0.04)',
+                  borderBottom: `1px solid ${pal.rowBorder}`,
                   minWidth: '1320px', gap: 2,
                 }}
               >
@@ -531,13 +579,13 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                   key={i}
                   sx={{
                     display: 'flex', alignItems: 'center', px: 2,
-                    minHeight: '52px', borderBottom: '1px solid rgba(0,0,0,0.04)',
-                    bgcolor: i % 2 === 0 ? '#FAFAF8' : '#FFFFFF', minWidth: '1320px', gap: 2,
+                    minHeight: '52px', borderBottom: `1px solid ${pal.rowBorder}`,
+                    bgcolor: i % 2 === 0 ? pal.rowAlt : pal.rowBase, minWidth: '1320px', gap: 2,
                   }}
                 >
-                  <Box sx={{ flex: '0 0 200px', height: 14, bgcolor: '#E8E8E8', borderRadius: 1 }} />
+                  <Box sx={{ flex: '0 0 200px', height: 14, bgcolor: pal.skeleton, borderRadius: 1 }} />
                   {[120, 80, 110, 110, 110, 90, 100, 70].map((w, j) => (
-                    <Box key={j} sx={{ flex: `0 0 ${w}px`, height: 12, bgcolor: '#EEEEEE', borderRadius: 1 }} />
+                    <Box key={j} sx={{ flex: `0 0 ${w}px`, height: 12, bgcolor: pal.skeleton2, borderRadius: 1 }} />
                   ))}
                 </Box>
               ))}
@@ -549,9 +597,9 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
         {hasAccess && territories.length > 0 && (
           <Box
             sx={{
-              bgcolor: '#FFFFFF', borderRadius: '12px',
-              border: '1px solid rgba(0,0,0,0.06)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              bgcolor: pal.cardBg, borderRadius: '12px',
+              border: `1px solid ${pal.cardBorder}`,
+              boxShadow: pal.cardShadow,
               overflow: 'hidden', mb: 4,
               position: 'relative',
             }}
@@ -562,7 +610,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                 sx={{
                   position: 'absolute',
                   inset: 0,
-                  bgcolor: 'rgba(255, 255, 255, 0.7)',
+                  bgcolor: pal.overlay,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -575,15 +623,18 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
               </Box>
             )}
 
-            {/* Scrollable table — header + body scroll together */}
-            <Box sx={{ overflowX: 'auto' }}>
+            {/* Scrollable table — capped to ~10 rows so the calculator sits in
+                its own scroll container rather than stretching the whole page.
+                The header pins to the top of that container while rows scroll. */}
+            <Box sx={{ overflowX: 'auto', ...(embedded ? { maxHeight: 560, overflowY: 'auto' } : {}) }}>
             {/* Header Row */}
             <Box
               sx={{
-                display: 'flex', bgcolor: 'rgba(245,200,0,0.1)',
+                display: 'flex', bgcolor: embedded ? '#17140c' : pal.headStripe,
                 height: '44px', alignItems: 'center', px: 2,
-                borderBottom: '1px solid rgba(0,0,0,0.04)',
+                borderBottom: `1px solid ${pal.rowBorder}`,
                 minWidth: '1420px',
+                ...(embedded ? { position: 'sticky', top: 0, zIndex: 2 } : {}),
               }}
             >
               <Box sx={{ width: '200px' }}><Typography sx={headerCellSx}>Territory</Typography></Box>
@@ -645,24 +696,24 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                     key={t.territory}
                     sx={{
                       display: 'flex',
-                      bgcolor: index % 2 === 0 ? '#FFFFFF' : '#FAFAF8',
+                      bgcolor: index % 2 === 0 ? pal.rowBase : pal.rowAlt,
                       minHeight: '52px', alignItems: 'center', px: 2,
-                      borderBottom: '1px solid rgba(0,0,0,0.04)',
+                      borderBottom: `1px solid ${pal.rowBorder}`,
                       minWidth: '1420px',
-                      '&:hover': { bgcolor: 'rgba(245,200,0,0.04)' },
+                      '&:hover': { bgcolor: pal.rowHover },
                     }}
                   >
                     {/* Territory */}
                     <Box sx={{ width: '200px', display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography sx={{ fontSize: '18px' }}>{isoToFlag(t.iso)}</Typography>
-                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#111111' }}>
+                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: pal.value }}>
                         {t.territory}
                       </Typography>
                       {isTopScore && (
                         <Chip
                           label="TOP"
                           sx={{
-                            bgcolor: '#F5C800', color: '#000000',
+                            bgcolor: pal.accent, color: pal.accentText,
                             fontFamily: font, fontWeight: 700, fontSize: '10px',
                             height: '20px', textTransform: 'uppercase', borderRadius: '10px',
                           }}
@@ -673,7 +724,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                     {/* Programme */}
                     <Box sx={{ width: '140px' }}>
                       <Tooltip title={t.programme_note || ''} disableHoverListener={!t.programme_note}>
-                        <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555' }}>
+                        <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: pal.subtext }}>
                           {t.programme}
                         </Typography>
                       </Tooltip>
@@ -681,7 +732,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
 
                     {/* Rate */}
                     <Box sx={{ width: '110px' }}>
-                      <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#111111' }}>
+                      <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: pal.value }}>
                         {t.rate_display}
                       </Typography>
                     </Box>
@@ -698,7 +749,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                                  t.bankability_label === 'VERIFY FIRST' ? '#B7770D' : '#C0392B',
                           border: '1px solid currentColor',
                         }} />
-                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>N/A</Typography>}
+                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: pal.muted }}>N/A</Typography>}
                     </Box>
 
                     {/* FRS */}
@@ -709,7 +760,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                             color: t.financial_return_verdict === 'Bankable' ? '#1A8C4E' :
                                    t.financial_return_verdict === 'Verify First' ? '#B7770D' : '#C0392B' }}>
                             {t.financial_return_score}
-                            <Typography component="span" sx={{ fontWeight: 400, fontSize: '11px', color: '#BBB' }}>/100</Typography>
+                            <Typography component="span" sx={{ fontWeight: 400, fontSize: '11px', color: pal.muted }}>/100</Typography>
                           </Typography>
                           <Typography sx={{ fontFamily: font, fontSize: '10px', fontWeight: 600,
                             color: t.financial_return_verdict === 'Bankable' ? '#1A8C4E' :
@@ -717,7 +768,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                             {t.financial_return_verdict}
                           </Typography>
                         </Box>
-                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999' }}>N/A</Typography>}
+                      ) : <Typography sx={{ fontFamily: font, fontSize: '14px', color: pal.muted }}>N/A</Typography>}
                     </Box>
 
                     {/* Est. Incentive */}
@@ -726,7 +777,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                         {t.estimated_rebate_display}
                       </Typography>
                       {t.vfx_uplift_display && (
-                        <Typography sx={{ fontFamily: font, fontSize: '10px', color: '#999', fontStyle: 'italic' }}>
+                        <Typography sx={{ fontFamily: font, fontSize: '10px', color: pal.muted, fontStyle: 'italic' }}>
                           +{t.vfx_uplift_display} VFX
                         </Typography>
                       )}
@@ -746,7 +797,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                           </Typography>
                         </Tooltip>
                       ) : (
-                        <Typography sx={{ fontFamily: font, fontSize: '14px', color: '#999999' }}>N/A</Typography>
+                        <Typography sx={{ fontFamily: font, fontSize: '14px', color: pal.muted }}>N/A</Typography>
                       )}
                     </Box>
 
@@ -759,14 +810,14 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
 
                     {/* Min Spend */}
                     <Box sx={{ width: '110px' }}>
-                      <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555' }}>
+                      <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: pal.subtext }}>
                         {t.min_spend || '\u2014'}
                       </Typography>
                     </Box>
 
                     {/* Payment */}
                     <Box sx={{ width: '120px' }}>
-                      <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555' }}>
+                      <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: pal.subtext }}>
                         {t.payment_timeline || '\u2014'}
                       </Typography>
                     </Box>
@@ -779,7 +830,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                           color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999',
                         }}
                       >
-                        {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>/100</Typography>
+                        {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: pal.muted }}>/100</Typography>
                       </Typography>
                     </Box>
                   </Box>
