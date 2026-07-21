@@ -214,16 +214,28 @@ export function AnalysisWizard() {
   });
 
   // ----- Per-step validity (drives Continue/Generate enablement) -----
+  // Production Details: every field required except the two optional
+  // Representation fields at the bottom.
+  const detailsValid =
+    !!filmingStart && !!filmingDuration && !!completionDate &&
+    cameraEquipment.length > 0 && !!crewSize && !!principalCast && !!supportingCast &&
+    primaryLanguages.length > 0 && !!mustFilmIn && !!coProductionInterest &&
+    targetAudience.length > 0 && !!audienceSkewChoice;
   const stepValid = [
     !!file && !!title && genres.length > 0 && !!format,
     !!country && !!budgetCurrency && !!budgetAmount && Number(budgetAmount) > 0,
-    !!completionDate,
+    detailsValid,
     acceptedTerms,
   ];
   const missingForStep = (i: number): string[] => {
     if (i === 0) return [...(!file ? ['script file'] : []), ...(!title ? ['project title'] : []), ...(genres.length === 0 ? ['genre'] : []), ...(!format ? ['format'] : [])];
     if (i === 1) return [...(!country ? ['production country'] : []), ...(!budgetCurrency ? ['currency'] : []), ...(!budgetAmount || Number(budgetAmount) <= 0 ? ['budget amount'] : [])];
-    if (i === 2) return [...(!completionDate ? ['expected completion'] : [])];
+    if (i === 2) return [
+      ...(!filmingStart ? ['filming start'] : []), ...(!filmingDuration ? ['filming duration'] : []), ...(!completionDate ? ['expected completion'] : []),
+      ...(cameraEquipment.length === 0 ? ['camera equipment'] : []), ...(!crewSize ? ['crew size'] : []), ...(!principalCast ? ['principal cast'] : []), ...(!supportingCast ? ['supporting cast'] : []),
+      ...(primaryLanguages.length === 0 ? ['primary language(s)'] : []), ...(!mustFilmIn ? ['must film in'] : []), ...(!coProductionInterest ? ['co-production'] : []),
+      ...(targetAudience.length === 0 ? ['target audience'] : []), ...(!audienceSkewChoice ? ['audience skew'] : []),
+    ];
     return [...(!acceptedTerms ? ['terms acceptance'] : [])];
   };
 
@@ -305,7 +317,9 @@ export function AnalysisWizard() {
     '& .MuiSvgIcon-root': { color: t.textSecondary },
     '& input': { color: t.textPrimary },
   } as const;
-  const menuProps = { PaperProps: { sx: { maxHeight: 320, bgcolor: t.cardBg, color: t.textPrimary } } } as const;
+  // disableScrollLock stops MUI from removing the body scrollbar when a menu
+  // opens — that width change was shifting the sticky sidebar.
+  const menuProps = { disableScrollLock: true, PaperProps: { sx: { maxHeight: 320, bgcolor: t.cardBg, color: t.textPrimary } } } as const;
   const card = { bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px' } as const;
   const goldChip = { bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff' } as const;
   const cbSx = { color: t.textSecondary, '&.Mui-checked': { color: t.gold } } as const;
@@ -409,32 +423,6 @@ export function AnalysisWizard() {
         </Box>
 
         <Box sx={{ ...card, p: 3 }}>
-          {sectionLabel('Territories considering')}
-          <Typography sx={{ color: t.textSecondary, fontSize: 13, mb: 2 }}>
-            {maxTerritories === null
-              ? `Select any territories you are considering (${territoriesConsidering.length} chosen). Leave empty to stay open to all.`
-              : `Your plan lets you select up to ${maxTerritories} territories (${territoriesConsidering.length}/${maxTerritories} chosen). Leave empty to stay open to all.`}
-          </Typography>
-          {territoryGroups.map((group) => (
-            <Box key={group.continent} sx={{ mb: 2 }}>
-              <Typography sx={{ color: t.textFaint, fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', mb: 1 }}>{group.continent.toUpperCase()}</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {group.countries.map(({ country: c }) => {
-                  const on = territoriesConsidering.includes(c.label);
-                  const disabled = !on && atTerritoryLimit;
-                  return (
-                    <Chip
-                      key={c.label} label={c.label} onClick={() => !disabled && toggleTerritory(c.label)}
-                      sx={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, fontWeight: 600, borderRadius: '9px', bgcolor: on ? t.gold : 'transparent', color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary, border: `1px solid ${on ? t.gold : t.border}`, '&:hover': { borderColor: t.gold } }}
-                    />
-                  );
-                })}
-              </Box>
-            </Box>
-          ))}
-        </Box>
-
-        <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Production priority')}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
             {PRIORITY_OPTIONS.map((p) => {
@@ -452,6 +440,53 @@ export function AnalysisWizard() {
             })}
           </Box>
         </Box>
+
+        <Box sx={{ ...card, p: 3 }}>
+          {sectionLabel('Territories considering')}
+          <Typography sx={{ color: t.textSecondary, fontSize: 13, mb: 2 }}>
+            {maxTerritories === null
+              ? `Select any territories you are considering (${territoriesConsidering.length} chosen).`
+              : `Your plan lets you select up to ${maxTerritories} territories (${territoriesConsidering.length}/${maxTerritories} chosen).`}
+          </Typography>
+          {territoryGroups.map((group) => (
+            <Box key={group.continent} sx={{ mb: 2 }}>
+              <Typography sx={{ color: t.textFaint, fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', mb: 1 }}>{group.continent.toUpperCase()}</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {group.countries.map(({ country: c, regions }) => {
+                  const on = territoriesConsidering.includes(c.label);
+                  const disabled = !on && atTerritoryLimit;
+                  return (
+                    <Chip
+                      key={c.label}
+                      label={regions.length > 0 ? `${c.label} ${on ? '▾' : '▸'}` : c.label}
+                      onClick={() => !disabled && toggleTerritory(c.label)}
+                      sx={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, fontWeight: 600, borderRadius: '9px', bgcolor: on ? t.gold : 'transparent', color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary, border: `1px solid ${on ? t.gold : t.border}`, '&:hover': { borderColor: t.gold } }}
+                    />
+                  );
+                })}
+              </Box>
+              {/* Sub-territories (e.g. US states, Canadian provinces) reveal once
+                  their parent country is selected. */}
+              {group.countries.filter(({ country: c, regions }) => regions.length > 0 && territoriesConsidering.includes(c.label)).map(({ country: c, regions }) => (
+                <Box key={`${c.label}-regions`} sx={{ mt: 1.25, ml: 0.5, pl: 1.75, borderLeft: `2px solid ${t.goldDim}` }}>
+                  <Typography sx={{ color: t.textFaint, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', mb: 0.75 }}>{c.label.toUpperCase()} · REGIONS</Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {regions.map((r) => {
+                      const ron = territoriesConsidering.includes(r.label);
+                      const rdisabled = !ron && atTerritoryLimit;
+                      return (
+                        <Chip
+                          key={r.label} label={r.label} size="small" onClick={() => !rdisabled && toggleTerritory(r.label)}
+                          sx={{ cursor: rdisabled ? 'not-allowed' : 'pointer', opacity: rdisabled ? 0.4 : 1, fontWeight: 600, borderRadius: '8px', bgcolor: ron ? t.gold : 'transparent', color: ron ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary, border: `1px solid ${ron ? t.gold : t.border}`, '&:hover': { borderColor: t.gold } }}
+                        />
+                      );
+                    })}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          ))}
+        </Box>
       </Box>
     );
 
@@ -460,8 +495,8 @@ export function AnalysisWizard() {
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Schedule')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2.5 }}>
-            <TextField fullWidth type="date" label="Filming Start" slotProps={{ inputLabel: { shrink: true } }} value={filmingStart} onChange={(e) => setFilmingStart(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth type="number" label="Filming Duration (weeks)" value={filmingDuration} onChange={(e) => setFilmingDuration(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required type="date" label="Filming Start" slotProps={{ inputLabel: { shrink: true } }} value={filmingStart} onChange={(e) => setFilmingStart(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required type="number" label="Filming Duration (weeks)" value={filmingDuration} onChange={(e) => setFilmingDuration(e.target.value)} sx={fieldSx} />
             <TextField fullWidth required type="date" label="Expected Completion" slotProps={{ inputLabel: { shrink: true } }} value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} sx={fieldSx} />
           </Box>
         </Box>
@@ -469,7 +504,7 @@ export function AnalysisWizard() {
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Crew & cast')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
-            <FormControl fullWidth sx={fieldSx}>
+            <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Camera Equipment</InputLabel>
               <Select<string[]>
                 multiple value={cameraEquipment} input={<OutlinedInput label="Camera Equipment" />} MenuProps={menuProps}
@@ -481,18 +516,18 @@ export function AnalysisWizard() {
                 ))}
               </Select>
             </FormControl>
-            <TextField fullWidth type="number" label="Crew Size" value={crewSize} onChange={(e) => setCrewSize(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth type="number" label="Principal Cast" value={principalCast} onChange={(e) => setPrincipalCast(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth type="number" label="Supporting Cast" value={supportingCast} onChange={(e) => setSupportingCast(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required type="number" label="Crew Size" value={crewSize} onChange={(e) => setCrewSize(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required type="number" label="Principal Cast" value={principalCast} onChange={(e) => setPrincipalCast(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required type="number" label="Supporting Cast" value={supportingCast} onChange={(e) => setSupportingCast(e.target.value)} sx={fieldSx} />
           </Box>
         </Box>
 
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Creative context')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
-            <TextField fullWidth label="Primary Language(s)" placeholder="e.g. English, French" helperText="Separate with commas, up to 5" value={languagesInput} onChange={(e) => setLanguagesInput(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth label="Must Film In" placeholder="A locked territory, if any" value={mustFilmIn} onChange={(e) => setMustFilmIn(e.target.value)} sx={fieldSx} />
-            <FormControl fullWidth sx={fieldSx}>
+            <TextField fullWidth required label="Primary Language(s)" placeholder="e.g. English, French" helperText="Separate with commas, up to 5" value={languagesInput} onChange={(e) => setLanguagesInput(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required label="Must Film In" placeholder="A locked territory, or your main base" value={mustFilmIn} onChange={(e) => setMustFilmIn(e.target.value)} sx={fieldSx} />
+            <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Open to Official Co-Production?</InputLabel>
               <Select value={coProductionInterest} label="Open to Official Co-Production?" onChange={(e) => setCoProductionInterest(e.target.value)} MenuProps={menuProps}>
                 <MenuItem value="">Not specified</MenuItem>
@@ -501,7 +536,7 @@ export function AnalysisWizard() {
                 <MenuItem value="undecided">Undecided</MenuItem>
               </Select>
             </FormControl>
-            <FormControl fullWidth sx={fieldSx}>
+            <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Target Audience</InputLabel>
               <Select<string[]>
                 multiple value={targetAudience} input={<OutlinedInput label="Target Audience" />} MenuProps={menuProps}
@@ -513,7 +548,7 @@ export function AnalysisWizard() {
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth sx={fieldSx}>
+            <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Audience Skew</InputLabel>
               <Select value={audienceSkewChoice} label="Audience Skew" onChange={(e) => setAudienceSkewChoice(e.target.value)} MenuProps={menuProps}>
                 <MenuItem value="">Not specified</MenuItem>
