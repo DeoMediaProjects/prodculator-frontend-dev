@@ -411,15 +411,11 @@ export function AnalysisWizard() {
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Territories considering')}
           <Typography sx={{ color: t.textSecondary, fontSize: 13, mb: 2 }}>
-            {openToAll ? 'Open to all territories.' : maxTerritories === null ? 'Select any territories you are considering.' : `Select up to ${maxTerritories} (${territoriesConsidering.length}/${maxTerritories} chosen).`}
+            {maxTerritories === null
+              ? `Select any territories you are considering (${territoriesConsidering.length} chosen). Leave empty to stay open to all.`
+              : `Your plan lets you select up to ${maxTerritories} territories (${territoriesConsidering.length}/${maxTerritories} chosen). Leave empty to stay open to all.`}
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-            <Chip
-              label="Open to all" onClick={() => toggleTerritory('Open to all')}
-              sx={{ cursor: 'pointer', fontWeight: 700, borderRadius: '9px', bgcolor: openToAll ? t.gold : 'transparent', color: openToAll ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary, border: `1px solid ${openToAll ? t.gold : t.border}` }}
-            />
-          </Box>
-          {!openToAll && territoryGroups.map((group) => (
+          {territoryGroups.map((group) => (
             <Box key={group.continent} sx={{ mb: 2 }}>
               <Typography sx={{ color: t.textFaint, fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', mb: 1 }}>{group.continent.toUpperCase()}</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
