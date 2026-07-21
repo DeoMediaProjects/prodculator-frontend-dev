@@ -18,6 +18,8 @@ import logoBlack from '@/assets/ddbe9f875b0128308d18010a516a1a848d4b7b77.png';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 import { ResultsGate } from '@/app/components/common/PlanGate';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
+import { useThemeMode } from '@/app/theme/AppTheme';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import {
   computeScenario,
   type ScenarioResponse,
@@ -261,7 +263,11 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
   // Palette: the standalone /what-if and /tools/what-if pages stay light; when
   // embedded in the dashboard the calculator re-themes to the app's black/gold
   // so it matches the surrounding surfaces (and the sibling TerritoryComparison).
-  const pal = embedded
+  // Embedded in the dashboard, follow the app's light/dark mode; standalone
+  // /what-if pages stay light.
+  const { mode: appMode } = useThemeMode();
+  const useDarkPal = embedded && appMode === 'dark';
+  const pal = useDarkPal
     ? {
         pageBg: 'transparent', navBg: '#0a0a0a', navBorder: 'rgba(212,175,55,0.2)',
         cardBg: '#0f0f0f', cardBorder: 'rgba(212,175,55,0.2)', cardShadow: 'none',
@@ -284,7 +290,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
         skeleton: '#E8E8E8', skeleton2: '#EEEEEE',
         overlay: 'rgba(255,255,255,0.7)', accent: '#F5C800', accentText: '#000000',
       };
-  const sliderSxLocal = embedded
+  const sliderSxLocal = useDarkPal
     ? {
         ...sliderSx, color: pal.accent,
         '& .MuiSlider-track': { bgcolor: pal.accent, border: 'none' },
@@ -296,7 +302,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
         },
       }
     : sliderSx;
-  const selectSxLocal = embedded
+  const selectSxLocal = useDarkPal
     ? {
         fontFamily: font, fontWeight: 600, fontSize: '13px', color: '#ffffff', height: '36px',
         '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(212,175,55,0.35)' },
@@ -306,59 +312,69 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
       }
     : selectSx;
 
+  // When embedded, push the Export action into the dashboard top bar.
+  useHeaderActions(
+    embedded ? (
+      <Button variant="outlined" onClick={handleExport} disabled={!territories.length} sx={{ whiteSpace: 'nowrap' }}>
+        Export to CSV
+      </Button>
+    ) : null,
+    [embedded, territories.length],
+  );
+
   return (
-    <Box sx={{ bgcolor: pal.pageBg, fontFamily: font, ...(embedded ? { borderRadius: 3, overflow: 'hidden', border: `1px solid ${pal.cardBorder}` } : { minHeight: '100dvh' }) }}>
-      {/* Navigation Bar — the logo is dropped when embedded in the dashboard,
-          which already carries the branding; the Export action is kept. */}
-      <Box sx={{ bgcolor: pal.navBg, borderBottom: `1px solid ${pal.navBorder}`, py: embedded ? 1.5 : 2 }}>
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', justifyContent: embedded ? 'flex-end' : 'space-between', alignItems: 'center' }}>
-            {!embedded && (
+    <Box sx={{ bgcolor: embedded ? 'transparent' : pal.pageBg, fontFamily: font, ...(embedded ? {} : { minHeight: '100dvh' }) }}>
+      {/* Standalone-only top bar (logo + export). When embedded in the dashboard
+          the export action moves into the page-header row (mockup layout). */}
+      {!embedded && (
+        <Box sx={{ bgcolor: pal.navBg, borderBottom: `1px solid ${pal.navBorder}`, py: 2 }}>
+          <Container maxWidth="xl">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <img src={logoBlack} alt="Prodculator" style={{ height: '32px', width: 'auto' }} />
               </Box>
-            )}
-            <Button
-              onClick={handleExport}
-              disabled={!territories.length}
-              sx={{
-                bgcolor: 'transparent',
-                border: '1px solid rgba(245,200,0,0.4)',
-                color: '#D4AF37',
-                fontFamily: font, fontWeight: 700, fontSize: '13px',
-                height: '36px', px: 2.5, borderRadius: '8px', textTransform: 'none',
-                '&:hover': { bgcolor: 'rgba(245,200,0,0.08)', border: '1px solid rgba(245,200,0,0.6)' },
-                '&.Mui-disabled': { opacity: 0.4 },
-              }}
-            >
-              Export to CSV ↓
-            </Button>
-          </Box>
-        </Container>
-      </Box>
+              <Button
+                onClick={handleExport}
+                disabled={!territories.length}
+                sx={{
+                  bgcolor: 'transparent', border: '1px solid rgba(245,200,0,0.4)', color: '#D4AF37',
+                  fontFamily: font, fontWeight: 700, fontSize: '13px',
+                  height: '36px', px: 2.5, borderRadius: '8px', textTransform: 'none',
+                  '&:hover': { bgcolor: 'rgba(245,200,0,0.08)', border: '1px solid rgba(245,200,0,0.6)' },
+                  '&.Mui-disabled': { opacity: 0.4 },
+                }}
+              >
+                Export to CSV ↓
+              </Button>
+            </Box>
+          </Container>
+        </Box>
+      )}
 
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 5 } }}>
-        {/* Page Header */}
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: pal.heading }}>
-              What If Calculator
-            </Typography>
-            {!hasAccess && (
-              <Chip
-                label="Pro"
-                size="small"
-                sx={{ bgcolor: 'rgba(212,175,55,0.15)', color: '#D4AF37', fontFamily: font, fontWeight: 700, fontSize: '11px', height: '22px' }}
-              />
-            )}
+      <Container maxWidth={embedded ? false : 'xl'} disableGutters={embedded} sx={{ py: embedded ? 0 : { xs: 3, sm: 5 } }}>
+        {/* Page Header — only for the standalone page. When embedded, the title
+            + description live in the dashboard top bar and the Export action is
+            registered into that top bar (see useHeaderActions above). */}
+        {!embedded && (
+          <Box sx={{ mb: 4, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '26px' }, color: pal.heading }}>
+                  What If Calculator
+                </Typography>
+                {!hasAccess && (
+                  <Chip label="Pro" size="small" sx={{ bgcolor: 'rgba(212,175,55,0.15)', color: '#D4AF37', fontFamily: font, fontWeight: 700, fontSize: '11px', height: '22px' }} />
+                )}
+              </Box>
+              <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: pal.subtext }}>
+                {hasAccess
+                  ? `Compare financial returns across ${territories.length || '...'} territories at your budget`
+                  : 'Configure your production parameters, upgrade to see results across all territories'}
+              </Typography>
+            </Box>
           </Box>
-          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: pal.subtext }}>
-            {hasAccess
-              ? `Compare financial returns across ${territories.length || '...'} territories at your budget`
-              : 'Configure your production parameters, upgrade to see results across all territories'}
-          </Typography>
-        </Box>
+        )}
 
         {/* Controls Card */}
         <Box
@@ -446,7 +462,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
             <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: pal.label, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Baseline
             </Typography>
-            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
+            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '10px', p: '3px', display: 'flex', gap: '2px' }}>
               {(['US', 'GB'] as const).map((b) => (
                 <Button
                   key={b}
@@ -456,12 +472,15 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                     color: baseline === b ? pal.accentText : pal.toggleInactive,
                     fontFamily: font,
                     fontWeight: baseline === b ? 700 : 400,
-                    fontSize: '12px', px: 2, py: 0.5,
-                    borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
+                    fontSize: '12px', px: 1.75, py: 0.5, whiteSpace: 'nowrap',
+                    borderRadius: '8px', textTransform: 'none', minWidth: 'auto',
                     '&:hover': { bgcolor: baseline === b ? pal.accent : pal.toggleHover },
                   }}
                 >
-                  {b === 'US' ? '\u{1F1FA}\u{1F1F8} US' : '\u{1F1EC}\u{1F1E7} UK'}
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                    <Box component="img" src={`https://flagcdn.com/w40/${b === 'US' ? 'us' : 'gb'}.png`} alt="" sx={{ width: 18, height: 13, objectFit: 'cover', borderRadius: '2px', display: 'block' }} />
+                    {b === 'US' ? 'US' : 'UK'}
+                  </Box>
                 </Button>
               ))}
             </Box>
@@ -511,7 +530,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                 <InfoOutlined sx={{ fontSize: '18px' }} />
               </IconButton>
             </Tooltip>
-            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
+            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '10px', p: '3px', display: 'flex', gap: '2px' }}>
               {(['incentive', 'full', 'location'] as const).map((p) => (
                 <Button
                   key={p}
@@ -521,8 +540,8 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                     color: priority === p ? pal.accentText : pal.toggleInactive,
                     fontFamily: font,
                     fontWeight: priority === p ? 700 : 400,
-                    fontSize: '13px', px: 3, py: 1,
-                    borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
+                    fontSize: '13px', px: 2.25, py: 0.9, whiteSpace: 'nowrap',
+                    borderRadius: '8px', textTransform: 'none', minWidth: 'auto', lineHeight: 1.2,
                     '&:hover': { bgcolor: priority === p ? pal.accent : pal.toggleHover },
                   }}
                 >

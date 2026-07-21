@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, createTheme, responsiveFontSizes, Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
+import { ThemeModeProvider } from '@/app/theme/AppTheme';
 import { SnackbarProvider } from 'notistack';
 import { Toast } from '@/app/components/common/Toast';
 import { HelmetProvider } from 'react-helmet-async';
@@ -26,6 +27,12 @@ const ReportViewer = lazy(() => import('../app/components/user/ReportViewer').th
 const Pricing = lazy(() => import('../app/components/user/Pricing').then(m => ({ default: m.Pricing })));
 const SampleReport = lazy(() => import('../app/components/user/SampleReport').then(m => ({ default: m.SampleReport })));
 const UserDashboard = lazy(() => import('../app/components/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
+const B2CLayout = lazy(() => import('../app/components/user/b2c/B2CLayout').then(m => ({ default: m.B2CLayout })));
+const DashboardHome = lazy(() => import('../app/components/user/b2c/DashboardHome').then(m => ({ default: m.DashboardHome })));
+const TimelinePage = lazy(() => import('../app/components/user/b2c/TimelinePage').then(m => ({ default: m.TimelinePage })));
+const AccountPage = lazy(() => import('../app/components/user/b2c/AccountPage').then(m => ({ default: m.AccountPage })));
+const TerritoriesPage = lazy(() => import('../app/components/user/b2c/TerritoriesPage').then(m => ({ default: m.TerritoriesPage })));
+const AnalysisWizard = lazy(() => import('../app/components/user/b2c/AnalysisWizard').then(m => ({ default: m.AnalysisWizard })));
 const TerritoryComparison = lazy(() => import('../app/components/user/TerritoryComparison').then(m => ({ default: m.TerritoryComparison })));
 const WhatIfCalculator = lazy(() => import('../app/components/user/WhatIfCalculator').then(m => ({ default: m.WhatIfCalculator })));
 const PublicWhatIfCalculator = lazy(() => import('../app/components/user/PublicWhatIfCalculator').then(m => ({ default: m.PublicWhatIfCalculator })));
@@ -66,151 +73,6 @@ const PDFReportPreview = lazy(() => import('../app/pages/PDFReportPreview').then
 const EmailPreview = lazy(() => import('../app/pages/EmailPreview').then(m => ({ default: m.EmailPreview })));
 const APIConnectionTester = lazy(() => import('../app/pages/APIConnectionTester').then(m => ({ default: m.APIConnectionTester })));
 
-// MUI Theme Configuration
-let theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#D4AF37', // Gold
-      light: '#E6C968',
-      dark: '#B8941F',
-      contrastText: '#000000',
-    },
-    secondary: {
-      main: '#D4AF37', // Bright gold
-      light: '#FFE55C',
-      dark: '#CCAC00',
-      contrastText: '#000000',
-    },
-    background: {
-      default: '#000000',
-      paper: '#1A1A1A',
-    },
-    text: {
-      primary: '#FFFFFF',
-      secondary: '#D4AF37',
-    },
-  },
-  typography: {
-    fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    h1: {
-      fontSize: '3.5rem',
-      fontWeight: 700,
-      color: '#FFFFFF',
-    },
-    h2: {
-      fontSize: '2.5rem',
-      fontWeight: 700,
-      color: '#FFFFFF',
-    },
-    h3: {
-      fontSize: '2rem',
-      fontWeight: 600,
-      color: '#FFFFFF',
-    },
-    h4: {
-      fontSize: '1.5rem',
-      fontWeight: 600,
-      color: '#FFFFFF',
-    },
-    h5: {
-      fontSize: '1.25rem',
-      fontWeight: 600,
-      color: '#FFFFFF',
-    },
-    h6: {
-      fontSize: '1rem',
-      fontWeight: 600,
-      color: '#FFFFFF',
-    },
-    body1: {
-      fontSize: '1rem',
-      color: '#FFFFFF',
-    },
-    body2: {
-      fontSize: '0.875rem',
-      color: '#CCCCCC',
-    },
-    button: {
-      textTransform: 'none',
-      fontWeight: 600,
-    },
-  },
-  components: {
-    // Global safety net for mobile: prevent any single element from forcing
-    // horizontal page scroll. `clip` (not `hidden`) avoids creating a scroll
-    // container, so it won't break `position: sticky` ancestors.
-    MuiCssBaseline: {
-      styleOverrides: {
-        html: { overflowX: 'clip' },
-        body: { overflowX: 'clip' },
-        'img, video': { maxWidth: '100%' },
-      },
-    },
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: '8px',
-          padding: '10px 24px',
-        },
-        contained: {
-          backgroundColor: '#D4AF37',
-          color: '#000000',
-          '&:hover': {
-            backgroundColor: '#B8941F',
-          },
-        },
-        outlined: {
-          borderColor: '#D4AF37',
-          color: '#D4AF37',
-          '&:hover': {
-            borderColor: '#D4AF37',
-            backgroundColor: 'rgba(212, 175, 55, 0.08)',
-          },
-        },
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backgroundImage: 'none',
-          backgroundColor: '#1A1A1A',
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            '& fieldset': {
-              borderColor: '#333333',
-            },
-            '&:hover fieldset': {
-              borderColor: '#D4AF37',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#D4AF37',
-            },
-          },
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          backgroundImage: 'none',
-          backgroundColor: '#1A1A1A',
-          borderRadius: '12px',
-        },
-      },
-    },
-  },
-});
-
-// Scale down the large desktop heading/body sizes on smaller breakpoints so
-// bare <Typography variant="hN"> no longer overflows on phones. Desktop sizes
-// are unchanged (they are the largest in the generated range).
-theme = responsiveFontSizes(theme);
 
 // Shown while a lazy route chunk is being fetched.
 function PageLoader() {
@@ -224,8 +86,7 @@ function PageLoader() {
 function AppContent() {
   return (
     <HelmetProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+      <ThemeModeProvider>
         <SnackbarProvider
           maxSnack={3}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -244,12 +105,20 @@ function AppContent() {
                   <Route path="/auth/callback" element={<EmailVerifyCallback />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/upload" element={<ScriptUpload />} />
+                  <Route path="/analysis/new" element={<AnalysisWizard />} />
                   <Route path="/report/shared/:shareToken" element={<SharedReportViewer />} />
                   <Route path="/report/preview" element={<ReportViewer />} />
                   <Route path="/report/:reportId" element={<ReportViewer />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/sample" element={<SampleReport />} />
-                  <Route path="/dashboard" element={<UserDashboard />} />
+                  <Route path="/dashboard" element={<B2CLayout />}>
+                    <Route index element={<DashboardHome />} />
+                    <Route path="territories" element={<TerritoriesPage />} />
+                    <Route path="what-if" element={<WhatIfCalculator embedded />} />
+                    <Route path="timeline" element={<TimelinePage />} />
+                    <Route path="account" element={<AccountPage />} />
+                  </Route>
+                  <Route path="/dashboard-classic" element={<UserDashboard />} />
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -300,7 +169,7 @@ function AppContent() {
             </ScriptProvider>
           </AuthProvider>
         </SnackbarProvider>
-      </ThemeProvider>
+      </ThemeModeProvider>
     </HelmetProvider>
   );
 }

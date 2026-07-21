@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -52,6 +52,8 @@ import {
   seedMilestones,
   type MilestoneResponse,
 } from '@/services/milestone.service';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 
 interface ProductionTimelineProps {
   userPlan: 'free' | 'professional' | 'studio';
@@ -59,6 +61,8 @@ interface ProductionTimelineProps {
 }
 
 export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelineProps) {
+  const { mode } = useThemeMode();
+  const c = tokens(mode);
   const [milestones, setMilestones] = useState<MilestoneResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +103,26 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
   useEffect(() => {
     loadMilestones();
   }, [loadMilestones]);
+
+  // Scope the timeline to a single report (the latest) instead of merging every
+  // report's milestones together — merging is what produced duplicate-looking
+  // entries. The Filter dropdown still lets the user switch reports.
+  useEffect(() => {
+    if (!selectedReportId && reports.length > 0) {
+      setSelectedReportId(reports[0].id);
+    }
+  }, [reports, selectedReportId]);
+
+  // Auto-derive the timeline from the report's analysis the first time a report
+  // with no milestones is viewed, so it is dynamic without a manual seed click.
+  const autoSeededRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (loading || seeding || error) return;
+    if (selectedReportId && milestones.length === 0 && !autoSeededRef.current.has(selectedReportId)) {
+      autoSeededRef.current.add(selectedReportId);
+      handleSeed(selectedReportId);
+    }
+  }, [loading, seeding, error, selectedReportId, milestones.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Task toggle (optimistic) ───────────────────────────────────────────
 
@@ -266,9 +290,9 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return <CheckCircle sx={{ color: '#4caf50' }} />;
-      case 'in-progress': return <Circle sx={{ color: '#D4AF37' }} />;
-      default: return <RadioButtonUnchecked sx={{ color: '#666666' }} />;
+      case 'completed': return <CheckCircle sx={{ color: c.success }} />;
+      case 'in-progress': return <Circle sx={{ color: c.gold }} />;
+      default: return <RadioButtonUnchecked sx={{ color: c.textFaint }} />;
     }
   };
 
@@ -280,6 +304,26 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
     const idx = milestones.findIndex((m) => m.status === 'in-progress');
     setExpandedStep(idx >= 0 ? idx : 0);
   }, [milestones.length]);
+
+  // Push the timeline actions into the dashboard top bar (next to New Analysis).
+  useHeaderActions(
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+      {reports.length > 0 && (
+        <FormControl size="small" sx={{ minWidth: 170 }}>
+          <InputLabel>Filter by Report</InputLabel>
+          <Select value={selectedReportId} label="Filter by Report" onChange={(e: SelectChangeEvent) => setSelectedReportId(e.target.value)}>
+            <MenuItem value="">All Reports</MenuItem>
+            {reports.map((r) => <MenuItem key={r.id} value={r.id}>{r.title}</MenuItem>)}
+          </Select>
+        </FormControl>
+      )}
+      <Button variant="outlined" startIcon={<Event />} onClick={exportToCalendar} disabled={!milestones.length} sx={{ whiteSpace: 'nowrap' }}>Export to Calendar</Button>
+      {canAddCustomMilestones && (
+        <Button variant="contained" startIcon={<Add />} onClick={() => setAddMilestoneOpen(true)} sx={{ whiteSpace: 'nowrap' }}>Add Milestone</Button>
+      )}
+    </Box>,
+    [reports.length, selectedReportId, milestones.length, canAddCustomMilestones],
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -293,70 +337,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Box>
-          <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 600, mb: 0.5 }}>
-            Production Timeline
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-            Track your progress from analysis to production
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {reports.length > 0 && (
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel sx={{ color: '#a0a0a0' }}>Filter by Report</InputLabel>
-              <Select
-                value={selectedReportId}
-                label="Filter by Report"
-                onChange={(e: SelectChangeEvent) => setSelectedReportId(e.target.value)}
-                sx={{
-                  color: '#ffffff',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D4AF37' },
-                }}
-              >
-                <MenuItem value="">All Reports</MenuItem>
-                {reports.map((r) => (
-                  <MenuItem key={r.id} value={r.id}>{r.title}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Event />}
-            onClick={exportToCalendar}
-            disabled={!milestones.length}
-            sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
-              '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
-              '&.Mui-disabled': { opacity: 0.4 },
-            }}
-          >
-            Export to Calendar
-          </Button>
-          {canAddCustomMilestones && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Add />}
-              onClick={() => setAddMilestoneOpen(true)}
-              sx={{
-                bgcolor: '#D4AF37',
-                color: '#000000',
-                fontWeight: 600,
-                '&:hover': { bgcolor: '#D4AF37' },
-              }}
-            >
-              Add Milestone
-            </Button>
-          )}
-        </Box>
-      </Box>
+      {/* Actions (Filter / Export / Add Milestone) live in the dashboard top bar. */}
 
       {/* Error */}
       {error && (
@@ -369,15 +350,15 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
       {!milestones.length && !error && (
         <Paper
           sx={{
-            p: 4, textAlign: 'center', bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            p: 4, textAlign: 'center', bgcolor: c.cardBg,
+            border: `1px solid ${c.border}`, borderRadius: '16px',
           }}
         >
-          <AutoAwesome sx={{ fontSize: 48, color: '#D4AF37', mb: 2 }} />
-          <Typography variant="h6" sx={{ color: '#ffffff', mb: 1 }}>
+          <AutoAwesome sx={{ fontSize: 48, color: c.gold, mb: 2 }} />
+          <Typography variant="h6" sx={{ color: c.textPrimary, mb: 1 }}>
             No milestones yet
           </Typography>
-          <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>
+          <Typography variant="body2" sx={{ color: c.textSecondary, mb: 3 }}>
             Generate a production timeline from one of your analysis reports, or create milestones manually.
           </Typography>
           {reports.length > 0 ? (
@@ -431,8 +412,9 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
       {milestones.length > 0 && (
         <Paper
           sx={{
-            p: 3, bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            p: 3, bgcolor: c.cardBg,
+            border: `1px solid ${c.border}`, borderRadius: '16px',
+            maxHeight: '60vh', overflowY: 'auto',
           }}
         >
           <Stepper nonLinear activeStep={expandedStep} orientation="vertical">
@@ -444,13 +426,13 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                   sx={{
                     cursor: 'pointer',
                     '& .MuiStepLabel-label': {
-                      color: milestone.status === 'completed' ? '#4caf50' : '#ffffff',
+                      color: milestone.status === 'completed' ? c.success : c.textPrimary,
                       fontWeight: 600,
                     },
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                    <Typography variant="h6" sx={{ color: c.textPrimary, fontWeight: 600 }}>
                       {milestone.title}
                     </Typography>
                     {milestone.due_date && (
@@ -462,9 +444,9 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                           bgcolor: milestone.status === 'in-progress'
                             ? 'rgba(212, 175, 55, 0.2)'
                             : 'rgba(102, 102, 102, 0.2)',
-                          color: milestone.status === 'in-progress' ? '#D4AF37' : '#a0a0a0',
+                          color: milestone.status === 'in-progress' ? c.gold : c.textSecondary,
                           '& .MuiChip-icon': {
-                            color: milestone.status === 'in-progress' ? '#D4AF37' : '#a0a0a0',
+                            color: milestone.status === 'in-progress' ? c.gold : c.textSecondary,
                             fontSize: '14px',
                           },
                         }}
@@ -484,7 +466,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                     )}
                   </Box>
                   {milestone.description && (
-                    <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: c.textSecondary, mt: 0.5 }}>
                       {milestone.description}
                     </Typography>
                   )}
@@ -512,8 +494,8 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                                 checked={task.completed}
                                 onChange={() => handleTaskToggle(milestone.id, task.id, task.completed)}
                                 sx={{
-                                  color: '#666666',
-                                  '&.Mui-checked': { color: '#4caf50' },
+                                  color: c.textSecondary,
+                                  '&.Mui-checked': { color: c.success },
                                 }}
                               />
                             </ListItemIcon>
@@ -523,7 +505,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                                   <Typography
                                     variant="body1"
                                     sx={{
-                                      color: task.completed ? '#a0a0a0' : '#ffffff',
+                                      color: task.completed ? c.textSecondary : c.textPrimary,
                                       textDecoration: task.completed ? 'line-through' : 'none',
                                     }}
                                   >
@@ -567,7 +549,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                         setAddTaskMilestoneId(milestone.id);
                         setAddTaskOpen(true);
                       }}
-                      sx={{ color: '#a0a0a0', mt: 1, '&:hover': { color: '#D4AF37' } }}
+                      sx={{ color: c.textSecondary, mt: 1, '&:hover': { color: c.gold } }}
                     >
                       Add Task
                     </Button>
@@ -600,10 +582,10 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
         <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
           <Button
             size="small"
-            startIcon={seeding ? <CircularProgress size={14} sx={{ color: '#D4AF37' }} /> : <AutoAwesome />}
+            startIcon={seeding ? <CircularProgress size={14} sx={{ color: c.gold }} /> : <AutoAwesome />}
             disabled={seeding}
             onClick={() => handleSeed(reports[0].id)}
-            sx={{ color: '#a0a0a0', '&:hover': { color: '#D4AF37' } }}
+            sx={{ color: c.textSecondary, '&:hover': { color: c.gold } }}
           >
             Regenerate from latest report
           </Button>
