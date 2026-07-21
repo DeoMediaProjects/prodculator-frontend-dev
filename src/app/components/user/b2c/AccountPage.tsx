@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, TextField, MenuItem, Avatar, Checkbox, IconButton, CircularProgress,
@@ -12,6 +12,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
 import { getCustomerPortalUrl } from '@/services/stripe.service';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
+import { DataTable } from './DataTable';
 
 interface InvoiceItem {
   id: string; number: string | null; status: string; amount_paid: number; amount_due: number;
@@ -47,6 +48,7 @@ export function AccountPage() {
 
   const [fullName, setFullName] = useState(derivedName);
   const [country, setCountry] = useState('United Kingdom');
+  const [avatar, setAvatar] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
@@ -59,6 +61,16 @@ export function AccountPage() {
   useEffect(() => { try { localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs)); } catch { /* */ } }, [notifs]);
 
   useEffect(() => { if (derivedName && !fullName) setFullName(derivedName); }, [derivedName]); // eslint-disable-line
+
+  // Restore any locally-saved profile (name/country/avatar) on mount.
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('prodculator-profile');
+      if (s) { const p = JSON.parse(s); if (p.fullName) setFullName(p.fullName); if (p.country) setCountry(p.country); }
+      const a = localStorage.getItem('prodculator-avatar');
+      if (a) setAvatar(a);
+    } catch { /* */ }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +93,20 @@ export function AccountPage() {
     // No profile-update endpoint exists yet; persist locally and confirm.
     try { localStorage.setItem('prodculator-profile', JSON.stringify({ fullName, country })); } catch { /* */ }
     setTimeout(() => { setSaving(false); enqueueSnackbar('Profile changes saved.', { variant: 'success' }); }, 350);
+  };
+  const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { enqueueSnackbar('Please choose an image file.', { variant: 'error' }); return; }
+    if (file.size > 2 * 1024 * 1024) { enqueueSnackbar('Image must be under 2MB.', { variant: 'error' }); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result);
+      setAvatar(url);
+      try { localStorage.setItem('prodculator-avatar', url); } catch { /* */ }
+      enqueueSnackbar('Profile photo updated.', { variant: 'success' });
+    };
+    reader.readAsDataURL(file);
   };
   const handleManageBilling = async () => {
     const customerId = subscription?.stripe_customer_id;
@@ -111,8 +137,11 @@ export function AccountPage() {
         </Box>
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           <Box sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ width: 84, height: 84, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontSize: 26, fontWeight: 800 }}>{initials}</Avatar>
-            <Typography sx={{ fontSize: 12, color: t.gold, mt: 1, cursor: 'pointer', fontWeight: 600 }}>Change photo</Typography>
+            <Avatar src={avatar || undefined} sx={{ width: 84, height: 84, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontSize: 26, fontWeight: 800 }}>{!avatar && initials}</Avatar>
+            <Typography component="label" sx={{ display: 'inline-block', fontSize: 12, color: t.gold, mt: 1, cursor: 'pointer', fontWeight: 600 }}>
+              Change photo
+              <input hidden type="file" accept="image/*" onChange={handlePhoto} />
+            </Typography>
           </Box>
           <Box sx={{ flex: 1, minWidth: 260, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <Box>
@@ -182,37 +211,38 @@ export function AccountPage() {
       </Box>
 
       {/* Invoice history */}
-      <Box sx={cardSx}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
           <ReceiptLongOutlined sx={{ color: t.gold }} />
           <Typography sx={sectionTitle}>Invoice History</Typography>
         </Box>
         {invoicesLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} sx={{ color: t.gold }} /></Box>
-        ) : invoices.length === 0 ? (
-          <Typography sx={{ color: t.textSecondary, py: 2 }}>No invoices yet.</Typography>
+          <Box sx={{ ...cardSx, display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} sx={{ color: t.gold }} /></Box>
         ) : (
-          <Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1.2fr 1fr 1fr 0.6fr', px: 1, py: 1, borderBottom: `1px solid ${t.border}` }}>
-              {['INVOICE', 'DATE', 'AMOUNT', 'STATUS', 'DOWNLOAD'].map((h) => (
-                <Typography key={h} sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', color: t.textSecondary }}>{h}</Typography>
-              ))}
-            </Box>
-            {invoices.map((inv) => (
-              <Box key={inv.id} sx={{ display: 'grid', gridTemplateColumns: '1.4fr 1.2fr 1fr 1fr 0.6fr', alignItems: 'center', px: 1, py: 1.5, borderBottom: `1px solid ${t.borderSoft}` }}>
-                <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{inv.number || inv.id.slice(0, 12)}</Typography>
-                <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{fmtDate(inv.created)}</Typography>
-                <Typography sx={{ color: t.textPrimary, fontWeight: 700, fontSize: 13.5 }}>{money(inv.status === 'paid' ? inv.amount_paid : inv.amount_due, inv.currency)}</Typography>
+          <DataTable
+            rows={invoices}
+            getRowId={(inv) => inv.id}
+            minWidth={560}
+            maxHeight={360}
+            emptyMessage="No invoices yet."
+            columns={[
+              { key: 'number', header: 'INVOICE', width: '1.4fr', sortValue: (inv) => inv.number || inv.id, render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{inv.number || inv.id.slice(0, 12)}</Typography> },
+              { key: 'created', header: 'DATE', width: '1.2fr', sortValue: (inv) => inv.created || 0, render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{fmtDate(inv.created)}</Typography> },
+              { key: 'amount', header: 'AMOUNT', width: '1fr', filterable: false, sortValue: (inv) => (inv.status === 'paid' ? inv.amount_paid : inv.amount_due), render: (inv) => <Typography sx={{ color: t.textPrimary, fontWeight: 700, fontSize: 13.5 }}>{money(inv.status === 'paid' ? inv.amount_paid : inv.amount_due, inv.currency)}</Typography> },
+              { key: 'status', header: 'STATUS', width: '1fr', render: (inv) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: inv.status === 'paid' ? t.success : t.warning }} />
                   <Typography sx={{ fontSize: 13, fontWeight: 700, color: inv.status === 'paid' ? t.success : t.warning, textTransform: 'capitalize' }}>{inv.status}</Typography>
                 </Box>
-                <IconButton size="small" disabled={!inv.invoice_pdf && !inv.hosted_invoice_url} onClick={() => { const u = inv.invoice_pdf || inv.hosted_invoice_url; if (u) window.open(u, '_blank'); }} sx={{ color: t.gold, justifySelf: 'end' }}>
-                  <FileDownloadOutlined fontSize="small" />
-                </IconButton>
-              </Box>
-            ))}
-          </Box>
+              ) },
+            ]}
+            rowActions={(inv) => (
+              <IconButton size="small" disabled={!inv.invoice_pdf && !inv.hosted_invoice_url} onClick={() => { const u = inv.invoice_pdf || inv.hosted_invoice_url; if (u) window.open(u, '_blank'); }} sx={{ color: t.gold }}>
+                <FileDownloadOutlined fontSize="small" />
+              </IconButton>
+            )}
+            actionsHeader="DOWNLOAD"
+          />
         )}
       </Box>
 

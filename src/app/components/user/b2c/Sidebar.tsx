@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Box, Button, IconButton, Typography, Avatar, Tooltip } from '@mui/material';
 import {
   DescriptionOutlined, CompareArrowsOutlined, CalculateOutlined, TimelineOutlined,
-  PersonOutlineOutlined, LogoutOutlined,
+  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
@@ -9,6 +10,22 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import brandLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
 export const SIDEBAR_W = 248;
+export const SIDEBAR_COLLAPSED_W = 78;
+
+// Collapsed state is shared (via localStorage) so it persists across navigation
+// and stays consistent between the dashboard shell and the wizard.
+const COLLAPSE_KEY = 'prodculator-sidebar-collapsed';
+export function useSidebarCollapsed() {
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
+  });
+  const toggle = () => setCollapsed((c) => {
+    const next = !c;
+    try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* */ }
+    return next;
+  });
+  return { collapsed, toggle };
+}
 
 export const NAV = [
   { label: 'Reports', to: '/dashboard', icon: DescriptionOutlined, exact: true },
@@ -18,7 +35,15 @@ export const NAV = [
   { label: 'Account', to: '/dashboard/account', icon: PersonOutlineOutlined },
 ];
 
-export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export function Sidebar({
+  onNavigate,
+  collapsed = false,
+  onToggleCollapse,
+}: {
+  onNavigate?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { mode } = useThemeMode();
@@ -37,10 +62,19 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const handleLogout = () => { userLogout(); navigate('/'); };
 
   return (
-    <Box sx={{ width: SIDEBAR_W, height: '100%', bgcolor: t.sidebarBg, borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', px: 2.5, py: 3 }}>
-      {/* Logo */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, px: 0.5, height: 46 }}>
-        <Box component="img" src={brandLogo} alt="Prodculator" sx={{ width: '92%', maxWidth: 190, height: 'auto', display: 'block', filter: mode === 'dark' ? 'invert(1)' : 'none' }} />
+    <Box sx={{ width: '100%', height: '100%', bgcolor: t.sidebarBg, borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', px: collapsed ? 1.25 : 2.5, py: 3 }}>
+      {/* Logo + collapse control */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', mb: 4, px: collapsed ? 0 : 0.5, height: 46 }}>
+        {!collapsed && (
+          <Box component="img" src={brandLogo} alt="Prodculator" sx={{ width: '78%', maxWidth: 170, height: 'auto', display: 'block', filter: mode === 'dark' ? 'invert(1)' : 'none' }} />
+        )}
+        {onToggleCollapse && (
+          <Tooltip title={collapsed ? 'Expand' : 'Collapse'} placement="right">
+            <IconButton onClick={onToggleCollapse} size="small" sx={{ color: t.textSecondary, border: `1px solid ${t.border}`, borderRadius: '9px', '&:hover': { color: t.gold, borderColor: t.gold } }}>
+              {collapsed ? <ChevronRight sx={{ fontSize: 20 }} /> : <ChevronLeft sx={{ fontSize: 20 }} />}
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       {/* Nav */}
@@ -48,45 +82,63 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         {NAV.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
-          return (
+          const node = (
             <Box
               key={item.to}
               onClick={() => go(item.to)}
               sx={{
-                display: 'flex', alignItems: 'center', gap: 1.75, px: 1.75, py: 1.6, borderRadius: '10px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 1.75,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                px: collapsed ? 0 : 1.75, py: 1.6, borderRadius: '10px', cursor: 'pointer',
                 position: 'relative', transition: 'background .15s',
                 color: active ? t.gold : t.textSecondary,
                 bgcolor: active ? t.goldDim : 'transparent',
                 '&:hover': { bgcolor: active ? t.goldDim : t.borderSoft, color: active ? t.gold : t.textPrimary },
-                '&::before': active ? { content: '""', position: 'absolute', left: -20, top: 10, bottom: 10, width: 3, borderRadius: '3px', bgcolor: t.gold } : {},
+                '&::before': active && !collapsed ? { content: '""', position: 'absolute', left: -20, top: 10, bottom: 10, width: 3, borderRadius: '3px', bgcolor: t.gold } : {},
               }}
             >
               <Icon sx={{ fontSize: 23 }} />
-              <Typography sx={{ fontSize: 16, fontWeight: active ? 700 : 500, color: 'inherit' }}>{item.label}</Typography>
+              {!collapsed && <Typography sx={{ fontSize: 16, fontWeight: active ? 700 : 500, color: 'inherit' }}>{item.label}</Typography>}
             </Box>
           );
+          return collapsed ? (
+            <Tooltip key={item.to} title={item.label} placement="right">{node}</Tooltip>
+          ) : node;
         })}
       </Box>
 
       {/* User card */}
       <Box sx={{ borderTop: `1px solid ${t.border}`, pt: 2, mt: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
-          <Avatar sx={{ width: 38, height: 38, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14 }}>{initials}</Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: t.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</Typography>
-            <Typography sx={{ fontSize: 11.5, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</Typography>
+        {collapsed ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+            <Tooltip title={`${displayName} · ${planLabel}`} placement="right">
+              <Avatar onClick={() => go('/pricing')} sx={{ width: 36, height: 36, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{initials}</Avatar>
+            </Tooltip>
+            <Tooltip title="Sign out" placement="right">
+              <IconButton onClick={handleLogout} size="small" sx={{ border: `1px solid ${t.border}`, borderRadius: '9px', color: t.textSecondary }}><LogoutOutlined sx={{ fontSize: 18 }} /></IconButton>
+            </Tooltip>
           </Box>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button onClick={() => go('/pricing')} variant="contained" size="small" sx={{ flex: 1, py: 0.75 }}>
-            {planLabel === 'FREE' ? 'Upgrade' : 'Manage plan'}
-          </Button>
-          <Tooltip title="Sign out">
-            <IconButton onClick={handleLogout} sx={{ border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textSecondary }}>
-              <LogoutOutlined sx={{ fontSize: 18 }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
+        ) : (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+              <Avatar sx={{ width: 38, height: 38, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14 }}>{initials}</Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: t.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</Typography>
+                <Typography sx={{ fontSize: 11.5, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button onClick={() => go('/pricing')} variant="contained" size="small" sx={{ flex: 1, py: 0.75 }}>
+                {planLabel === 'FREE' ? 'Upgrade' : 'Manage plan'}
+              </Button>
+              <Tooltip title="Sign out">
+                <IconButton onClick={handleLogout} sx={{ border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textSecondary }}>
+                  <LogoutOutlined sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </>
+        )}
       </Box>
     </Box>
   );
