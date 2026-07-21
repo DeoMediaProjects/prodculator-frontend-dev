@@ -5,7 +5,6 @@ import {
   Typography,
   Button,
   Slider,
-  Chip,
   IconButton,
   Tooltip,
   Alert,
@@ -13,7 +12,7 @@ import {
   MenuItem,
   type SelectChangeEvent,
 } from '@mui/material';
-import { InfoOutlined, ArrowBack } from '@mui/icons-material';
+import { InfoOutlined, ArrowBack, LockOutlined } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 import {
@@ -21,6 +20,10 @@ import {
   type ScenarioResponse,
   type TerritoryScenario,
 } from '@/services/calculator.service';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+
+// Fixed light palette for the always-light public page (independent of theme mode).
+const PUBLIC_TOGGLE_PAL = { bg: '#FFFFFF', border: 'rgba(0,0,0,0.08)', activeBg: '#F5C800', activeText: '#000000', inactiveText: '#999999' };
 
 // ── ISO → flag emoji ──────────────────────────────────────────────────────────
 const FLAG_FALLBACK = '\u{1F3AC}';
@@ -39,7 +42,11 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   RON: 'RON', RSD: 'RSD',
 };
 
-const CURRENCIES = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'ZAR'] as const;
+// Guests only get the two headline currencies; the rest unlock on sign-up.
+const CURRENCIES = ['USD', 'GBP'] as const;
+// Guests preview the top 5 ranked territories; the remainder are blurred behind
+// a sign-up CTA.
+const FREE_VISIBLE = 5;
 const FORMATS = [
   'Feature Film', 'TV Series', 'Limited Series', 'Documentary',
   'Short Film', 'Animation', 'Animated Feature', 'Mini Series',
@@ -122,7 +129,9 @@ export function PublicWhatIfCalculator() {
   const [budget, setBudget] = useState(4_000_000);
   const [budgetCurrency, setBudgetCurrency] = useState('GBP');
   const [vfxAllocation, setVfxAllocation] = useState(0);
-  const [priority, setPriority] = useState<'incentive' | 'full' | 'location'>('full');
+  // Guests are locked to Maximise Incentive; Full Picture / Location First
+  // unlock on sign-up.
+  const [priority] = useState<'incentive' | 'full' | 'location'>('incentive');
   const [format, setFormat] = useState('Feature Film');
   const [baseline, setBaseline] = useState<'GB' | 'US'>('US');
 
@@ -198,6 +207,94 @@ export function PublicWhatIfCalculator() {
         Crew Depth and Infrastructure use Prodculator territory tier ratings.
         Upload your script for production specific narrative analysis.
       </Typography>
+    </Box>
+  );
+
+  // ── Guest gating: preview 5 territories, blur the rest behind a CTA ─────────
+  const visibleTerritories = territories.slice(0, FREE_VISIBLE);
+  const lockedTerritories = territories.slice(FREE_VISIBLE);
+
+  const renderDesktopRow = (t: TerritoryScenario, index: number) => (
+    <Box
+      key={t.territory}
+      sx={{
+        display: 'flex', bgcolor: index % 2 === 0 ? '#FFFFFF' : '#FAFAF8',
+        minHeight: '52px', alignItems: 'center', px: 2,
+        borderBottom: '1px solid rgba(0,0,0,0.04)', minWidth: '720px',
+        '&:hover': { bgcolor: 'rgba(245,200,0,0.04)' },
+      }}
+    >
+      <Box sx={{ width: '220px', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography sx={{ fontSize: '18px' }}>{isoToFlag(t.iso)}</Typography>
+        <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#111111' }}>{t.territory}</Typography>
+      </Box>
+      <Box sx={{ flex: 1, minWidth: '160px' }}>
+        <Tooltip title={t.programme_note || ''} disableHoverListener={!t.programme_note}>
+          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555' }}>{t.programme}</Typography>
+        </Tooltip>
+      </Box>
+      <Box sx={{ width: '120px' }}>
+        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#111111' }}>{t.rate_display}</Typography>
+      </Box>
+      <Box sx={{ width: '160px' }}>
+        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#1A8C4E' }}>{t.estimated_rebate_display}</Typography>
+        {t.vfx_uplift_display && (
+          <Typography sx={{ fontFamily: font, fontSize: '10px', color: '#999', fontStyle: 'italic' }}>+{t.vfx_uplift_display} VFX</Typography>
+        )}
+      </Box>
+      <Box sx={{ width: '80px' }}>
+        <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999' }}>
+          {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>/100</Typography>
+        </Typography>
+      </Box>
+    </Box>
+  );
+
+  const renderMobileCard = (t: TerritoryScenario) => {
+    const cells = [
+      { label: 'Programme', value: t.programme, valueColor: '#111111' },
+      { label: 'Incentive Rate', value: t.rate_display, valueColor: '#111111' },
+      { label: 'Est. Incentive', value: t.vfx_uplift_display ? `${t.estimated_rebate_display} (+${t.vfx_uplift_display} VFX)` : t.estimated_rebate_display, valueColor: '#1A8C4E' },
+    ];
+    return (
+      <Box key={t.territory} sx={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px', p: 2, mb: 1.5, bgcolor: '#FFFFFF' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Typography sx={{ fontSize: '20px' }}>{isoToFlag(t.iso)}</Typography>
+          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: '#111111', flex: 1 }}>{t.territory}</Typography>
+          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999' }}>
+            {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>/100</Typography>
+          </Typography>
+        </Box>
+        {cells.map((cell) => (
+          <Box key={cell.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5, borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+            <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#999999' }}>{cell.label}</Typography>
+            <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '13px', color: cell.valueColor, textAlign: 'right' }}>{cell.value}</Typography>
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  // Overlay CTA drawn over the blurred locked rows.
+  const lockedCTA = lockedTerritories.length > 0 && (
+    <Box
+      sx={{
+        position: 'absolute', inset: 0, zIndex: 5,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, px: 2, textAlign: 'center',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.85) 35%, #FFFFFF 100%)',
+      }}
+    >
+      <LockOutlined sx={{ color: '#D4AF37', fontSize: '28px' }} />
+      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: '#111111' }}>
+        {lockedTerritories.length} more territories
+      </Typography>
+      <Typography sx={{ fontFamily: font, fontSize: '13px', color: '#555555', maxWidth: 360 }}>
+        Sign up free to compare all {territories.length} territories, unlock every currency, and switch scoring modes.
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 1.5, mt: 0.5 }}>
+        <Button variant="outlined" onClick={() => navigate('/login')} sx={{ borderColor: '#D4AF37', color: '#B8941F', fontFamily: font, fontWeight: 700, fontSize: '13px', height: '38px', px: 2.5, borderRadius: '8px', textTransform: 'none', '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212,175,55,0.08)' } }}>Log In</Button>
+        <Button variant="contained" onClick={() => navigate('/signup')} sx={{ bgcolor: '#D4AF37', color: '#000', fontFamily: font, fontWeight: 700, fontSize: '13px', height: '38px', px: 2.5, borderRadius: '8px', textTransform: 'none', '&:hover': { bgcolor: '#B8941F' } }}>Sign Up Free →</Button>
+      </Box>
     </Box>
   );
 
@@ -348,25 +445,22 @@ export function PublicWhatIfCalculator() {
             <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Baseline
             </Typography>
-            <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
-              {(['US', 'GB'] as const).map((b) => (
-                <Button
-                  key={b}
-                  onClick={() => setBaseline(b)}
-                  sx={{
-                    bgcolor: baseline === b ? '#F5C800' : 'transparent',
-                    color: baseline === b ? '#000000' : '#999999',
-                    fontFamily: font,
-                    fontWeight: baseline === b ? 700 : 400,
-                    fontSize: '12px', px: 2, py: 0.5,
-                    borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
-                    '&:hover': { bgcolor: baseline === b ? '#F5C800' : 'rgba(0,0,0,0.04)' },
-                  }}
-                >
-                  {b === 'US' ? '\u{1F1FA}\u{1F1F8} US' : '\u{1F1EC}\u{1F1E7} UK'}
-                </Button>
-              ))}
-            </Box>
+            <SegmentedToggle
+              radius={9999}
+              value={baseline}
+              onChange={(v) => setBaseline(v as 'US' | 'GB')}
+              fontFamily={font}
+              palette={PUBLIC_TOGGLE_PAL}
+              options={(['US', 'GB'] as const).map((b) => ({
+                value: b,
+                label: (
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                    <Box component="img" src={`https://flagcdn.com/w40/${b === 'US' ? 'us' : 'gb'}.png`} alt="" sx={{ width: 18, height: 13, objectFit: 'cover', borderRadius: '2px', display: 'block' }} />
+                    {b === 'US' ? 'US' : 'UK'}
+                  </Box>
+                ),
+              }))}
+            />
           </Box>
 
           {/* Priority toggle */}
@@ -413,25 +507,19 @@ export function PublicWhatIfCalculator() {
                 <InfoOutlined sx={{ fontSize: '18px' }} />
               </IconButton>
             </Tooltip>
-            <Box sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '9999px', p: '3px', display: 'flex', gap: '2px' }}>
-              {(['incentive', 'full', 'location'] as const).map((p) => (
-                <Button
-                  key={p}
-                  onClick={() => setPriority(p)}
-                  sx={{
-                    bgcolor: priority === p ? '#F5C800' : 'transparent',
-                    color: priority === p ? '#000000' : '#999999',
-                    fontFamily: font,
-                    fontWeight: priority === p ? 700 : 400,
-                    fontSize: '13px', px: 3, py: 1,
-                    borderRadius: '9999px', textTransform: 'none', minWidth: 'auto',
-                    '&:hover': { bgcolor: priority === p ? '#F5C800' : 'rgba(0,0,0,0.04)' },
-                  }}
-                >
-                  {p === 'incentive' ? 'Maximise Incentive' : p === 'full' ? 'Full Picture' : 'Location First'}
-                </Button>
-              ))}
-            </Box>
+            <SegmentedToggle
+              radius={9999}
+              value={priority}
+              onChange={() => { /* only 'incentive' is selectable for guests */ }}
+              onLocked={() => navigate('/signup')}
+              fontFamily={font}
+              palette={PUBLIC_TOGGLE_PAL}
+              options={[
+                { value: 'incentive', label: 'Maximise Incentive' },
+                { value: 'full', label: 'Full Picture', locked: true, lockedHint: 'Sign up free to unlock Full Picture & Location First' },
+                { value: 'location', label: 'Location First', locked: true, lockedHint: 'Sign up free to unlock Full Picture & Location First' },
+              ]}
+            />
           </Box>
         </Box>
 
@@ -511,198 +599,35 @@ export function PublicWhatIfCalculator() {
                 </Box>
               </Box>
 
-              {/* Body rows */}
+              {/* Body rows — first 5 open, a short blurred strip behind the CTA */}
               <Box>
-                {territories.map((t, index) => {
-                  const isTopScore = index === 0;
-                  return (
-                    <Box
-                      key={t.territory}
-                      sx={{
-                        display: 'flex',
-                        bgcolor: index % 2 === 0 ? '#FFFFFF' : '#FAFAF8',
-                        minHeight: '52px', alignItems: 'center', px: 2,
-                        borderBottom: '1px solid rgba(0,0,0,0.04)',
-                        minWidth: '720px',
-                        '&:hover': { bgcolor: 'rgba(245,200,0,0.04)' },
-                      }}
-                    >
-                      {/* Territory */}
-                      <Box sx={{ width: '220px', display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography sx={{ fontSize: '18px' }}>{isoToFlag(t.iso)}</Typography>
-                        <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#111111' }}>
-                          {t.territory}
-                        </Typography>
-                        {isTopScore && (
-                          <Chip
-                            label="TOP"
-                            sx={{
-                              bgcolor: '#F5C800', color: '#000000',
-                              fontFamily: font, fontWeight: 700, fontSize: '10px',
-                              height: '20px', textTransform: 'uppercase', borderRadius: '10px',
-                            }}
-                          />
-                        )}
-                      </Box>
-
-                      {/* Programme */}
-                      <Box sx={{ flex: 1, minWidth: '160px' }}>
-                        <Tooltip title={t.programme_note || ''} disableHoverListener={!t.programme_note}>
-                          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555' }}>
-                            {t.programme}
-                          </Typography>
-                        </Tooltip>
-                      </Box>
-
-                      {/* Rate */}
-                      <Box sx={{ width: '120px' }}>
-                        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#111111' }}>
-                          {t.rate_display}
-                        </Typography>
-                      </Box>
-
-                      {/* Est. Incentive */}
-                      <Box sx={{ width: '160px' }}>
-                        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#1A8C4E' }}>
-                          {t.estimated_rebate_display}
-                        </Typography>
-                        {t.vfx_uplift_display && (
-                          <Typography sx={{ fontFamily: font, fontSize: '10px', color: '#999', fontStyle: 'italic' }}>
-                            +{t.vfx_uplift_display} VFX
-                          </Typography>
-                        )}
-                      </Box>
-
-                      {/* Score */}
-                      <Box sx={{ width: '80px' }}>
-                        <Typography
-                          sx={{
-                            fontFamily: font, fontWeight: 700, fontSize: '14px',
-                            color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999',
-                          }}
-                        >
-                          {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>/100</Typography>
-                        </Typography>
-                      </Box>
+                {visibleTerritories.map((t, index) => renderDesktopRow(t, index))}
+                {lockedTerritories.length > 0 && (
+                  <Box sx={{ position: 'relative', maxHeight: 210, overflow: 'hidden' }}>
+                    <Box sx={{ filter: 'blur(5px)', pointerEvents: 'none', userSelect: 'none' }} aria-hidden>
+                      {lockedTerritories.slice(0, 4).map((t, index) => renderDesktopRow(t, FREE_VISIBLE + index))}
                     </Box>
-                  );
-                })}
+                    {lockedCTA}
+                  </Box>
+                )}
               </Box>
             </Box>
 
-            {/* Mobile card view — same data as the table above, stacked one card per territory */}
-            <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-              {territories.map((t, index) => {
-                const isTopScore = index === 0;
-                const cells = [
-                  { label: 'Programme', value: t.programme, valueColor: '#111111' },
-                  { label: 'Incentive Rate', value: t.rate_display, valueColor: '#111111' },
-                  {
-                    label: 'Est. Incentive',
-                    value: t.vfx_uplift_display
-                      ? `${t.estimated_rebate_display} (+${t.vfx_uplift_display} VFX)`
-                      : t.estimated_rebate_display,
-                    valueColor: '#1A8C4E',
-                  },
-                ];
-                return (
-                  <Box
-                    key={t.territory}
-                    sx={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px', p: 2, mb: 1.5, bgcolor: '#FFFFFF' }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Typography sx={{ fontSize: '20px' }}>{isoToFlag(t.iso)}</Typography>
-                      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: '#111111', flex: 1 }}>
-                        {t.territory}
-                      </Typography>
-                      {isTopScore && (
-                        <Chip
-                          label="TOP"
-                          sx={{
-                            bgcolor: '#F5C800', color: '#000000', fontFamily: font, fontWeight: 700,
-                            fontSize: '10px', height: '20px', textTransform: 'uppercase', borderRadius: '10px',
-                          }}
-                        />
-                      )}
-                      <Typography
-                        sx={{
-                          fontFamily: font, fontWeight: 700, fontSize: '15px',
-                          color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999',
-                        }}
-                      >
-                        {t.overall_score}
-                        <Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>
-                          /100
-                        </Typography>
-                      </Typography>
-                    </Box>
-                    {cells.map((cell) => (
-                      <Box
-                        key={cell.label}
-                        sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5, borderTop: '1px solid rgba(0,0,0,0.04)' }}
-                      >
-                        <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#999999' }}>
-                          {cell.label}
-                        </Typography>
-                        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '13px', color: cell.valueColor, textAlign: 'right' }}>
-                          {cell.value}
-                        </Typography>
-                      </Box>
-                    ))}
+            {/* Mobile card view — first 5 open, a short blurred strip behind the CTA */}
+            <Box sx={{ display: { xs: 'block', md: 'none' }, p: 1.5 }}>
+              {visibleTerritories.map((t) => renderMobileCard(t))}
+              {lockedTerritories.length > 0 && (
+                <Box sx={{ position: 'relative', maxHeight: 260, overflow: 'hidden' }}>
+                  <Box sx={{ filter: 'blur(5px)', pointerEvents: 'none', userSelect: 'none' }} aria-hidden>
+                    {lockedTerritories.slice(0, 2).map((t) => renderMobileCard(t))}
                   </Box>
-                );
-              })}
+                  {lockedCTA}
+                </Box>
+              )}
             </Box>
           </Box>
         )}
 
-        {/* Sign-up CTA Banner */}
-        <Box
-          sx={{
-            bgcolor: '#000000', borderRadius: '12px',
-            border: '1px solid rgba(212,175,55,0.3)',
-            p: { xs: 3, sm: 4 }, mb: 4,
-            display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            justifyContent: 'space-between', gap: 3,
-          }}
-        >
-          <Box>
-            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '16px', sm: '18px' }, color: '#FFFFFF', mb: 1 }}>
-              Unlock the full picture
-            </Typography>
-            <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#a0a0a0', lineHeight: 1.6 }}>
-              Sign up for free to see currency advantage, net saving, minimum spend,
-              payment timelines, and upload your own script for a complete production report.
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1.5, flexShrink: 0 }}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/login')}
-              sx={{
-                borderColor: 'rgba(212,175,55,0.6)', color: '#D4AF37',
-                fontFamily: font, fontWeight: 700, fontSize: '13px',
-                height: '40px', px: 3, borderRadius: '8px', textTransform: 'none',
-                '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212,175,55,0.08)' },
-              }}
-            >
-              Log In
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/signup')}
-              sx={{
-                bgcolor: '#D4AF37', color: '#000000',
-                fontFamily: font, fontWeight: 700, fontSize: '13px',
-                height: '40px', px: 3, borderRadius: '8px', textTransform: 'none',
-                '&:hover': { bgcolor: '#B8941F' },
-              }}
-            >
-              Sign Up Free →
-            </Button>
-          </Box>
-        </Box>
       </Container>
     </Box>
   );

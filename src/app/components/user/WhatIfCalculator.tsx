@@ -13,10 +13,12 @@ import {
   MenuItem,
   type SelectChangeEvent,
 } from '@mui/material';
-import { InfoOutlined } from '@mui/icons-material';
+import { InfoOutlined, LockOutlined } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { DataTable } from '@/app/components/user/b2c/DataTable';
 import logoBlack from '@/assets/ddbe9f875b0128308d18010a516a1a848d4b7b77.png';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
-import { ResultsGate } from '@/app/components/common/PlanGate';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 import { useThemeMode } from '@/app/theme/AppTheme';
 import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
@@ -44,6 +46,10 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 const CURRENCIES = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'ZAR'] as const;
+// Free-plan gating: preview the top 5 ranked territories, blur the rest behind
+// an upgrade CTA; only the two headline currencies are selectable.
+const FREE_VISIBLE = 5;
+const FREE_CURRENCIES = ['USD', 'GBP'] as const;
 const FORMATS = [
   'Feature Film', 'TV Series', 'Limited Series', 'Documentary',
   'Short Film', 'Animation', 'Animated Feature', 'Mini Series',
@@ -134,12 +140,19 @@ export const SCORE_WEIGHTS_INFO = {
 // ── Component ─────────────────────────────────────────────────────────────────
 export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = {}) {
   const { hasAccess } = usePlanGate('professional');
+  const navigate = useNavigate();
+  // Free plan (no professional access) sees a gated preview: 5 territories,
+  // Maximise Incentive only, USD/GBP only.
+  const isFree = !hasAccess;
+  const currencyOptions = isFree ? FREE_CURRENCIES : CURRENCIES;
 
   // Inputs
   const [budget, setBudget] = useState(4_000_000);
   const [budgetCurrency, setBudgetCurrency] = useState('GBP');
   const [vfxAllocation, setVfxAllocation] = useState(0);
   const [priority, setPriority] = useState<'incentive' | 'full' | 'location'>('full');
+  // Free users are locked to Maximise Incentive regardless of the toggle state.
+  const effPriority: 'incentive' | 'full' | 'location' = isFree ? 'incentive' : priority;
   const [format, setFormat] = useState('Feature Film');
   const [baseline, setBaseline] = useState<'GB' | 'US'>('GB');
 
@@ -155,7 +168,6 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
 
   // Debounced fetch
   const fetchScenario = useCallback(() => {
-    if (!hasAccess) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     setStale(true);
 
@@ -168,7 +180,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
         budget_currency: budgetCurrency,
         vfx_pct: vfxAllocation,
         production_format: format,
-        production_priority: priority,
+        production_priority: effPriority,
         baseline,
       });
 
@@ -229,7 +241,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
   }
 
   // ── Score tooltip content ─────────────────────────────────────────────────
-  const scoreWeights = SCORE_WEIGHTS_INFO[priority];
+  const scoreWeights = SCORE_WEIGHTS_INFO[effPriority];
   const scoreTooltipContent = (
     <Box sx={{ p: 1 }}>
       <Typography sx={{ fontWeight: 700, fontSize: '12px', mb: 1.5, color: '#F5C800' }}>
@@ -237,7 +249,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
       </Typography>
       <Typography sx={{ fontSize: '11px', color: '#A0A7B8', mb: 1.5, lineHeight: 1.5 }}>
         Weighted across 6 dimensions for <strong style={{ color: '#fff' }}>
-          {priority === 'incentive' ? 'Maximise Incentive' : priority === 'full' ? 'Full Picture' : 'Location First'}
+          {effPriority === 'incentive' ? 'Maximise Incentive' : effPriority === 'full' ? 'Full Picture' : 'Location First'}
         </strong> mode:
       </Typography>
       {scoreWeights.map((w) => {
@@ -313,13 +325,15 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
     : selectSx;
 
   // When embedded, push the Export action into the dashboard top bar.
+  // Export is a paid feature — free users see the upgrade CTA over the results
+  // instead, so no export button is registered for them.
   useHeaderActions(
-    embedded ? (
+    embedded && !isFree ? (
       <Button variant="outlined" onClick={handleExport} disabled={!territories.length} sx={{ whiteSpace: 'nowrap' }}>
         Export to CSV
       </Button>
     ) : null,
-    [embedded, territories.length],
+    [embedded, isFree, territories.length],
   );
 
   return (
@@ -401,7 +415,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                   size="small"
                   sx={{ ...selectSxLocal, minWidth: '80px' }}
                 >
-                  {CURRENCIES.map((c) => (
+                  {currencyOptions.map((c) => (
                     <MenuItem key={c} value={c}>{c}</MenuItem>
                   ))}
                 </Select>
@@ -462,28 +476,21 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
             <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: pal.label, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Baseline
             </Typography>
-            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '10px', p: '3px', display: 'flex', gap: '2px' }}>
-              {(['US', 'GB'] as const).map((b) => (
-                <Button
-                  key={b}
-                  onClick={() => setBaseline(b)}
-                  sx={{
-                    bgcolor: baseline === b ? pal.accent : 'transparent',
-                    color: baseline === b ? pal.accentText : pal.toggleInactive,
-                    fontFamily: font,
-                    fontWeight: baseline === b ? 700 : 400,
-                    fontSize: '12px', px: 1.75, py: 0.5, whiteSpace: 'nowrap',
-                    borderRadius: '8px', textTransform: 'none', minWidth: 'auto',
-                    '&:hover': { bgcolor: baseline === b ? pal.accent : pal.toggleHover },
-                  }}
-                >
+            <SegmentedToggle
+              value={baseline}
+              onChange={(v) => setBaseline(v as 'US' | 'GB')}
+              fontFamily={font}
+              palette={{ bg: pal.toggleBg, border: pal.toggleBorder, activeBg: pal.accent, activeText: pal.accentText, inactiveText: pal.toggleInactive }}
+              options={(['US', 'GB'] as const).map((b) => ({
+                value: b,
+                label: (
                   <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
                     <Box component="img" src={`https://flagcdn.com/w40/${b === 'US' ? 'us' : 'gb'}.png`} alt="" sx={{ width: 18, height: 13, objectFit: 'cover', borderRadius: '2px', display: 'block' }} />
                     {b === 'US' ? 'US' : 'UK'}
                   </Box>
-                </Button>
-              ))}
-            </Box>
+                ),
+              }))}
+            />
           </Box>
 
           {/* Priority toggle */}
@@ -530,25 +537,18 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                 <InfoOutlined sx={{ fontSize: '18px' }} />
               </IconButton>
             </Tooltip>
-            <Box sx={{ bgcolor: pal.toggleBg, border: `1px solid ${pal.toggleBorder}`, borderRadius: '10px', p: '3px', display: 'flex', gap: '2px' }}>
-              {(['incentive', 'full', 'location'] as const).map((p) => (
-                <Button
-                  key={p}
-                  onClick={() => setPriority(p)}
-                  sx={{
-                    bgcolor: priority === p ? pal.accent : 'transparent',
-                    color: priority === p ? pal.accentText : pal.toggleInactive,
-                    fontFamily: font,
-                    fontWeight: priority === p ? 700 : 400,
-                    fontSize: '13px', px: 2.25, py: 0.9, whiteSpace: 'nowrap',
-                    borderRadius: '8px', textTransform: 'none', minWidth: 'auto', lineHeight: 1.2,
-                    '&:hover': { bgcolor: priority === p ? pal.accent : pal.toggleHover },
-                  }}
-                >
-                  {p === 'incentive' ? 'Maximise Incentive' : p === 'full' ? 'Full Picture' : 'Location First'}
-                </Button>
-              ))}
-            </Box>
+            <SegmentedToggle
+              value={effPriority}
+              onChange={(v) => setPriority(v as 'incentive' | 'full' | 'location')}
+              onLocked={() => navigate('/pricing')}
+              fontFamily={font}
+              palette={{ bg: pal.toggleBg, border: pal.toggleBorder, activeBg: pal.accent, activeText: pal.accentText, inactiveText: pal.toggleInactive }}
+              options={[
+                { value: 'incentive', label: 'Maximise Incentive' },
+                { value: 'full', label: 'Full Picture', locked: isFree, lockedHint: 'Upgrade to unlock Full Picture & Location First' },
+                { value: 'location', label: 'Location First', locked: isFree, lockedHint: 'Upgrade to unlock Full Picture & Location First' },
+              ]}
+            />
           </Box>
         </Box>
 
@@ -566,54 +566,9 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
           </Box>
         )}
 
-        {/* Locked results preview for free users */}
-        {!hasAccess && (
-          <ResultsGate plan="professional" featureName="What If Calculator">
-            <Box
-              sx={{
-                bgcolor: pal.cardBg, borderRadius: '12px',
-                border: `1px solid ${pal.cardBorder}`,
-                boxShadow: pal.cardShadow,
-                overflow: 'hidden',
-              }}
-            >
-              {/* Preview header row */}
-              <Box
-                sx={{
-                  display: 'flex', bgcolor: pal.headStripe,
-                  height: '44px', alignItems: 'center', px: 2,
-                  borderBottom: `1px solid ${pal.rowBorder}`,
-                  minWidth: '1320px', gap: 2,
-                }}
-              >
-                {['Territory', 'Programme', 'Incentive Rate', 'Est. Incentive', 'Currency Adv.', 'NET SAVING', 'Min Spend', 'Payment', 'Score /100'].map((col) => (
-                  <Box key={col} sx={{ flex: col === 'Territory' ? '0 0 200px' : '0 0 120px' }}>
-                    <Typography sx={{ ...headerCellSx }}>{col}</Typography>
-                  </Box>
-                ))}
-              </Box>
-              {/* Preview placeholder rows */}
-              {[1, 2, 3, 4].map((i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    display: 'flex', alignItems: 'center', px: 2,
-                    minHeight: '52px', borderBottom: `1px solid ${pal.rowBorder}`,
-                    bgcolor: i % 2 === 0 ? pal.rowAlt : pal.rowBase, minWidth: '1320px', gap: 2,
-                  }}
-                >
-                  <Box sx={{ flex: '0 0 200px', height: 14, bgcolor: pal.skeleton, borderRadius: 1 }} />
-                  {[120, 80, 110, 110, 110, 90, 100, 70].map((w, j) => (
-                    <Box key={j} sx={{ flex: `0 0 ${w}px`, height: 12, bgcolor: pal.skeleton2, borderRadius: 1 }} />
-                  ))}
-                </Box>
-              ))}
-            </Box>
-          </ResultsGate>
-        )}
-
-        {/* Territory Comparison Table */}
-        {hasAccess && territories.length > 0 && (
+        {/* Territory Comparison Table. Free users see a 5-row gated preview (the
+            blurred bespoke card); paid users get the readable, filterable grid. */}
+        {territories.length > 0 && (isFree ? (
           <Box
             sx={{
               bgcolor: pal.cardBg, borderRadius: '12px',
@@ -703,12 +658,13 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
               </Box>
             </Box>
 
-            {/* Body rows */}
-            <Box>
+            {/* Body rows — scrollable; free users get a 5-row preview, rest blurred */}
+            <Box sx={{ maxHeight: isFree ? 330 : 560, overflowY: isFree ? 'hidden' : 'auto' }}>
               {/* Data Rows */}
               {territories.map((t, index) => {
                 const caVal = caValue(t);
-                const isTopScore = index === 0;
+                const locked = isFree && index >= FREE_VISIBLE;
+                const isTopScore = index === 0 && !isFree;
 
                 return (
                   <Box
@@ -720,6 +676,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                       borderBottom: `1px solid ${pal.rowBorder}`,
                       minWidth: '1420px',
                       '&:hover': { bgcolor: pal.rowHover },
+                      ...(locked ? { filter: 'blur(4px)', pointerEvents: 'none', userSelect: 'none' } : {}),
                     }}
                   >
                     {/* Territory */}
@@ -857,8 +814,75 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
               })}
             </Box>
             </Box>
+            {isFree && territories.length > FREE_VISIBLE && (
+              <Box
+                sx={{
+                  position: 'absolute', left: 0, right: 0, bottom: 0, height: '58%', zIndex: 6,
+                  pointerEvents: 'none', display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', textAlign: 'center', pb: 2, px: 2,
+                  background: `linear-gradient(180deg, rgba(0,0,0,0) 0%, ${pal.cardBg} 42%)`,
+                }}
+              >
+                <LockOutlined sx={{ color: pal.accent, fontSize: 28 }} />
+                <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: pal.value, mt: 1 }}>
+                  {territories.length - FREE_VISIBLE} more territories
+                </Typography>
+                <Typography sx={{ fontFamily: font, fontSize: '13px', color: pal.subtext, maxWidth: 380, mt: 0.5 }}>
+                  Upgrade to compare all {territories.length} territories, unlock every currency and scoring mode, and export your results.
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={() => navigate('/pricing')}
+                  sx={{ pointerEvents: 'auto', mt: 1.5, bgcolor: pal.accent, color: pal.accentText, fontFamily: font, fontWeight: 700, fontSize: '13px', height: '40px', px: 3, borderRadius: '8px', textTransform: 'none', '&:hover': { bgcolor: pal.accent, opacity: 0.9 } }}
+                >
+                  Upgrade to unlock →
+                </Button>
+              </Box>
+            )}
           </Box>
-        )}
+        ) : (
+          <Box sx={{ mb: 4 }}>
+            <DataTable<TerritoryScenario>
+              rows={territories}
+              getRowId={(t2) => t2.territory}
+              minWidth={1680}
+              maxHeight={embedded ? 560 : 640}
+              columns={[
+                { key: 'territory', header: 'TERRITORY', width: '190px', render: (t2) => (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography sx={{ fontSize: '18px' }}>{isoToFlag(t2.iso)}</Typography>
+                    <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: pal.value }}>{t2.territory}</Typography>
+                  </Box>
+                ) },
+                { key: 'programme', header: 'PROGRAMME', width: '240px', render: (t2) => (
+                  <Typography noWrap title={t2.programme_note || t2.programme || ''} sx={{ fontFamily: font, fontSize: '13px', color: pal.subtext }}>{t2.programme}</Typography>
+                ) },
+                { key: 'rate_display', header: 'INCENTIVE RATE', width: '170px', render: (t2) => <Typography noWrap title={t2.rate_display || ''} sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: pal.value }}>{t2.rate_display}</Typography> },
+                { key: 'bankability_label', header: 'BANKABILITY', width: '120px', render: (t2) => (
+                  t2.bankability_label
+                    ? <Chip label={t2.bankability_label} size="small" sx={{ height: 22, fontSize: '10px', fontWeight: 700, fontFamily: font, bgcolor: t2.bankability_label === 'BANKABLE' ? 'rgba(26,140,78,0.12)' : t2.bankability_label === 'VERIFY FIRST' ? 'rgba(177,119,13,0.12)' : 'rgba(192,57,43,0.12)', color: t2.bankability_label === 'BANKABLE' ? '#1A8C4E' : t2.bankability_label === 'VERIFY FIRST' ? '#B7770D' : '#C0392B', border: '1px solid currentColor' }} />
+                    : <Typography sx={{ fontFamily: font, fontSize: '14px', color: pal.muted }}>N/A</Typography>
+                ) },
+                { key: 'financial_return_score', header: 'FRS /100', width: '100px', sortValue: (t2) => t2.financial_return_score ?? -1, render: (t2) => (
+                  t2.financial_return_score != null
+                    ? <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: t2.financial_return_verdict === 'Bankable' ? '#1A8C4E' : t2.financial_return_verdict === 'Verify First' ? '#B7770D' : '#C0392B' }}>{t2.financial_return_score}<Typography component="span" sx={{ fontWeight: 400, fontSize: '11px', color: pal.muted }}>/100</Typography></Typography>
+                    : <Typography sx={{ fontFamily: font, fontSize: '14px', color: pal.muted }}>N/A</Typography>
+                ) },
+                { key: 'estimated_rebate_display', header: 'EST. INCENTIVE', width: '140px', render: (t2) => <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#1A8C4E' }}>{t2.estimated_rebate_display}{t2.vfx_uplift_display ? ` (+${t2.vfx_uplift_display} VFX)` : ''}</Typography> },
+                { key: 'currency_advantage', header: '~ CURRENCY ADV.', width: '140px', sortValue: (t2) => caValue(t2), render: (t2) => {
+                  const cv = caValue(t2);
+                  return cv !== 0
+                    ? <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: valueColor(cv) }}>{cv > 0 ? '+' : ''}{formatLargeNumber(Math.round(cv), sym)}</Typography>
+                    : <Typography sx={{ fontFamily: font, fontSize: '14px', color: pal.muted }}>N/A</Typography>;
+                } },
+                { key: 'net_saving_display', header: 'NET SAVING', width: '140px', render: (t2) => <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: '#D4AF37' }}>{t2.net_saving_display}</Typography> },
+                { key: 'min_spend', header: 'MIN SPEND', width: '140px', render: (t2) => <Typography sx={{ fontFamily: font, fontSize: '13px', color: pal.subtext }}>{t2.min_spend || '—'}</Typography> },
+                { key: 'payment_timeline', header: 'PAYMENT', width: '200px', render: (t2) => <Tooltip title={t2.payment_timeline || ''}><Typography sx={{ fontFamily: font, fontSize: '13px', color: pal.subtext }}>{t2.payment_timeline || '—'}</Typography></Tooltip> },
+                { key: 'overall_score', header: 'SCORE /100', width: '100px', render: (t2) => <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: t2.overall_score >= 60 ? '#1A8C4E' : t2.overall_score >= 40 ? '#D4AF37' : '#999' }}>{t2.overall_score}<Typography component="span" sx={{ fontWeight: 400, fontSize: '11px', color: pal.muted }}>/100</Typography></Typography> },
+              ]}
+            />
+          </Box>
+        ))}
       </Container>
     </Box>
   );

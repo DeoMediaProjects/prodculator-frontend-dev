@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
   OutlinedInput, Chip, Checkbox, ListItemText, FormHelperText, FormControlLabel, Link,
-  CircularProgress, useMediaQuery, useTheme, Drawer, Badge,
+  CircularProgress, useMediaQuery, useTheme, Drawer,
 } from '@mui/material';
 import {
   ArrowBack, CloudUpload, CheckCircle, Close, LightModeOutlined, DarkModeOutlined,
-  NotificationsNoneOutlined, Menu as MenuIcon, Check,
+  Menu as MenuIcon, Check,
 } from '@mui/icons-material';
 import { useScript, ReportTimeoutError, type ScriptMetadata } from '@/app/contexts/ScriptContext';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -16,7 +16,9 @@ import { useToast } from '@/app/hooks/useToast';
 import { useTerritories } from '@/app/hooks/useTerritories';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
-import { Sidebar, SIDEBAR_W } from './Sidebar';
+import { Sidebar, SIDEBAR_W, SIDEBAR_COLLAPSED_W, useSidebarCollapsed } from './Sidebar';
+import { NotificationBell } from './NotificationBell';
+import { SegmentedToggle } from './SegmentedToggle';
 
 // Continent grouping for the territory picker — identical mapping to ScriptUpload
 // so the wizard yields the same intake payload the engine already understands.
@@ -83,6 +85,7 @@ export function AnalysisWizard() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { collapsed, toggle: toggleCollapsed } = useSidebarCollapsed();
 
   const { generateAnalysis } = useScript();
   const { isAuthenticated } = useAuth();
@@ -628,7 +631,9 @@ export function AnalysisWizard() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: t.pageBg }}>
       {isDesktop ? (
-        <Box sx={{ width: SIDEBAR_W, flexShrink: 0, position: 'sticky', top: 0, height: '100vh' }}><Sidebar /></Box>
+        <Box sx={{ width: collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W, flexShrink: 0, position: 'sticky', top: 0, height: '100vh', transition: 'width .22s ease' }}>
+          <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
+        </Box>
       ) : (
         <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} PaperProps={{ sx: { border: 'none' } }}>
           <Sidebar onNavigate={() => setMobileOpen(false)} />
@@ -648,18 +653,21 @@ export function AnalysisWizard() {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ display: 'flex', border: `1px solid ${t.border}`, borderRadius: '12px', overflow: 'hidden' }}>
-              <IconButton onClick={() => mode !== 'light' && toggle()} sx={{ borderRadius: 0, bgcolor: mode === 'light' ? t.gold : 'transparent', color: mode === 'light' ? '#1C1A16' : t.textSecondary }}><LightModeOutlined sx={{ fontSize: 18 }} /></IconButton>
-              <IconButton onClick={() => mode !== 'dark' && toggle()} sx={{ borderRadius: 0, bgcolor: mode === 'dark' ? t.gold : 'transparent', color: mode === 'dark' ? '#1C1A16' : t.textSecondary }}><DarkModeOutlined sx={{ fontSize: 18 }} /></IconButton>
-            </Box>
+            <SegmentedToggle
+              radius={12}
+              value={mode}
+              onChange={(v) => v !== mode && toggle()}
+              options={[
+                { value: 'light', icon: <LightModeOutlined sx={{ fontSize: 18 }} /> },
+                { value: 'dark', icon: <DarkModeOutlined sx={{ fontSize: 18 }} /> },
+              ]}
+            />
             {isLast ? (
               <Button onClick={handleGenerate} variant="contained" sx={{ whiteSpace: 'nowrap' }}>Generate report</Button>
             ) : (
               <Button onClick={handleContinue} variant="contained" sx={{ whiteSpace: 'nowrap' }}>Continue</Button>
             )}
-            <Badge badgeContent={0} color="primary" overlap="rectangular" sx={{ '& .MuiBadge-badge': { top: 5, right: 5 }, display: { xs: 'none', sm: 'inline-flex' } }}>
-              <IconButton sx={{ border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textSecondary }}><NotificationsNoneOutlined sx={{ fontSize: 20 }} /></IconButton>
-            </Badge>
+            <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}><NotificationBell /></Box>
           </Box>
         </Box>
 

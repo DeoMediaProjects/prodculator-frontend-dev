@@ -10,6 +10,7 @@ import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
 import { downloadReportPDF } from '@/services/report-pdf.service';
+import { DataTable } from './DataTable';
 
 interface ReportRow {
   id: string;
@@ -188,44 +189,37 @@ export function DashboardHome() {
           <Button variant="contained" startIcon={<FileDownloadOutlined />} onClick={() => navigate('/analysis/new')}>Upload First Script</Button>
         </Box>
       ) : (
-        <Box sx={{ ...card, overflow: 'hidden' }}>
-          {/* The list is capped and scrolls inside its own container so the page
-              layout never grows/reflows as reports accumulate. */}
-          <Box sx={{ overflowX: 'auto', maxHeight: 360, overflowY: 'auto' }}>
-            <Box sx={{ minWidth: 760 }}>
-              {/* header (pinned) */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.2fr 1.4fr 1.1fr 0.9fr', px: 2.5, py: 1.5, borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, zIndex: 1, bgcolor: t.cardBg }}>
-                {['PROJECT', 'TYPE', 'DATE', 'TOP TERRITORY', 'STATUS', 'ACTIONS'].map((h) => (
-                  <Typography key={h} sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: t.textSecondary }}>{h}</Typography>
-                ))}
+        <DataTable
+          rows={reports}
+          getRowId={(r) => r.id}
+          onRowClick={(r) => navigate(`/report/${r.id}`)}
+          maxHeight={400}
+          columns={[
+            { key: 'title', header: 'PROJECT', width: '2fr', render: (r) => <Typography sx={{ fontWeight: 700, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</Typography> },
+            { key: 'reportType', header: 'TYPE', width: '1fr', render: (r) => <Typography sx={{ color: t.textSecondary, fontSize: 14 }}>{r.reportType}</Typography> },
+            { key: 'createdAt', header: 'DATE', width: '1.2fr', sortValue: (r) => new Date(r.createdAt).getTime() || 0, render: (r) => <Typography sx={{ color: t.textSecondary, fontSize: 14, whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</Typography> },
+            { key: 'topTerritory', header: 'TOP TERRITORY', width: '1.4fr', render: (r) => <Typography sx={{ color: t.textPrimary, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.topTerritory}</Typography> },
+            { key: 'status', header: 'STATUS', width: '1.1fr', render: (r) => (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: statusColor(r.status) }} />
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: statusColor(r.status) }}>{r.status}</Typography>
               </Box>
-              {/* rows */}
-              {reports.map((r) => (
-                <Box key={r.id} sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.2fr 1.4fr 1.1fr 0.9fr', alignItems: 'center', px: 2.5, py: 1.75, borderBottom: `1px solid ${t.borderSoft}`, '&:hover': { bgcolor: t.goldDim } }}>
-                  <Typography sx={{ fontWeight: 700, color: t.textPrimary, pr: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</Typography>
-                  <Typography sx={{ color: t.textSecondary, fontSize: 14 }}>{r.reportType}</Typography>
-                  <Typography sx={{ color: t.textSecondary, fontSize: 14, whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</Typography>
-                  <Typography sx={{ color: t.textPrimary, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pr: 1 }}>{r.topTerritory}</Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: statusColor(r.status) }} />
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: statusColor(r.status) }}>{r.status}</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 0.25 }}>
-                    <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/report/${r.id}`)} sx={{ color: t.gold }}><VisibilityOutlined fontSize="small" /></IconButton></Tooltip>
-                    <Tooltip title={r.pdfUrl ? 'Download PDF' : 'PDF not ready'}>
-                      <span><IconButton size="small" disabled={!r.pdfUrl || downloadingId === r.id} onClick={() => handleDownload(r)} sx={{ color: r.pdfUrl ? t.gold : t.textFaint }}>
-                        {downloadingId === r.id ? <CircularProgress size={16} sx={{ color: t.gold }} /> : <FileDownloadOutlined fontSize="small" />}
-                      </IconButton></span>
-                    </Tooltip>
-                    <Tooltip title="Delete"><span><IconButton size="small" disabled={deletingId === r.id} onClick={() => handleDelete(r.id, r.title)} sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}>
-                      {deletingId === r.id ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
-                    </IconButton></span></Tooltip>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        </Box>
+            ) },
+          ]}
+          rowActions={(r) => (
+            <>
+              <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/report/${r.id}`)} sx={{ color: t.gold }}><VisibilityOutlined fontSize="small" /></IconButton></Tooltip>
+              <Tooltip title={r.pdfUrl ? 'Download PDF' : 'PDF not ready'}>
+                <span><IconButton size="small" disabled={!r.pdfUrl || downloadingId === r.id} onClick={() => handleDownload(r)} sx={{ color: r.pdfUrl ? t.gold : t.textFaint }}>
+                  {downloadingId === r.id ? <CircularProgress size={16} sx={{ color: t.gold }} /> : <FileDownloadOutlined fontSize="small" />}
+                </IconButton></span>
+              </Tooltip>
+              <Tooltip title="Delete"><span><IconButton size="small" disabled={deletingId === r.id} onClick={() => handleDelete(r.id, r.title)} sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}>
+                {deletingId === r.id ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
+              </IconButton></span></Tooltip>
+            </>
+          )}
+        />
       )}
     </Box>
   );

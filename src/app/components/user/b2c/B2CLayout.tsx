@@ -1,14 +1,16 @@
 import { useState, type ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { HeaderActionsContext } from './headerActions';
-import { Sidebar, SIDEBAR_W } from './Sidebar';
+import { Sidebar, SIDEBAR_W, SIDEBAR_COLLAPSED_W, useSidebarCollapsed } from './Sidebar';
 import {
-  Box, Drawer, IconButton, Button, Typography, Badge, useMediaQuery, useTheme,
+  Box, Drawer, IconButton, Button, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
 import {
-  LightModeOutlined, DarkModeOutlined, Add, NotificationsNoneOutlined, Menu as MenuIcon,
+  LightModeOutlined, DarkModeOutlined, Add, Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { NotificationBell } from './NotificationBell';
+import { SegmentedToggle } from './SegmentedToggle';
 
 // eyebrow + title + optional description per route. The description lives in the
 // top bar so pages don't repeat a title/subtitle in their content.
@@ -29,6 +31,7 @@ export function B2CLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
+  const { collapsed, toggle: toggleCollapsed } = useSidebarCollapsed();
 
   const meta = pageMeta(location.pathname);
   // The Timeline page has its own "Add Milestone" action; hide the global
@@ -40,7 +43,9 @@ export function B2CLayout() {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: t.pageBg }}>
       {/* Sidebar: permanent on desktop, drawer on mobile */}
       {isDesktop ? (
-        <Box sx={{ width: SIDEBAR_W, flexShrink: 0, position: 'sticky', top: 0, height: '100vh' }}><Sidebar /></Box>
+        <Box sx={{ width: collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W, flexShrink: 0, position: 'sticky', top: 0, height: '100vh', transition: 'width .22s ease' }}>
+          <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
+        </Box>
       ) : (
         <Drawer open={mobileOpen} onClose={() => setMobileOpen(false)} PaperProps={{ sx: { border: 'none' } }}>
           <Sidebar onNavigate={() => setMobileOpen(false)} />
@@ -65,14 +70,15 @@ export function B2CLayout() {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             {/* Theme toggle */}
-            <Box sx={{ display: 'flex', border: `1px solid ${t.border}`, borderRadius: '12px', overflow: 'hidden' }}>
-              <IconButton onClick={() => mode !== 'light' && toggle()} sx={{ borderRadius: 0, bgcolor: mode === 'light' ? t.gold : 'transparent', color: mode === 'light' ? '#1C1A16' : t.textSecondary, '&:hover': { bgcolor: mode === 'light' ? t.gold : t.goldDim } }}>
-                <LightModeOutlined sx={{ fontSize: 18 }} />
-              </IconButton>
-              <IconButton onClick={() => mode !== 'dark' && toggle()} sx={{ borderRadius: 0, bgcolor: mode === 'dark' ? t.gold : 'transparent', color: mode === 'dark' ? '#1C1A16' : t.textSecondary, '&:hover': { bgcolor: mode === 'dark' ? t.gold : t.goldDim } }}>
-                <DarkModeOutlined sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Box>
+            <SegmentedToggle
+              radius={12}
+              value={mode}
+              onChange={(v) => v !== mode && toggle()}
+              options={[
+                { value: 'light', icon: <LightModeOutlined sx={{ fontSize: 18 }} /> },
+                { value: 'dark', icon: <DarkModeOutlined sx={{ fontSize: 18 }} /> },
+              ]}
+            />
             {/* Page-specific action buttons (Export CSV, Add Milestone, …) render here */}
             {headerActions}
             {!hideNewAnalysis && (
@@ -83,9 +89,7 @@ export function B2CLayout() {
                 <IconButton onClick={() => navigate('/analysis/new')} sx={{ display: { xs: 'inline-flex', sm: 'none' }, borderRadius: '10px', bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff' }}><Add /></IconButton>
               </>
             )}
-            <Badge badgeContent={0} color="primary" overlap="rectangular" sx={{ '& .MuiBadge-badge': { top: 5, right: 5 } }}>
-              <IconButton sx={{ border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textSecondary }}><NotificationsNoneOutlined sx={{ fontSize: 20 }} /></IconButton>
-            </Badge>
+            <NotificationBell />
           </Box>
         </Box>
 
