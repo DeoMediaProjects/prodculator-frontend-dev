@@ -6,7 +6,7 @@ import {
   CircularProgress, useMediaQuery, useTheme, Drawer,
 } from '@mui/material';
 import {
-  ArrowBack, CloudUpload, CheckCircle, Close, LightModeOutlined, DarkModeOutlined,
+  ArrowBack, CloudUpload, CheckCircle, LightModeOutlined, DarkModeOutlined,
   Menu as MenuIcon, Check,
 } from '@mui/icons-material';
 import { useScript, ReportTimeoutError, type ScriptMetadata } from '@/app/contexts/ScriptContext';
