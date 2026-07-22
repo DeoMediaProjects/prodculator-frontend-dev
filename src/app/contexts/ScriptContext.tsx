@@ -431,8 +431,12 @@ export function ScriptProvider({ children }: { children: ReactNode }) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const pollReportStatus = async (reportId: string): Promise<ReportStatusResponse> => {
-    const timeoutMs = 60000;
-    const pollIntervalMs = 3000;
+    // Generation typically takes 2–4 minutes, so the timeout must comfortably
+    // exceed that — a 60s window meant every normal report hit the timeout and
+    // got bounced to the dashboard. Poll a little more often so we navigate to
+    // the finished report promptly once it's ready.
+    const timeoutMs = 360000; // 6 minutes
+    const pollIntervalMs = 2500;
     const start = Date.now();
 
     while (Date.now() - start < timeoutMs) {

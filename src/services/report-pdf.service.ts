@@ -29,15 +29,27 @@ export async function downloadReportPDF(reportId: string, filename?: string): Pr
  * Open a backend-generated PDF report in a new browser tab.
  */
 export async function viewReportPDF(reportId: string): Promise<void> {
-  const blob = await apiClient.get<Blob>(`/api/reports/${reportId}/pdf`, {
-    auth: true,
-    responseType: 'blob',
-  });
-
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank', 'noopener');
-  // Revoke after a delay to allow the tab to load
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  // Open the tab SYNCHRONOUSLY inside the click gesture — if we wait for the
+  // fetch first, the browser's popup blocker kills window.open. We then point
+  // the already-open tab at the blob once it arrives.
+  const tab = window.open('', '_blank');
+  try {
+    const blob = await apiClient.get<Blob>(`/api/reports/${reportId}/pdf`, {
+      auth: true,
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(blob);
+    if (tab) {
+      tab.location.href = url;
+    } else {
+      // Popup was blocked despite the gesture — fall back to a same-tab open.
+      window.open(url, '_blank', 'noopener');
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    if (tab) tab.close();
+    throw err;
+  }
 }
 
 /**

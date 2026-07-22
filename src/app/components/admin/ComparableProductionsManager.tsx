@@ -165,7 +165,7 @@ function ComparableProductionsManagerContent() {
               },
             }}
           >
-            {syncing ? 'Syncing...' : 'Sync from TMDB'}
+            {syncing ? 'Syncing...' : 'Sync Catalog'}
           </Button>
           <Button
             variant="contained"
@@ -190,7 +190,7 @@ function ComparableProductionsManagerContent() {
       )}
       {syncResult && (
         <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSyncResult(null)}>
-          TMDB sync complete: {syncResult.imported} imported, {syncResult.skipped} skipped, {syncResult.total} total
+          Catalog sync complete: {syncResult.imported} imported, {syncResult.skipped} skipped, {syncResult.total} total
         </Alert>
       )}
       {loading && (
@@ -222,7 +222,7 @@ function ComparableProductionsManagerContent() {
                     {production.title}
                     {production.tmdbId && (
                       <Chip
-                        label="TMDB"
+                        label="Catalog"
                         size="small"
                         sx={{
                           ml: 1,
@@ -343,7 +343,7 @@ function ComparableProductionsManagerContent() {
               fullWidth
             />
             <TextField
-              label="TMDB ID (optional)"
+              label="Catalog ID (optional)"
               value={formData.tmdbId || ''}
               onChange={(e) => setFormData({ ...formData, tmdbId: e.target.value })}
               fullWidth

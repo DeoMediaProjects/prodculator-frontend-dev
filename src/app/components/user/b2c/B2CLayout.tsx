@@ -19,7 +19,9 @@ function pageMeta(path: string): { eyebrow: string; title: string; description?:
   if (path.startsWith('/dashboard/what-if')) return { eyebrow: 'DASHBOARD', title: 'What If Calculator', description: 'Compare financial returns across territories at your budget' };
   if (path.startsWith('/dashboard/timeline')) return { eyebrow: 'DASHBOARD', title: 'Production Timeline', description: 'Track your progress from analysis to production' };
   if (path.startsWith('/dashboard/account')) return { eyebrow: 'DASHBOARD', title: 'Account' };
-  return { eyebrow: 'WELCOME BACK', title: 'Dashboard' };
+  if (path.startsWith('/dashboard/reports')) return { eyebrow: 'DASHBOARD', title: 'All Reports', description: 'Every report you have generated' };
+  // Index route — matches the "Reports" item in the sidebar.
+  return { eyebrow: 'WELCOME BACK', title: 'Reports' };
 }
 
 export function B2CLayout() {
@@ -43,7 +45,7 @@ export function B2CLayout() {
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: t.pageBg }}>
       {/* Sidebar: permanent on desktop, drawer on mobile */}
       {isDesktop ? (
-        <Box sx={{ width: collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W, flexShrink: 0, position: 'sticky', top: 0, height: '100vh', transition: 'width .22s ease' }}>
+        <Box sx={{ width: collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W, flexShrink: 0, position: 'sticky', top: 0, height: '100vh', transition: 'width .22s ease', zIndex: (theme) => theme.zIndex.appBar }}>
           <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
         </Box>
       ) : (

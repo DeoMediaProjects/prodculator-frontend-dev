@@ -29,6 +29,7 @@ const SampleReport = lazy(() => import('../app/components/user/SampleReport').th
 const UserDashboard = lazy(() => import('../app/components/user/UserDashboard').then(m => ({ default: m.UserDashboard })));
 const B2CLayout = lazy(() => import('../app/components/user/b2c/B2CLayout').then(m => ({ default: m.B2CLayout })));
 const DashboardHome = lazy(() => import('../app/components/user/b2c/DashboardHome').then(m => ({ default: m.DashboardHome })));
+const AllReports = lazy(() => import('../app/components/user/b2c/AllReports').then(m => ({ default: m.AllReports })));
 const TimelinePage = lazy(() => import('../app/components/user/b2c/TimelinePage').then(m => ({ default: m.TimelinePage })));
 const AccountPage = lazy(() => import('../app/components/user/b2c/AccountPage').then(m => ({ default: m.AccountPage })));
 const TerritoriesPage = lazy(() => import('../app/components/user/b2c/TerritoriesPage').then(m => ({ default: m.TerritoriesPage })));
@@ -113,6 +114,7 @@ function AppContent() {
                   <Route path="/sample" element={<SampleReport />} />
                   <Route path="/dashboard" element={<B2CLayout />}>
                     <Route index element={<DashboardHome />} />
+                    <Route path="reports" element={<AllReports />} />
                     <Route path="territories" element={<TerritoriesPage />} />
                     <Route path="what-if" element={<WhatIfCalculator embedded />} />
                     <Route path="timeline" element={<TimelinePage />} />
