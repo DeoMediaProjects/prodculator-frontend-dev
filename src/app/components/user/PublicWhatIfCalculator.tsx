@@ -511,7 +511,6 @@ export function PublicWhatIfCalculator() {
               radius={9999}
               value={priority}
               onChange={() => { /* only 'incentive' is selectable for guests */ }}
-              onLocked={() => navigate('/signup')}
               fontFamily={font}
               palette={PUBLIC_TOGGLE_PAL}
               options={[
