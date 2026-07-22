@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Box, IconButton, Typography, Avatar, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
 import {
   DescriptionOutlined, CompareArrowsOutlined, CalculateOutlined, TimelineOutlined,
-  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight, CreditCardOutlined,
+  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight, HomeOutlined,
   ExpandLess,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -83,7 +83,6 @@ export function Sidebar({
   const derivedName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Guest';
   const displayName = savedName || derivedName;
   const initials = displayName.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
-  const planLabel = (user?.plan || 'free').toUpperCase();
 
   const isActive = (item: (typeof NAV)[number]) =>
     item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
@@ -168,9 +167,9 @@ export function Sidebar({
           transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
           slotProps={{ paper: { sx: { bgcolor: t.cardBg, border: `1px solid ${t.border}`, minWidth: 208, boxShadow: '0 8px 24px rgba(0,0,0,0.25)' } } }}
         >
-          <MenuItem onClick={() => { setAnchorEl(null); go('/pricing'); }} sx={{ color: t.textPrimary, py: 1.1 }}>
-            <ListItemIcon sx={{ color: t.textSecondary, minWidth: 34 }}><CreditCardOutlined sx={{ fontSize: 20 }} /></ListItemIcon>
-            {planLabel === 'FREE' ? 'Upgrade plan' : 'Manage plan'}
+          <MenuItem onClick={() => { setAnchorEl(null); go('/'); }} sx={{ color: t.textPrimary, py: 1.1 }}>
+            <ListItemIcon sx={{ color: t.textSecondary, minWidth: 34 }}><HomeOutlined sx={{ fontSize: 20 }} /></ListItemIcon>
+            Back to main site
           </MenuItem>
           <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }} sx={{ color: t.textPrimary, py: 1.1 }}>
             <ListItemIcon sx={{ color: t.textSecondary, minWidth: 34 }}><LogoutOutlined sx={{ fontSize: 20 }} /></ListItemIcon>
