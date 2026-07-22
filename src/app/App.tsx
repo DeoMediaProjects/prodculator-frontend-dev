@@ -22,7 +22,6 @@ import { LandingPage } from '../app/components/user/LandingPage';
 // shape React.lazy expects.
 const UserLogin = lazy(() => import('../app/components/auth/UserLogin').then(m => ({ default: m.UserLogin })));
 const UserSignup = lazy(() => import('../app/components/auth/UserSignup').then(m => ({ default: m.UserSignup })));
-const ScriptUpload = lazy(() => import('../app/components/user/ScriptUpload').then(m => ({ default: m.ScriptUpload })));
 const ReportViewer = lazy(() => import('../app/components/user/ReportViewer').then(m => ({ default: m.ReportViewer })));
 const Pricing = lazy(() => import('../app/components/user/Pricing').then(m => ({ default: m.Pricing })));
 const SampleReport = lazy(() => import('../app/components/user/SampleReport').then(m => ({ default: m.SampleReport })));
@@ -105,7 +104,7 @@ function AppContent() {
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/auth/callback" element={<EmailVerifyCallback />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/upload" element={<ScriptUpload />} />
+                  <Route path="/upload" element={<AnalysisWizard />} />
                   <Route path="/analysis/new" element={<AnalysisWizard />} />
                   <Route path="/report/shared/:shareToken" element={<SharedReportViewer />} />
                   <Route path="/report/preview" element={<ReportViewer />} />
