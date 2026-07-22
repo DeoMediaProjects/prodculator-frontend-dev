@@ -14,6 +14,7 @@ import { getCustomerPortalUrl } from '@/services/stripe.service';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { DataTable } from './DataTable';
 import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
+import { PROFILE_KEY, PROFILE_UPDATED_EVENT } from './Sidebar';
 
 const ACCOUNT_DELETE_REASONS = [
   'No longer need the service',
@@ -77,7 +78,7 @@ export function AccountPage() {
   // Restore any locally-saved profile (name/country/avatar) on mount.
   useEffect(() => {
     try {
-      const s = localStorage.getItem('prodculator-profile');
+      const s = localStorage.getItem(PROFILE_KEY);
       if (s) {
         const p = JSON.parse(s);
         if (p.fullName) setFullName(p.fullName);
@@ -111,7 +112,8 @@ export function AccountPage() {
   const handleSave = () => {
     setSaving(true);
     // No profile-update endpoint exists yet; persist locally and confirm.
-    try { localStorage.setItem('prodculator-profile', JSON.stringify({ fullName, country: effectiveCountry })); } catch { /* */ }
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ fullName, country: effectiveCountry })); } catch { /* */ }
+    window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
     setTimeout(() => { setSaving(false); enqueueSnackbar('Profile changes saved.', { variant: 'success' }); }, 350);
   };
   const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
@@ -192,19 +194,12 @@ export function AccountPage() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
         <Box sx={cardSx}>
           <Typography sx={{ ...sectionTitle, mb: 2.5 }}>Password &amp; Security</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, pb: 2, borderBottom: `1px solid ${t.borderSoft}` }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
               <Typography sx={{ color: t.textPrimary, fontWeight: 600 }}>Password</Typography>
               <Typography sx={{ color: t.textSecondary, fontSize: 13, letterSpacing: 2 }}>••••••••••</Typography>
             </Box>
             <Button variant="outlined" onClick={() => navigate('/reset-password')}>Change</Button>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography sx={{ color: t.textPrimary, fontWeight: 600 }}>Two-factor authentication</Typography>
-              <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>Not enabled</Typography>
-            </Box>
-            <Button variant="outlined" onClick={() => enqueueSnackbar('Two-factor setup is coming soon.', { variant: 'info' })}>Enable</Button>
           </Box>
         </Box>
 

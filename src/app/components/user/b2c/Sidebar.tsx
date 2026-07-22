@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, IconButton, Typography, Avatar, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
 import {
   DescriptionOutlined, CompareArrowsOutlined, CalculateOutlined, TimelineOutlined,
@@ -12,6 +12,22 @@ import brandLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
 export const SIDEBAR_W = 248;
 export const SIDEBAR_COLLAPSED_W = 78;
+
+// Shared with AccountPage so the sidebar reflects the saved full name instead
+// of always deriving it from the email address.
+export const PROFILE_KEY = 'prodculator-profile';
+export const PROFILE_UPDATED_EVENT = 'prodculator-profile-updated';
+
+function readSavedName(): string {
+  try {
+    const s = localStorage.getItem(PROFILE_KEY);
+    if (s) {
+      const p = JSON.parse(s);
+      if (p.fullName) return String(p.fullName).trim();
+    }
+  } catch { /* */ }
+  return '';
+}
 
 // Collapsed state is shared (via localStorage) so it persists across navigation
 // and stays consistent between the dashboard shell and the wizard.
@@ -51,9 +67,21 @@ export function Sidebar({
   const t = tokens(mode);
   const { user, userLogout } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [savedName, setSavedName] = useState(readSavedName);
+
+  useEffect(() => {
+    const sync = () => setSavedName(readSavedName());
+    window.addEventListener(PROFILE_UPDATED_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(PROFILE_UPDATED_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
 
   const email = user?.email || '';
-  const displayName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Guest';
+  const derivedName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Guest';
+  const displayName = savedName || derivedName;
   const initials = displayName.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
   const planLabel = (user?.plan || 'free').toUpperCase();
 

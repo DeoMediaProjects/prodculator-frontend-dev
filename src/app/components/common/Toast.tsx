@@ -17,11 +17,11 @@ const VARIANT_CONFIG = {
     icon: WarningAmberOutlined,
   },
   info: {
-    accent: '#D4AF37',
+    accent: '#9A9A9A',
     icon: InfoOutlined,
   },
   default: {
-    accent: '#D4AF37',
+    accent: '#9A9A9A',
     icon: InfoOutlined,
   },
 } as const;
@@ -47,7 +47,6 @@ export const Toast = forwardRef<HTMLDivElement, CustomContentProps>((props, ref)
         borderRadius: '8px',
         bgcolor: '#111111',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderLeft: `3px solid ${config.accent}`,
         boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
         color: '#ffffff',
       }}
