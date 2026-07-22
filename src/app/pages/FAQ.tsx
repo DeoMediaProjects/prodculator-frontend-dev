@@ -290,7 +290,7 @@ export default function FAQ() {
                 This serves two purposes: it gives you production precedent (if a film with a similar profile to yours shot in Malta and used the 40% rebate successfully, that's meaningful context), and it helps investors and financiers see that the territory and incentive combination you're proposing has been used in practice.
               </p>
               <p>
-                Comparable productions are sourced from IMDb Pro and The Movie Database (TMDb) and matched algorithmically to your script's profile.
+                Comparable productions are drawn from industry sources and matched algorithmically to your script's profile.
               </p>
             </div>
           ),

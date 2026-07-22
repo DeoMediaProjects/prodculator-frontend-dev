@@ -6,7 +6,7 @@ import {
   CircularProgress, useMediaQuery, useTheme, Drawer,
 } from '@mui/material';
 import {
-  ArrowBack, CloudUpload, CheckCircle, Close, LightModeOutlined, DarkModeOutlined,
+  ArrowBack, CloudUpload, CheckCircle, LightModeOutlined, DarkModeOutlined,
   Menu as MenuIcon, Check,
 } from '@mui/icons-material';
 import { useScript, ReportTimeoutError, type ScriptMetadata } from '@/app/contexts/ScriptContext';
@@ -131,24 +131,48 @@ export function AnalysisWizard() {
   const [biConsent, setBiConsent] = useState(false);
   const [processing, setProcessing] = useState(false);
   const submittingRef = useRef(false);
+  // Set when the user chooses to leave the wizard while a report is still
+  // generating — suppresses the auto-navigate to the report when it finishes.
+  const leftDuringProcessing = useRef(false);
 
   const primaryLanguages = languagesInput.split(',').map((l) => l.trim()).filter(Boolean).slice(0, 5);
 
-  // Auto-suggest completion date from filming start + duration (+20wk post).
-  const lastSuggestedCompletion = useRef('');
+  // Keep filming start, duration (weeks) and expected completion in sync:
+  // completion = start + duration weeks. Whichever of duration/completion the
+  // user leaves blank is auto-calculated from the other two. We only ever
+  // overwrite a field that is empty or that we last auto-filled ourselves, so
+  // a value the user typed is never clobbered.
+  const MS_PER_WEEK = 7 * 86400_000;
+  const autoCompletion = useRef('');
+  const autoDuration = useRef('');
   useEffect(() => {
-    if (!filmingStart || !filmingDuration) return;
-    const weeks = Number(filmingDuration);
-    if (!Number.isFinite(weeks) || weeks <= 0) return;
+    if (!filmingStart) return;
     const start = new Date(filmingStart);
     if (Number.isNaN(start.getTime())) return;
-    const completion = new Date(start.getTime() + (weeks + 20) * 7 * 86400_000);
-    const suggested = completion.toISOString().slice(0, 10);
-    if (completionDate === '' || completionDate === lastSuggestedCompletion.current) {
-      setCompletionDate(suggested);
-      lastSuggestedCompletion.current = suggested;
+
+    // start + duration -> completion
+    const weeks = Number(filmingDuration);
+    if (filmingDuration && Number.isFinite(weeks) && weeks > 0) {
+      const completion = new Date(start.getTime() + weeks * MS_PER_WEEK).toISOString().slice(0, 10);
+      if (completionDate === '' || completionDate === autoCompletion.current) {
+        if (completion !== completionDate) setCompletionDate(completion);
+        autoCompletion.current = completion;
+        return;
+      }
     }
-  }, [filmingStart, filmingDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // start + completion -> duration
+    if (completionDate) {
+      const end = new Date(completionDate);
+      if (!Number.isNaN(end.getTime()) && end.getTime() > start.getTime()) {
+        const wks = String(Math.round((end.getTime() - start.getTime()) / MS_PER_WEEK));
+        if (filmingDuration === '' || filmingDuration === autoDuration.current) {
+          if (wks !== filmingDuration) setFilmingDuration(wks);
+          autoDuration.current = wks;
+        }
+      }
+    }
+  }, [filmingStart, filmingDuration, completionDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-suggest currency from production country.
   const lastAutoCurrency = useRef('');
@@ -290,8 +314,11 @@ export function AnalysisWizard() {
       };
       const generated = await generateAnalysis(file!, metadata);
       if (!generated.id) throw new Error('Report completed but did not return a report ID.');
-      navigate(`/report/${generated.id}`);
+      // If the user chose to keep browsing while this generated, don't yank
+      // them onto the report — the "Report ready" notification will link them.
+      if (!leftDuringProcessing.current) navigate(`/report/${generated.id}`);
     } catch (err: any) {
+      if (leftDuringProcessing.current) return; // user already navigated away
       if (err instanceof ReportTimeoutError) {
         showError('Your report is taking longer than expected. It will appear in your reports shortly.');
         navigate('/dashboard');
@@ -648,15 +675,6 @@ export function AnalysisWizard() {
     );
   };
 
-  // Processing overlay
-  if (processing) return (
-    <Box sx={{ minHeight: '100vh', bgcolor: t.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, px: 3, textAlign: 'center' }}>
-      <CircularProgress sx={{ color: t.gold }} size={54} />
-      <Typography sx={{ color: t.textPrimary, fontSize: 22, fontWeight: 800 }}>Analysing “{title}”…</Typography>
-      <Typography sx={{ color: t.textSecondary, maxWidth: 420 }}>Cross-referencing incentives, festivals and distribution data. This usually takes 2–4 minutes.</Typography>
-    </Box>
-  );
-
   const isLast = step === STEPS.length - 1;
 
   return (
@@ -694,7 +712,7 @@ export function AnalysisWizard() {
               ]}
             />
             {isLast ? (
-              <Button onClick={handleGenerate} variant="contained" sx={{ whiteSpace: 'nowrap' }}>Generate report</Button>
+              <Button onClick={handleGenerate} variant="contained" disabled={processing} startIcon={processing ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : undefined} sx={{ whiteSpace: 'nowrap' }}>{processing ? 'Generating…' : 'Generate report'}</Button>
             ) : (
               <Button onClick={handleContinue} variant="contained" sx={{ whiteSpace: 'nowrap' }}>Continue</Button>
             )}
@@ -703,6 +721,7 @@ export function AnalysisWizard() {
         </Box>
 
         {/* Stepper */}
+        {!processing && (
         <Box sx={{ px: { xs: 2, md: 5 }, mb: 3 }}>
           <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, flexWrap: 'wrap' }}>
             {STEPS.map((s, i) => {
@@ -725,10 +744,31 @@ export function AnalysisWizard() {
             })}
           </Box>
         </Box>
+        )}
 
         {/* Step content — spans the full width of the main column */}
         <Box sx={{ flex: 1, px: { xs: 2, md: 5 }, pb: 6, width: '100%' }}>
-          {renderStep()}
+          {processing ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 3, py: { xs: 6, md: 10 }, px: 3, maxWidth: 520, mx: 'auto' }}>
+              <CircularProgress sx={{ color: t.gold }} size={48} />
+              <Box>
+                <Typography sx={{ color: t.textPrimary, fontSize: 22, fontWeight: 800, mb: 1 }}>Analysing “{title}”…</Typography>
+                <Typography sx={{ color: t.textSecondary }}>Cross-referencing incentives, festivals and distribution data. This usually takes 2–4 minutes.</Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                onClick={() => { leftDuringProcessing.current = true; navigate('/dashboard'); }}
+                sx={{ mt: 1 }}
+              >
+                Continue in background
+              </Button>
+              <Typography sx={{ color: t.textSecondary, fontSize: 12.5 }}>
+                You can keep using Prodculator, we'll notify you when the report is ready.
+              </Typography>
+            </Box>
+          ) : (
+            renderStep()
+          )}
         </Box>
       </Box>
     </Box>

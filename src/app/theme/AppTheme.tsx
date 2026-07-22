@@ -20,8 +20,8 @@ const TOKENS = {
     goldBright: '#E9C44C',
     goldDim: 'rgba(212,175,55,0.10)',
     textPrimary: '#FFFFFF',
-    textSecondary: '#9A948B', // muted like the mockup but still legible
-    textFaint: '#6E6A62',
+    textSecondary: '#C7C1B5', // brightened for readability on dark surfaces
+    textFaint: '#948E84',     // still clearly legible, not a dim grey
     success: '#4ED08A',
     warning: '#E4A93A',
     error: '#E5686D',

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Box, Button, IconButton, Typography, Avatar, Tooltip } from '@mui/material';
+import { Box, IconButton, Typography, Avatar, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
 import {
   DescriptionOutlined, CompareArrowsOutlined, CalculateOutlined, TimelineOutlined,
-  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight,
+  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight, CreditCardOutlined,
+  ExpandLess,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
@@ -49,6 +50,7 @@ export function Sidebar({
   const { mode } = useThemeMode();
   const t = tokens(mode);
   const { user, userLogout } = useAuth();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const email = user?.email || '';
   const displayName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Guest';
@@ -107,38 +109,46 @@ export function Sidebar({
         })}
       </Box>
 
-      {/* User card */}
+      {/* User menu — click the profile to reveal plan + sign-out actions */}
       <Box sx={{ borderTop: `1px solid ${t.border}`, pt: 2, mt: 2 }}>
-        {collapsed ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-            <Tooltip title={`${displayName} · ${planLabel}`} placement="right">
-              <Avatar onClick={() => go('/pricing')} sx={{ width: 36, height: 36, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{initials}</Avatar>
-            </Tooltip>
-            <Tooltip title="Sign out" placement="right">
-              <IconButton onClick={handleLogout} size="small" sx={{ border: `1px solid ${t.border}`, borderRadius: '9px', color: t.textSecondary }}><LogoutOutlined sx={{ fontSize: 18 }} /></IconButton>
-            </Tooltip>
-          </Box>
-        ) : (
-          <>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
-              <Avatar sx={{ width: 38, height: 38, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14 }}>{initials}</Avatar>
-              <Box sx={{ minWidth: 0 }}>
+        <Box
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            p: collapsed ? 0.5 : 1, borderRadius: '10px',
+            bgcolor: anchorEl ? t.borderSoft : 'transparent',
+            '&:hover': { bgcolor: t.borderSoft },
+          }}
+        >
+          <Avatar sx={{ width: 38, height: 38, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14 }}>{initials}</Avatar>
+          {!collapsed && (
+            <>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: t.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</Typography>
                 <Typography sx={{ fontSize: 11.5, color: t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</Typography>
               </Box>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button onClick={() => go('/pricing')} variant="contained" size="small" sx={{ flex: 1, py: 0.75 }}>
-                {planLabel === 'FREE' ? 'Upgrade' : 'Manage plan'}
-              </Button>
-              <Tooltip title="Sign out">
-                <IconButton onClick={handleLogout} sx={{ border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textSecondary }}>
-                  <LogoutOutlined sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </>
-        )}
+              <ExpandLess sx={{ fontSize: 20, color: t.textSecondary, transform: anchorEl ? 'none' : 'rotate(180deg)', transition: 'transform .15s' }} />
+            </>
+          )}
+        </Box>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: collapsed ? 'right' : 'center' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          slotProps={{ paper: { sx: { bgcolor: t.cardBg, border: `1px solid ${t.border}`, minWidth: 208, boxShadow: '0 8px 24px rgba(0,0,0,0.25)' } } }}
+        >
+          <MenuItem onClick={() => { setAnchorEl(null); go('/pricing'); }} sx={{ color: t.textPrimary, py: 1.1 }}>
+            <ListItemIcon sx={{ color: t.textSecondary, minWidth: 34 }}><CreditCardOutlined sx={{ fontSize: 20 }} /></ListItemIcon>
+            {planLabel === 'FREE' ? 'Upgrade plan' : 'Manage plan'}
+          </MenuItem>
+          <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }} sx={{ color: t.textPrimary, py: 1.1 }}>
+            <ListItemIcon sx={{ color: t.textSecondary, minWidth: 34 }}><LogoutOutlined sx={{ fontSize: 20 }} /></ListItemIcon>
+            Sign out
+          </MenuItem>
+        </Menu>
       </Box>
     </Box>
   );

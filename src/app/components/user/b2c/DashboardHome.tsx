@@ -11,6 +11,9 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
 import { downloadReportPDF } from '@/services/report-pdf.service';
 import { DataTable } from './DataTable';
+import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
+
+const REPORT_DELETE_REASONS = ['No longer needed', 'Created by mistake', 'Duplicate report', 'Incorrect or outdated data', 'Other'];
 
 interface ReportRow {
   id: string;
@@ -52,6 +55,7 @@ export function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ReportRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,18 +104,20 @@ export function DashboardHome() {
     return { generated: reports.length, thisMonth, active: completed };
   }, [reports]);
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Delete "${title}"? This permanently removes the report and cannot be undone.`)) return;
-    setDeletingId(id);
+  const confirmDelete = async (reason?: string) => {
+    const target = pendingDelete;
+    if (!target) return;
+    setDeletingId(target.id);
     const prev = reports;
-    setReports((rs) => rs.filter((r) => r.id !== id));
+    setReports((rs) => rs.filter((r) => r.id !== target.id));
     try {
-      await apiClient.delete(`/api/reports/${id}`, { auth: true });
+      await apiClient.delete(`/api/reports/${target.id}`, { auth: true, data: reason ? { reason } : undefined });
     } catch {
       setReports(prev);
       window.alert('Could not delete the report. Please try again.');
     } finally {
       setDeletingId(null);
+      setPendingDelete(null);
     }
   };
 
@@ -171,7 +177,7 @@ export function DashboardHome() {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
         <Typography sx={{ fontWeight: 800, fontSize: 18, color: t.textPrimary }}>Recent Reports</Typography>
         {reports.length > 0 && (
-          <Button variant="text" onClick={() => navigate('/dashboard')} sx={{ color: t.gold, fontWeight: 700 }}>View all</Button>
+          <Button variant="text" onClick={() => navigate('/dashboard/reports')} sx={{ color: t.gold, fontWeight: 700 }}>View all</Button>
         )}
       </Box>
 
@@ -214,13 +220,26 @@ export function DashboardHome() {
                   {downloadingId === r.id ? <CircularProgress size={16} sx={{ color: t.gold }} /> : <FileDownloadOutlined fontSize="small" />}
                 </IconButton></span>
               </Tooltip>
-              <Tooltip title="Delete"><span><IconButton size="small" disabled={deletingId === r.id} onClick={() => handleDelete(r.id, r.title)} sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}>
+              <Tooltip title="Delete"><span><IconButton size="small" disabled={deletingId === r.id} onClick={() => setPendingDelete(r)} sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}>
                 {deletingId === r.id ? <CircularProgress size={16} /> : <DeleteOutline fontSize="small" />}
               </IconButton></span></Tooltip>
             </>
           )}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete report"
+        message={<>Delete <strong>“{pendingDelete?.title}”</strong>? We keep it for 30 days in case you change your mind, after which it is permanently deleted.</>}
+        confirmLabel="Delete report"
+        destructive
+        loading={!!deletingId}
+        reasons={REPORT_DELETE_REASONS}
+        reasonLabel="Reason for deletion"
+        onConfirm={confirmDelete}
+        onClose={() => setPendingDelete(null)}
+      />
     </Box>
   );
 }

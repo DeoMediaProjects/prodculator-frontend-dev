@@ -344,7 +344,6 @@ export function PDFReportPreview() {
                 mt: 4,
                 p: 2,
                 bgcolor: '#f5f5f5',
-                borderLeft: '4px solid #D4AF37',
                 borderRadius: 1,
               }}
             >
@@ -448,7 +447,6 @@ export function PDFReportPreview() {
                 mt: 4,
                 p: 2,
                 bgcolor: '#f5f5f5',
-                borderLeft: '4px solid #D4AF37',
                 borderRadius: 1,
               }}
             >
@@ -581,7 +579,6 @@ export function PDFReportPreview() {
                 mt: 4,
                 p: 2,
                 bgcolor: '#f5f5f5',
-                borderLeft: '4px solid #D4AF37',
                 borderRadius: 1,
               }}
             >

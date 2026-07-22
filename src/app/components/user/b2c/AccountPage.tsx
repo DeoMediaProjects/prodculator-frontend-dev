@@ -13,6 +13,16 @@ import { apiClient } from '@/services/api';
 import { getCustomerPortalUrl } from '@/services/stripe.service';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { DataTable } from './DataTable';
+import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
+
+const ACCOUNT_DELETE_REASONS = [
+  'No longer need the service',
+  'Too expensive',
+  'Missing features I need',
+  'Switching to another tool',
+  'Privacy concerns',
+  'Other',
+];
 
 interface InvoiceItem {
   id: string; number: string | null; status: string; amount_paid: number; amount_due: number;
@@ -48,6 +58,8 @@ export function AccountPage() {
 
   const [fullName, setFullName] = useState(derivedName);
   const [country, setCountry] = useState('United Kingdom');
+  const [countryOther, setCountryOther] = useState('');
+  const effectiveCountry = country === 'Other' ? countryOther.trim() : country;
   const [avatar, setAvatar] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -66,7 +78,15 @@ export function AccountPage() {
   useEffect(() => {
     try {
       const s = localStorage.getItem('prodculator-profile');
-      if (s) { const p = JSON.parse(s); if (p.fullName) setFullName(p.fullName); if (p.country) setCountry(p.country); }
+      if (s) {
+        const p = JSON.parse(s);
+        if (p.fullName) setFullName(p.fullName);
+        if (p.country) {
+          // A saved country outside the preset list means the user typed their own.
+          if (COUNTRIES.includes(p.country)) { setCountry(p.country); }
+          else { setCountry('Other'); setCountryOther(p.country); }
+        }
+      }
       const a = localStorage.getItem('prodculator-avatar');
       if (a) setAvatar(a);
     } catch { /* */ }
@@ -91,7 +111,7 @@ export function AccountPage() {
   const handleSave = () => {
     setSaving(true);
     // No profile-update endpoint exists yet; persist locally and confirm.
-    try { localStorage.setItem('prodculator-profile', JSON.stringify({ fullName, country })); } catch { /* */ }
+    try { localStorage.setItem('prodculator-profile', JSON.stringify({ fullName, country: effectiveCountry })); } catch { /* */ }
     setTimeout(() => { setSaving(false); enqueueSnackbar('Profile changes saved.', { variant: 'success' }); }, 350);
   };
   const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
@@ -116,11 +136,14 @@ export function AccountPage() {
       if (url) window.location.href = url; else enqueueSnackbar('Unable to open billing portal.', { variant: 'error' });
     } catch { enqueueSnackbar('Unable to open billing portal.', { variant: 'error' }); }
   };
-  const handleDelete = () => {
-    if (!window.confirm('Delete your account? This is permanent and cannot be undone.')) return;
-    apiClient.delete('/api/users/me', { auth: true })
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const confirmDeleteAccount = (reason?: string) => {
+    setDeleting(true);
+    apiClient.delete('/api/users/me', { auth: true, data: reason ? { reason } : undefined })
       .then(() => { enqueueSnackbar('Account deletion requested.', { variant: 'success' }); userLogout(); navigate('/'); })
-      .catch(() => enqueueSnackbar('Could not delete the account automatically. Please contact support.', { variant: 'error' }));
+      .catch(() => enqueueSnackbar('Could not process the request automatically. Please contact support.', { variant: 'error' }))
+      .finally(() => { setDeleting(false); setDeleteOpen(false); });
   };
 
   const cardSx = { bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', p: 3 };
@@ -157,6 +180,9 @@ export function AccountPage() {
               <TextField fullWidth size="small" select value={country} onChange={(e) => setCountry(e.target.value)}>
                 {COUNTRIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
               </TextField>
+              {country === 'Other' && (
+                <TextField fullWidth size="small" placeholder="Type your country / region" value={countryOther} onChange={(e) => setCountryOther(e.target.value)} sx={{ mt: 1 }} />
+              )}
             </Box>
           </Box>
         </Box>
@@ -269,9 +295,23 @@ export function AccountPage() {
         <Box sx={cardSx}>
           <Typography sx={{ ...sectionTitle, mb: 2 }}>Session &amp; Account</Typography>
           <Button fullWidth variant="outlined" startIcon={<LogoutOutlined />} onClick={() => { userLogout(); navigate('/'); }} sx={{ justifyContent: 'flex-start', mb: 1.5 }}>Sign out</Button>
-          <Button fullWidth variant="outlined" startIcon={<DeleteOutline />} onClick={handleDelete} sx={{ justifyContent: 'flex-start', color: t.error, borderColor: t.error, '&:hover': { borderColor: t.error, bgcolor: 'rgba(229,104,109,0.08)' } }}>Delete account</Button>
+          <Button fullWidth variant="outlined" startIcon={<DeleteOutline />} onClick={() => setDeleteOpen(true)} sx={{ justifyContent: 'flex-start', color: t.error, borderColor: t.error, '&:hover': { borderColor: t.error, bgcolor: 'rgba(229,104,109,0.08)' } }}>Request account deletion</Button>
         </Box>
       </Box>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Request account deletion"
+        message="We retain your account and reports for 30 days after you request deletion, then permanently delete everything. You can contact support within that window to cancel. Please let us know why you are leaving."
+        confirmLabel="Request deletion"
+        destructive
+        loading={deleting}
+        reasons={ACCOUNT_DELETE_REASONS}
+        reasonLabel="Reason for leaving"
+        reasonRequired
+        onConfirm={confirmDeleteAccount}
+        onClose={() => setDeleteOpen(false)}
+      />
     </Box>
   );
 }
