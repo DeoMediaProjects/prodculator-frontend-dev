@@ -181,8 +181,8 @@ export function LandingPage() {
       </Box>
 
       {/* Hero Section */}
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           position: 'relative',
           zIndex: 1,
           minHeight: 'calc(100dvh - 80px)',
@@ -190,6 +190,10 @@ export function LandingPage() {
           alignItems: 'center',
           justifyContent: 'center',
           py: 8,
+          backgroundImage: 'linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.92)), url(/landing-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         }}
       >
         <Container maxWidth="lg">

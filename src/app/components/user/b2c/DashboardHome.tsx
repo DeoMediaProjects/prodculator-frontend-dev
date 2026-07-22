@@ -104,6 +104,15 @@ export function DashboardHome() {
     return { generated: reports.length, thisMonth, active: completed };
   }, [reports]);
 
+  // The dashboard's "Recent Reports" widget only ever shows the last 5 —
+  // the full list (and its stats above) still reflects every report.
+  const recentReports = useMemo(
+    () => [...reports]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5),
+    [reports],
+  );
+
   const confirmDelete = async (reason?: string) => {
     const target = pendingDelete;
     if (!target) return;
@@ -196,7 +205,7 @@ export function DashboardHome() {
         </Box>
       ) : (
         <DataTable
-          rows={reports}
+          rows={recentReports}
           getRowId={(r) => r.id}
           onRowClick={(r) => navigate(`/report/${r.id}`)}
           maxHeight={400}
