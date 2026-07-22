@@ -57,6 +57,7 @@ export function ConfirmDialog({
       onClose={loading ? undefined : onClose}
       maxWidth="xs"
       fullWidth
+      disableScrollLock
       sx={{ zIndex: (theme) => theme.zIndex.modal + 10 }}
       slotProps={{
         paper: { sx: { bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 2 } },
