@@ -17,6 +17,7 @@ export const SIDEBAR_COLLAPSED_W = 78;
 // of always deriving it from the email address.
 export const PROFILE_KEY = 'prodculator-profile';
 export const PROFILE_UPDATED_EVENT = 'prodculator-profile-updated';
+export const AVATAR_KEY = 'prodculator-avatar';
 
 function readSavedName(): string {
   try {
@@ -27,6 +28,45 @@ function readSavedName(): string {
     }
   } catch { /* */ }
   return '';
+}
+
+function readSavedAvatar(): string {
+  try {
+    return localStorage.getItem(AVATAR_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Reads the locally-saved display name and profile photo, kept in sync with
+ * AccountPage edits via PROFILE_UPDATED_EVENT. Shared by any header/sidebar
+ * that needs to show "who's logged in" consistently across the app.
+ */
+export function useSavedProfile() {
+  const { user } = useAuth();
+  const [savedName, setSavedName] = useState(readSavedName);
+  const [avatar, setAvatar] = useState(readSavedAvatar);
+
+  useEffect(() => {
+    const sync = () => {
+      setSavedName(readSavedName());
+      setAvatar(readSavedAvatar());
+    };
+    window.addEventListener(PROFILE_UPDATED_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(PROFILE_UPDATED_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
+  const email = user?.email || '';
+  const derivedName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Guest';
+  const displayName = savedName || derivedName;
+  const initials = displayName.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
+
+  return { displayName, email, avatar, initials };
 }
 
 // Collapsed state is shared (via localStorage) so it persists across navigation
@@ -65,24 +105,9 @@ export function Sidebar({
   const location = useLocation();
   const { mode } = useThemeMode();
   const t = tokens(mode);
-  const { user, userLogout } = useAuth();
+  const { userLogout } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [savedName, setSavedName] = useState(readSavedName);
-
-  useEffect(() => {
-    const sync = () => setSavedName(readSavedName());
-    window.addEventListener(PROFILE_UPDATED_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(PROFILE_UPDATED_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
-
-  const email = user?.email || '';
-  const derivedName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Guest';
-  const displayName = savedName || derivedName;
-  const initials = displayName.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
+  const { displayName, email, avatar, initials } = useSavedProfile();
 
   const isActive = (item: (typeof NAV)[number]) =>
     item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
@@ -148,7 +173,7 @@ export function Sidebar({
             '&:hover': { bgcolor: t.borderSoft },
           }}
         >
-          <Avatar sx={{ width: 38, height: 38, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14 }}>{initials}</Avatar>
+          <Avatar src={avatar || undefined} sx={{ width: 38, height: 38, bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', fontWeight: 700, fontSize: 14 }}>{!avatar && initials}</Avatar>
           {!collapsed && (
             <>
               <Box sx={{ minWidth: 0, flex: 1 }}>

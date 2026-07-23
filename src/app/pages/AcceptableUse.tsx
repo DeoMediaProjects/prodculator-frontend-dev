@@ -1,18 +1,25 @@
 import { Box, Container, Typography } from '@mui/material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { PageHeader } from '@/app/components/common/PageHeader';
+import { SiteFooter } from '@/app/components/common/SiteFooter';
 
 export function AcceptableUse() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', color: '#ffffff', py: 8 }}>
-      <Container maxWidth="md">
-        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: '#D4AF37' }}>
+    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh' }}>
+      <PageHeader />
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: t.gold }}>
           Acceptable Use Policy
         </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 6 }}>
+        <Typography variant="body2" sx={{ color: t.textSecondary, mb: 6 }}>
           Last Updated: January 24, 2026
         </Typography>
 
-        <Box sx={{ '& h4': { color: '#D4AF37', fontWeight: 700, mt: 4, mb: 2 }, '& p': { color: '#ffffff', mb: 2, lineHeight: 1.8 }, '& ul': { color: '#ffffff', mb: 2, pl: 3 }, '& li': { mb: 1 } }}>
-          
+        <Box sx={{ '& h4': { color: t.gold, fontWeight: 700, mt: 4, mb: 2 }, '& p': { color: t.textPrimary, mb: 2, lineHeight: 1.8 }, '& ul': { color: t.textPrimary, mb: 2, pl: 3 }, '& li': { mb: 1 } }}>
+
           <Typography variant="h4">1. Purpose</Typography>
           <Typography>
             This Acceptable Use Policy ("AUP") governs your use of Prodculator and defines prohibited activities for both individual subscribers and enterprise (B2B) clients.
@@ -31,7 +38,7 @@ export function AcceptableUse() {
 
           <Typography variant="h4">3. Prohibited Uses</Typography>
           
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             3.1 Illegal Activities
           </Typography>
           <ul>
@@ -41,7 +48,7 @@ export function AcceptableUse() {
             <li>Infringing copyright, trademark, or intellectual property rights of third parties</li>
           </ul>
 
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             3.2 Harmful Content
           </Typography>
           <ul>
@@ -50,7 +57,7 @@ export function AcceptableUse() {
             <li>Spreading malware, viruses, or malicious code</li>
           </ul>
 
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             3.3 Unauthorized Access & Security Violations
           </Typography>
           <ul>
@@ -62,7 +69,7 @@ export function AcceptableUse() {
             <li>Launching denial of service (DoS) attacks or attempting to overload our infrastructure</li>
           </ul>
 
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             3.4 Data Misuse
           </Typography>
           <ul>
@@ -72,7 +79,7 @@ export function AcceptableUse() {
             <li><strong>Public Redistribution:</strong> Publishing reports, API data, or analyses publicly without written permission</li>
           </ul>
 
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             3.5 Enterprise Specific Prohibitions
           </Typography>
           <ul>
@@ -166,14 +173,16 @@ export function AcceptableUse() {
             If you have questions about what constitutes acceptable use, contact us at support@prodculator.com before proceeding.
           </Typography>
 
-          <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
-            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+          <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${t.border}` }}>
+            <Typography variant="body2" sx={{ color: t.textSecondary }}>
               <strong>Version:</strong> 2.0 (B2B Updated)<br />
               <strong>Effective Date:</strong> January 24, 2026
             </Typography>
           </Box>
         </Box>
       </Container>
+
+      <SiteFooter />
     </Box>
   );
 }

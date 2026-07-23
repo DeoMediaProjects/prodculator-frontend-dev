@@ -508,9 +508,12 @@ export function ScriptUpload() {
   return (
     <Box sx={{ bgcolor: '#000000', minHeight: '100dvh' }}>
       {/* Header */}
-      <Box 
-        sx={{ 
-          bgcolor: 'rgba(255, 255, 255, 0.98)', 
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: (theme) => theme.zIndex.appBar,
+          bgcolor: 'rgba(255, 255, 255, 0.98)',
           borderBottom: '1px solid rgba(0,0,0,0.1)',
           py: 2,
         }}

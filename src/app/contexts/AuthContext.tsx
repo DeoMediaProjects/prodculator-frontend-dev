@@ -27,6 +27,7 @@ function normalizePlan(plan: string | undefined): PlanType {
 
 interface User {
   email: string;
+  name?: string;
   plan: PlanType;
   reportsUsed: number;
   reportsLimit: number;
@@ -54,6 +55,10 @@ interface AuthContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   isAuthenticated: boolean;
+  /** True until the initial session check (on page load) resolves. Route
+   * guards must wait for this before redirecting, or a real logged-in user
+   * gets bounced to /login on every refresh before their session loads. */
+  isUserAuthLoading: boolean;
   hasUsedFreeReport: (email: string) => boolean;
   markFreeReportUsed: (email: string) => void;
 
@@ -127,21 +132,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usedEmails, setUsedEmails] = useState<Set<string>>(new Set());
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [isAdminAuthLoading, setIsAdminAuthLoading] = useState(true);
+  const [isUserAuthLoading, setIsUserAuthLoading] = useState(true);
 
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
-      // Skip the regular-user check when an admin token is in storage —
-      // /api/auth/me rejects admin tokens with 401.
-      if (isAdminSession()) return;
-      const currentUser = await authService.getCurrentUser();
-      if (currentUser && currentUser.user_type !== 'admin') {
-        setUser({
-          email: currentUser.email,
-          plan: normalizePlan(currentUser.plan),
-          reportsUsed: 0,
-          reportsLimit: currentUser.credits_remaining || 0,
-        });
+      try {
+        // Skip the regular-user check when an admin token is in storage —
+        // /api/auth/me rejects admin tokens with 401.
+        if (isAdminSession()) return;
+        const currentUser = await authService.getCurrentUser();
+        if (currentUser && currentUser.user_type !== 'admin') {
+          setUser({
+            email: currentUser.email,
+            name: currentUser.name,
+            plan: normalizePlan(currentUser.plan),
+            reportsUsed: 0,
+            reportsLimit: currentUser.credits_remaining || 0,
+          });
+        }
+      } finally {
+        setIsUserAuthLoading(false);
       }
     };
 
@@ -172,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user) {
         setUser({
           email: user.email,
+          name: user.name,
           plan: normalizePlan(user.plan),
           reportsUsed: 0,
           reportsLimit: user.credits_remaining || 0,
@@ -212,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser({
       email: authUser.email,
+      name: authUser.name,
       plan: normalizePlan(authUser.plan),
       reportsUsed: 0,
       reportsLimit: authUser.credits_remaining || 0,
@@ -230,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser({
       email: authUser.email,
+      name: authUser.name,
       plan: normalizePlan(authUser.plan),
       reportsUsed: 0,
       reportsLimit: authUser.credits_remaining || 0,
@@ -258,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser({
       email: authUser.email,
+      name: authUser.name,
       plan: normalizePlan(authUser.plan),
       reportsUsed: 0,
       reportsLimit: authUser.credits_remaining || 0,
@@ -315,6 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         setUser,
         isAuthenticated: !!user,
+        isUserAuthLoading,
         hasUsedFreeReport,
         markFreeReportUsed,
         userLogin,

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   Button,
@@ -10,7 +9,8 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { CheckCircle, ErrorOutline } from '@mui/icons-material';
-import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import { authService } from '@/services/auth.service';
 
 type Status = 'loading' | 'success' | 'error';
@@ -18,6 +18,8 @@ type Status = 'loading' | 'success' | 'error';
 export function EmailVerifyCallback() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [status, setStatus] = useState<Status>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const [countdown, setCountdown] = useState(3);
@@ -58,162 +60,90 @@ export function EmailVerifyCallback() {
   }, [status, countdown, navigate]);
 
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        bgcolor: '#000000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        py: 6,
-      }}
-    >
-      <Box
+    <AuthLayout>
+      <Paper
+        elevation={0}
         sx={{
-          position: 'absolute',
-          top: '10%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '800px',
-          height: '800px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0) 70%)',
-          filter: 'blur(120px)',
-          pointerEvents: 'none',
+          p: { xs: 3, sm: 5 },
+          border: `1px solid ${t.border}`,
+          borderRadius: 3,
+          textAlign: 'center',
         }}
-      />
+      >
+        {status === 'loading' && (
+          <>
+            <CircularProgress sx={{ color: t.gold, mb: 3 }} size={60} />
+            <Typography variant="h5" sx={{ color: t.textPrimary, fontWeight: 600 }}>
+              Verifying your email...
+            </Typography>
+          </>
+        )}
 
-      <Container maxWidth="sm">
-        <Paper
-          elevation={0}
-          sx={{
-            p: 6,
-            bgcolor: '#0a0a0a',
-            border: '2px solid rgba(212, 175, 55, 0.3)',
-            borderRadius: 3,
-            position: 'relative',
-            zIndex: 1,
-            textAlign: 'center',
-          }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-            <img src={exampleLogo} alt="Prodculator" style={{ height: '48px', width: 'auto' }} />
-          </Box>
+        {status === 'success' && (
+          <>
+            <Box
+              sx={{
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                bgcolor: `${t.success}1a`,
+                border: `2px solid ${t.success}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 3,
+              }}
+            >
+              <CheckCircle sx={{ fontSize: 40, color: t.success }} />
+            </Box>
+            <Typography variant="h4" sx={{ color: t.gold, fontWeight: 700, mb: 2 }}>
+              Email Verified!
+            </Typography>
+            <Typography variant="body1" sx={{ color: t.textSecondary, mb: 4 }}>
+              Your account is confirmed. Redirecting to your dashboard in {countdown}s…
+            </Typography>
+            <Button variant="contained" fullWidth onClick={() => navigate('/dashboard', { replace: true })} sx={{ py: 1.5 }}>
+              Go to Dashboard
+            </Button>
+          </>
+        )}
 
-          {status === 'loading' && (
-            <>
-              <CircularProgress sx={{ color: '#D4AF37', mb: 3 }} size={60} />
-              <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 600 }}>
-                Verifying your email...
-              </Typography>
-            </>
-          )}
-
-          {status === 'success' && (
-            <>
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(76, 175, 80, 0.1)',
-                  border: '2px solid #4caf50',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  mb: 3,
-                }}
-              >
-                <CheckCircle sx={{ fontSize: 40, color: '#4caf50' }} />
-              </Box>
-              <Typography variant="h4" sx={{ color: '#D4AF37', fontWeight: 700, mb: 2 }}>
-                Email Verified!
-              </Typography>
-              <Typography variant="body1" sx={{ color: '#a0a0a0', mb: 4 }}>
-                Your account is confirmed. Redirecting to your dashboard in {countdown}s…
-              </Typography>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={() => navigate('/dashboard', { replace: true })}
-                sx={{
-                  bgcolor: '#D4AF37',
-                  color: '#000000',
-                  fontWeight: 700,
-                  py: 1.5,
-                  '&:hover': { bgcolor: '#B8941F' },
-                }}
-              >
-                Go to Dashboard
+        {status === 'error' && (
+          <>
+            <Box
+              sx={{
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                bgcolor: `${t.error}1a`,
+                border: `2px solid ${t.error}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 3,
+              }}
+            >
+              <ErrorOutline sx={{ fontSize: 40, color: t.error }} />
+            </Box>
+            <Typography variant="h4" sx={{ color: t.textPrimary, fontWeight: 700, mb: 2 }}>
+              Verification Failed
+            </Typography>
+            <Alert severity="error" sx={{ mb: 4, textAlign: 'left' }}>
+              {errorMessage}
+            </Alert>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Button variant="outlined" fullWidth onClick={() => navigate('/verify-email')} sx={{ py: 1.2 }}>
+                Request New Verification Email
               </Button>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  bgcolor: 'rgba(244, 67, 54, 0.1)',
-                  border: '2px solid #f44336',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  mb: 3,
-                }}
-              >
-                <ErrorOutline sx={{ fontSize: 40, color: '#f44336' }} />
-              </Box>
-              <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 2 }}>
-                Verification Failed
-              </Typography>
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 4,
-                  bgcolor: 'rgba(244, 67, 54, 0.1)',
-                  color: '#f44336',
-                  border: '1px solid rgba(244, 67, 54, 0.3)',
-                  textAlign: 'left',
-                }}
-              >
-                {errorMessage}
-              </Alert>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  onClick={() => navigate('/verify-email')}
-                  sx={{
-                    borderColor: '#D4AF37',
-                    color: '#D4AF37',
-                    fontWeight: 600,
-                    py: 1.2,
-                    '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
-                  }}
-                >
-                  Request New Verification Email
-                </Button>
-                <Button
-                  onClick={() => navigate('/login')}
-                  sx={{
-                    color: '#a0a0a0',
-                    '&:hover': { color: '#D4AF37', bgcolor: 'transparent' },
-                  }}
-                >
-                  Back to Login
-                </Button>
-              </Box>
-            </>
-          )}
-        </Paper>
-      </Container>
-    </Box>
+              <Button onClick={() => navigate('/login')} sx={{ color: t.textSecondary, '&:hover': { color: t.gold, bgcolor: 'transparent' } }}>
+                Back to Login
+              </Button>
+            </Box>
+          </>
+        )}
+      </Paper>
+    </AuthLayout>
   );
 }

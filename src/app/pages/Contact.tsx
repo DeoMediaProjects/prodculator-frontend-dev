@@ -10,15 +10,15 @@ import {
   Stack,
   CircularProgress,
 } from '@mui/material';
-import { ArrowBack, CheckCircle } from '@mui/icons-material';
+import { CheckCircle } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
-import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { PageHeader } from '@/app/components/common/PageHeader';
+import { SiteFooter } from '@/app/components/common/SiteFooter';
 import {
   submitContactMessage,
   type ContactInquiryCategory,
 } from '@/services/contact.service';
-
-const GOLD = '#D4AF37';
 
 const CATEGORY_OPTIONS: { value: ContactInquiryCategory; label: string }[] = [
   { value: 'general', label: 'General enquiry' },
@@ -45,6 +45,8 @@ export function Contact() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { enqueueSnackbar } = useSnackbar();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
 
   const requestedType = searchParams.get('type') as ContactInquiryCategory | null;
   const initialCategory: ContactInquiryCategory =
@@ -94,7 +96,7 @@ export function Contact() {
         message: form.message.trim(),
         page_url: typeof window !== 'undefined' ? window.location.href : undefined,
       });
-      enqueueSnackbar("Message sent — we'll be in touch shortly.", { variant: 'success' });
+      enqueueSnackbar("Message sent, we'll be in touch shortly.", { variant: 'success' });
       setSubmitted(true);
     } catch (error) {
       enqueueSnackbar(
@@ -107,33 +109,14 @@ export function Contact() {
   };
 
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', color: '#ffffff' }}>
-      {/* Header */}
-      <Box sx={{ bgcolor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.1)', py: 2.5 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-            <img
-              src={exampleLogo}
-              alt="Prodculator"
-              style={{ height: '32px', width: 'auto', cursor: 'pointer' }}
-              onClick={() => navigate('/')}
-            />
-            <Button
-              startIcon={<ArrowBack />}
-              onClick={() => navigate('/')}
-              sx={{ color: '#000000', fontWeight: 500, textTransform: 'none', '&:hover': { bgcolor: 'transparent' } }}
-            >
-              Back to Home
-            </Button>
-          </Box>
-        </Container>
-      </Box>
+    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh' }}>
+      <PageHeader />
 
       <Container maxWidth="md" sx={{ py: { xs: 6, md: 9 } }}>
-        <Typography variant="h3" sx={{ fontWeight: 700, color: GOLD, mb: 1.5, fontSize: { xs: '2rem', md: '2.75rem' } }}>
+        <Typography variant="h3" sx={{ fontWeight: 700, color: t.gold, mb: 1.5, fontSize: { xs: '2rem', md: '2.75rem' } }}>
           Contact Us
         </Typography>
-        <Typography sx={{ color: '#d1d5db', mb: 5, maxWidth: 640, lineHeight: 1.7 }}>
+        <Typography sx={{ color: t.textSecondary, mb: 5, maxWidth: 640, lineHeight: 1.7 }}>
           Questions about Prodculator, enterprise intelligence, partnerships, or your account? Send us a
           message and our team will respond within 24 hours.
         </Typography>
@@ -141,27 +124,23 @@ export function Contact() {
         {submitted ? (
           <Box
             sx={{
-              bgcolor: '#111111',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
+              bgcolor: t.cardBg,
+              border: `1px solid ${t.gold}`,
               borderRadius: 2,
               p: { xs: 4, md: 6 },
               textAlign: 'center',
             }}
           >
-            <CheckCircle sx={{ fontSize: 56, color: GOLD, mb: 2 }} />
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff', mb: 1 }}>
+            <CheckCircle sx={{ fontSize: 56, color: t.gold, mb: 2 }} />
+            <Typography variant="h5" sx={{ fontWeight: 700, color: t.textPrimary, mb: 1 }}>
               Thanks for reaching out
             </Typography>
-            <Typography sx={{ color: '#d1d5db', mb: 4 }}>
+            <Typography sx={{ color: t.textSecondary, mb: 4 }}>
               We've received your message and sent a confirmation to {form.email}. Our team will be in
               touch shortly.
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
-              <Button
-                variant="contained"
-                onClick={() => navigate('/')}
-                sx={{ bgcolor: GOLD, color: '#000', fontWeight: 600, '&:hover': { bgcolor: '#F4CF67' } }}
-              >
+              <Button variant="contained" onClick={() => navigate('/')}>
                 Back to Home
               </Button>
               <Button
@@ -170,7 +149,6 @@ export function Contact() {
                   setForm((prev) => ({ ...prev, subject: '', message: '' }));
                   setSubmitted(false);
                 }}
-                sx={{ borderColor: GOLD, color: GOLD, fontWeight: 600, '&:hover': { borderColor: '#F4CF67', bgcolor: 'rgba(212,175,55,0.08)' } }}
               >
                 Send another message
               </Button>
@@ -181,8 +159,8 @@ export function Contact() {
             component="form"
             onSubmit={handleSubmit}
             sx={{
-              bgcolor: '#111111',
-              border: '1px solid #272727',
+              bgcolor: t.cardBg,
+              border: `1px solid ${t.border}`,
               borderRadius: 2,
               p: { xs: 3, md: 5 },
             }}
@@ -243,27 +221,16 @@ export function Contact() {
                 onChange={updateField('message')}
               />
               <Box>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  sx={{
-                    bgcolor: GOLD,
-                    color: '#000',
-                    fontWeight: 600,
-                    px: 4,
-                    py: 1.25,
-                    textTransform: 'none',
-                    '&:hover': { bgcolor: '#F4CF67' },
-                  }}
-                >
-                  {loading ? <CircularProgress size={22} sx={{ color: '#000' }} /> : 'Send message'}
+                <Button type="submit" variant="contained" disabled={loading} sx={{ px: 4, py: 1.25 }}>
+                  {loading ? <CircularProgress size={22} color="inherit" /> : 'Send message'}
                 </Button>
               </Box>
             </Stack>
           </Box>
         )}
       </Container>
+
+      <SiteFooter />
     </Box>
   );
 }

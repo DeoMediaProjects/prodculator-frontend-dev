@@ -13,6 +13,7 @@ import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useScrollLock } from '@/app/hooks/useScrollLock';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 
 interface NavLink {
   label: string;
@@ -25,13 +26,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'Pricing', path: '/pricing' },
   { label: 'FAQ', path: '/faq' },
   { label: 'Contact', path: '/contact' },
-  { label: 'B2B Solutions', path: '/b2b' },
 ];
-
-interface MobileNavDrawerProps {
-  /** Colour of the hamburger trigger, so it matches light or dark headers. */
-  iconColor?: string;
-}
 
 /**
  * Hamburger trigger + slide-out navigation drawer for small screens.
@@ -39,13 +34,16 @@ interface MobileNavDrawerProps {
  * The trigger is only visible below the `md` breakpoint (per the "big phone"
  * decision — phones and small tablets get the drawer). Desktop keeps its
  * inline header nav. Drop `<MobileNavDrawer />` into any page header that
- * otherwise hides its nav links on mobile.
+ * otherwise hides its nav links on mobile. Fully theme-aware — matches
+ * whichever light/dark mode the page is currently in.
  */
-export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps) {
+export function MobileNavDrawer() {
   const [open, setOpen] = useState(false);
   const [locked, setLocked] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
 
   useScrollLock(locked);
 
@@ -61,7 +59,7 @@ export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps)
       <IconButton
         aria-label="Open navigation menu"
         onClick={() => setOpen(true)}
-        sx={{ display: { xs: 'inline-flex', md: 'none' }, color: iconColor }}
+        sx={{ display: { xs: 'inline-flex', md: 'none' }, color: t.textPrimary }}
       >
         <MenuIcon />
       </IconButton>
@@ -73,7 +71,7 @@ export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps)
         // We lock scroll ourselves via useScrollLock (MUI's lock leaks on iOS).
         disableScrollLock
         slotProps={{
-          paper: { sx: { width: 280, maxWidth: '85vw', bgcolor: '#0A0A0A', color: '#fff' } },
+          paper: { sx: { width: 280, maxWidth: '85vw', bgcolor: t.cardBg, color: t.textPrimary } },
           // Lock after the open slide ends, release after the close slide ends,
           // so the reflow never competes with the animation.
           transition: {
@@ -83,7 +81,7 @@ export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps)
         }}
       >
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-          <IconButton aria-label="Close navigation menu" onClick={() => setOpen(false)} sx={{ color: '#fff' }}>
+          <IconButton aria-label="Close navigation menu" onClick={() => setOpen(false)} sx={{ color: t.textPrimary }}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -96,34 +94,19 @@ export function MobileNavDrawer({ iconColor = '#000000' }: MobileNavDrawerProps)
           ))}
         </List>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 1 }} />
+        <Divider sx={{ borderColor: t.border, my: 1 }} />
 
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {isAuthenticated ? (
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => go('/dashboard')}
-              sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, '&:hover': { bgcolor: '#B8941F' } }}
-            >
+            <Button variant="contained" fullWidth onClick={() => go('/dashboard')}>
               Dashboard
             </Button>
           ) : (
             <>
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={() => go('/login')}
-                sx={{ borderColor: '#D4AF37', color: '#D4AF37', fontWeight: 600 }}
-              >
+              <Button variant="outlined" fullWidth onClick={() => go('/login')}>
                 Login
               </Button>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={() => go('/signup')}
-                sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 600, '&:hover': { bgcolor: '#B8941F' } }}
-              >
+              <Button variant="contained" fullWidth onClick={() => go('/signup')}>
                 Sign Up
               </Button>
             </>

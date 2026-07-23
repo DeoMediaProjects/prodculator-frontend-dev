@@ -104,14 +104,14 @@ function AppContent() {
                   <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/auth/callback" element={<EmailVerifyCallback />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/upload" element={<AnalysisWizard />} />
-                  <Route path="/analysis/new" element={<AnalysisWizard />} />
+                  <Route path="/upload" element={<ProtectedRoute><AnalysisWizard /></ProtectedRoute>} />
+                  <Route path="/analysis/new" element={<ProtectedRoute><AnalysisWizard /></ProtectedRoute>} />
                   <Route path="/report/shared/:shareToken" element={<SharedReportViewer />} />
                   <Route path="/report/preview" element={<ReportViewer />} />
                   <Route path="/report/:reportId" element={<ReportViewer />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/sample" element={<SampleReport />} />
-                  <Route path="/dashboard" element={<B2CLayout />}>
+                  <Route path="/dashboard" element={<ProtectedRoute><B2CLayout /></ProtectedRoute>}>
                     <Route index element={<DashboardHome />} />
                     <Route path="reports" element={<AllReports />} />
                     <Route path="territories" element={<TerritoriesPage />} />
@@ -125,10 +125,10 @@ function AppContent() {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/acceptable-use" element={<AcceptableUse />} />
                   <Route path="/contact" element={<Contact />} />
-                  <Route path="/b2b" element={<B2BSolutions />} />
+                  <Route path="/b2b" element={<ProtectedRoute><B2BSolutions /></ProtectedRoute>} />
                   <Route path="/tools/comparison" element={<TerritoryComparison />} />
                   <Route path="/tools/what-if" element={<ProtectedRoute plan="professional"><WhatIfCalculator /></ProtectedRoute>} />
-                  <Route path="/what-if" element={<PublicWhatIfCalculator />} />
+                  <Route path="/what-if" element={<ProtectedRoute><PublicWhatIfCalculator /></ProtectedRoute>} />
 
                   {/* Admin Routes */}
                   <Route path="/admin/login" element={<AdminLogin />} />

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Box, Typography, InputBase, IconButton, Tooltip } from '@mui/material';
-import { ArrowUpward, ArrowDownward, FilterListOutlined, Close } from '@mui/icons-material';
+import { ArrowUpward, ArrowDownward, FilterListOutlined, Close, InboxOutlined } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 
 export interface Column<T> {
@@ -25,6 +25,8 @@ interface Props<T> {
   actionsHeader?: string;
   maxHeight?: number;
   emptyMessage?: string;
+  /** Icon shown above emptyMessage when there are no rows at all (not just a filtered-to-zero result). */
+  emptyIcon?: ReactNode;
   minWidth?: number;
 }
 
@@ -32,7 +34,7 @@ type SortDir = 'asc' | 'desc';
 
 export function DataTable<T>({
   columns, rows, getRowId, onRowClick, rowActions, actionsHeader = 'ACTIONS',
-  maxHeight = 480, emptyMessage = 'Nothing to show.', minWidth = 720,
+  maxHeight = 480, emptyMessage = 'Nothing to show.', emptyIcon, minWidth = 720,
 }: Props<T>) {
   const { mode } = useThemeMode();
   const t = tokens(mode);
@@ -82,6 +84,9 @@ export function DataTable<T>({
   const template = [...columns.map((c) => c.width || '1fr'), ...(hasActions ? ['0.9fr'] : [])].join(' ');
   const anyFilterable = columns.some((c) => c.filterable !== false);
   const activeFilterCount = Object.values(filters).filter((v) => v.trim()).length;
+  // No rows at all (not just filtered to zero) — the filter/sort chrome implies
+  // functionality that doesn't apply yet, so show a plain empty state instead.
+  const isEmpty = rows.length === 0;
 
   const cellSx = (align?: 'left' | 'right') => ({
     // minWidth: 0 lets the grid item shrink to its track so nowrap text ellipsizes
@@ -93,7 +98,7 @@ export function DataTable<T>({
   return (
     <Box sx={{ bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', overflow: 'hidden' }}>
       {/* Filter toggle bar */}
-      {anyFilterable && (
+      {anyFilterable && !isEmpty && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 1, borderBottom: `1px solid ${t.borderSoft}` }}>
           <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>
             {processed.length} of {rows.length}{activeFilterCount ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}` : ''}
@@ -113,26 +118,28 @@ export function DataTable<T>({
 
       <Box sx={{ overflowX: 'auto', maxHeight, overflowY: 'auto' }}>
         <Box sx={{ minWidth }}>
-          {/* Header */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: template, px: 2.5, py: 1.5, borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, zIndex: 2, bgcolor: t.cardBg }}>
-            {columns.map((col) => {
-              const sorted = sortKey === col.key;
-              return (
-                <Box
-                  key={col.key}
-                  onClick={() => toggleSort(col)}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start', cursor: col.sortable === false ? 'default' : 'pointer', userSelect: 'none' }}
-                >
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: sorted ? t.gold : t.textSecondary }}>{col.header}</Typography>
-                  {sorted && (sortDir === 'asc' ? <ArrowUpward sx={{ fontSize: 13, color: t.gold }} /> : <ArrowDownward sx={{ fontSize: 13, color: t.gold }} />)}
-                </Box>
-              );
-            })}
-            {hasActions && <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: t.textSecondary }}>{actionsHeader}</Typography>}
-          </Box>
+          {/* Header — hidden when there's nothing to sort or filter yet */}
+          {!isEmpty && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: template, px: 2.5, py: 1.5, borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, zIndex: 2, bgcolor: t.cardBg }}>
+              {columns.map((col) => {
+                const sorted = sortKey === col.key;
+                return (
+                  <Box
+                    key={col.key}
+                    onClick={() => toggleSort(col)}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start', cursor: col.sortable === false ? 'default' : 'pointer', userSelect: 'none' }}
+                  >
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: sorted ? t.gold : t.textSecondary }}>{col.header}</Typography>
+                    {sorted && (sortDir === 'asc' ? <ArrowUpward sx={{ fontSize: 13, color: t.gold }} /> : <ArrowDownward sx={{ fontSize: 13, color: t.gold }} />)}
+                  </Box>
+                );
+              })}
+              {hasActions && <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: t.textSecondary }}>{actionsHeader}</Typography>}
+            </Box>
+          )}
 
           {/* Filter row */}
-          {anyFilterable && showFilters && (
+          {anyFilterable && showFilters && !isEmpty && (
             <Box sx={{ display: 'grid', gridTemplateColumns: template, px: 2.5, py: 1, borderBottom: `1px solid ${t.borderSoft}`, position: 'sticky', top: 41, zIndex: 1, bgcolor: t.cardBg }}>
               {columns.map((col) => (
                 <Box key={col.key} sx={{ pr: 1 }}>
@@ -152,7 +159,8 @@ export function DataTable<T>({
 
           {/* Rows */}
           {processed.length === 0 ? (
-            <Box sx={{ px: 2.5, py: 5, textAlign: 'center' }}>
+            <Box sx={{ px: 2.5, py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              {isEmpty && (emptyIcon ?? <InboxOutlined sx={{ fontSize: 28, color: t.textFaint }} />)}
               <Typography sx={{ color: t.textSecondary }}>{emptyMessage}</Typography>
             </Box>
           ) : processed.map((row) => {

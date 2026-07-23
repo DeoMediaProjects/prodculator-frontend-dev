@@ -1,18 +1,25 @@
 import { Box, Container, Typography, Link } from '@mui/material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { PageHeader } from '@/app/components/common/PageHeader';
+import { SiteFooter } from '@/app/components/common/SiteFooter';
 
 export function PrivacyPolicy() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', color: '#ffffff', py: 8 }}>
-      <Container maxWidth="md">
-        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: '#D4AF37' }}>
+    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh' }}>
+      <PageHeader />
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: t.gold }}>
           Privacy Policy
         </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 6 }}>
+        <Typography variant="body2" sx={{ color: t.textSecondary, mb: 6 }}>
           Last Updated: January 24, 2026
         </Typography>
 
-        <Box sx={{ '& h4': { color: '#D4AF37', fontWeight: 700, mt: 4, mb: 2 }, '& p': { color: '#ffffff', mb: 2, lineHeight: 1.8 }, '& ul': { color: '#ffffff', mb: 2, pl: 3 }, '& li': { mb: 1 } }}>
-          
+        <Box sx={{ '& h4': { color: t.gold, fontWeight: 700, mt: 4, mb: 2 }, '& p': { color: t.textPrimary, mb: 2, lineHeight: 1.8 }, '& ul': { color: t.textPrimary, mb: 2, pl: 3 }, '& li': { mb: 1 } }}>
+
           <Typography variant="h4">1. Introduction</Typography>
           <Typography>
             Prodculator (operated by Deo Media Limited) (\"we\", \"us\", \"our\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Platform, including both individual subscriptions and enterprise (B2B) solutions.
@@ -23,7 +30,7 @@ export function PrivacyPolicy() {
 
           <Typography variant="h4">2. Information We Collect</Typography>
           
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             2.1 Individual Users (B2C)
           </Typography>
           <Typography>
@@ -49,7 +56,7 @@ export function PrivacyPolicy() {
             <li>Engagement features (Territory Watchlist, Alert preferences, Festival tracking)</li>
           </ul>
 
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             2.2 Enterprise Clients (B2B)
           </Typography>
           <Typography>
@@ -82,7 +89,7 @@ export function PrivacyPolicy() {
 
           <Typography variant="h4">3. How We Use Your Information</Typography>
           
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             3.1 Individual Users
           </Typography>
           <ul>
@@ -95,7 +102,7 @@ export function PrivacyPolicy() {
             <li><strong>Aggregate Production Intelligence:</strong> Extract anonymized metadata from script uploads (crew size estimates, equipment requirements, production scale indicators) to create aggregate industry trend reports shown in our Production Intelligence Dashboard and shared with enterprise clients. Individual scripts are NEVER identifiable in these reports.</li>
           </ul>
 
-          <Typography sx={{ fontWeight: 700, color: '#D4AF37', mt: 3, mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
             3.2 Enterprise Clients
           </Typography>
           <ul>
@@ -258,7 +265,7 @@ export function PrivacyPolicy() {
             If you are in the EU/UK and believe we have not addressed your privacy concerns adequately, you have the right to lodge a complaint with your local data protection authority:
           </Typography>
           <ul>
-            <li><strong>UK:</strong> Information Commissioner's Office (ICO) <Link href="https://ico.org.uk" target="_blank" sx={{ color: '#D4AF37' }}>ico.org.uk</Link></li>
+            <li><strong>UK:</strong> Information Commissioner's Office (ICO) <Link href="https://ico.org.uk" target="_blank" sx={{ color: t.gold }}>ico.org.uk</Link></li>
             <li><strong>EU:</strong> Your national data protection authority</li>
           </ul>
 
@@ -273,8 +280,8 @@ export function PrivacyPolicy() {
             <li><strong>Legal Obligation:</strong> Compliance with tax laws, court orders, regulatory requirements</li>
           </ul>
 
-          <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
-            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+          <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${t.border}` }}>
+            <Typography variant="body2" sx={{ color: t.textSecondary }}>
               <strong>Version:</strong> 2.0 (B2B Updated)<br />
               <strong>Effective Date:</strong> January 24, 2026<br />
               <strong>GDPR Compliant:</strong> Yes<br />
@@ -284,6 +291,8 @@ export function PrivacyPolicy() {
           </Box>
         </Box>
       </Container>
+
+      <SiteFooter />
     </Box>
   );
 }

@@ -77,33 +77,35 @@ export function SharedReportViewer() {
 
   return (
     <Box sx={{ bgcolor: '#000', minHeight: '100dvh', pb: 8 }}>
-      {/* Shared report banner */}
-      <Box sx={{ bgcolor: 'rgba(212,175,55,0.08)', borderBottom: '1px solid rgba(212,175,55,0.25)', py: 1, px: 2 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Public sx={{ fontSize: 16, color: '#D4AF37' }} />
-            <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>Shared Report powered by</Typography>
-            <img src={exampleLogo} alt="Prodculator" style={{ height: '16px' }} />
-            <Chip label="View only" size="small" sx={{ ml: 'auto', bgcolor: 'rgba(212,175,55,0.15)', color: '#D4AF37', fontSize: '0.65rem', height: 20 }} />
-          </Box>
-        </Container>
-      </Box>
-
-      {/* Report header */}
-      <Box sx={{ bgcolor: 'rgba(255,255,255,0.98)', borderBottom: '1px solid rgba(0,0,0,0.1)', py: 2 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#000' }}>{report.title}</Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
-                Production Intelligence Report • {new Date(report.createdAt).toLocaleDateString()}
-              </Typography>
+      {/* Shared report banner + header — stacked as one sticky unit */}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: (theme) => theme.zIndex.appBar }}>
+        <Box sx={{ bgcolor: 'rgba(212,175,55,0.08)', borderBottom: '1px solid rgba(212,175,55,0.25)', py: 1, px: 2 }}>
+          <Container maxWidth="lg">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Public sx={{ fontSize: 16, color: '#D4AF37' }} />
+              <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>Shared Report powered by</Typography>
+              <img src={exampleLogo} alt="Prodculator" style={{ height: '16px' }} />
+              <Chip label="View only" size="small" sx={{ ml: 'auto', bgcolor: 'rgba(212,175,55,0.15)', color: '#D4AF37', fontSize: '0.65rem', height: 20 }} />
             </Box>
-            <Button size="small" startIcon={<ArrowBack />} onClick={() => navigate('/')} sx={{ color: '#000' }}>
-              prodculator.com
-            </Button>
-          </Box>
-        </Container>
+          </Container>
+        </Box>
+
+        {/* Report header */}
+        <Box sx={{ bgcolor: 'rgba(255,255,255,0.98)', borderBottom: '1px solid rgba(0,0,0,0.1)', py: 2 }}>
+          <Container maxWidth="lg">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#000' }}>{report.title}</Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(0,0,0,0.6)' }}>
+                  Production Intelligence Report • {new Date(report.createdAt).toLocaleDateString()}
+                </Typography>
+              </Box>
+              <Button size="small" startIcon={<ArrowBack />} onClick={() => navigate('/')} sx={{ color: '#000' }}>
+                prodculator.com
+              </Button>
+            </Box>
+          </Container>
+        </Box>
       </Box>
 
       <Container maxWidth="lg" sx={{ pt: 4 }}>
