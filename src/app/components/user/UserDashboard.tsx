@@ -429,7 +429,7 @@ export function UserDashboard() {
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: '#000000' }}>
       {/* Header */}
-      <Box sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', py: { xs: 2, sm: 3 } }}>
+      <Box sx={{ position: 'sticky', top: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: '#0a0a0a', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', py: { xs: 2, sm: 3 } }}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, sm: 3, md: 4 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 } }}>

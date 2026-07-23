@@ -13,21 +13,16 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Chip,
   CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
 } from '@mui/material';
-import {
-  Check,
-  ArrowBack,
-  Lock,
-  MovieCreation,
-} from '@mui/icons-material';
-import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+import { Check } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { PageHeader } from '@/app/components/common/PageHeader';
+import { SiteFooter } from '@/app/components/common/SiteFooter';
 import {
   STRIPE_PRICES,
   createSubscriptionCheckout,
@@ -40,11 +35,8 @@ import { ChangePlanModal } from './ChangePlanModal';
 
 type BillingCycle = 'monthly' | 'annual';
 type PlanType = 'free' | 'professional' | 'producer' | 'studio';
-
-interface PlanFeatureSection {
-  title: string;
-  features: string[];
-}
+type PlanAction = 'free' | 'single' | 'subscribe' | 'b2b';
+type Audience = 'individual' | 'organization';
 
 interface Plan {
   name: string;
@@ -52,18 +44,17 @@ interface Plan {
   monthlyGBP: number;
   annualUSD?: number;  // per-month price when billed annually (USD)
   annualGBP?: number;  // per-month price when billed annually (GBP)
-  period: string;
+  pricePer?: string;   // label after the price, defaults to 'month'
+  pricePrefix?: string; // e.g. 'from '
   description: string;
-  features?: string[];
-  sections?: PlanFeatureSection[];
-  includesText?: string;
-  footerNote?: string;
+  features: string[];
   cta: string;
   ctaSubtext?: string;
   badge?: string;
-  badgeColor?: string;
   highlight?: boolean;
-  planType: PlanType;
+  action: PlanAction;
+  planType?: PlanType;  // required when action === 'subscribe'
+  audience: Audience | 'both';
 }
 
 type Currency = 'usd' | 'gbp';
@@ -90,8 +81,12 @@ export function Pricing() {
   const navigate = useNavigate();
   const { hasAdminPermission, user } = useAuth();
   const { isUK } = useGeoCurrency();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingCredit, setLoadingCredit] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
+  const [audience, setAudience] = useState<Audience>('individual');
   // Seed from geo-detection; user can override with the toggle
   const [currency, setCurrency] = useState<Currency>(isUK ? 'gbp' : 'usd');
   const { enqueueSnackbar } = useSnackbar();
@@ -112,14 +107,6 @@ export function Pricing() {
   // Keep in sync if geo-detection resolves after first render
   const isGBP = currency === 'gbp';
   const symbol = isGBP ? '£' : '$';
-
-  const handleBillingCycleChange = (_: React.MouseEvent<HTMLElement>, newCycle: BillingCycle | null) => {
-    if (newCycle) setBillingCycle(newCycle);
-  };
-
-  const handleCurrencyChange = (_: React.MouseEvent<HTMLElement>, newCurrency: Currency | null) => {
-    if (newCurrency) setCurrency(newCurrency);
-  };
 
   const getPriceId = (planType: PlanType): string => {
     if (planType === 'professional') {
@@ -209,28 +196,6 @@ export function Pricing() {
     }
   };
 
-  const ctaForPlan = (plan: Plan): { label: string; disabled: boolean } => {
-    if (!hasActiveSubscription || !user) {
-      return { label: plan.cta, disabled: false };
-    }
-    if (plan.planType === 'free') {
-      // Free card is meaningless for paying users — keep it visible but disabled.
-      return { label: 'Continue using your plan', disabled: true };
-    }
-    const direction = classifyDirection(currentPlan, plan.planType);
-    if (direction === 'same') {
-      return { label: 'Current plan', disabled: true };
-    }
-    if (pendingPlan && pendingPlan === plan.planType) {
-      return { label: 'Cancel scheduled change', disabled: false };
-    }
-    if (direction === 'upgrade') return { label: `Upgrade to ${plan.name}`, disabled: false };
-    if (direction === 'downgrade') return { label: `Switch to ${plan.name}`, disabled: false };
-    return { label: plan.cta, disabled: false };
-  };
-
-  const [loadingCredit, setLoadingCredit] = useState(false);
-
   const handleCreditCheckout = async () => {
     if (!user) {
       navigate('/login?redirect=/pricing');
@@ -256,8 +221,37 @@ export function Pricing() {
     }
   };
 
+  const ctaForPlan = (plan: Plan): { label: string; disabled: boolean } => {
+    if (!hasActiveSubscription || !user) {
+      return { label: plan.cta, disabled: false };
+    }
+    if (plan.planType === 'free') {
+      return { label: 'Continue using your plan', disabled: true };
+    }
+    const direction = classifyDirection(currentPlan, plan.planType!);
+    if (direction === 'same') {
+      return { label: 'Current plan', disabled: true };
+    }
+    if (pendingPlan && pendingPlan === plan.planType) {
+      return { label: 'Cancel scheduled change', disabled: false };
+    }
+    if (direction === 'upgrade') return { label: `Upgrade to ${plan.name}`, disabled: false };
+    if (direction === 'downgrade') return { label: `Switch to ${plan.name}`, disabled: false };
+    return { label: plan.cta, disabled: false };
+  };
+
+  // Card CTA routing by plan action.
+  const handleCardCta = (plan: Plan) => {
+    switch (plan.action) {
+      case 'free': navigate('/upload'); break;
+      case 'single': void handleCreditCheckout(); break;
+      case 'b2b': navigate('/b2b'); break;
+      case 'subscribe': void handlePlanClick(plan.name, plan.planType!); break;
+    }
+  };
+
   const displayPrice = (plan: Plan): string => {
-    if (plan.planType === 'free') return '0';
+    if (plan.action === 'free') return '0';
     if (isGBP) {
       return String(billingCycle === 'annual' && plan.annualGBP != null ? plan.annualGBP : plan.monthlyGBP);
     }
@@ -269,7 +263,6 @@ export function Pricing() {
       name: 'Explorer',
       monthlyUSD: 0,
       monthlyGBP: 0,
-      period: 'month',
       description: 'Try the platform',
       features: [
         '1 script (lifetime trial)',
@@ -279,7 +272,27 @@ export function Pricing() {
       ],
       cta: 'Continue for Free',
       ctaSubtext: 'No credit card required',
+      action: 'free',
       planType: 'free',
+      audience: 'individual',
+    },
+    {
+      name: 'Single Report',
+      monthlyUSD: 1,
+      monthlyGBP: 0.79,
+      pricePer: 'one-off',
+      description: 'One full report, no subscription',
+      features: [
+        'Full 13 section report',
+        'All available territories',
+        'Clean PDF download',
+        'Tax incentive analysis',
+        'Report saved to your dashboard',
+      ],
+      cta: 'Buy a Single Report',
+      ctaSubtext: 'One-time · never expires',
+      action: 'single',
+      audience: 'individual',
     },
     {
       name: 'Professional',
@@ -287,20 +300,20 @@ export function Pricing() {
       monthlyGBP: 0.79,
       annualUSD: 1,
       annualGBP: 0.79,
-      period: 'month',
       description: 'Full production intelligence',
       features: [
         '1 script per month',
-        'Up to 5 territories',
+        'Up to 3 territories',
         'Full 13 section report',
         'PDF report download (clean)',
         'What If Calculator',
         'Territory Comparison',
-        'Script Re Analysis',
       ],
       cta: 'Start Professional',
       ctaSubtext: 'Cancel anytime',
+      action: 'subscribe',
       planType: 'professional',
+      audience: 'individual',
     },
     {
       name: 'Producer',
@@ -308,21 +321,20 @@ export function Pricing() {
       monthlyGBP: 0.79,
       annualUSD: 1,
       annualGBP: 0.79,
-      period: 'month',
       description: 'Scale your productions',
       badge: 'BEST VALUE',
       highlight: true,
       features: [
         '3 scripts per month',
-        'All territories',
-        'Everything in Professional, plus:',
-        'Investor Summary PDF',
+        'Up to 5 territories per script',
         'Excel Export',
         'Saved What If Scenarios',
       ],
       cta: 'Start Producer',
       ctaSubtext: 'Cancel anytime',
+      action: 'subscribe',
       planType: 'producer',
+      audience: 'both',
     },
     {
       name: 'Studio',
@@ -330,462 +342,258 @@ export function Pricing() {
       monthlyGBP: 0.79,
       annualUSD: 1,
       annualGBP: 0.79,
-      period: 'month',
       description: 'Your brand. Your reports.',
       badge: 'FOR PRODUCTION COMPANIES',
-      includesText: 'Everything in Producer, plus:',
-      sections: [
-        {
-          title: 'WHITE LABEL',
-          features: [
-            'Your logo on every PDF',
-            '"Prepared by [You]" footer',
-            'Share Link (permanent)',
-          ],
-        },
-        {
-          title: 'VOLUME',
-          features: [
-            '10 scripts per month',
-            'Multiple team seats',
-          ],
-        },
+      features: [
+        '10 scripts per month',
+        'Up to 7 territories per script',
+        'Investor Summary PDF',
+        'Your logo on every PDF',
+        '"Prepared by [You]" footer',
+        'Up to 3 team seats',
       ],
-      footerNote: 'Used by production companies to deliver reports to clients',
       cta: 'Start Studio Plan',
       ctaSubtext: 'Cancel anytime',
+      action: 'subscribe',
       planType: 'studio',
+      audience: 'organization',
+    },
+    {
+      name: 'B2B Solutions',
+      monthlyUSD: 2,
+      monthlyGBP: 1.6,
+      pricePrefix: 'from ',
+      description: 'Production intelligence for studios, vendors & agencies',
+      features: [
+        'Aggregated production demand data',
+        'Territory & format trend signals',
+        'Crew & equipment demand analytics',
+        'Exportable market reports',
+      ],
+      cta: 'Explore B2B',
+      ctaSubtext: 'Requires an account',
+      action: 'b2b',
+      audience: 'organization',
     },
   ];
 
-  return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh' }}>
-      {/* Header */}
-      <Box
-        sx={{
-          bgcolor: 'rgba(255, 255, 255, 0.98)',
-          borderBottom: '1px solid rgba(0,0,0,0.1)',
-          py: 2,
-        }}
-      >
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <img
-              src={exampleLogo}
-              alt="Prodculator"
-              style={{ height: '32px', width: 'auto', cursor: 'pointer' }}
-              onClick={() => navigate('/')}
-            />
-            <Button
-              startIcon={<ArrowBack />}
-              onClick={() => navigate('/')}
-              sx={{ color: '#000000', fontWeight: 500, '&:hover': { bgcolor: 'transparent' } }}
-            >
-              Back to Home
-            </Button>
-          </Box>
-        </Container>
-      </Box>
+  const visiblePlans = plans.filter((p) => p.audience === audience || p.audience === 'both');
+  const cardMd = Math.max(3, Math.floor(12 / visiblePlans.length));
 
-      <Container maxWidth="xl" sx={{ py: 8 }}>
+  return (
+    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh' }}>
+      <PageHeader />
+
+      <Container maxWidth="xl" sx={{ pt: { xs: 3, md: 4 }, pb: { xs: 5, md: 8 } }}>
         {/* Title */}
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h3" sx={{ fontWeight: 700, color: '#ffffff', mb: 1 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: { xs: '2.5rem', md: '3.25rem' }, color: t.textPrimary, mb: 1 }}>
             Pricing
           </Typography>
-          <Typography variant="h6" sx={{ color: '#a0a0a0' }}>
+          <Typography variant="h6" sx={{ color: t.textSecondary, fontWeight: 400 }}>
             Choose the plan that fits your workflow
           </Typography>
         </Box>
 
-        {/* Billing cycle + currency toggles */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mb: 6, flexWrap: 'wrap' }}>
-          {/* Billing cycle */}
-          <ToggleButtonGroup
-            value={billingCycle}
-            exclusive
-            onChange={handleBillingCycleChange}
-            sx={{
-              bgcolor: '#0a0a0a',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
-              borderRadius: 2,
-              '& .MuiToggleButton-root': {
-                color: '#a0a0a0',
-                border: 'none',
-                px: 4,
-                py: 1,
-                fontWeight: 600,
-                '&.Mui-selected': { color: '#000000', bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } },
-                '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.1)' },
-              },
-            }}
-          >
-            <ToggleButton value="monthly">Monthly</ToggleButton>
-            <ToggleButton value="annual">
-              Annual
-              <Chip
-                label="Save ~20%"
-                size="small"
-                sx={{ ml: 1, bgcolor: '#4caf50', color: '#fff', fontWeight: 700, fontSize: '0.65rem', height: 18 }}
-              />
-            </ToggleButton>
-          </ToggleButtonGroup>
+        {/* Audience filter */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <SegmentedToggle
+            radius={12}
+            value={audience}
+            onChange={(v) => setAudience(v as Audience)}
+            options={[
+              { value: 'individual', label: 'For individuals' },
+              { value: 'organization', label: 'For organizations' },
+            ]}
+          />
+        </Box>
 
-          {/* Currency */}
-          <ToggleButtonGroup
-            value={currency}
-            exclusive
-            onChange={handleCurrencyChange}
-            sx={{
-              bgcolor: '#0a0a0a',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
-              borderRadius: 2,
-              '& .MuiToggleButton-root': {
-                color: '#a0a0a0',
-                border: 'none',
-                px: 3,
-                py: 1,
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                '&.Mui-selected': { color: '#000000', bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } },
-                '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.1)' },
+        {/* Billing cycle + currency toggles — smooth sliding segmented controls */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mb: 6, flexWrap: 'wrap' }}>
+          <SegmentedToggle
+            radius={12}
+            value={billingCycle}
+            onChange={(v) => setBillingCycle(v as BillingCycle)}
+            options={[
+              { value: 'monthly', label: 'Monthly' },
+              {
+                value: 'annual',
+                label: (
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                    Annual
+                    <Box
+                      component="span"
+                      sx={{ bgcolor: t.success, color: '#fff', fontSize: '0.6rem', fontWeight: 700, px: 0.75, py: '2px', borderRadius: 1, lineHeight: 1.4 }}
+                    >
+                      SAVE 20%
+                    </Box>
+                  </Box>
+                ),
               },
-            }}
-          >
-            <ToggleButton value="usd">$ USD</ToggleButton>
-            <ToggleButton value="gbp">£ GBP</ToggleButton>
-          </ToggleButtonGroup>
+            ]}
+          />
+          <SegmentedToggle
+            radius={12}
+            value={currency}
+            onChange={(v) => setCurrency(v as Currency)}
+            options={[
+              { value: 'usd', label: '$ USD' },
+              { value: 'gbp', label: '£ GBP' },
+            ]}
+          />
         </Box>
 
         {/* Plan cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {plans.map((plan) => (
-            <Grid size={{ xs: 12, md: 3 }} key={plan.planType}>
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  border: plan.highlight ? '2px solid #D4AF37' : '1px solid rgba(212, 175, 55, 0.2)',
-                  bgcolor: plan.highlight ? 'rgba(212, 175, 55, 0.05)' : '#0a0a0a',
-                  position: 'relative',
-                  transition: 'all 0.3s ease',
-                  boxShadow: plan.highlight ? '0 0 30px rgba(212, 175, 55, 0.3)' : 'none',
-                  '&:hover': {
-                    borderColor: '#D4AF37',
-                    transform: 'translateY(-4px)',
-                  },
-                }}
-              >
-                {plan.badge && (
-                  <Chip
-                    label={plan.badge}
-                    size="medium"
-                    sx={{
-                      position: 'absolute',
-                      top: -7,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      bgcolor: plan.highlight ? '#D4AF37' : 'rgba(212, 175, 55, 0.15)',
-                      color: plan.highlight ? '#000000' : '#D4AF37',
-                      fontWeight: 800,
-                      fontSize: '0.75rem',
-                      px: 2,
-                      height: 28,
-                      boxShadow: plan.highlight ? '0 4px 12px rgba(212, 175, 55, 0.5)' : 'none',
-                    }}
-                  />
-                )}
-
-                <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 4 }}>
-                  <Typography
-                    variant="h6"
-                    gutterBottom
-                    sx={{ py: 2, fontWeight: 600, color: '#ffffff' }}
-                  >
-                    {plan.name}
-                  </Typography>
-
-                  {/* Price */}
-                  <Box sx={{ mb: 1 }}>
-                    <Typography
-                      variant="h3"
-                      component="span"
-                      sx={{ fontWeight: 700, color: '#D4AF37' }}
+        <Grid container spacing={3} justifyContent="center" sx={{ mb: 4, pt: 1 }}>
+          {visiblePlans.map((plan, index) => {
+            const busy = plan.action === 'single' ? loadingCredit : loadingPlan === plan.name;
+            const cta = plan.action === 'subscribe' ? ctaForPlan(plan) : { label: plan.cta, disabled: false };
+            const disabled = plan.action === 'single' ? loadingCredit : (plan.action === 'subscribe' ? (!!loadingPlan || cta.disabled) : false);
+            return (
+              <Grid size={{ xs: 12, sm: 6, md: cardMd }} key={plan.name}>
+                <Box sx={{ position: 'relative', height: '100%' }}>
+                  {plan.badge && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -12,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 2,
+                        bgcolor: plan.highlight ? t.gold : t.goldDim,
+                        color: plan.highlight ? '#000' : t.gold,
+                        border: plan.highlight ? 'none' : `1px solid ${t.gold}`,
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        px: 1.75,
+                        py: 0.75,
+                        borderRadius: '10px',
+                        whiteSpace: 'nowrap',
+                      }}
                     >
-                      {symbol}{displayPrice(plan)}
-                    </Typography>
-                    {plan.planType !== 'free' && (
-                      <Typography variant="body1" component="span" sx={{ color: '#a0a0a0' }}>
-                        {' '}/ month
-                      </Typography>
-                    )}
-                  </Box>
-
-                  {/* Annual billing note */}
-                  {billingCycle === 'annual' && plan.planType !== 'free' && (plan.annualGBP != null || plan.annualUSD != null) && (
-                    <Typography variant="body2" sx={{ color: '#4caf50', mb: 1 }}>
-                      {isGBP && plan.annualGBP != null
-                        ? `Billed £${plan.annualGBP * 12}/year`
-                        : plan.annualUSD != null
-                        ? `Billed $${plan.annualUSD * 12}/year`
-                        : 'Billed annually'}
-                    </Typography>
+                      {plan.badge}
+                    </Box>
                   )}
+                <Card
+                  elevation={0}
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: `1px solid ${plan.highlight ? t.gold : t.border}`,
+                    bgcolor: plan.highlight ? t.goldDim : t.cardBg,
+                    position: 'relative',
+                    overflow: 'visible',
+                    // Smooth, restrained entrance + hover lift (no glow, no bounce)
+                    '@keyframes riseIn': {
+                      from: { opacity: 0, transform: 'translateY(14px)' },
+                      to: { opacity: 1, transform: 'translateY(0)' },
+                    },
+                    animation: 'riseIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
+                    animationDelay: `${index * 70}ms`,
+                    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease',
+                    '&:hover': { borderColor: t.gold, transform: 'translateY(-4px)' },
+                    '@media (prefers-reduced-motion: reduce)': { animation: 'none', transition: 'none', '&:hover': { transform: 'none' } },
+                  }}
+                >
+                  <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 4 }}>
+                    <Typography variant="h6" sx={{ py: 2, fontWeight: 600, color: t.textPrimary }}>
+                      {plan.name}
+                    </Typography>
 
-                  <Typography variant="body2" sx={{ mb: 3, color: '#a0a0a0' }}>
-                    {plan.description}
-                  </Typography>
-
-                  {/* Feature list */}
-                  {plan.sections ? (
-                    <Box sx={{ flex: 1 }}>
-                      {plan.includesText && (
-                        <Typography
-                          variant="caption"
-                          sx={{ color: '#a0a0a0', fontStyle: 'italic', display: 'block', mb: 1 }}
-                        >
-                          {plan.includesText}
-                        </Typography>
-                      )}
-                      {plan.sections.map((section, sIdx) => (
-                        <Box key={sIdx} sx={{ mb: 2 }}>
-                          <Typography
-                            variant="overline"
-                            sx={{ color: '#D4AF37', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.1em' }}
-                          >
-                            {section.title}
-                          </Typography>
-                          <List dense>
-                            {section.features.map((feature, fIdx) => (
-                              <ListItem key={fIdx} sx={{ py: 0.5, px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 32 }}>
-                                  <Check sx={{ color: '#4caf50', fontSize: 18 }} />
-                                </ListItemIcon>
-                                <ListItemText
-                                  primary={feature}
-                                  primaryTypographyProps={{ variant: 'body2', sx: { color: '#ffffff' } }}
-                                />
-                              </ListItem>
-                            ))}
-                          </List>
-                        </Box>
-                      ))}
-                      {/* Gated UI items */}
-                      <Box>
-                        <Typography
-                          variant="overline"
-                          sx={{ color: '#D4AF37', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.1em' }}
-                        >
-                          COMING SOON
-                        </Typography>
-                        <List dense>
-                          {['Share Link (permanent URL)'].map((feature, fIdx) => (
-                            <ListItem key={fIdx} sx={{ py: 0.5, px: 0, opacity: 0.5 }}>
-                              <ListItemIcon sx={{ minWidth: 32 }}>
-                                <Lock sx={{ color: '#a0a0a0', fontSize: 16 }} />
-                              </ListItemIcon>
-                              <ListItemText
-                                primary={feature}
-                                primaryTypographyProps={{ variant: 'body2', sx: { color: '#a0a0a0' } }}
-                              />
-                            </ListItem>
-                          ))}
-                        </List>
-                      </Box>
-                      {plan.footerNote && (
-                        <Typography
-                          variant="caption"
-                          sx={{ color: '#a0a0a0', fontStyle: 'italic', display: 'block', textAlign: 'center', mt: 2 }}
-                        >
-                          {plan.footerNote}
+                    {/* Price */}
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="h3" component="span" sx={{ fontWeight: 700, color: t.gold }}>
+                        {plan.pricePrefix ?? ''}{symbol}{displayPrice(plan)}
+                      </Typography>
+                      {plan.action !== 'free' && (
+                        <Typography variant="body1" component="span" sx={{ color: t.textSecondary }}>
+                          {' '}/ {plan.pricePer ?? 'month'}
                         </Typography>
                       )}
                     </Box>
-                  ) : (
+
+                    {/* Annual billing note (subscription plans only) */}
+                    {billingCycle === 'annual' && (plan.annualGBP != null || plan.annualUSD != null) && (
+                      <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>
+                        {isGBP && plan.annualGBP != null
+                          ? `Billed £${plan.annualGBP * 12}/year`
+                          : plan.annualUSD != null
+                          ? `Billed $${plan.annualUSD * 12}/year`
+                          : 'Billed annually'}
+                      </Typography>
+                    )}
+
+                    <Typography variant="body2" sx={{ mb: 3, color: t.textSecondary }}>
+                      {plan.description}
+                    </Typography>
+
+                    {/* Feature list */}
                     <List sx={{ flex: 1 }}>
-                      {plan.features!.map((feature, idx) => (
+                      {plan.features.map((feature, idx) => (
                         <ListItem key={idx} sx={{ py: 0.5, px: 0 }}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
-                            <Check sx={{ color: '#4caf50', fontSize: 18 }} />
+                            <Check sx={{ color: t.success, fontSize: 18 }} />
                           </ListItemIcon>
                           <ListItemText
                             primary={feature}
-                            primaryTypographyProps={{ variant: 'body2', sx: { color: '#ffffff' } }}
+                            primaryTypographyProps={{ variant: 'body2', sx: { color: t.textPrimary } }}
                           />
                         </ListItem>
                       ))}
-                      {/* Gated UI: Excel Export for Producer */}
-                      {plan.planType === 'producer' && (
-                        <ListItem sx={{ py: 0.5, px: 0, opacity: 0.5 }}>
-                          <ListItemIcon sx={{ minWidth: 32 }}>
-                            <Lock sx={{ color: '#a0a0a0', fontSize: 16 }} />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary="Excel Export (coming soon)"
-                            primaryTypographyProps={{ variant: 'body2', sx: { color: '#a0a0a0' } }}
-                          />
-                        </ListItem>
-                      )}
                     </List>
-                  )}
 
-                  {(() => {
-                    const cta = ctaForPlan(plan);
-                    return (
-                      <Button
-                        variant={plan.highlight ? 'contained' : 'outlined'}
-                        size="large"
-                        fullWidth
-                        sx={{
-                          mt: 2,
-                          ...(plan.highlight
-                            ? {
-                                bgcolor: '#D4AF37',
-                                color: '#000000',
-                                fontWeight: 600,
-                                '&:hover': { bgcolor: '#B8941F' },
-                              }
-                            : {
-                                borderColor: '#D4AF37',
-                                color: '#D4AF37',
-                                '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.1)' },
-                              }),
-                        }}
-                        onClick={() => handlePlanClick(plan.name, plan.planType)}
-                        disabled={!!loadingPlan || cta.disabled}
-                      >
-                        {loadingPlan === plan.name ? <CircularProgress size={24} color="inherit" /> : cta.label}
-                      </Button>
-                    );
-                  })()}
-
-                  {plan.ctaSubtext && (
-                    <Typography
-                      variant="caption"
-                      sx={{ color: '#a0a0a0', display: 'block', textAlign: 'center', mt: 1, fontStyle: 'italic' }}
+                    <Button
+                      variant={plan.highlight ? 'contained' : 'outlined'}
+                      size="large"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      onClick={() => handleCardCta(plan)}
+                      disabled={disabled}
                     >
-                      {plan.ctaSubtext}
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                      {busy ? <CircularProgress size={24} color="inherit" /> : cta.label}
+                    </Button>
 
-        {/* Pay-as-you-go panel */}
-        <Paper
-          sx={{
-            p: { xs: 3, md: 5 },
-            mb: 6,
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
-            borderRadius: 3,
-          }}
-        >
-          <Grid container spacing={4} alignItems="center">
-            {/* Left — description */}
-            <Grid size={{ xs: 12, md: 7 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <MovieCreation sx={{ color: '#D4AF37', fontSize: 20 }} />
-                <Typography variant="overline" sx={{ color: '#D4AF37', fontWeight: 700, letterSpacing: '0.12em' }}>
-                  Pay Once · No Subscription
-                </Typography>
-              </Box>
-              <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1.5 }}>
-                Just need one report?
-              </Typography>
-              <Typography variant="body1" sx={{ color: '#a0a0a0', mb: 3, lineHeight: 1.7 }}>
-                Get a full professional report for a single production with no commitment. Everything in the Professional plan, charged once, never expires.
-              </Typography>
-              <Grid container spacing={1}>
-                {[
-                  'Full 13 section report',
-                  'All available territories',
-                  'Clean PDF download',
-                  'Tax incentive analysis',
-                  'Financial scenarios',
-                  'Report saved to your dashboard',
-                ].map((feature) => (
-                  <Grid size={{ xs: 12, sm: 6 }} key={feature}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Check sx={{ color: '#4caf50', fontSize: 16, flexShrink: 0 }} />
-                      <Typography variant="body2" sx={{ color: '#ffffff' }}>{feature}</Typography>
-                    </Box>
-                  </Grid>
-                ))}
+                    {plan.ctaSubtext && (
+                      <Typography variant="caption" sx={{ color: t.textSecondary, display: 'block', textAlign: 'center', mt: 1 }}>
+                        {plan.ctaSubtext}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+                </Box>
               </Grid>
-            </Grid>
-
-            {/* Right — price + CTA */}
-            <Grid size={{ xs: 12, md: 5 }}>
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  p: { xs: 3, md: 4 },
-                  border: '1px solid rgba(212, 175, 55, 0.35)',
-                  borderRadius: 2,
-                  bgcolor: 'rgba(212, 175, 55, 0.04)',
-                }}
-              >
-                <Typography variant="h2" sx={{ color: '#D4AF37', fontWeight: 700, lineHeight: 1 }}>
-                  {isGBP ? '£0.79' : '$1'}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5, mb: 3 }}>
-                  one time &nbsp;·&nbsp; no subscription &nbsp;·&nbsp; never expires
-                </Typography>
-                <Button
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  onClick={handleCreditCheckout}
-                  disabled={loadingCredit}
-                  sx={{
-                    bgcolor: '#D4AF37',
-                    color: '#000000',
-                    fontWeight: 700,
-                    fontSize: '1rem',
-                    py: 1.5,
-                    '&:hover': { bgcolor: '#B8941F' },
-                    '&.Mui-disabled': { bgcolor: 'rgba(212,175,55,0.3)', color: 'rgba(0,0,0,0.4)' },
-                  }}
-                >
-                  {loadingCredit ? <CircularProgress size={24} color="inherit" /> : 'Buy a Single Report'}
-                </Button>
-                <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 1.5 }}>
-                  Secure checkout via Stripe. Credit added immediately after payment.
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
+            );
+          })}
+        </Grid>
 
         {/* Platform Economics — admin only */}
         {hasAdminPermission('canViewPlatformEconomics') && (
           <Paper
+            elevation={0}
             sx={{
               p: 4,
-              bgcolor: '#0a0a0a',
-              border: '1px solid rgba(212, 175, 55, 0.2)',
-              mb: 6,
+              mt: 4,
+              bgcolor: t.cardBg,
+              border: `1px solid ${t.border}`,
             }}
           >
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#ffffff' }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: t.textPrimary }}>
               Platform Economics
             </Typography>
             <Grid container spacing={3}>
               {[
-                { label: 'Avg. Cost Per Report', value: '~$0.30', sub: 'AI processing + infrastructure', color: '#D4AF37' },
-                { label: 'Gross Margin', value: '~99%', sub: 'Highly scalable model', color: '#4caf50' },
-                { label: 'Scalability', value: 'Infinite', sub: 'Marginal cost near zero', color: '#D4AF37' },
+                { label: 'Avg. Cost Per Report', value: '~$0.30', sub: 'AI processing + infrastructure', color: t.gold },
+                { label: 'Gross Margin', value: '~99%', sub: 'Highly scalable model', color: t.success },
+                { label: 'Scalability', value: 'Infinite', sub: 'Marginal cost near zero', color: t.gold },
               ].map(({ label, value, sub, color }) => (
                 <Grid size={{ xs: 12, sm: 4 }} key={label}>
-                  <Card sx={{ bgcolor: '#000000', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+                  <Card elevation={0} sx={{ bgcolor: t.cardBgAlt, border: `1px solid ${t.border}` }}>
                     <CardContent>
-                      <Typography variant="overline" sx={{ color: '#a0a0a0' }}>{label}</Typography>
+                      <Typography variant="overline" sx={{ color: t.textSecondary }}>{label}</Typography>
                       <Typography variant="h4" sx={{ fontWeight: 600, color }}>{value}</Typography>
-                      <Typography variant="caption" sx={{ color: '#a0a0a0' }}>{sub}</Typography>
+                      <Typography variant="caption" sx={{ color: t.textSecondary }}>{sub}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -795,6 +603,8 @@ export function Pricing() {
         )}
 
       </Container>
+
+      <SiteFooter />
 
       {modalState.open && (
         <ChangePlanModal

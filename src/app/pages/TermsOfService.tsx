@@ -1,18 +1,25 @@
 import { Box, Container, Typography, Link } from '@mui/material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { PageHeader } from '@/app/components/common/PageHeader';
+import { SiteFooter } from '@/app/components/common/SiteFooter';
 
 export function TermsOfService() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100dvh', color: '#ffffff', py: 8 }}>
-      <Container maxWidth="md">
-        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: '#D4AF37' }}>
+    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh' }}>
+      <PageHeader />
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Typography variant="h3" sx={{ fontWeight: 700, mb: 1, color: t.gold }}>
           Terms of Service
         </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 6 }}>
+        <Typography variant="body2" sx={{ color: t.textSecondary, mb: 6 }}>
           Last Updated: January 24, 2026
         </Typography>
 
-        <Box sx={{ '& h4': { color: '#D4AF37', fontWeight: 700, mt: 4, mb: 2 }, '& p': { color: '#ffffff', mb: 2, lineHeight: 1.8 }, '& ul': { color: '#ffffff', mb: 2, pl: 3 }, '& li': { mb: 1 } }}>
-          
+        <Box sx={{ '& h4': { color: t.gold, fontWeight: 700, mt: 4, mb: 2 }, '& p': { color: t.textPrimary, mb: 2, lineHeight: 1.8 }, '& ul': { color: t.textPrimary, mb: 2, pl: 3 }, '& li': { mb: 1 } }}>
+
           <Typography variant="h4">1. Acceptance of Terms</Typography>
           <Typography>
             By accessing or using Prodculator ("the Platform", "Service", or "we"), you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this Platform.
@@ -131,7 +138,7 @@ export function TermsOfService() {
 
           <Typography variant="h4">8. Privacy & Data Protection</Typography>
           <Typography>
-            Your use of the Platform is also governed by our <Link href="/privacy" sx={{ color: '#D4AF37' }}>Privacy Policy</Link>. We are committed to GDPR compliance and do not collect or store PII beyond what is necessary for account management and billing.
+            Your use of the Platform is also governed by our <Link href="/privacy" sx={{ color: t.gold }}>Privacy Policy</Link>. We are committed to GDPR compliance and do not collect or store PII beyond what is necessary for account management and billing.
           </Typography>
           <Typography>
             <strong>8.1 Script Confidentiality:</strong> We treat all uploaded scripts as confidential. Scripts are processed securely and are not shared with third parties.
@@ -223,8 +230,8 @@ export function TermsOfService() {
             These Terms, together with our Privacy Policy and any enterprise contracts, constitute the entire agreement between you and Prodculator regarding use of the Platform.
           </Typography>
 
-          <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
-            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+          <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${t.border}` }}>
+            <Typography variant="body2" sx={{ color: t.textSecondary }}>
               <strong>Version:</strong> 2.0 (B2B Updated)<br />
               <strong>Effective Date:</strong> January 24, 2026<br />
               <strong>Previous Version:</strong> 1.0 (Individual Users Only)
@@ -232,6 +239,8 @@ export function TermsOfService() {
           </Box>
         </Box>
       </Container>
+
+      <SiteFooter />
     </Box>
   );
 }

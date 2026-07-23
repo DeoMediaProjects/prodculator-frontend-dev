@@ -12,7 +12,8 @@ import {
   MenuItem,
   type SelectChangeEvent,
 } from '@mui/material';
-import { InfoOutlined, ArrowBack, LockOutlined } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
+import { InfoOutlined, LockOutlined } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 import {
@@ -20,10 +21,11 @@ import {
   type ScenarioResponse,
   type TerritoryScenario,
 } from '@/services/calculator.service';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { usePlanGate } from '@/app/hooks/usePlanGate';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
-
-// Fixed light palette for the always-light public page (independent of theme mode).
-const PUBLIC_TOGGLE_PAL = { bg: '#FFFFFF', border: 'rgba(0,0,0,0.08)', activeBg: '#F5C800', activeText: '#000000', inactiveText: '#999999' };
+import { SiteFooter } from '@/app/components/common/SiteFooter';
+import { PageHeader } from '@/app/components/common/PageHeader';
 
 // ── ISO → flag emoji ──────────────────────────────────────────────────────────
 const FLAG_FALLBACK = '\u{1F3AC}';
@@ -37,15 +39,17 @@ function isoToFlag(iso: string | null): string {
 
 // ── Currency symbols ──────────────────────────────────────────────────────────
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  GBP: '\u00a3', USD: '$', EUR: '\u20ac', ZAR: 'R', CAD: 'C$', AUD: 'A$',
-  NGN: '\u20a6', HUF: 'Ft', CZK: 'K\u010d', MAD: 'MAD', NZD: 'NZ$',
+  GBP: '£', USD: '$', EUR: '€', ZAR: 'R', CAD: 'C$', AUD: 'A$',
+  NGN: '₦', HUF: 'Ft', CZK: 'Kč', MAD: 'MAD', NZD: 'NZ$',
   RON: 'RON', RSD: 'RSD',
 };
 
-// Guests only get the two headline currencies; the rest unlock on sign-up.
-const CURRENCIES = ['USD', 'GBP'] as const;
-// Guests preview the top 5 ranked territories; the remainder are blurred behind
-// a sign-up CTA.
+// This page requires login (see the ProtectedRoute wrapping /what-if in
+// App.tsx); gating below is by plan, matching the dashboard WhatIfCalculator.
+const FREE_CURRENCIES = ['USD', 'GBP'] as const;
+const ALL_CURRENCIES = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'ZAR'] as const;
+// Free-plan users preview this many territories; the remainder are blurred
+// behind an upgrade CTA. Paid plans see every territory.
 const FREE_VISIBLE = 5;
 const FORMATS = [
   'Feature Film', 'TV Series', 'Limited Series', 'Documentary',
@@ -58,39 +62,6 @@ function formatCurrencyLabel(amount: number, symbol: string): string {
   if (amount >= 1_000) return `${symbol}${(amount / 1_000).toFixed(0)}K`;
   return `${symbol}${amount.toFixed(0)}`;
 }
-
-// ── Shared styles ─────────────────────────────────────────────────────────────
-const font = "'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-const headerCellSx = {
-  fontFamily: font,
-  fontWeight: 700,
-  fontSize: '11px',
-  color: '#D4AF37',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-};
-
-const sliderSx = {
-  color: '#F5C800',
-  height: 6,
-  '& .MuiSlider-track': { bgcolor: '#F5C800', border: 'none' },
-  '& .MuiSlider-rail': { bgcolor: 'rgba(0,0,0,0.08)' },
-  '& .MuiSlider-thumb': {
-    bgcolor: '#F5C800', width: 20, height: 20,
-    border: '3px solid #FFFFFF',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-    '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 8px rgba(245,200,0,0.16)' },
-  },
-};
-
-const selectSx = {
-  fontFamily: font, fontWeight: 600, fontSize: '13px', color: '#111',
-  height: '36px',
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.12)' },
-  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(245,200,0,0.5)' },
-  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#F5C800' },
-};
 
 const DEBOUNCE_MS = 500;
 
@@ -124,14 +95,17 @@ export const SCORE_WEIGHTS_INFO = {
 
 export function PublicWhatIfCalculator() {
   const navigate = useNavigate();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+  const { isFree } = usePlanGate();
 
   // Inputs
   const [budget, setBudget] = useState(4_000_000);
   const [budgetCurrency, setBudgetCurrency] = useState('GBP');
   const [vfxAllocation, setVfxAllocation] = useState(0);
-  // Guests are locked to Maximise Incentive; Full Picture / Location First
-  // unlock on sign-up.
-  const [priority] = useState<'incentive' | 'full' | 'location'>('incentive');
+  const [priority, setPriority] = useState<'incentive' | 'full' | 'location'>('incentive');
+  // Free-plan users are locked to Maximise Incentive regardless of the toggle state.
+  const effPriority: 'incentive' | 'full' | 'location' = isFree ? 'incentive' : priority;
   const [format, setFormat] = useState('Feature Film');
   const [baseline, setBaseline] = useState<'GB' | 'US'>('US');
 
@@ -143,6 +117,7 @@ export function PublicWhatIfCalculator() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sym = CURRENCY_SYMBOLS[budgetCurrency] || budgetCurrency + ' ';
+  const currencyOptions = isFree ? FREE_CURRENCIES : ALL_CURRENCIES;
 
   const fetchScenario = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -156,7 +131,7 @@ export function PublicWhatIfCalculator() {
         budget_currency: budgetCurrency,
         vfx_pct: vfxAllocation,
         production_format: format,
-        production_priority: priority,
+        production_priority: effPriority,
         baseline,
       });
 
@@ -167,7 +142,7 @@ export function PublicWhatIfCalculator() {
       }
       setLoading(false);
     }, DEBOUNCE_MS);
-  }, [budget, budgetCurrency, vfxAllocation, priority, format, baseline]);
+  }, [budget, budgetCurrency, vfxAllocation, effPriority, format, baseline]);
 
   useEffect(() => {
     fetchScenario();
@@ -178,16 +153,46 @@ export function PublicWhatIfCalculator() {
 
   const territories: TerritoryScenario[] = scenario?.territories ?? [];
 
+  // ── Shared styles (theme-dependent, so defined per render) ────────────────
+  const headerCellSx = {
+    fontWeight: 700,
+    fontSize: '11px',
+    color: t.gold,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+  };
+
+  const sliderSx = {
+    color: t.gold,
+    height: 6,
+    '& .MuiSlider-track': { bgcolor: t.gold, border: 'none' },
+    '& .MuiSlider-rail': { bgcolor: t.border },
+    '& .MuiSlider-thumb': {
+      bgcolor: t.gold, width: 20, height: 20,
+      border: `3px solid ${t.cardBg}`,
+      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+      '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 8px ${t.goldDim}` },
+    },
+  };
+
+  const selectSx = {
+    fontWeight: 600, fontSize: '13px', color: t.textPrimary,
+    height: '36px',
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: t.border },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: t.gold },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: t.gold },
+  };
+
   // ── Score tooltip content ─────────────────────────────────────────────────
-  const scoreWeights = SCORE_WEIGHTS_INFO[priority];
+  const scoreWeights = SCORE_WEIGHTS_INFO[effPriority];
   const scoreTooltipContent = (
     <Box sx={{ p: 1 }}>
-      <Typography sx={{ fontWeight: 700, fontSize: '12px', mb: 1.5, color: '#F5C800' }}>
+      <Typography sx={{ fontWeight: 700, fontSize: '12px', mb: 1.5, color: t.gold }}>
         Score out of 100
       </Typography>
       <Typography sx={{ fontSize: '11px', color: '#A0A7B8', mb: 1.5, lineHeight: 1.5 }}>
         Weighted across 6 dimensions for <strong style={{ color: '#fff' }}>
-          {priority === 'incentive' ? 'Maximise Incentive' : priority === 'full' ? 'Full Picture' : 'Location First'}
+          {effPriority === 'incentive' ? 'Maximise Incentive' : effPriority === 'full' ? 'Full Picture' : 'Location First'}
         </strong> mode:
       </Typography>
       {scoreWeights.map((w) => {
@@ -197,7 +202,7 @@ export function PublicWhatIfCalculator() {
             <Typography sx={{ fontSize: '11px', color: '#ccc' }}>
               {w.label}{note ? ` (${note})` : ''}
             </Typography>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#F5C800', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: t.gold, flexShrink: 0 }}>
               {w.pct}
             </Typography>
           </Box>
@@ -210,65 +215,66 @@ export function PublicWhatIfCalculator() {
     </Box>
   );
 
-  // ── Guest gating: preview 5 territories, blur the rest behind a CTA ─────────
-  const visibleTerritories = territories.slice(0, FREE_VISIBLE);
-  const lockedTerritories = territories.slice(FREE_VISIBLE);
+  // ── Plan gating: free plan previews FREE_VISIBLE territories, the rest
+  // blurred behind an upgrade CTA. Paid plans see every territory.
+  const visibleTerritories = isFree ? territories.slice(0, FREE_VISIBLE) : territories;
+  const lockedTerritories = isFree ? territories.slice(FREE_VISIBLE) : [];
 
-  const renderDesktopRow = (t: TerritoryScenario, index: number) => (
+  const renderDesktopRow = (terr: TerritoryScenario, index: number) => (
     <Box
-      key={t.territory}
+      key={terr.territory}
       sx={{
-        display: 'flex', bgcolor: index % 2 === 0 ? '#FFFFFF' : '#FAFAF8',
+        display: 'flex', bgcolor: index % 2 === 0 ? t.cardBg : t.cardBgAlt,
         minHeight: '52px', alignItems: 'center', px: 2,
-        borderBottom: '1px solid rgba(0,0,0,0.04)', minWidth: '720px',
-        '&:hover': { bgcolor: 'rgba(245,200,0,0.04)' },
+        borderBottom: `1px solid ${t.borderSoft}`, minWidth: '720px',
+        '&:hover': { bgcolor: t.goldDim },
       }}
     >
       <Box sx={{ width: '220px', display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography sx={{ fontSize: '18px' }}>{isoToFlag(t.iso)}</Typography>
-        <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: '#111111' }}>{t.territory}</Typography>
+        <Typography sx={{ fontSize: '18px' }}>{isoToFlag(terr.iso)}</Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: '14px', color: t.textPrimary }}>{terr.territory}</Typography>
       </Box>
       <Box sx={{ flex: 1, minWidth: '160px' }}>
-        <Tooltip title={t.programme_note || ''} disableHoverListener={!t.programme_note}>
-          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '13px', color: '#555555' }}>{t.programme}</Typography>
+        <Tooltip title={terr.programme_note || ''} disableHoverListener={!terr.programme_note}>
+          <Typography sx={{ fontWeight: 400, fontSize: '13px', color: t.textSecondary }}>{terr.programme}</Typography>
         </Tooltip>
       </Box>
       <Box sx={{ width: '120px' }}>
-        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#111111' }}>{t.rate_display}</Typography>
+        <Typography sx={{ fontWeight: 600, fontSize: '14px', color: t.textPrimary }}>{terr.rate_display}</Typography>
       </Box>
       <Box sx={{ width: '160px' }}>
-        <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '14px', color: '#1A8C4E' }}>{t.estimated_rebate_display}</Typography>
-        {t.vfx_uplift_display && (
-          <Typography sx={{ fontFamily: font, fontSize: '10px', color: '#999', fontStyle: 'italic' }}>+{t.vfx_uplift_display} VFX</Typography>
+        <Typography sx={{ fontWeight: 600, fontSize: '14px', color: t.success }}>{terr.estimated_rebate_display}</Typography>
+        {terr.vfx_uplift_display && (
+          <Typography sx={{ fontSize: '10px', color: t.textFaint, fontStyle: 'italic' }}>+{terr.vfx_uplift_display} VFX</Typography>
         )}
       </Box>
       <Box sx={{ width: '80px' }}>
-        <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '14px', color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999' }}>
-          {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>/100</Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: '14px', color: terr.overall_score >= 60 ? t.success : terr.overall_score >= 40 ? t.gold : t.textFaint }}>
+          {terr.overall_score}<Typography component="span" sx={{ fontWeight: 400, fontSize: '11px', color: t.textFaint }}>/100</Typography>
         </Typography>
       </Box>
     </Box>
   );
 
-  const renderMobileCard = (t: TerritoryScenario) => {
+  const renderMobileCard = (terr: TerritoryScenario) => {
     const cells = [
-      { label: 'Programme', value: t.programme, valueColor: '#111111' },
-      { label: 'Incentive Rate', value: t.rate_display, valueColor: '#111111' },
-      { label: 'Est. Incentive', value: t.vfx_uplift_display ? `${t.estimated_rebate_display} (+${t.vfx_uplift_display} VFX)` : t.estimated_rebate_display, valueColor: '#1A8C4E' },
+      { label: 'Programme', value: terr.programme, valueColor: t.textPrimary },
+      { label: 'Incentive Rate', value: terr.rate_display, valueColor: t.textPrimary },
+      { label: 'Est. Incentive', value: terr.vfx_uplift_display ? `${terr.estimated_rebate_display} (+${terr.vfx_uplift_display} VFX)` : terr.estimated_rebate_display, valueColor: t.success },
     ];
     return (
-      <Box key={t.territory} sx={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px', p: 2, mb: 1.5, bgcolor: '#FFFFFF' }}>
+      <Box key={terr.territory} sx={{ border: `1px solid ${t.border}`, borderRadius: '10px', p: 2, mb: 1.5, bgcolor: t.cardBg }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography sx={{ fontSize: '20px' }}>{isoToFlag(t.iso)}</Typography>
-          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: '#111111', flex: 1 }}>{t.territory}</Typography>
-          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: t.overall_score >= 60 ? '#1A8C4E' : t.overall_score >= 40 ? '#D4AF37' : '#999' }}>
-            {t.overall_score}<Typography component="span" sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#BBBBBB' }}>/100</Typography>
+          <Typography sx={{ fontSize: '20px' }}>{isoToFlag(terr.iso)}</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: '15px', color: t.textPrimary, flex: 1 }}>{terr.territory}</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: '15px', color: terr.overall_score >= 60 ? t.success : terr.overall_score >= 40 ? t.gold : t.textFaint }}>
+            {terr.overall_score}<Typography component="span" sx={{ fontWeight: 400, fontSize: '11px', color: t.textFaint }}>/100</Typography>
           </Typography>
         </Box>
         {cells.map((cell) => (
-          <Box key={cell.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5, borderTop: '1px solid rgba(0,0,0,0.04)' }}>
-            <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '12px', color: '#999999' }}>{cell.label}</Typography>
-            <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: '13px', color: cell.valueColor, textAlign: 'right' }}>{cell.value}</Typography>
+          <Box key={cell.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5, borderTop: `1px solid ${t.borderSoft}` }}>
+            <Typography sx={{ fontWeight: 400, fontSize: '12px', color: t.textFaint }}>{cell.label}</Typography>
+            <Typography sx={{ fontWeight: 600, fontSize: '13px', color: cell.valueColor, textAlign: 'right' }}>{cell.value}</Typography>
           </Box>
         ))}
       </Box>
@@ -281,80 +287,34 @@ export function PublicWhatIfCalculator() {
       sx={{
         position: 'absolute', inset: 0, zIndex: 5,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, px: 2, textAlign: 'center',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.85) 35%, #FFFFFF 100%)',
+        background: `linear-gradient(180deg, ${alpha(t.cardBg, 0)} 0%, ${alpha(t.cardBg, 0.85)} 35%, ${t.cardBg} 100%)`,
       }}
     >
-      <LockOutlined sx={{ color: '#D4AF37', fontSize: '28px' }} />
-      <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '15px', color: '#111111' }}>
+      <LockOutlined sx={{ color: t.gold, fontSize: '28px' }} />
+      <Typography sx={{ fontWeight: 700, fontSize: '15px', color: t.textPrimary }}>
         {lockedTerritories.length} more territories
       </Typography>
-      <Typography sx={{ fontFamily: font, fontSize: '13px', color: '#555555', maxWidth: 360 }}>
-        Sign up free to compare all {territories.length} territories, unlock every currency, and switch scoring modes.
+      <Typography sx={{ fontSize: '13px', color: t.textSecondary, maxWidth: 360 }}>
+        Upgrade your plan to compare all {territories.length} territories, unlock every currency, and switch scoring modes.
       </Typography>
-      <Box sx={{ display: 'flex', gap: 1.5, mt: 0.5 }}>
-        <Button variant="outlined" onClick={() => navigate('/login')} sx={{ borderColor: '#D4AF37', color: '#B8941F', fontFamily: font, fontWeight: 700, fontSize: '13px', height: '38px', px: 2.5, borderRadius: '8px', textTransform: 'none', '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212,175,55,0.08)' } }}>Log In</Button>
-        <Button variant="contained" onClick={() => navigate('/signup')} sx={{ bgcolor: '#D4AF37', color: '#000', fontFamily: font, fontWeight: 700, fontSize: '13px', height: '38px', px: 2.5, borderRadius: '8px', textTransform: 'none', '&:hover': { bgcolor: '#B8941F' } }}>Sign Up Free →</Button>
-      </Box>
+      <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ height: '38px', px: 2.5, mt: 0.5 }}>Upgrade Plan →</Button>
     </Box>
   );
 
   return (
-    <Box sx={{ bgcolor: '#F8F6F0', minHeight: '100dvh', fontFamily: font }}>
-      {/* Navigation Bar */}
-      <Box sx={{ bgcolor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.08)', py: 2 }}>
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Button
-                startIcon={<ArrowBack sx={{ fontSize: '16px' }} />}
-                onClick={() => navigate('/')}
-                sx={{
-                  color: '#555555', fontFamily: font, fontWeight: 600, fontSize: '13px',
-                  textTransform: 'none', px: 1.5, height: '36px', borderRadius: '8px',
-                  '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', color: '#111111' },
-                }}
-              >
-                Back to Home
-              </Button>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/login')}
-                sx={{
-                  borderColor: '#D4AF37', color: '#D4AF37',
-                  fontFamily: font, fontWeight: 700, fontSize: '13px',
-                  height: '36px', px: 2.5, borderRadius: '8px', textTransform: 'none',
-                  '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212,175,55,0.08)' },
-                }}
-              >
-                Log In
-              </Button>
-              <Button
-                variant="contained"
-                onClick={() => navigate('/signup')}
-                sx={{
-                  bgcolor: '#D4AF37', color: '#000000',
-                  fontFamily: font, fontWeight: 700, fontSize: '13px',
-                  height: '36px', px: 2.5, borderRadius: '8px', textTransform: 'none',
-                  '&:hover': { bgcolor: '#B8941F' },
-                }}
-              >
-                Sign Up Free
-              </Button>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
+    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh' }}>
+      {/* Every visitor here is authenticated (route-level ProtectedRoute),
+          so PageHeader will always show the account menu, never Log In/Sign Up. */}
+      <PageHeader />
 
       {/* Main Content */}
       <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 5 } }}>
         {/* Page Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: '#111111', mb: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: { xs: '20px', sm: '28px' }, color: t.textPrimary, mb: 1 }}>
             What If Calculator
           </Typography>
-          <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: '#555555' }}>
+          <Typography sx={{ fontWeight: 400, fontSize: { xs: '13px', sm: '15px' }, color: t.textSecondary }}>
             Compare incentive returns across {territories.length || '...'} territories at your budget
           </Typography>
         </Box>
@@ -362,20 +322,19 @@ export function PublicWhatIfCalculator() {
         {/* Controls Card */}
         <Box
           sx={{
-            bgcolor: '#FFFFFF', borderRadius: '12px',
-            border: '1px solid rgba(0,0,0,0.06)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+            bgcolor: t.cardBg, borderRadius: '12px',
+            border: `1px solid ${t.border}`,
             p: { xs: 2, sm: 4 }, mb: 3,
           }}
         >
           <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4 }, flexWrap: 'wrap' }}>
             {/* Budget Slider */}
             <Box sx={{ flex: 1, minWidth: '240px' }}>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '11px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
                 Total Production Budget
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 2 }}>
-                <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '22px', color: '#111111' }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '22px', color: t.textPrimary }}>
                   {formatCurrencyLabel(budget, sym)}
                 </Typography>
                 <Select
@@ -384,7 +343,7 @@ export function PublicWhatIfCalculator() {
                   size="small"
                   sx={{ ...selectSx, minWidth: '80px' }}
                 >
-                  {CURRENCIES.map((c) => (
+                  {currencyOptions.map((c) => (
                     <MenuItem key={c} value={c}>{c}</MenuItem>
                   ))}
                 </Select>
@@ -395,17 +354,17 @@ export function PublicWhatIfCalculator() {
                 min={500000} max={50000000} step={100000}
                 sx={sliderSx}
               />
-              <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#999999', mt: 1 }}>
+              <Typography sx={{ fontWeight: 400, fontSize: '11px', color: t.textFaint, mt: 1 }}>
                 Range: {sym}500K to {sym}50M
               </Typography>
             </Box>
 
             {/* VFX Slider */}
             <Box sx={{ flex: 1, minWidth: '240px' }}>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '11px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
                 VFX Budget Allocation
               </Typography>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '22px', color: '#111111', mb: 2 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '22px', color: t.textPrimary, mb: 2 }}>
                 {vfxAllocation}%
               </Typography>
               <Slider
@@ -414,14 +373,14 @@ export function PublicWhatIfCalculator() {
                 min={0} max={60} step={1}
                 sx={sliderSx}
               />
-              <Typography sx={{ fontFamily: font, fontWeight: 400, fontSize: '11px', color: '#999999', mt: 1, fontStyle: 'italic' }}>
+              <Typography sx={{ fontWeight: 400, fontSize: '11px', color: t.textFaint, mt: 1, fontStyle: 'italic' }}>
                 Applies supplementary VFX credits where available
               </Typography>
             </Box>
 
             {/* Format selector */}
             <Box sx={{ minWidth: '180px' }}>
-              <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '11px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
                 Production Format
               </Typography>
               <Select
@@ -442,15 +401,13 @@ export function PublicWhatIfCalculator() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
           {/* Baseline toggle */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontFamily: font, fontWeight: 700, fontSize: '11px', color: '#999999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '11px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Baseline
             </Typography>
             <SegmentedToggle
               radius={9999}
               value={baseline}
               onChange={(v) => setBaseline(v as 'US' | 'GB')}
-              fontFamily={font}
-              palette={PUBLIC_TOGGLE_PAL}
               options={(['US', 'GB'] as const).map((b) => ({
                 value: b,
                 label: (
@@ -468,7 +425,7 @@ export function PublicWhatIfCalculator() {
             <Tooltip
               title={
                 <Box sx={{ p: 1 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: '13px', mb: 1, color: '#F5C800' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '13px', mb: 1, color: t.gold }}>
                     Production Priority Options:
                   </Typography>
                   <Box sx={{ mb: 1 }}>
@@ -503,20 +460,19 @@ export function PublicWhatIfCalculator() {
                 },
               }}
             >
-              <IconButton sx={{ color: '#F5C800', width: '32px', height: '32px', '&:hover': { bgcolor: 'rgba(245,200,0,0.1)' } }}>
+              <IconButton sx={{ color: t.gold, width: '32px', height: '32px', '&:hover': { bgcolor: t.goldDim } }}>
                 <InfoOutlined sx={{ fontSize: '18px' }} />
               </IconButton>
             </Tooltip>
             <SegmentedToggle
               radius={9999}
-              value={priority}
-              onChange={() => { /* only 'incentive' is selectable for guests */ }}
-              fontFamily={font}
-              palette={PUBLIC_TOGGLE_PAL}
+              value={effPriority}
+              onChange={(v) => setPriority(v as 'incentive' | 'full' | 'location')}
+              onLocked={() => navigate('/pricing')}
               options={[
                 { value: 'incentive', label: 'Maximise Incentive' },
-                { value: 'full', label: 'Full Picture', locked: true, lockedHint: 'Sign up free to unlock Full Picture & Location First' },
-                { value: 'location', label: 'Location First', locked: true, lockedHint: 'Sign up free to unlock Full Picture & Location First' },
+                { value: 'full', label: 'Full Picture', locked: isFree, lockedHint: 'Upgrade to unlock Full Picture & Location First' },
+                { value: 'location', label: 'Location First', locked: isFree, lockedHint: 'Upgrade to unlock Full Picture & Location First' },
               ]}
             />
           </Box>
@@ -540,9 +496,8 @@ export function PublicWhatIfCalculator() {
         {territories.length > 0 && (
           <Box
             sx={{
-              bgcolor: '#FFFFFF', borderRadius: '12px',
-              border: '1px solid rgba(0,0,0,0.06)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              bgcolor: t.cardBg, borderRadius: '12px',
+              border: `1px solid ${t.border}`,
               overflow: 'hidden', mb: 4,
               position: 'relative',
             }}
@@ -552,7 +507,7 @@ export function PublicWhatIfCalculator() {
               <Box
                 sx={{
                   position: 'absolute', inset: 0,
-                  bgcolor: 'rgba(255, 255, 255, 0.7)',
+                  bgcolor: alpha(t.cardBg, 0.7),
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   zIndex: 10, borderRadius: '12px', pointerEvents: 'all',
                 }}
@@ -565,9 +520,9 @@ export function PublicWhatIfCalculator() {
               {/* Header Row */}
               <Box
                 sx={{
-                  display: 'flex', bgcolor: 'rgba(245,200,0,0.1)',
+                  display: 'flex', bgcolor: t.goldDim,
                   height: '44px', alignItems: 'center', px: 2,
-                  borderBottom: '1px solid rgba(0,0,0,0.04)',
+                  borderBottom: `1px solid ${t.borderSoft}`,
                   minWidth: '720px',
                 }}
               >
@@ -592,19 +547,19 @@ export function PublicWhatIfCalculator() {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'default' }}>
                       <Typography sx={headerCellSx}>Score /100</Typography>
-                      <InfoOutlined sx={{ fontSize: '12px', color: '#D4AF37', opacity: 0.7 }} />
+                      <InfoOutlined sx={{ fontSize: '12px', color: t.gold, opacity: 0.7 }} />
                     </Box>
                   </Tooltip>
                 </Box>
               </Box>
 
-              {/* Body rows — first 5 open, a short blurred strip behind the CTA */}
+              {/* Body rows — 1 random territory open, a short blurred strip behind the CTA */}
               <Box>
-                {visibleTerritories.map((t, index) => renderDesktopRow(t, index))}
+                {visibleTerritories.map((terr, index) => renderDesktopRow(terr, index))}
                 {lockedTerritories.length > 0 && (
                   <Box sx={{ position: 'relative', maxHeight: 210, overflow: 'hidden' }}>
                     <Box sx={{ filter: 'blur(5px)', pointerEvents: 'none', userSelect: 'none' }} aria-hidden>
-                      {lockedTerritories.slice(0, 4).map((t, index) => renderDesktopRow(t, FREE_VISIBLE + index))}
+                      {lockedTerritories.slice(0, 4).map((terr, index) => renderDesktopRow(terr, FREE_VISIBLE + index))}
                     </Box>
                     {lockedCTA}
                   </Box>
@@ -612,13 +567,13 @@ export function PublicWhatIfCalculator() {
               </Box>
             </Box>
 
-            {/* Mobile card view — first 5 open, a short blurred strip behind the CTA */}
+            {/* Mobile card view — 1 random territory open, a short blurred strip behind the CTA */}
             <Box sx={{ display: { xs: 'block', md: 'none' }, p: 1.5 }}>
-              {visibleTerritories.map((t) => renderMobileCard(t))}
+              {visibleTerritories.map((terr) => renderMobileCard(terr))}
               {lockedTerritories.length > 0 && (
                 <Box sx={{ position: 'relative', maxHeight: 260, overflow: 'hidden' }}>
                   <Box sx={{ filter: 'blur(5px)', pointerEvents: 'none', userSelect: 'none' }} aria-hidden>
-                    {lockedTerritories.slice(0, 2).map((t) => renderMobileCard(t))}
+                    {lockedTerritories.slice(0, 2).map((terr) => renderMobileCard(terr))}
                   </Box>
                   {lockedCTA}
                 </Box>
@@ -628,6 +583,8 @@ export function PublicWhatIfCalculator() {
         )}
 
       </Container>
+
+      <SiteFooter />
     </Box>
   );
 }

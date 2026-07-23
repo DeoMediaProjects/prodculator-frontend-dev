@@ -11,9 +11,10 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
-import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 import { useNavigate } from 'react-router';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { PageHeader } from '@/app/components/common/PageHeader';
+import { SiteFooter } from '@/app/components/common/SiteFooter';
 
 
 interface FAQItem {
@@ -28,7 +29,9 @@ interface FAQSection {
 }
 
 export default function FAQ() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [openSection, setOpenSection] = useState<number | null>(0);
   const [openQuestion, setOpenQuestion] = useState<{ [key: string]: boolean }>({
     '0-0': true, // First question open by default
@@ -630,59 +633,29 @@ export default function FAQ() {
   ];
 
   const richTextSx = {
-    '& p': { color: '#000000', margin: 0 },
+    '& p': { color: t.textPrimary, margin: 0 },
     '& p + p': { marginTop: 1.5 },
-    '& ul, & ol': { margin: 0, paddingLeft: '1.5rem', color: '#000000' },
+    '& ul, & ol': { margin: 0, paddingLeft: '1.5rem', color: t.textPrimary },
     '& li + li': { marginTop: 0.75 },
-    '& a': { color: '#D4AF37', textDecoration: 'none' },
-    '& a:hover': { color: '#D4AF37', textDecoration: 'underline' },
-    '& strong': { color: '#000000' },
+    '& a': { color: t.gold, textDecoration: 'none' },
+    '& a:hover': { color: t.gold, textDecoration: 'underline' },
+    '& strong': { color: t.textPrimary },
   };
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: '#000', color: '#fff' }}>
-        <Box 
-        sx={{ 
-          bgcolor: 'rgba(255, 255, 255, 0.98)', 
-          borderBottom: '1px solid rgba(0,0,0,0.1)',
-          py: 2,
-        }}
-      >
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <img 
-                src={exampleLogo} 
-                alt="Prodculator" 
-                style={{ height: '32px', width: 'auto', cursor: 'pointer' }}
-                onClick={() => navigate('/')}
-              />
-            </Box>
-            <Button 
-              startIcon={<ArrowBack />} 
-              onClick={() => navigate('/')}
-              sx={{
-                color: '#000000',
-                fontWeight: 500,
-                '&:hover': { bgcolor: 'transparent' }
-              }}
-            >
-              Back to Home
-            </Button>
-          </Box>
-        </Container>
-      </Box>
+    <Box sx={{ minHeight: '100dvh', bgcolor: t.pageBg }}>
+      <PageHeader />
 
-      <Box sx={{ bgcolor: '#000000', borderBottom: '1px solid #1f2937' }}>
+      <Box sx={{ borderBottom: `1px solid ${t.border}` }}>
         <Container maxWidth="lg" sx={{ py: { xs: 6, md: 10 }, textAlign: 'center' }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-            <HelpCircle size={32} color="#D4AF37" />
-            <Typography sx={{ fontWeight: 700, color: '#ffffff', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>Frequently Asked Questions</Typography>
+            <HelpCircle size={32} color={t.gold} />
+            <Typography sx={{ fontWeight: 700, color: t.textPrimary, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>Frequently Asked Questions</Typography>
           </Stack>
-          <Typography sx={{ color: '#d1d5db', maxWidth: 900, mx: 'auto', fontSize: { xs: '1rem', md: '1.25rem' } }}>
+          <Typography sx={{ color: t.textSecondary, maxWidth: 900, mx: 'auto', fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Everything you need to know about Prodculator's Scripteligence AI, from getting started to advanced
             features. Can't find what you're looking for?{' '}
-            <Link onClick={() => navigate('/contact')} underline="none" sx={{ color: '#D4AF37', cursor: 'pointer', '&:hover': { color: '#F4CF67' } }}>
+            <Link onClick={() => navigate('/contact')} underline="none" sx={{ color: t.gold, cursor: 'pointer' }}>
               Contact us
             </Link>
             .
@@ -690,7 +663,7 @@ export default function FAQ() {
         </Container>
       </Box>
 
-      <Box sx={{ bgcolor: '#ffffff' }}>
+      <Box sx={{ bgcolor: t.cardBgAlt }}>
         <Container maxWidth="lg" sx={{ py: 8 }}>
           <Stack spacing={3}>
             {faqSections.map((section, sectionIndex) => (
@@ -699,16 +672,16 @@ export default function FAQ() {
                 expanded={openSection === sectionIndex}
                 onChange={() => setOpenSection(openSection === sectionIndex ? null : sectionIndex)}
                 disableGutters
-                sx={{ bgcolor: '#ffffff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 2, '&:before': { display: 'none' } }}
+                sx={{ bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 2, '&:before': { display: 'none' } }}
               >
                 <AccordionSummary
-                  expandIcon={<ChevronDown size={20} color="#000000" />}
-                  sx={{ bgcolor: '#f5f5f5', '&:hover': { bgcolor: '#eeeeee' } }}
+                  expandIcon={<ChevronDown size={20} color={t.textSecondary} />}
+                  sx={{ bgcolor: t.borderSoft, '&:hover': { bgcolor: t.border } }}
                 >
                   <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                    <Box sx={{ color: '#D4AF37', display: 'inline-flex' }}>{section.icon}</Box>
-                    <Typography sx={{ fontWeight: 600, color: '#111111' }}>{section.title}</Typography>
-                    <Typography variant="body2" sx={{ color: '#777777' }}>
+                    <Box sx={{ color: t.gold, display: 'inline-flex' }}>{section.icon}</Box>
+                    <Typography sx={{ fontWeight: 600, color: t.textPrimary }}>{section.title}</Typography>
+                    <Typography variant="body2" sx={{ color: t.textFaint }}>
                       ({section.items.length})
                     </Typography>
                   </Stack>
@@ -724,12 +697,12 @@ export default function FAQ() {
                         expanded={!!isOpen}
                         onChange={() => toggleQuestion(sectionIndex, itemIndex)}
                         disableGutters
-                        sx={{ bgcolor: '#ffffff', borderTop: '1px solid rgba(0,0,0,0.08)', '&:before': { display: 'none' } }}
+                        sx={{ bgcolor: t.cardBg, borderTop: `1px solid ${t.borderSoft}`, '&:before': { display: 'none' } }}
                       >
-                        <AccordionSummary expandIcon={<ChevronDown size={16} color="#555555" />} sx={{ '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' } }}>
+                        <AccordionSummary expandIcon={<ChevronDown size={16} color={t.textFaint} />} sx={{ '&:hover': { bgcolor: t.borderSoft } }}>
                           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', mt: 1, bgcolor: isOpen ? '#D4AF37' : '#bbbbbb' }} />
-                            <Typography sx={{ color: '#111111', fontWeight: 500 }}>{item.question}</Typography>
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', mt: 1, bgcolor: isOpen ? t.gold : t.textFaint }} />
+                            <Typography sx={{ color: t.textPrimary, fontWeight: 500 }}>{item.question}</Typography>
                           </Stack>
                         </AccordionSummary>
                         <AccordionDetails sx={{ pl: { xs: 2, sm: 6 }, pr: { xs: 2, sm: 3 }, pb: 3 }}>
@@ -747,26 +720,22 @@ export default function FAQ() {
         </Container>
       </Box>
 
-      <Box sx={{ bgcolor: '#000000', borderTop: '1px solid #1f2937' }}>
+      <Box sx={{ borderTop: `1px solid ${t.border}` }}>
         <Container maxWidth="md" sx={{ py: { xs: 5, md: 8 }, textAlign: 'center' }}>
-          <Mail size={48} color="#D4AF37" />
-          <Typography sx={{ fontWeight: 700, mt: 2, mb: 1, color: '#ffffff', fontSize: { xs: '1.5rem', sm: '2rem' } }}>Still Have Questions?</Typography>
-          <Typography sx={{ color: '#d1d5db', mb: 4, fontSize: { xs: '1rem', md: '1.25rem' } }}>
+          <Mail size={48} color={t.gold} />
+          <Typography sx={{ fontWeight: 700, mt: 2, mb: 1, color: t.textPrimary, fontSize: { xs: '1.5rem', sm: '2rem' } }}>Still Have Questions?</Typography>
+          <Typography sx={{ color: t.textSecondary, mb: 4, fontSize: { xs: '1rem', md: '1.25rem' } }}>
             Our team is here to help. Get in touch and we'll respond within 24 hours.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
-            <Button
-              onClick={() => navigate('/contact')}
-              variant="contained"
-              startIcon={<Mail size={18} />}
-              sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#F4CF67' } }}
-            >
+            <Button onClick={() => navigate('/contact')} variant="contained" startIcon={<Mail size={18} />}>
               Contact Us
             </Button>
           </Stack>
-        
         </Container>
       </Box>
+
+      <SiteFooter />
     </Box>
   );
 }

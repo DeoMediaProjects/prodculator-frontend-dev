@@ -14,7 +14,7 @@ import { getCustomerPortalUrl } from '@/services/stripe.service';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { DataTable } from './DataTable';
 import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
-import { PROFILE_KEY, PROFILE_UPDATED_EVENT } from './Sidebar';
+import { PROFILE_KEY, PROFILE_UPDATED_EVENT, AVATAR_KEY } from './Sidebar';
 
 const ACCOUNT_DELETE_REASONS = [
   'No longer need the service',
@@ -53,7 +53,11 @@ export function AccountPage() {
   const subscription = (subData?.subscription ?? null) as null | Record<string, any>;
 
   const email = user?.email || '';
-  const derivedName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '';
+  // The real name is captured at signup and should always be present; the
+  // email-local-part guess is a last-resort fallback for older accounts
+  // created before name capture, not the expected path.
+  const emailFallbackName = email ? email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '';
+  const derivedName = user?.name?.trim() || emailFallbackName;
   const initials = (derivedName || 'U').split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
   const plan = (user?.plan || 'free').toUpperCase();
 
@@ -88,7 +92,7 @@ export function AccountPage() {
           else { setCountry('Other'); setCountryOther(p.country); }
         }
       }
-      const a = localStorage.getItem('prodculator-avatar');
+      const a = localStorage.getItem(AVATAR_KEY);
       if (a) setAvatar(a);
     } catch { /* */ }
   }, []);
@@ -106,6 +110,7 @@ export function AccountPage() {
   const renews = subscription?.current_period_end
     ? new Date(String(subscription.current_period_end).length > 10 ? String(subscription.current_period_end) : Number(subscription.current_period_end) * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
+  const cancelAtPeriodEnd = subData?.cancel_at_period_end ?? subscription?.cancel_at_period_end ?? false;
   const cardBrand = subscription?.card_brand || subscription?.brand;
   const cardLast4 = subscription?.card_last4 || subscription?.last4;
 
@@ -125,7 +130,8 @@ export function AccountPage() {
     reader.onload = () => {
       const url = String(reader.result);
       setAvatar(url);
-      try { localStorage.setItem('prodculator-avatar', url); } catch { /* */ }
+      try { localStorage.setItem(AVATAR_KEY, url); } catch { /* */ }
+      window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
       enqueueSnackbar('Profile photo updated.', { variant: 'success' });
     };
     reader.readAsDataURL(file);
@@ -190,23 +196,29 @@ export function AccountPage() {
         </Box>
       </Box>
 
-      {/* Password + Subscription */}
+      {/* Password + Subscription — both cards carry a comparable set of
+          account actions so their heights read as intentional, not mismatched. */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
         <Box sx={cardSx}>
           <Typography sx={{ ...sectionTitle, mb: 2.5 }}>Password &amp; Security</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography sx={{ color: t.textPrimary, fontWeight: 600 }}>Password</Typography>
-              <Typography sx={{ color: t.textSecondary, fontSize: 13, letterSpacing: 2 }}>••••••••••</Typography>
+              <Button variant="outlined" onClick={() => navigate('/reset-password')}>Change</Button>
             </Box>
-            <Button variant="outlined" onClick={() => navigate('/reset-password')}>Change</Button>
+            <Button fullWidth variant="outlined" startIcon={<LogoutOutlined />} onClick={() => { userLogout(); navigate('/'); }} sx={{ justifyContent: 'flex-start' }}>Sign out</Button>
+            <Button fullWidth variant="outlined" startIcon={<DeleteOutline />} onClick={() => setDeleteOpen(true)} sx={{ justifyContent: 'flex-start', color: t.error, borderColor: t.error, '&:hover': { borderColor: t.error, bgcolor: 'rgba(229,104,109,0.08)' } }}>Request account deletion</Button>
           </Box>
         </Box>
 
         <Box sx={cardSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Typography sx={sectionTitle}>Subscription</Typography>
-            <Box sx={{ border: `1px solid ${t.gold}`, color: t.gold, borderRadius: '8px', px: 1.2, py: 0.4, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em' }}>{plan}</Box>
+            {renews && (
+              <Box sx={{ border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: '8px', px: 1.2, py: 0.4, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>
+                {cancelAtPeriodEnd ? `CANCELS ${renews.toUpperCase()}` : `RENEWS ${renews.toUpperCase()}`}
+              </Box>
+            )}
           </Box>
           {latestPaid ? (
             <Typography sx={{ fontSize: 30, fontWeight: 800, color: t.textPrimary }}>
@@ -216,7 +228,7 @@ export function AccountPage() {
             <Typography sx={{ fontSize: 20, fontWeight: 800, color: t.textPrimary }}>{plan} plan</Typography>
           )}
           <Typography sx={{ color: t.textSecondary, fontSize: 13, mb: 2 }}>
-            {plan === 'STUDIO' ? 'Unlimited reports' : 'Report allowance per period'}{renews ? ` · Renews ${renews}` : ''}
+            {latestPaid ? `${plan} plan · ` : ''}{plan === 'STUDIO' ? 'Unlimited reports' : 'Report allowance per period'}
           </Typography>
           {(cardBrand || cardLast4) && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, border: `1px solid ${t.border}`, borderRadius: '10px', p: 1.5, mb: 2 }}>
@@ -246,6 +258,7 @@ export function AccountPage() {
             minWidth={560}
             maxHeight={360}
             emptyMessage="No invoices yet."
+            emptyIcon={<ReceiptLongOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
             columns={[
               { key: 'number', header: 'INVOICE', width: '1.4fr', sortValue: (inv) => inv.number || inv.id, render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{inv.number || inv.id.slice(0, 12)}</Typography> },
               { key: 'created', header: 'DATE', width: '1.2fr', sortValue: (inv) => inv.created || 0, render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{fmtDate(inv.created)}</Typography> },
@@ -267,31 +280,25 @@ export function AccountPage() {
         )}
       </Box>
 
-      {/* Notifications + Session */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
-        <Box sx={cardSx}>
-          <Typography sx={{ ...sectionTitle, mb: 2 }}>Email Notifications</Typography>
-          {([
-            { k: 'reportReady', label: 'Report ready notifications' },
-            { k: 'deadlines', label: 'Incentive & deadline reminders' },
-            { k: 'product', label: 'Product news & offers' },
-          ] as const).map((row) => (
-            <Box key={row.k} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Checkbox
-                checked={notifs[row.k]}
-                onChange={(e) => setNotifs((n) => ({ ...n, [row.k]: e.target.checked }))}
-                sx={{ color: t.gold, '&.Mui-checked': { color: t.gold }, py: 0.5 }}
-              />
-              <Typography sx={{ color: t.textPrimary, fontSize: 14 }}>{row.label}</Typography>
-            </Box>
-          ))}
-        </Box>
-
-        <Box sx={cardSx}>
-          <Typography sx={{ ...sectionTitle, mb: 2 }}>Session &amp; Account</Typography>
-          <Button fullWidth variant="outlined" startIcon={<LogoutOutlined />} onClick={() => { userLogout(); navigate('/'); }} sx={{ justifyContent: 'flex-start', mb: 1.5 }}>Sign out</Button>
-          <Button fullWidth variant="outlined" startIcon={<DeleteOutline />} onClick={() => setDeleteOpen(true)} sx={{ justifyContent: 'flex-start', color: t.error, borderColor: t.error, '&:hover': { borderColor: t.error, bgcolor: 'rgba(229,104,109,0.08)' } }}>Request account deletion</Button>
-        </Box>
+      {/* Notifications — sign out / delete account moved up into Password & Security,
+          so this stands alone as a full-width preferences panel rather than being
+          artificially paired with an unrelated, sparser card. */}
+      <Box sx={cardSx}>
+        <Typography sx={{ ...sectionTitle, mb: 2 }}>Email Notifications</Typography>
+        {([
+          { k: 'reportReady', label: 'Report ready notifications' },
+          { k: 'deadlines', label: 'Incentive & deadline reminders' },
+          { k: 'product', label: 'Product news & offers' },
+        ] as const).map((row) => (
+          <Box key={row.k} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Checkbox
+              checked={notifs[row.k]}
+              onChange={(e) => setNotifs((n) => ({ ...n, [row.k]: e.target.checked }))}
+              sx={{ color: t.gold, '&.Mui-checked': { color: t.gold }, py: 0.5 }}
+            />
+            <Typography sx={{ color: t.textPrimary, fontSize: 14 }}>{row.label}</Typography>
+          </Box>
+        ))}
       </Box>
 
       <ConfirmDialog

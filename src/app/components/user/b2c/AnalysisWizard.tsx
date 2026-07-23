@@ -10,7 +10,6 @@ import {
   Menu as MenuIcon, Check,
 } from '@mui/icons-material';
 import { useScript, ReportTimeoutError, type ScriptMetadata } from '@/app/contexts/ScriptContext';
-import { useAuth } from '@/app/contexts/AuthContext';
 import { databaseService } from '@/services/database.service';
 import { useToast } from '@/app/hooks/useToast';
 import { useTerritories } from '@/app/hooks/useTerritories';
@@ -88,16 +87,15 @@ export function AnalysisWizard() {
   const { collapsed, toggle: toggleCollapsed } = useSidebarCollapsed();
 
   const { generateAnalysis } = useScript();
-  const { isAuthenticated } = useAuth();
   const { showError } = useToast();
   const { territories: allTerritories } = useTerritories();
   const { isFree, isProducer } = usePlanGate();
   const maxTerritories = isFree ? 3 : !isProducer ? 5 : null;
 
-  // Redirect anonymous users to sign in — the wizard is the authenticated flow.
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/login');
-  }, [isAuthenticated, navigate]);
+  // Anonymous users are redirected to sign in at the route level (see
+  // ProtectedRoute wrapping /upload and /analysis/new in App.tsx) — no
+  // internal check needed here, and this avoids the flash-then-redirect
+  // that a post-render effect would cause.
 
   const [step, setStep] = useState(0);
 
