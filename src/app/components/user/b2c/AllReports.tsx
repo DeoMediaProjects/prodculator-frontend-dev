@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, IconButton, CircularProgress, Tooltip } from '@mui/material';
 import { VisibilityOutlined, FileDownloadOutlined, DeleteOutline, DescriptionOutlined, ArrowBack } from '@mui/icons-material';
@@ -49,37 +49,54 @@ export function AllReports() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ReportRow | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await apiClient.get<ReportApiResponse[]>('/api/reports', { auth: true });
-        const mapped: ReportRow[] = data.map((r) => {
-          const analysis = r.analysis || r.report_data;
-          const status: ReportRow['status'] = analysis?.error ? 'Failed' : analysis ? 'Completed' : 'Pending';
-          return {
-            id: r.id,
-            title: r.title || r.script_title || 'Untitled',
-            createdAt: r.createdAt || r.created_at || '',
-            reportType: (r.reportType || r.report_type || 'unknown').replace(/^\w/, (c) => c.toUpperCase()),
-            topTerritory:
-              analysis?.locationRankings?.[0]?.name ||
-              analysis?.locationRankings?.[0]?.country ||
-              analysis?.executiveSummary?.recommendedTerritories?.[0] ||
-              analysis?.topRecommendation || 'N/A',
-            status,
-            pdfUrl: r.pdfUrl || r.pdf_url || null,
-          };
-        });
-        if (!cancelled) setReports(mapped);
-      } catch {
-        /* leave empty */
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
+  const loadReports = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
+    try {
+      const data = await apiClient.get<ReportApiResponse[]>('/api/reports', { auth: true });
+      const mapped: ReportRow[] = data.map((r) => {
+        const analysis = r.analysis || r.report_data;
+        const status: ReportRow['status'] = analysis?.error ? 'Failed' : analysis ? 'Completed' : 'Pending';
+        return {
+          id: r.id,
+          title: r.title || r.script_title || 'Untitled',
+          createdAt: r.createdAt || r.created_at || '',
+          reportType: (r.reportType || r.report_type || 'unknown').replace(/^\w/, (c) => c.toUpperCase()),
+          topTerritory:
+            analysis?.locationRankings?.[0]?.name ||
+            analysis?.locationRankings?.[0]?.country ||
+            analysis?.executiveSummary?.recommendedTerritories?.[0] ||
+            analysis?.topRecommendation || 'N/A',
+          status,
+          pdfUrl: r.pdfUrl || r.pdf_url || null,
+        };
+      });
+      setReports(mapped);
+    } catch {
+      /* leave existing rows in place */
+    } finally {
+      if (!opts?.silent) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { void loadReports(); }, [loadReports]);
+
+  // Auto-refresh while a report is still processing (generated in the
+  // background), so it flips from Pending to Completed without a manual refresh.
+  useEffect(() => {
+    if (!reports.some((r) => r.status === 'Pending')) return;
+    const id = window.setInterval(() => void loadReports({ silent: true }), 7000);
+    return () => window.clearInterval(id);
+  }, [reports, loadReports]);
+
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState !== 'hidden') void loadReports({ silent: true }); };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [loadReports]);
 
   const confirmDelete = async (reason?: string) => {
     const target = pendingDelete;

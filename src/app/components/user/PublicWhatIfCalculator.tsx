@@ -295,7 +295,7 @@ export function PublicWhatIfCalculator() {
         {lockedTerritories.length} more territories
       </Typography>
       <Typography sx={{ fontSize: '13px', color: t.textSecondary, maxWidth: 360 }}>
-        Upgrade your plan to compare all {territories.length} territories, unlock every currency, and switch scoring modes.
+        Upgrade your plan to gain access to more territories, unlock every currency, and switch scoring modes.
       </Typography>
       <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ height: '38px', px: 2.5, mt: 0.5 }}>Upgrade Plan →</Button>
     </Box>
