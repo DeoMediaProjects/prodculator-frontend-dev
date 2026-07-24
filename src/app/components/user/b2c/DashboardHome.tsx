@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, IconButton, CircularProgress, LinearProgress, Tooltip,
@@ -57,43 +57,58 @@ export function DashboardHome() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ReportRow | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await apiClient.get<ReportApiResponse[]>('/api/reports', { auth: true });
-        const mapped: ReportRow[] = data.map((r) => {
-          const analysis = r.analysis || r.report_data;
-          const status: ReportRow['status'] = analysis?.error ? 'Failed' : analysis ? 'Completed' : 'Pending';
-          return {
-            id: r.id,
-            title: r.title || r.script_title || 'Untitled',
-            createdAt: r.createdAt || r.created_at || '',
-            reportType: (r.reportType || r.report_type || 'unknown').replace(/^\w/, (c) => c.toUpperCase()),
-            topTerritory:
-              analysis?.locationRankings?.[0]?.name ||
-              analysis?.locationRankings?.[0]?.country ||
-              analysis?.executiveSummary?.recommendedTerritories?.[0] ||
-              analysis?.topRecommendation || 'N/A',
-            status,
-            pdfUrl: r.pdfUrl || r.pdf_url || null,
-          };
-        });
-        if (!cancelled) setReports(mapped);
-      } catch {
-        /* leave empty */
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
+  const loadReports = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
+    try {
+      const data = await apiClient.get<ReportApiResponse[]>('/api/reports', { auth: true });
+      const mapped: ReportRow[] = data.map((r) => {
+        const analysis = r.analysis || r.report_data;
+        const status: ReportRow['status'] = analysis?.error ? 'Failed' : analysis ? 'Completed' : 'Pending';
+        return {
+          id: r.id,
+          title: r.title || r.script_title || 'Untitled',
+          createdAt: r.createdAt || r.created_at || '',
+          reportType: (r.reportType || r.report_type || 'unknown').replace(/^\w/, (c) => c.toUpperCase()),
+          topTerritory:
+            analysis?.locationRankings?.[0]?.name ||
+            analysis?.locationRankings?.[0]?.country ||
+            analysis?.executiveSummary?.recommendedTerritories?.[0] ||
+            analysis?.topRecommendation || 'N/A',
+          status,
+          pdfUrl: r.pdfUrl || r.pdf_url || null,
+        };
+      });
+      setReports(mapped);
+    } catch {
+      /* leave existing rows in place */
+    } finally {
+      if (!opts?.silent) setLoading(false);
+    }
   }, []);
 
-  const plan = user?.plan || 'free';
-  const periodLimit = PLAN_PERIOD_LIMIT[plan] ?? 1;
-  const usedThisPeriod = Math.min(user?.reportsUsed ?? 0, Number.isFinite(periodLimit) ? periodLimit : (user?.reportsUsed ?? 0));
-  const remaining = Number.isFinite(periodLimit) ? Math.max(0, periodLimit - usedThisPeriod) : Infinity;
-  const credits = user?.reportsLimit ?? 0;
+  useEffect(() => { void loadReports(); }, [loadReports]);
+
+  // A report generated in the background is created immediately as a Pending
+  // row, then flips to Completed when the worker finishes. Poll quietly while
+  // anything is still processing so the table updates on its own — no manual
+  // refresh needed (the previous behaviour only showed it after refresh).
+  useEffect(() => {
+    if (!reports.some((r) => r.status === 'Pending')) return;
+    const id = window.setInterval(() => void loadReports({ silent: true }), 7000);
+    return () => window.clearInterval(id);
+  }, [reports, loadReports]);
+
+  // Also refresh when the user returns to the tab — a report may have finished
+  // while they were on the checkout page, their email, etc.
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState !== 'hidden') void loadReports({ silent: true }); };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [loadReports]);
 
   const stats = useMemo(() => {
     const completed = reports.filter((r) => r.status === 'Completed').length;
@@ -103,6 +118,21 @@ export function DashboardHome() {
     }).length;
     return { generated: reports.length, thisMonth, active: completed };
   }, [reports]);
+
+  const plan = user?.plan || 'free';
+  const periodLimit = PLAN_PERIOD_LIMIT[plan] ?? 1;
+  // user.reportsUsed isn't wired from the backend yet (always 0), so fall back
+  // to the reports actually created this month — otherwise a free user who has
+  // already used their monthly report would still show "1 remaining".
+  const usedThisPeriod = Number.isFinite(periodLimit)
+    ? Math.min(Math.max(user?.reportsUsed ?? 0, stats.thisMonth), periodLimit)
+    : Math.max(user?.reportsUsed ?? 0, stats.thisMonth);
+  const remaining = Number.isFinite(periodLimit) ? Math.max(0, periodLimit - usedThisPeriod) : Infinity;
+  const payCredits = user?.reportsLimit ?? 0; // pay-per-report credits (0 on free)
+  // "Credits remaining" = reports the user can still generate right now: their
+  // plan allowance left this period PLUS any pay-per-report credits. A free
+  // user with their monthly report unused therefore correctly shows 1, not 0.
+  const creditsRemaining = Number.isFinite(remaining) ? remaining + payCredits : Infinity;
 
   // The dashboard's "Recent Reports" widget only ever shows the last 5 —
   // the full list (and its stats above) still reflects every report.
@@ -148,7 +178,7 @@ export function DashboardHome() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
         {[
           { label: 'REPORTS GENERATED', value: pad(stats.generated), sub: stats.thisMonth ? `+${stats.thisMonth} this month` : 'No reports yet', gold: false },
-          { label: 'CREDITS REMAINING', value: pad(Number.isFinite(credits) ? credits : '∞'), sub: plan === 'free' ? 'Free plan credit' : 'Pay-per-report overflow', gold: true },
+          { label: 'CREDITS REMAINING', value: pad(Number.isFinite(creditsRemaining) ? creditsRemaining : '∞'), sub: plan === 'free' ? 'Free plan credit' : (payCredits > 0 ? 'Incl. pay-per-report' : 'Reports left this period'), gold: true },
           { label: 'ACTIVE PROJECTS', value: pad(stats.active), sub: stats.active ? 'In production pipeline' : 'Start your first', gold: false },
         ].map((s) => (
           <Box key={s.label} sx={{ ...card, p: 2.75 }}>

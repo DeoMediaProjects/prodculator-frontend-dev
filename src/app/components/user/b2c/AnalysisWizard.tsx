@@ -342,6 +342,20 @@ export function AnalysisWizard() {
     '& .MuiSvgIcon-root': { color: t.textSecondary },
     '& input': { color: t.textPrimary },
   } as const;
+  // Native <input type="date"> renders a browser calendar picker whose icon is
+  // dark by default and therefore invisible on the dark input background — which
+  // made it look like there was no picker and forced manual typing. color-scheme
+  // themes the picker (and its popup) correctly, and inverting the indicator
+  // guarantees the calendar button is visible and clickable in dark mode.
+  const dateFieldSx = {
+    ...fieldSx,
+    '& input': { color: t.textPrimary, colorScheme: mode === 'dark' ? 'dark' : 'light' },
+    '& input::-webkit-calendar-picker-indicator': {
+      filter: mode === 'dark' ? 'invert(1) brightness(1.8)' : 'none',
+      cursor: 'pointer',
+      opacity: 1,
+    },
+  } as const;
   // disableScrollLock stops MUI from removing the body scrollbar when a menu
   // opens — that width change was shifting the sticky sidebar.
   const menuProps = { disableScrollLock: true, PaperProps: { sx: { maxHeight: 320, bgcolor: t.cardBg, color: t.textPrimary } } } as const;
@@ -520,9 +534,9 @@ export function AnalysisWizard() {
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Schedule')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2.5 }}>
-            <TextField fullWidth required type="date" label="Filming Start" slotProps={{ inputLabel: { shrink: true } }} value={filmingStart} onChange={(e) => setFilmingStart(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required type="date" label="Filming Start" slotProps={{ inputLabel: { shrink: true } }} value={filmingStart} onChange={(e) => setFilmingStart(e.target.value)} sx={dateFieldSx} />
             <TextField fullWidth required type="number" label="Filming Duration (weeks)" value={filmingDuration} onChange={(e) => setFilmingDuration(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth required type="date" label="Expected Completion" slotProps={{ inputLabel: { shrink: true } }} value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} sx={fieldSx} />
+            <TextField fullWidth required type="date" label="Expected Completion" slotProps={{ inputLabel: { shrink: true } }} value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} sx={dateFieldSx} />
           </Box>
         </Box>
 

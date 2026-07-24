@@ -828,7 +828,7 @@ export function WhatIfCalculator({ embedded = false }: { embedded?: boolean } = 
                   {territories.length - FREE_VISIBLE} more territories
                 </Typography>
                 <Typography sx={{ fontFamily: font, fontSize: '13px', color: pal.subtext, maxWidth: 380, mt: 0.5 }}>
-                  Upgrade to compare all {territories.length} territories, unlock every currency and scoring mode, and export your results.
+                  Upgrade to gain access to more territories, unlock every currency and scoring mode, and export your results.
                 </Typography>
                 <Button
                   variant="contained"
