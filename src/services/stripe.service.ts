@@ -142,12 +142,18 @@ export async function createSubscriptionCheckout(
   priceId: string,
   _userEmail: string,
   _userId: string,
-  planType: string = 'professional'
+  planType: string = 'professional',
+  currency: string = 'usd',
+  billingCycle: string = 'monthly'
 ): Promise<{ sessionId: string; url?: string; error?: string }> {
   try {
+    // Send plan/currency/cycle alongside price_id so the backend can resolve
+    // the Stripe price from its own config when the build-time price_id is
+    // empty (VITE_STRIPE_PRICE_* not baked in). The backend is the source of
+    // truth for prices.
     const data = await apiClient.post<{ session_id: string; url: string }>(
       '/api/payments/subscription-checkout',
-      { price_id: priceId, plan_type: planType },
+      { price_id: priceId, plan_type: planType, currency, billing_cycle: billingCycle },
       { auth: true }
     );
     return { sessionId: data.session_id, url: data.url };

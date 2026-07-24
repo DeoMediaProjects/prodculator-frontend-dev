@@ -178,7 +178,9 @@ export function Pricing() {
 
     try {
       const priceId = getPriceId(planType);
-      const { url, error } = await createSubscriptionCheckout(priceId, userEmail, user?.email || '', planType);
+      const { url, error } = await createSubscriptionCheckout(
+        priceId, userEmail, user?.email || '', planType, currency, billingCycle
+      );
 
       if (error) {
         enqueueSnackbar(`Payment error: ${error}`, { variant: 'error' });
