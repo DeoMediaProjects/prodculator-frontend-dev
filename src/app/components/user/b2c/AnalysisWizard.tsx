@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
+import { Fragment, useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
@@ -18,6 +18,8 @@ import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { Sidebar, SIDEBAR_W, SIDEBAR_COLLAPSED_W, useSidebarCollapsed } from './Sidebar';
 import { NotificationBell } from './NotificationBell';
 import { SegmentedToggle } from './SegmentedToggle';
+import { WizardTour } from './WizardTour';
+import { usePrefersReducedMotion } from './tourStyles';
 
 // Continent grouping for the territory picker — identical mapping to ScriptUpload
 // so the wizard yields the same intake payload the engine already understands.
@@ -44,7 +46,7 @@ const CURRENCY_BY_COUNTRY: Record<string, string> = {
   'India': 'INR', 'Mexico': 'MXN', 'Brazil': 'BRL',
 };
 
-const GENRE_OPTIONS = ['Drama', 'Thriller', 'Sci Fi', 'Horror', 'Comedy', 'Romance', 'Action', 'Adventure', 'Fantasy', 'Mystery', 'Documentary', 'Biopic', 'Period', 'Western', 'Animation', 'Musical', 'Crime', 'War', 'Sports', 'Family'];
+const GENRE_OPTIONS = ['Drama', 'Thriller', 'Sci Fi', 'Horror', 'Comedy', 'Romance', 'Action', 'Adventure', 'Fantasy', 'Mystery', 'Documentary', 'Biopic', 'Period', 'History', 'Western', 'Animation', 'Musical', 'Music', 'Crime', 'War', 'Sports', 'Family', 'Superhero', 'Coming-of-Age', 'Psychological', 'Disaster', 'Spy', 'Noir'];
 const FORMAT_OPTIONS = ['Feature Film', 'TV Series', 'TV Pilot', 'Limited Series', 'Short', 'Documentary', 'Animated Feature'];
 const CAMERA_OPTIONS = ['ARRI Alexa 35', 'RED VRAPTOR', 'Sony VENICE 2', 'Film 35mm', 'Blackmagic Cinema', 'Canon C70', 'Sony FX9', 'Panavision', 'IMAX', 'DJI Drone', 'GoPro', 'iPhone', 'Sony Alpha', 'Sony A7S III', 'Canon EOS R5', 'Phantom High Speed', 'Kinefinity Terra', 'Other'];
 const USA_STATES = ['California', 'New York', 'Georgia', 'Louisiana', 'New Mexico', 'Texas', 'North Carolina', 'Massachusetts', 'Illinois', 'Pennsylvania', 'Florida', 'Oregon', 'Washington', 'Nevada', 'Utah', 'Colorado', 'Other'];
@@ -61,7 +63,7 @@ const CURRENCY_OPTIONS = [
 ];
 const PRIORITY_OPTIONS = [
   { value: 'incentive', label: 'Maximise incentive return' },
-  { value: 'full', label: 'Full picture — financial, creative and quality', badge: 'DEFAULT' },
+  { value: 'full', label: 'Full picture: financial, creative and quality', badge: 'DEFAULT' },
   { value: 'location', label: 'Location and creative fit first' },
 ];
 const AUDIENCE_OPTIONS = [
@@ -85,6 +87,7 @@ export function AnalysisWizard() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const { collapsed, toggle: toggleCollapsed } = useSidebarCollapsed();
+  const reducedMotion = usePrefersReducedMotion();
 
   const { generateAnalysis } = useScript();
   const { showError } = useToast();
@@ -373,7 +376,7 @@ export function AnalysisWizard() {
     if (step === 0) return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Upload */}
-        <Box sx={{ ...card, p: 3 }}>
+        <Box data-tour="wizard-upload" sx={{ ...card, p: 3 }}>
           {sectionLabel('Script')}
           <Box
             component="label"
@@ -455,8 +458,14 @@ export function AnalysisWizard() {
             </FormControl>
             <TextField
               fullWidth required label="Budget Amount" placeholder="e.g. 3,000,000" sx={fieldSx}
-              value={budgetAmount === '' ? '' : Number(budgetAmount).toLocaleString()}
-              onChange={(e) => { const raw = e.target.value.replace(/,/g, ''); if (raw === '') { setBudgetAmount(''); return; } const n = Number(raw); if (!isNaN(n)) setBudgetAmount(n); }}
+              inputProps={{ inputMode: 'numeric' }}
+              // Format grouping with a FIXED locale and strip ALL non-digits on
+              // input. The previous code formatted with the browser locale but
+              // only stripped commas, so in a locale that groups with '.' or a
+              // space (e.g. de/fr) the separator inserted at 1,000 couldn't be
+              // removed — corrupting the value and capping the budget at 1000.
+              value={budgetAmount === '' ? '' : Number(budgetAmount).toLocaleString('en-US')}
+              onChange={(e) => { const raw = e.target.value.replace(/\D/g, ''); if (raw === '') { setBudgetAmount(''); return; } const n = Number(raw); if (!isNaN(n)) setBudgetAmount(n); }}
             />
           </Box>
         </Box>
@@ -724,34 +733,68 @@ export function AnalysisWizard() {
               ]}
             />
             {isLast ? (
-              <Button onClick={handleGenerate} variant="contained" disabled={processing} startIcon={processing ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : undefined} sx={{ whiteSpace: 'nowrap' }}>{processing ? 'Generating…' : 'Generate report'}</Button>
+              <Button data-tour="wizard-generate" onClick={handleGenerate} variant="contained" disabled={processing} startIcon={processing ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : undefined} sx={{ whiteSpace: 'nowrap' }}>{processing ? 'Generating…' : 'Generate report'}</Button>
             ) : (
-              <Button onClick={handleContinue} variant="contained" sx={{ whiteSpace: 'nowrap' }}>Continue</Button>
+              <Button data-tour="wizard-continue" onClick={handleContinue} variant="contained" sx={{ whiteSpace: 'nowrap' }}>Continue</Button>
             )}
             <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}><NotificationBell /></Box>
           </Box>
         </Box>
 
-        {/* Stepper */}
+        {/* Stepper — connected nodes; the link between two nodes fills gold as a
+            step completes, so it visibly "flows" the user toward the next one. */}
         {!processing && (
-        <Box sx={{ px: { xs: 2, md: 5 }, mb: 3 }}>
-          <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, flexWrap: 'wrap' }}>
+        <Box data-tour="wizard-steps" sx={{ px: { xs: 2, md: 5 }, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
             {STEPS.map((s, i) => {
               const done = i < step;
               const active = i === step;
               const clickable = i <= step || stepValid.slice(0, i).every(Boolean);
               return (
-                <Box
-                  key={s.key} onClick={() => clickable && setStep(i)}
-                  sx={{ flex: { xs: '1 1 45%', md: 1 }, display: 'flex', alignItems: 'center', gap: 1.25, p: 1.5, borderRadius: '12px', cursor: clickable ? 'pointer' : 'default', bgcolor: active ? t.goldDim : t.cardBg, border: `1px solid ${active ? t.gold : t.border}`, opacity: clickable ? 1 : 0.55, transition: 'all .15s' }}
-                >
-                  <Box sx={{ width: 30, height: 30, flexShrink: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, bgcolor: done || active ? t.gold : 'transparent', color: done || active ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary, border: done || active ? 'none' : `1px solid ${t.border}` }}>
-                    {done ? <Check sx={{ fontSize: 18 }} /> : String(i + 1).padStart(2, '0')}
+                <Fragment key={s.key}>
+                  <Box
+                    onClick={() => clickable && setStep(i)}
+                    sx={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                      flexShrink: 0, width: { xs: 42, md: 132 }, textAlign: 'center',
+                      cursor: clickable ? 'pointer' : 'default', opacity: clickable ? 1 : 0.5,
+                      '&:hover .pc-node': clickable && !done && !active ? { borderColor: t.gold, color: t.textPrimary } : {},
+                    }}
+                  >
+                    <Box
+                      className="pc-node"
+                      sx={{
+                        width: 34, height: 34, flexShrink: 0, borderRadius: '10px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 800, fontSize: 13,
+                        bgcolor: done || active ? t.gold : 'transparent',
+                        color: done || active ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
+                        border: done || active ? 'none' : `1px solid ${t.border}`,
+                        boxShadow: active ? `0 0 0 4px ${t.goldDim}` : 'none',
+                        transition: reducedMotion ? 'none' : 'background-color .3s ease, box-shadow .3s ease, color .3s ease',
+                      }}
+                    >
+                      {done ? <Check sx={{ fontSize: 18 }} /> : String(i + 1).padStart(2, '0')}
+                    </Box>
+                    <Typography sx={{ display: { xs: 'none', md: 'block' }, fontSize: 12.5, fontWeight: active || done ? 700 : 600, lineHeight: 1.3, color: active || done ? t.textPrimary : t.textSecondary }}>
+                      {s.title}
+                    </Typography>
                   </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: active || done ? t.textPrimary : t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</Typography>
-                  </Box>
-                </Box>
+                  {i < STEPS.length - 1 && (
+                    <Box sx={{ flex: 1, height: 3, mt: '15.5px', mx: { xs: 0.5, md: 1 }, borderRadius: 3, bgcolor: t.border, position: 'relative', overflow: 'hidden' }}>
+                      {/* Fill via transform (not width) so it stays on the GPU and
+                          never triggers layout — origin-left makes it flow rightward. */}
+                      <Box
+                        sx={{
+                          position: 'absolute', inset: 0, borderRadius: 3, bgcolor: t.gold,
+                          transformOrigin: 'left',
+                          transform: done ? 'scaleX(1)' : 'scaleX(0)',
+                          transition: reducedMotion ? 'none' : 'transform .5s cubic-bezier(0.22, 1, 0.36, 1)',
+                        }}
+                      />
+                    </Box>
+                  )}
+                </Fragment>
               );
             })}
           </Box>
@@ -779,10 +822,26 @@ export function AnalysisWizard() {
               </Typography>
             </Box>
           ) : (
-            renderStep()
+            // key={step} remounts on each step change so the content glides in
+            // rather than snapping — a small motion cue that the flow advanced.
+            <Box
+              key={step}
+              sx={reducedMotion ? undefined : {
+                animation: 'pcStepIn .34s cubic-bezier(0.22, 1, 0.36, 1)',
+                '@keyframes pcStepIn': {
+                  from: { opacity: 0, transform: 'translateY(10px)' },
+                  to: { opacity: 1, transform: 'none' },
+                },
+              }}
+            >
+              {renderStep()}
+            </Box>
           )}
         </Box>
       </Box>
+
+      {/* First-visit guided tour of the analysis flow */}
+      <WizardTour />
     </Box>
   );
 }

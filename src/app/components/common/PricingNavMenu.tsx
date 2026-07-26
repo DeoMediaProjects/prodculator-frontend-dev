@@ -4,6 +4,17 @@ import { KeyboardArrowDown } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { useAuth } from '@/app/contexts/AuthContext';
+
+// Maps the backend plan key on the user to the plan name shown in this menu, so
+// a logged-in subscriber sees which plan they're currently on. "Single" is a
+// one-off purchase, not a standing plan, so it's intentionally not mapped.
+const PLAN_KEY_TO_NAME: Record<string, string> = {
+  free: 'Explorer',
+  professional: 'Professional',
+  producer: 'Producer',
+  studio: 'Studio',
+};
 
 interface PricingMenuItem {
   name: string;
@@ -34,8 +45,11 @@ export function PricingNavMenu() {
   const { isUK } = useGeoCurrency();
   const { mode } = useThemeMode();
   const t = tokens(mode);
+  const { user, isAuthenticated } = useAuth();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
+
+  const currentPlanName = isAuthenticated ? PLAN_KEY_TO_NAME[user?.plan || 'free'] : null;
 
   const price = (item: PricingMenuItem) => (isUK ? item.priceGBP : item.priceUSD);
 
@@ -44,7 +58,9 @@ export function PricingNavMenu() {
     navigate(path);
   };
 
-  const renderItem = (item: PricingMenuItem, path: string) => (
+  const renderItem = (item: PricingMenuItem, path: string) => {
+    const isCurrent = item.name === currentPlanName;
+    return (
     <MenuItem
       key={item.name}
       onClick={() => goTo(path)}
@@ -54,13 +70,30 @@ export function PricingNavMenu() {
         alignItems: 'flex-start',
         flexDirection: 'column',
         gap: 0.25,
+        // Subtly mark the plan the user is currently on.
+        bgcolor: isCurrent ? t.goldDim : 'transparent',
+        borderLeft: isCurrent ? `2px solid ${t.gold}` : '2px solid transparent',
         '&:hover': { bgcolor: t.goldDim },
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 3, width: '100%' }}>
-        <Typography sx={{ color: t.textPrimary, fontWeight: 600, fontSize: '0.95rem' }}>
-          {item.name}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography sx={{ color: t.textPrimary, fontWeight: 600, fontSize: '0.95rem' }}>
+            {item.name}
+          </Typography>
+          {isCurrent && (
+            <Typography
+              component="span"
+              sx={{
+                color: t.gold, bgcolor: 'transparent', border: `1px solid ${t.gold}`,
+                fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
+                textTransform: 'uppercase', px: 0.75, py: 0.1, borderRadius: '6px', lineHeight: 1.5,
+              }}
+            >
+              Current plan
+            </Typography>
+          )}
+        </Box>
         <Typography sx={{ color: t.gold, fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
           {price(item)}
         </Typography>
@@ -69,7 +102,8 @@ export function PricingNavMenu() {
         {item.description}
       </Typography>
     </MenuItem>
-  );
+    );
+  };
 
   return (
     <Box>

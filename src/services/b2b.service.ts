@@ -135,7 +135,16 @@ export const b2bService = {
     return response.items;
   },
   downloadRequestPdf: (request: B2BIntelligenceRequest) =>
-    downloadPdf(`/api/b2b/requests/${request.id}/pdf`, `B2B Intelligence - ${request.product_type}.pdf`),
+    downloadPdf(
+      `/api/b2b/requests/${request.id}/pdf`,
+      `Business Intelligence - ${request.product_type} - ${request.period_start} to ${request.period_end}.pdf`,
+    ),
+  updateRecipients: (subscriptionId: string, extraRecipientEmail: string | null) =>
+    apiClient.patch<B2BSubscription>(
+      `/api/b2b/subscriptions/${subscriptionId}/recipients`,
+      { extra_recipient_email: extraRecipientEmail },
+      { auth: true },
+    ),
 };
 
 export const adminB2BService = {

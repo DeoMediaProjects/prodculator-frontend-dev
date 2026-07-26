@@ -1,16 +1,31 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { HeaderActionsContext } from './headerActions';
 import { Sidebar, SIDEBAR_W, SIDEBAR_COLLAPSED_W, useSidebarCollapsed } from './Sidebar';
 import {
-  Box, Drawer, IconButton, Button, Typography, useMediaQuery, useTheme,
+  Box, Drawer, IconButton, Button, Typography, Tooltip, useMediaQuery, useTheme,
 } from '@mui/material';
 import {
-  LightModeOutlined, DarkModeOutlined, Add, Menu as MenuIcon,
+  LightModeOutlined, DarkModeOutlined, Add, Menu as MenuIcon, HelpOutlineOutlined,
 } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { NotificationBell } from './NotificationBell';
 import { SegmentedToggle } from './SegmentedToggle';
+import { OnboardingTour } from './OnboardingTour';
+import { usePrefersReducedMotion } from './tourStyles';
+
+// Per-browser marker that the dashboard has been opened before, so a returning
+// user gets "Welcome back" and a genuine first-timer just gets "Welcome".
+const VISITED_KEY = 'pc_dashboard_visited';
+
+function firstNameOf(user: { name?: string; email?: string } | null | undefined): string {
+  const raw = (user?.name || '').trim();
+  if (raw) return raw.split(/\s+/)[0];
+  // Fall back to the email local-part so we still greet by something personal.
+  const local = (user?.email || '').split('@')[0] || '';
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : '';
+}
 
 // eyebrow + title + optional description per route. The description lives in the
 // top bar so pages don't repeat a title/subtitle in their content.
@@ -20,6 +35,7 @@ function pageMeta(path: string): { eyebrow: string; title: string; description?:
   if (path.startsWith('/dashboard/timeline')) return { eyebrow: 'DASHBOARD', title: 'Production Timeline', description: 'Track your progress from analysis to production' };
   if (path.startsWith('/dashboard/account')) return { eyebrow: 'DASHBOARD', title: 'Account' };
   if (path.startsWith('/dashboard/reports')) return { eyebrow: 'DASHBOARD', title: 'All Reports', description: 'Every report you have generated' };
+  if (path.startsWith('/dashboard/business-intelligence')) return { eyebrow: 'DASHBOARD', title: 'Business Intelligence', description: 'Your subscription, deliveries and recipients' };
   // Index route — matches the "Reports" item in the sidebar.
   return { eyebrow: 'WELCOME BACK', title: 'Reports' };
 }
@@ -34,10 +50,29 @@ export function B2CLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [headerActions, setHeaderActions] = useState<ReactNode>(null);
   const { collapsed, toggle: toggleCollapsed } = useSidebarCollapsed();
+  const { user } = useAuth();
+  const reducedMotion = usePrefersReducedMotion();
 
-  const meta = pageMeta(location.pathname);
+  // First dashboard visit in this browser → greet with "Welcome"; thereafter
+  // "Welcome back". Captured once so it doesn't flip mid-session.
+  const [firstVisit] = useState(() => {
+    try { return !localStorage.getItem(VISITED_KEY); } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(VISITED_KEY, '1'); } catch { /* storage unavailable — ignore */ }
+  }, []);
+
+  const baseMeta = pageMeta(location.pathname);
+  // Personalise the dashboard home greeting (the only route using WELCOME BACK).
+  const meta = baseMeta.eyebrow === 'WELCOME BACK'
+    ? (() => {
+        const name = firstNameOf(user);
+        const greeting = firstVisit ? 'WELCOME' : 'WELCOME BACK';
+        return { ...baseMeta, eyebrow: name ? `${greeting}, ${name.toUpperCase()}` : greeting };
+      })()
+    : baseMeta;
   // The Timeline page has its own "Add Milestone" action; hide the global
-  // "New Analysis" button there so we never show two primary buttons side by side.
+  // "Generate Report" button there so we never show two primary buttons side by side.
   const hideNewAnalysis = location.pathname.startsWith('/dashboard/timeline');
 
   return (
@@ -98,21 +133,51 @@ export function B2CLayout() {
             {headerActions}
             {!hideNewAnalysis && (
               <>
-                <Button onClick={() => navigate('/analysis/new')} variant="contained" startIcon={<Add />} sx={{ whiteSpace: 'nowrap', display: { xs: 'none', sm: 'inline-flex' } }}>
-                  New Analysis
-                </Button>
-                <IconButton onClick={() => navigate('/analysis/new')} sx={{ display: { xs: 'inline-flex', sm: 'none' }, borderRadius: '10px', bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff' }}><Add /></IconButton>
+                <Tooltip title="Upload a script to generate a report">
+                  <Button data-tour="new-analysis" onClick={() => navigate('/analysis/new')} variant="contained" startIcon={<Add />} sx={{ whiteSpace: 'nowrap', display: { xs: 'none', sm: 'inline-flex' } }}>
+                    Generate Report
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Generate report">
+                  <IconButton data-tour="new-analysis-mobile" aria-label="Generate report" onClick={() => navigate('/analysis/new')} sx={{ display: { xs: 'inline-flex', sm: 'none' }, borderRadius: '10px', bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff' }}><Add /></IconButton>
+                </Tooltip>
               </>
             )}
+            <Tooltip title="Take the product tour">
+              <IconButton
+                data-tour="help"
+                aria-label="Take the product tour"
+                onClick={() => window.dispatchEvent(new Event('pc:start-tour'))}
+                sx={{ color: t.textSecondary, '&:hover': { color: t.gold, bgcolor: t.goldDim } }}
+              >
+                <HelpOutlineOutlined />
+              </IconButton>
+            </Tooltip>
             <NotificationBell />
           </Box>
         </Box>
 
-        {/* Routed content */}
-        <Box sx={{ flex: 1, px: { xs: 2, md: 5 }, pb: 6 }}>
+        {/* Routed content — keyed on the path so each page fades and rises in
+            on navigation, so switching sections doesn't feel like a hard cut. */}
+        <Box
+          key={location.pathname}
+          sx={{
+            flex: 1, px: { xs: 2, md: 5 }, pb: 6,
+            ...(reducedMotion ? {} : {
+              animation: 'pcPageIn .28s cubic-bezier(0.22, 1, 0.36, 1)',
+              '@keyframes pcPageIn': {
+                from: { opacity: 0, transform: 'translateY(8px)' },
+                to: { opacity: 1, transform: 'none' },
+              },
+            }),
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
+
+      {/* First-visit guided tour + the header "?" re-launch */}
+      <OnboardingTour />
     </Box>
     </HeaderActionsContext.Provider>
   );

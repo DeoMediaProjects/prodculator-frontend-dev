@@ -409,7 +409,7 @@ export function B2BSolutions() {
       setSubscriptions(subscriptionRows);
       setRequests(requestRows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load B2B intelligence');
+      setError(err instanceof Error ? err.message : 'Failed to load Business Intelligence');
     } finally {
       setLoading(false);
     }
@@ -477,7 +477,7 @@ export function B2BSolutions() {
         period_end: periodEnd,
         extra_recipient_email: extraRecipient || null,
       });
-      enqueueSnackbar('B2B intelligence request queued. The PDF will be emailed when ready.', { variant: 'success' });
+      enqueueSnackbar('Report requested. The PDF will be emailed when ready.', { variant: 'success' });
       setSelectedProduct(null);
       setExtraRecipient('');
       setPeriodStart(defaultStartDate());
@@ -544,7 +544,7 @@ export function B2BSolutions() {
       <Box sx={{ borderBottom: `1px solid ${t.border}` }}>
         <Container maxWidth="md" sx={{ py: 6 }}>
           <Typography sx={{ color: t.textPrimary, fontSize: { xs: 34, md: 44 }, fontWeight: 800, textAlign: 'center', mb: 2 }}>
-            B2B Production Intelligence
+            Business Intelligence
           </Typography>
           <Typography sx={{ color: t.textSecondary, fontSize: 17, textAlign: 'center', lineHeight: 1.7 }}>
             Subscribe to a product, select a custom reporting period, and receive anonymised aggregate intelligence as a PDF.
@@ -640,6 +640,27 @@ export function B2BSolutions() {
               </Stack>
               <Typography sx={{ color: t.textSecondary, mb: 3 }}>
                 Download your completed PDF intelligence reports here.
+                {subscriptions.length > 0 && (
+                  <>
+                    {' '}Your delivery schedule, recipients and ad-hoc requests are on{' '}
+                    <Box
+                      component="span"
+                      role="link"
+                      tabIndex={0}
+                      onClick={() => navigate('/dashboard/business-intelligence')}
+                      onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/business-intelligence')}
+                      sx={{
+                        color: t.gold,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        '&:hover': { textDecoration: 'underline' },
+                      }}
+                    >
+                      your Business Intelligence dashboard
+                    </Box>
+                    .
+                  </>
+                )}
               </Typography>
 
               {requests.length === 0 ? (
@@ -808,7 +829,7 @@ export function B2BSolutions() {
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
                   <MailOutline sx={{ color: t.success }} />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 700 }}>Your B2B intelligence PDF is ready</Typography>
+                    <Typography sx={{ fontWeight: 700 }}>Your Business Intelligence PDF is ready</Typography>
                     <Typography sx={{ color: t.textFaint, fontSize: 13, wordBreak: 'break-all' }}>to {previewRecipient}</Typography>
                   </Box>
                 </Stack>
@@ -879,7 +900,7 @@ export function B2BSolutions() {
                 ))}
 
                 <Typography sx={{ color: t.textFaint, fontSize: 11, mt: 3 }}>
-                  Prodculator B2B Intelligence. Do not redistribute outside authorised recipients.
+                  Prodculator Business Intelligence. Do not redistribute outside authorised recipients.
                 </Typography>
               </Box>
             </DialogContent>

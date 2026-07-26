@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Box, IconButton, Typography, Avatar, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
 import {
   DescriptionOutlined, CompareArrowsOutlined, CalculateOutlined, TimelineOutlined,
-  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight, HomeOutlined,
+  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight, HomeOutlined, InsightsOutlined,
   ExpandLess,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -89,6 +89,9 @@ export const NAV = [
   { label: 'Territories', to: '/dashboard/territories', icon: CompareArrowsOutlined },
   { label: 'What If', to: '/dashboard/what-if', icon: CalculateOutlined },
   { label: 'Timeline', to: '/dashboard/timeline', icon: TimelineOutlined },
+  // Shown to everyone: subscribers get their console, everyone else gets an
+  // empty state that explains the product.
+  { label: 'Intelligence', to: '/dashboard/business-intelligence', icon: InsightsOutlined },
   { label: 'Account', to: '/dashboard/account', icon: PersonOutlineOutlined },
 ];
 
@@ -139,6 +142,7 @@ export function Sidebar({
           const node = (
             <Box
               key={item.to}
+              data-tour={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
               onClick={() => go(item.to)}
               sx={{
                 display: 'flex', alignItems: 'center', gap: 1.75,

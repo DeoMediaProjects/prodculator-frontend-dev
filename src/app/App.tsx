@@ -45,6 +45,8 @@ const AcceptableUse = lazy(() => import('../app/pages/AcceptableUse').then(m => 
 const Contact = lazy(() => import('../app/pages/Contact').then(m => ({ default: m.Contact })));
 
 const B2BSolutions = lazy(() => import('../app/components/B2BSolutions').then(m => ({ default: m.B2BSolutions })));
+// Client-facing surfaces say "Business Intelligence", never "B2B".
+const BusinessIntelligencePage = lazy(() => import('../app/components/user/b2c/BusinessIntelligencePage').then(m => ({ default: m.BusinessIntelligencePage })));
 
 const AdminLogin = lazy(() => import('../app/components/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
 const AdminLayout = lazy(() => import('../app/components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
@@ -117,6 +119,7 @@ function AppContent() {
                     <Route path="territories" element={<TerritoriesPage />} />
                     <Route path="what-if" element={<WhatIfCalculator embedded />} />
                     <Route path="timeline" element={<TimelinePage />} />
+                    <Route path="business-intelligence" element={<BusinessIntelligencePage />} />
                     <Route path="account" element={<AccountPage />} />
                   </Route>
                   <Route path="/dashboard-classic" element={<UserDashboard />} />
@@ -126,6 +129,8 @@ function AppContent() {
                   <Route path="/acceptable-use" element={<AcceptableUse />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/b2b" element={<ProtectedRoute><B2BSolutions /></ProtectedRoute>} />
+                  {/* Delivery emails link here; the console now lives in the dashboard shell. */}
+                  <Route path="/business-intelligence" element={<Navigate to="/dashboard/business-intelligence" replace />} />
                   <Route path="/tools/comparison" element={<TerritoryComparison />} />
                   <Route path="/tools/what-if" element={<ProtectedRoute plan="professional"><WhatIfCalculator /></ProtectedRoute>} />
                   <Route path="/what-if" element={<ProtectedRoute><PublicWhatIfCalculator /></ProtectedRoute>} />

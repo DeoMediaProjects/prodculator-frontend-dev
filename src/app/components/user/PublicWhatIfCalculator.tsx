@@ -49,8 +49,9 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 const FREE_CURRENCIES = ['USD', 'GBP'] as const;
 const ALL_CURRENCIES = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'ZAR'] as const;
 // Free-plan users preview this many territories; the remainder are blurred
-// behind an upgrade CTA. Paid plans see every territory.
-const FREE_VISIBLE = 5;
+// behind an upgrade CTA. Paid plans see every territory. Kept at 1 so the free
+// preview shows a single territory (a taste), not a usable comparison.
+const FREE_VISIBLE = 1;
 const FORMATS = [
   'Feature Film', 'TV Series', 'Limited Series', 'Documentary',
   'Short Film', 'Animation', 'Animated Feature', 'Mini Series',

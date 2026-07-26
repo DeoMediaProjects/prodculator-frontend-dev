@@ -46,9 +46,9 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 const CURRENCIES = ['GBP', 'USD', 'EUR', 'CAD', 'AUD', 'ZAR'] as const;
-// Free-plan gating: preview the top 5 ranked territories, blur the rest behind
-// an upgrade CTA; only the two headline currencies are selectable.
-const FREE_VISIBLE = 5;
+// Free-plan gating: preview the single top-ranked territory, blur the rest
+// behind an upgrade CTA; only the two headline currencies are selectable.
+const FREE_VISIBLE = 1;
 const FREE_CURRENCIES = ['USD', 'GBP'] as const;
 const FORMATS = [
   'Feature Film', 'TV Series', 'Limited Series', 'Documentary',

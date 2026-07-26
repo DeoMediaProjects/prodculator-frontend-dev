@@ -493,7 +493,7 @@ export function UserDashboard() {
           <Grid size={{ xs: 12, md: 4 }}>
             <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}><CreditCard sx={{ color: '#D4AF37' }} /><Typography variant="h6">Credits Remaining</Typography></Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}><CreditCard sx={{ color: '#D4AF37' }} /><Typography variant="h6">Scripts Remaining</Typography></Box>
                 <Typography variant="h3" sx={{ color: '#D4AF37', fontWeight: 700 }}>{user?.reportsLimit || 0}</Typography>
               </CardContent>
             </Card>
