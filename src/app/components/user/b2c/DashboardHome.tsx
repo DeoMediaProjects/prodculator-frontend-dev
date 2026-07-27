@@ -175,10 +175,10 @@ export function DashboardHome() {
   return (
     <Box>
       {/* Stat cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
+      <Box data-tour="stats" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
         {[
           { label: 'REPORTS GENERATED', value: pad(stats.generated), sub: stats.thisMonth ? `+${stats.thisMonth} this month` : 'No reports yet', gold: false },
-          { label: 'CREDITS REMAINING', value: pad(Number.isFinite(creditsRemaining) ? creditsRemaining : '∞'), sub: plan === 'free' ? 'Free plan credit' : (payCredits > 0 ? 'Incl. pay-per-report' : 'Reports left this period'), gold: true },
+          { label: 'SCRIPTS REMAINING', value: pad(Number.isFinite(creditsRemaining) ? creditsRemaining : '∞'), sub: plan === 'free' ? 'Free plan credit' : (payCredits > 0 ? 'Incl. pay-per-report' : 'Reports left this period'), gold: true },
           { label: 'ACTIVE PROJECTS', value: pad(stats.active), sub: stats.active ? 'In production pipeline' : 'Start your first', gold: false },
         ].map((s) => (
           <Box key={s.label} sx={{ ...card, p: 2.75 }}>
@@ -190,7 +190,7 @@ export function DashboardHome() {
       </Box>
 
       {/* Plan usage */}
-      <Box sx={{ ...card, p: 2.75, mb: 3 }}>
+      <Box data-tour="plan-usage" sx={{ ...card, p: 2.75, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography sx={{ fontWeight: 700, color: t.textPrimary }}>
             Plan Usage <span style={{ color: t.gold, fontSize: 12, letterSpacing: '0.12em', marginLeft: 6 }}>{plan.toUpperCase()}</span>
@@ -213,7 +213,7 @@ export function DashboardHome() {
       </Box>
 
       {/* Recent reports */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+      <Box data-tour="reports" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
         <Typography sx={{ fontWeight: 800, fontSize: 18, color: t.textPrimary }}>Recent Reports</Typography>
         {reports.length > 0 && (
           <Button variant="text" onClick={() => navigate('/dashboard/reports')} sx={{ color: t.gold, fontWeight: 700 }}>View all</Button>

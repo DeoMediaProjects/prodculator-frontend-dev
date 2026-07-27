@@ -352,7 +352,7 @@ export function ReportViewer() {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 2 }}>
             <Button variant="outlined" onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
-            <Button variant="contained" onClick={() => navigate('/upload')}>New Analysis</Button>
+            <Button variant="contained" onClick={() => navigate('/upload')}>Generate Report</Button>
           </Box>
         </Container>
       </Box>

@@ -124,10 +124,6 @@ export function LandingPage() {
           alignItems: 'center',
           justifyContent: 'center',
           py: 8,
-          backgroundImage: `linear-gradient(${alpha(t.pageBg, 0.82)}, ${alpha(t.pageBg, 0.92)}), url(/landing-bg.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
         }}
       >
         <Container maxWidth="lg">

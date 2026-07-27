@@ -366,9 +366,34 @@ export const apiClient = {
 
 // ── Public endpoints (no auth required) ──────────────────────────────────────
 
-/** Fetches the canonical territory list from GET /api/territories. */
+/** Fetches the canonical territory list from GET /api/territories.
+ *
+ * The endpoint has shipped in two shapes: a bare array carrying `isSubTerritory`,
+ * and `{ territories: [...] }` where the same fact is expressed as
+ * `level: 'national' | 'regional'`. Accept either and derive the flag here, so
+ * the territory pickers keep working whichever build of the API answers. Without
+ * this, the newer shape silently yields an empty list and the picker loses every
+ * territory.
+ */
 export async function getTerritories(): Promise<Territory[]> {
-  return apiClient.get<Territory[]>('/api/territories');
+  const raw = await apiClient.get<unknown>('/api/territories');
+  const items = (Array.isArray(raw)
+    ? raw
+    : ((raw as { territories?: unknown })?.territories ?? [])) as Array<
+    Partial<Territory> & { level?: string }
+  >;
+
+  return items
+    .filter((item) => item && item.label)
+    .map((item) => ({
+      label: String(item.label),
+      iso: String(item.iso ?? ''),
+      parent: item.parent ?? null,
+      isSubTerritory:
+        typeof item.isSubTerritory === 'boolean'
+          ? item.isSubTerritory
+          : item.level === 'regional' || item.parent != null,
+    }));
 }
 
 // ── Project details (Producer+) ───────────────────────────────────────────────
