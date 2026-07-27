@@ -33,8 +33,9 @@ const PLAN_ITEMS: PricingMenuItem[] = [
   { name: 'Studio', priceUSD: '$1/mo', priceGBP: '£0.79/mo', description: '10 scripts a month, up to 7 territories each' },
 ];
 
+// Client-facing surfaces say "Business Intelligence", never "B2B".
 const B2B_ITEM: PricingMenuItem = {
-  name: 'B2B Solutions',
+  name: 'Business Intelligence Solutions',
   priceUSD: 'From $2/mo',
   priceGBP: 'From £1.60/mo',
   description: 'Production intelligence for studios, vendors and agencies',

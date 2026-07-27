@@ -9,7 +9,7 @@ const PRODUCT_LINKS = [
   { label: 'Upload Script', to: '/upload' },
   { label: 'Sample Report', to: '/sample' },
   { label: 'What If Calculator', to: '/what-if' },
-  { label: 'B2B Solutions', to: '/b2b' },
+  { label: 'Business Intelligence', to: '/b2b' },
 ];
 
 const COMPANY_LINKS = [

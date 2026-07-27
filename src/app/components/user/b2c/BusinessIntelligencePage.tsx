@@ -7,21 +7,23 @@ import {
   Button,
   CircularProgress,
   Divider,
-  IconButton,
   MenuItem,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import {
   CloudDownloadOutlined,
   DeleteOutline,
-  InsightsOutlined,
+  DonutSmallOutlined,
   InboxOutlined,
+  PersonAddAlt1Outlined,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { DataTable, type Column } from './DataTable';
+import { BusinessIntelligenceTour } from './BusinessIntelligenceTour';
 import {
   b2bService,
   type B2BIntelligenceRequest,
@@ -74,6 +76,22 @@ function formatDate(value?: string | null) {
  *  back a day for anyone east of Greenwich and pre-fills the wrong month. */
 function isoLocal(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** "in 3 days" / "tomorrow" / "2 days ago". Turns a date into something that
+ *  reads like it belongs to this client rather than a row in a table. */
+function relativeDay(value?: string | null) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const today = new Date();
+  const a = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const b = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  const days = Math.round((b.getTime() - a.getTime()) / 86_400_000);
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days === -1) return 'yesterday';
+  return days > 0 ? `in ${days} days` : `${Math.abs(days)} days ago`;
 }
 
 /** Last complete calendar month, the period a report normally covers. */
@@ -161,6 +179,8 @@ export function BusinessIntelligencePage() {
   }, [subscription, user?.email]);
 
   const isActive = subscription?.status === 'active';
+  // Two slots: the account holder, who cannot be removed, plus one address.
+  const atRecipientLimit = recipients.length >= 2;
   const statusColor = !subscription
     ? t.textSecondary
     : subscription.status === 'active'
@@ -311,7 +331,7 @@ export function BusinessIntelligencePage() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', mb: 2,
           }}
         >
-          <InsightsOutlined sx={{ color: t.gold, fontSize: 28 }} />
+          <DonutSmallOutlined sx={{ color: t.gold, fontSize: 28 }} />
         </Box>
         <Typography sx={{ fontSize: 22, fontWeight: 800, color: t.textPrimary, mb: 1 }}>
           No subscription yet
@@ -327,29 +347,10 @@ export function BusinessIntelligencePage() {
     );
   }
 
-  const facts: { label: string; value: string; note?: string; color?: string }[] = [
-    {
-      label: 'Product',
-      value: productTitle(subscription.product_type),
-      note: `${subscription.delivery_frequency} delivery`,
-    },
-    {
-      label: 'Status',
-      value: STATUS_LABELS[subscription.status] ?? subscription.status,
-      note: subscription.source === 'manual_contract' ? 'Contract' : 'Subscription',
-      color: statusColor,
-    },
-    {
-      label: 'Next delivery',
-      value: isActive ? (formatDate(subscription.next_delivery_at) ?? 'Being scheduled') : 'Paused',
-      note: 'Sent by email',
-    },
-    {
-      label: 'Recipients',
-      value: String(recipients.length),
-      note: 'On distribution',
-    },
-  ];
+  const nextDelivery = isActive
+    ? (formatDate(subscription.next_delivery_at) ?? 'Being scheduled')
+    : 'Paused';
+  const nextDeliveryRelative = isActive ? relativeDay(subscription.next_delivery_at) : null;
 
   return (
     <Box>
@@ -376,82 +377,94 @@ export function BusinessIntelligencePage() {
         </Alert>
       )}
 
-      {/* Subscription at a glance. One panel of labelled facts rather than a row
-          of stat cards, which would repeat the same shape four times. */}
-      <Box sx={{ ...card, p: 2.75, mb: 4 }}>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          divider={
-            <Divider
-              flexItem
-              orientation="vertical"
-              sx={{ borderColor: t.border, display: { xs: 'none', md: 'block' } }}
-            />
-          }
-          spacing={{ xs: 2, md: 3 }}
+      {/* Masthead. The client's own name anchors the page, the product sits
+          under it, and the one thing they actually came to check (when the next
+          report lands) is the single emphasised figure. Deliberately asymmetric:
+          four equal facts in a row read as a generic stat bar and gave the page
+          no focal point at all. */}
+      <Box data-tour="bi-summary" sx={{ ...card, p: { xs: 2.75, md: 3.5 }, mb: 5 }}>
+        {/* Identity: who this account belongs to and what they are subscribed to. */}
+        <Typography sx={{ ...label, mb: 0.5 }}>Prepared for</Typography>
+        <Typography
+          sx={{
+            fontSize: { xs: 22, md: 26 },
+            fontWeight: 800,
+            color: t.textPrimary,
+            lineHeight: 1.2,
+            letterSpacing: '-0.01em',
+          }}
         >
-          {facts.map((fact) => (
-            <Box key={fact.label} sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ ...label, mb: 0.75 }}>{fact.label}</Typography>
-              <Stack direction="row" spacing={1} alignItems="center">
-                {fact.color && (
-                  <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: fact.color, flexShrink: 0 }} />
-                )}
-                <Typography
-                  sx={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: fact.color ?? t.textPrimary,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {fact.value}
-                </Typography>
-              </Stack>
-              {fact.note && (
-                <Typography sx={{ fontSize: 12.5, color: t.textSecondary, mt: 0.5 }}>
-                  {fact.note}
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Stack>
+          {subscription.company_name || user?.name || 'Your organisation'}
+        </Typography>
+        <Typography sx={{ fontSize: 14.5, color: t.textSecondary, mt: 0.75 }}>
+          {productTitle(subscription.product_type)}
+        </Typography>
+
+        <Divider sx={{ borderColor: t.borderSoft, my: 2.75 }} />
+
+        {/* One band of four facts. Next delivery belongs IN this row, not
+            stranded behind a rule on the far right: with only three items the
+            row could not fill the width without scattering them. */}
+        <Box
+          sx={{
+            display: 'grid',
+            gap: { xs: 2.5, sm: 3 },
+            gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+          }}
+        >
+          <Box>
+            <Typography sx={{ ...label, mb: 0.5 }}>Subscription status</Typography>
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: statusColor, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: 15, fontWeight: 700, color: statusColor }}>
+                {STATUS_LABELS[subscription.status] ?? subscription.status}
+              </Typography>
+            </Stack>
+          </Box>
+          <Box>
+            <Typography sx={{ ...label, mb: 0.5 }}>Billing</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 600, color: t.textPrimary }}>
+              {subscription.source === 'manual_contract' ? 'Agreed contract' : 'Card subscription'}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography sx={{ ...label, mb: 0.5 }}>Reports arrive</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 600, color: t.textPrimary }}>
+              {subscription.delivery_frequency === 'quarterly' ? 'Every quarter' : 'Every month'}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography sx={{ ...label, mb: 0.5 }}>Next delivery</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: isActive ? t.gold : t.textSecondary }}>
+              {nextDelivery}
+            </Typography>
+            <Typography sx={{ fontSize: 12.5, color: t.textSecondary, mt: 0.25 }}>
+              {nextDeliveryRelative ? `${nextDeliveryRelative}, sent by email` : 'Sent by email'}
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
-      {/* Report history */}
-      <Typography sx={{ ...sectionTitle, mb: 1.5 }}>Report history</Typography>
-      <Box sx={{ mb: 4 }}>
-        <DataTable
-          columns={columns}
-          rows={rows}
-          getRowId={(r) => r.id}
-          actionsHeader=""
-          emptyIcon={<InboxOutlined sx={{ color: t.textSecondary, fontSize: 28 }} />}
-          emptyMessage="No deliveries yet. Your first report arrives on the next scheduled date."
-          rowActions={(r) => (
-            <Button
-              size="small"
-              startIcon={
-                downloadingId === r.id
-                  ? <CircularProgress size={14} sx={{ color: 'inherit' }} />
-                  : <CloudDownloadOutlined sx={{ fontSize: 17 }} />
-              }
-              disabled={r.status !== 'completed' || downloadingId === r.id}
-              onClick={() => void download(r)}
-              sx={{ color: t.gold, fontWeight: 700, whiteSpace: 'nowrap' }}
-            >
-              PDF
-            </Button>
-          )}
-        />
-      </Box>
-
-      {/* Recipients */}
-      <Typography sx={{ ...sectionTitle, mb: 0.5 }}>Recipients</Typography>
+      {/* Recipients and Request a report sit side by side. Both are small, and
+          pairing them stops the page from being three identical full-width
+          blocks stacked down a column. */}
+      <Box
+        sx={{
+          display: 'grid',
+          gap: { xs: 5, md: 4 },
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' },
+          // Each card sizes to its own content. Stretching them to equal height
+          // only moved the empty space inside the shorter card, which reads far
+          // worse than two cards of honest, different heights.
+          alignItems: 'start',
+        }}
+      >
+      <Box>
+      <Typography data-tour="bi-recipients" sx={{ ...sectionTitle, mb: 0.5 }}>Recipients</Typography>
       <Typography sx={{ ...label, mb: 1.5 }}>
         Every PDF is watermarked with the address it was sent to, so each copy is traceable.
       </Typography>
-      <Box sx={{ ...card, p: 2.75, mb: 4 }}>
+      <Box sx={{ ...card, p: 2.75 }}>
         <Stack divider={<Divider sx={{ borderColor: t.borderSoft }} />}>
           {recipients.map((recipient) => (
             <Stack
@@ -466,57 +479,86 @@ export function BusinessIntelligencePage() {
                 {recipient.email}
               </Typography>
               {recipient.primary ? (
-                <Typography sx={{ fontSize: 12.5, color: t.textSecondary, whiteSpace: 'nowrap' }}>
-                  Always included
-                </Typography>
+                <Tooltip title="The account holder always receives the report">
+                  <Typography sx={{ fontSize: 12.5, color: t.textSecondary, whiteSpace: 'nowrap' }}>
+                    Always included
+                  </Typography>
+                </Tooltip>
               ) : (
-                <IconButton
-                  size="small"
-                  aria-label={`Remove ${recipient.email}`}
-                  disabled={savingRecipient}
-                  onClick={() => void saveRecipient(null)}
-                  sx={{ color: t.textSecondary, '&:hover': { color: t.error, bgcolor: 'transparent' } }}
-                >
-                  <DeleteOutline sx={{ fontSize: 19 }} />
-                </IconButton>
+                <Tooltip title="Remove recipient">
+                  <Button
+                    size="small"
+                    aria-label={`Remove ${recipient.email}`}
+                    disabled={savingRecipient}
+                    onClick={() => void saveRecipient(null)}
+                    startIcon={<DeleteOutline sx={{ fontSize: 17 }} />}
+                    sx={{
+                      color: t.textSecondary, fontWeight: 600, whiteSpace: 'nowrap',
+                      '&:hover': { color: t.error, bgcolor: 'transparent' },
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </Tooltip>
               )}
             </Stack>
           ))}
         </Stack>
 
-        {recipients.length < 2 ? (
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2.5 }}>
-            <TextField
-              size="small"
-              type="email"
-              placeholder="name@company.com"
-              value={newRecipient}
-              onChange={(e) => setNewRecipient(e.target.value)}
-              sx={{ flex: 1, maxWidth: { sm: 320 } }}
-            />
-            <Button
-              variant="contained"
-              disabled={!newRecipient.trim() || savingRecipient}
-              onClick={() => void saveRecipient(newRecipient.trim())}
-              sx={{ whiteSpace: 'nowrap' }}
-            >
-              Add recipient
-            </Button>
-          </Stack>
-        ) : (
-          <Typography sx={{ ...label, mt: 2 }}>
-            Your plan covers the account holder plus one address. Contact us to extend distribution.
-          </Typography>
-        )}
+        {/* The add control stays on screen at capacity, disabled and explained,
+            rather than disappearing. Hiding it made it look as though there was
+            no way to manage the list at all. */}
+        <Divider sx={{ borderColor: t.borderSoft, mt: 1.5, mb: 2.25 }} />
+        <Typography sx={{ ...label, mb: 1.25 }}>Add a recipient</Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-start' }}>
+          <TextField
+            size="small"
+            type="email"
+            placeholder="name@company.com"
+            value={newRecipient}
+            disabled={atRecipientLimit || savingRecipient}
+            onChange={(e) => setNewRecipient(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newRecipient.trim() && !atRecipientLimit) {
+                void saveRecipient(newRecipient.trim());
+              }
+            }}
+            sx={{ flex: 1, minWidth: 0 }}
+          />
+          <Tooltip title={atRecipientLimit ? 'Remove the additional recipient first' : ''}>
+            <Box component="span" sx={{ display: 'inline-flex' }}>
+              <Button
+                variant="contained"
+                startIcon={
+                  savingRecipient
+                    ? <CircularProgress size={15} sx={{ color: 'inherit' }} />
+                    : <PersonAddAlt1Outlined sx={{ fontSize: 18 }} />
+                }
+                disabled={atRecipientLimit || !newRecipient.trim() || savingRecipient}
+                onClick={() => void saveRecipient(newRecipient.trim())}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                Add
+              </Button>
+            </Box>
+          </Tooltip>
+        </Stack>
+        <Typography sx={{ ...label, mt: 1.5 }}>
+          {atRecipientLimit
+            ? 'Your plan covers the account holder plus one address. Contact us to extend distribution.'
+            : 'They will receive every scheduled report, watermarked with their own address.'}
+        </Typography>
+      </Box>
       </Box>
 
       {/* Ad-hoc request */}
-      <Typography sx={{ ...sectionTitle, mb: 0.5 }}>Request a report</Typography>
+      <Box>
+      <Typography data-tour="bi-request" sx={{ ...sectionTitle, mb: 0.5 }}>Request a report</Typography>
       <Typography sx={{ ...label, mb: 1.5 }}>
         Within your entitlement, request an out-of-cycle report for a custom period.
       </Typography>
       <Box sx={{ ...card, p: 2.75 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-end' }}>
+        <Stack direction="row" spacing={2} alignItems="flex-end" sx={{ flexWrap: 'wrap', rowGap: 2 }}>
           <TextField
             size="small"
             type="date"
@@ -549,6 +591,39 @@ export function BusinessIntelligencePage() {
             : 'Ad-hoc requests are available while your subscription is active.'}
         </Typography>
       </Box>
+      </Box>
+      </Box>
+
+      {/* Report history closes the page: it is the archive, it grows over time,
+          and the things a client acts on live above it. */}
+      <Typography data-tour="bi-history" sx={{ ...sectionTitle, mt: 5, mb: 1.5 }}>Report history</Typography>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowId={(r) => r.id}
+        actionsHeader=""
+        emptyIcon={<InboxOutlined sx={{ color: t.textSecondary, fontSize: 28 }} />}
+        emptyMessage="No deliveries yet. Your first report arrives on the next scheduled date."
+        rowActions={(r) => (
+          <Button
+            size="small"
+            startIcon={
+              downloadingId === r.id
+                ? <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                : <CloudDownloadOutlined sx={{ fontSize: 17 }} />
+            }
+            disabled={r.status !== 'completed' || downloadingId === r.id}
+            onClick={() => void download(r)}
+            sx={{ color: t.gold, fontWeight: 700, whiteSpace: 'nowrap' }}
+          >
+            PDF
+          </Button>
+        )}
+      />
+
+      {/* Subscribers only, first visit only. Someone without a subscription
+          gets the empty state above, which already explains the product. */}
+      <BusinessIntelligenceTour enabled={!loading && Boolean(subscription)} />
     </Box>
   );
 }

@@ -361,7 +361,7 @@ export function Pricing() {
       audience: 'organization',
     },
     {
-      name: 'B2B Solutions',
+      name: 'Business Intelligence Solutions',
       monthlyUSD: 2,
       monthlyGBP: 1.6,
       pricePrefix: 'from ',
@@ -372,7 +372,7 @@ export function Pricing() {
         'Crew & equipment demand analytics',
         'Exportable market reports',
       ],
-      cta: 'Explore B2B',
+      cta: 'Explore Business Intelligence',
       ctaSubtext: 'Requires an account',
       action: 'b2b',
       audience: 'organization',

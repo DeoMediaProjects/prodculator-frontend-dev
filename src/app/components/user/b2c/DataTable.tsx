@@ -97,12 +97,22 @@ export function DataTable<T>({
 
   return (
     <Box sx={{ bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', overflow: 'hidden' }}>
-      {/* Filter toggle bar */}
+      {/* Filter toggle bar. Unfiltered it collapses to a slim right-aligned
+          control strip: the count only says something once filtering has
+          narrowed the set, since unfiltered it reads "5 of 5", which just
+          restates the rows below it. */}
       {anyFilterable && !isEmpty && (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 1, borderBottom: `1px solid ${t.borderSoft}` }}>
-          <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>
-            {processed.length} of {rows.length}{activeFilterCount ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}` : ''}
-          </Typography>
+        <Box sx={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: activeFilterCount ? 'space-between' : 'flex-end',
+          px: 2.5, py: activeFilterCount ? 1 : 0.25,
+          borderBottom: activeFilterCount || showFilters ? `1px solid ${t.borderSoft}` : 'none',
+        }}>
+          {activeFilterCount > 0 && (
+            <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>
+              {`${processed.length} of ${rows.length} · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}`}
+            </Typography>
+          )}
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             {activeFilterCount > 0 && (
               <Tooltip title="Clear filters"><IconButton size="small" onClick={() => setFilters({})} sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}><Close sx={{ fontSize: 18 }} /></IconButton></Tooltip>

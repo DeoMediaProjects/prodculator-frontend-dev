@@ -71,9 +71,12 @@ export function B2CLayout() {
         return { ...baseMeta, eyebrow: name ? `${greeting}, ${name.toUpperCase()}` : greeting };
       })()
     : baseMeta;
-  // The Timeline page has its own "Add Milestone" action; hide the global
-  // "Generate Report" button there so we never show two primary buttons side by side.
-  const hideNewAnalysis = location.pathname.startsWith('/dashboard/timeline');
+  // Routes where the global "Generate Report" button does not belong: Timeline
+  // has its own "Add Milestone" primary action, and Business Intelligence is a
+  // separate subscription product that has nothing to do with uploading a script.
+  const hideNewAnalysis = ['/dashboard/timeline', '/dashboard/business-intelligence'].some(
+    (path) => location.pathname.startsWith(path),
+  );
 
   return (
     <HeaderActionsContext.Provider value={{ setActions: setHeaderActions }}>
@@ -147,7 +150,14 @@ export function B2CLayout() {
               <IconButton
                 data-tour="help"
                 aria-label="Take the product tour"
-                onClick={() => window.dispatchEvent(new Event('pc:start-tour'))}
+                onClick={() => window.dispatchEvent(new Event(
+                  // Replay the tour for the surface the user is actually on.
+                  // The dashboard tour navigates to /dashboard to find its
+                  // anchors, so firing it here would yank them off this page.
+                  location.pathname.startsWith('/dashboard/business-intelligence')
+                    ? 'pc:start-bi-tour'
+                    : 'pc:start-tour',
+                ))}
                 sx={{ color: t.textSecondary, '&:hover': { color: t.gold, bgcolor: t.goldDim } }}
               >
                 <HelpOutlineOutlined />
