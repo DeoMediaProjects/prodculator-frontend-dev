@@ -30,6 +30,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import {
   CheckCircle,
+  Close,
   CloudDownload,
   CreditCard,
   Description,
@@ -805,16 +806,37 @@ export function B2BSolutions() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={!!previewProduct} onClose={() => setPreviewProduct(null)} fullWidth maxWidth="md" scroll="body">
+      {/* scroll="paper" keeps the dialog inside the viewport and scrolls the
+          content within it. With scroll="body" the dialog grew to the height of
+          the sample report, so closing it meant scrolling the whole page to
+          reach the button at the bottom. */}
+      <Dialog
+        open={!!previewProduct}
+        onClose={() => setPreviewProduct(null)}
+        fullWidth
+        maxWidth="md"
+        scroll="paper"
+        slotProps={{ paper: { sx: { maxHeight: 'calc(100dvh - 64px)' } } }}
+      >
         {previewProduct && (
           <>
             <DialogTitle sx={{ pb: 1 }}>
               <Stack direction="row" alignItems="center" spacing={1.5}>
                 <Visibility sx={{ color: t.gold }} />
-                <Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 800, fontSize: 20 }}>Sample report preview</Typography>
                   <Typography sx={{ color: t.textSecondary, fontSize: 14 }}>{previewProduct.title}</Typography>
                 </Box>
+                {/* Dismiss stays in reach at the top of a long preview. */}
+                <Tooltip title="Close preview">
+                  <IconButton
+                    aria-label="Close preview"
+                    onClick={() => setPreviewProduct(null)}
+                    sx={{ color: t.textSecondary, '&:hover': { color: t.gold, bgcolor: 'transparent' } }}
+                  >
+                    <Close />
+                  </IconButton>
+                </Tooltip>
               </Stack>
             </DialogTitle>
             <DialogContent dividers sx={{ bgcolor: t.cardBgAlt }}>

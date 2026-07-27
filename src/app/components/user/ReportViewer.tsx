@@ -24,6 +24,11 @@ import {
   Divider,
   Grid,
   CircularProgress,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
 } from '@mui/material';
 import {
   Download,
@@ -49,6 +54,7 @@ import {
   LinkOff,
   LightModeOutlined,
   DarkModeOutlined,
+  MoreHoriz,
 } from '@mui/icons-material';
 import {
   Dialog,
@@ -61,7 +67,10 @@ import {
 import { useScript, mapReportToAnalysis } from '@/app/contexts/ScriptContext';
 import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/report-pdf.service';
 import { apiClient, ProjectDetails } from '@/services/api';
-import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+// The canonical transparent mark, same asset and same inversion rule as
+// PageHeader. The previous hashed asset carried a solid background and was
+// inverted the wrong way round, so it read as a box floating on the header.
+import logoMark from '@/assets/prodculator-logo-white.png';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 import { InfoTip, TOOLTIP_TEXTS } from '@/app/components/common/InfoTip';
 import ProjectDetailsPanel from './ProjectDetailsPanel';
@@ -125,6 +134,8 @@ export function ReportViewer() {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [investorModalOpen, setInvestorModalOpen] = useState(false);
+  // Anchor for the header's overflow actions menu.
+  const [actionsAnchor, setActionsAnchor] = useState<null | HTMLElement>(null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
   const [isRevokingShare, setIsRevokingShare] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -382,29 +393,6 @@ export function ReportViewer() {
     0
   );
 
-  const renderLockedHeaderAction = (
-    label: string,
-    requiredPlan: 'producer' | 'studio'
-  ) => (
-    <Button
-      size="small"
-      variant="outlined"
-      startIcon={<Lock sx={{ fontSize: 14 }} />}
-      onClick={() => navigate('/pricing')}
-      sx={{
-        color: t.gold,
-        borderColor: 'rgba(212,175,55,0.45)',
-        fontSize: '0.75rem',
-        textTransform: 'none',
-        fontWeight: 700,
-        borderRadius: '10px',
-        '&:hover': { borderColor: t.gold, bgcolor: 'rgba(212,175,55,0.08)' },
-      }}
-    >
-      {`${label} (${requiredPlan === 'studio' ? 'Studio' : 'Producer'})`}
-    </Button>
-  );
-
   const LockedBadge = () => (
     <Box
       component="span"
@@ -428,42 +416,65 @@ export function ReportViewer() {
 
   return (
     <Box sx={{ bgcolor: t.pageBg, height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Header */}
-      <Box sx={{ bgcolor: t.cardBg, borderBottom: `1px solid ${t.border}`, py: 2, flexShrink: 0 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
-            {/* Left: Back + logo */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+      {/* Header: back and logo flush left, report title beside them, controls
+          flush right. Edge-aligned rather than wrapped in a Container so the
+          outer elements actually reach the edges, matching PageHeader. */}
+      <Box sx={{ bgcolor: t.cardBg, borderBottom: `1px solid ${t.border}`, py: 1.75, px: { xs: 2, sm: 3 }, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, md: 3 }, flexWrap: 'nowrap' }}>
+            {/* Left: Back, then logo, then the report it belongs to */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexShrink: 0 }}>
               <Button
                 size="small"
-                startIcon={<ArrowBack />}
+                startIcon={<ArrowBack sx={{ fontSize: 18 }} />}
                 onClick={() => navigate(isPreview ? '/upload' : '/dashboard')}
-                sx={{ color: t.textSecondary, textTransform: 'none', fontWeight: 600, flexShrink: 0, '&:hover': { color: t.textPrimary, bgcolor: t.goldDim } }}
+                sx={{ color: t.textSecondary, textTransform: 'none', fontWeight: 600, flexShrink: 0, '&:hover': { color: t.gold, bgcolor: 'transparent' } }}
               >
                 Back
               </Button>
-              <img src={exampleLogo} alt="Prodculator" style={{ height: '30px', cursor: 'pointer', flexShrink: 0, filter: mode === 'dark' ? 'invert(1)' : 'none' }} onClick={() => navigate('/')} />
+              <Box
+                component="img"
+                src={logoMark}
+                alt="Prodculator"
+                onClick={() => navigate('/')}
+                sx={{
+                  height: 26, width: 'auto', cursor: 'pointer', flexShrink: 0,
+                  display: { xs: 'none', sm: 'block' },
+                  filter: mode === 'light' ? 'invert(1)' : 'none',
+                }}
+              />
             </Box>
-            {/* Center: title, centered in the space between logo and actions */}
-            <Box sx={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: t.textPrimary, fontSize: { xs: '1.05rem', sm: '1.35rem' }, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{analysis.scriptTitle}</Typography>
+
+            {/* Title: the report this header belongs to */}
+            <Box sx={{ flex: 1, minWidth: 0, borderLeft: { md: `1px solid ${t.border}` }, pl: { md: 3 } }}>
+              <Typography
+                variant="h6"
+                title={analysis.scriptTitle}
+                sx={{ fontWeight: 800, color: t.textPrimary, fontSize: { xs: '0.98rem', sm: '1.15rem' }, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {analysis.scriptTitle}
+              </Typography>
               <Typography variant="caption" sx={{ color: t.textSecondary, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isPreview ? 'Free Intelligence Preview' : 'Professional Intelligence Report'} • {new Date(analysis.generatedAt).toLocaleDateString()}
+                {isPreview ? 'Free Intelligence Preview' : 'Professional Intelligence Report'} · {new Date(analysis.generatedAt).toLocaleDateString()}
               </Typography>
             </Box>
-            {/* Right: actions section (theme switch + buttons) */}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
-              {/* Theme switcher */}
-              <SegmentedToggle
-                size="sm"
-                radius={10}
-                value={mode}
-                onChange={(v) => v !== mode && toggle()}
-                options={[
-                  { value: 'light', icon: <LightModeOutlined sx={{ fontSize: 16 }} /> },
-                  { value: 'dark', icon: <DarkModeOutlined sx={{ fontSize: 16 }} /> },
-                ]}
-              />
+
+            {/* Right: primary actions stay visible, the rest collapse into a menu
+                so the header holds one row at any width. */}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
+              {/* Theme switcher. Hidden on the narrowest screens, where the
+                  report actions matter more than the toggle. */}
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                <SegmentedToggle
+                  size="sm"
+                  radius={10}
+                  value={mode}
+                  onChange={(v) => v !== mode && toggle()}
+                  options={[
+                    { value: 'light', icon: <LightModeOutlined sx={{ fontSize: 16 }} /> },
+                    { value: 'dark', icon: <DarkModeOutlined sx={{ fontSize: 16 }} /> },
+                  ]}
+                />
+              </Box>
               {/* Free user: upgrade nudge + watermarked PDF download */}
               {isPreview && (
                 <>
@@ -492,7 +503,7 @@ export function ReportViewer() {
                     size="small"
                     variant="outlined"
                     startIcon={isViewingPDF ? <CircularProgress size={14} /> : <Visibility />}
-                    sx={outlinedGold}
+                    sx={{ ...outlinedGold, display: { xs: 'none', md: 'inline-flex' } }}
                     onClick={handleViewPDF}
                     disabled={isViewingPDF}
                   >
@@ -523,60 +534,97 @@ export function ReportViewer() {
                 </Button>
               )}
 
-              {/* Investor Summary — Producer+ */}
+              {/* Everything else lives behind one control, so the header never
+                  becomes a wall of five competing buttons. Locked items stay
+                  listed rather than hidden, so the upgrade path is still visible. */}
               {!isPreview && (
-                isProducer ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<PictureAsPdf />}
-                    sx={outlinedGold}
-                    onClick={() => setInvestorModalOpen(true)}
+                <>
+                  <Tooltip title="More actions">
+                    <IconButton
+                      size="small"
+                      aria-label="More actions"
+                      aria-haspopup="menu"
+                      aria-expanded={Boolean(actionsAnchor)}
+                      onClick={(e) => setActionsAnchor(e.currentTarget)}
+                      sx={{
+                        color: t.textSecondary, borderRadius: '10px',
+                        border: `1px solid ${t.border}`,
+                        '&:hover': { color: t.gold, borderColor: 'rgba(212,175,55,0.45)', bgcolor: 'transparent' },
+                      }}
+                    >
+                      <MoreHoriz sx={{ fontSize: 20 }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Menu
+                    anchorEl={actionsAnchor}
+                    open={Boolean(actionsAnchor)}
+                    onClose={() => setActionsAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          mt: 1, minWidth: 232, bgcolor: t.cardBg,
+                          border: `1px solid ${t.border}`, borderRadius: '12px',
+                        },
+                      },
+                    }}
                   >
-                    Investor Summary
-                  </Button>
-                ) : (
-                  renderLockedHeaderAction('Investor Summary', 'producer')
-                )
-              )}
-
-              {/* Excel Export — Producer+ */}
-              {!isPreview && (
-                isProducer ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={isExportingExcel ? <CircularProgress size={14} /> : <GridOn />}
-                    onClick={handleExportExcel}
-                    disabled={isExportingExcel}
-                    sx={outlinedGold}
-                  >
-                    {isExportingExcel ? 'Exporting...' : 'Export Excel'}
-                  </Button>
-                ) : (
-                  renderLockedHeaderAction('Export Excel', 'producer')
-                )
-              )}
-
-              {/* Share Link — Studio */}
-              {!isPreview && (
-                isStudio ? (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<Share />}
-                    onClick={() => setShareModalOpen(true)}
-                    sx={outlinedGold}
-                  >
-                    {shareToken ? 'Manage Share' : 'Share Report'}
-                  </Button>
-                ) : (
-                  renderLockedHeaderAction('Share Report', 'studio')
-                )
+                    {/* View PDF is a header button from md up; below that it
+                        lives here so it stays reachable on a phone. */}
+                    {pdfUrl && (
+                      <MenuItem
+                        sx={{ display: { xs: 'flex', md: 'none' } }}
+                        disabled={isViewingPDF}
+                        onClick={() => { setActionsAnchor(null); void handleViewPDF(); }}
+                      >
+                        <ListItemIcon><Visibility sx={{ fontSize: 19, color: t.gold }} /></ListItemIcon>
+                        <ListItemText primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}>
+                          {isViewingPDF ? 'Opening…' : 'View PDF'}
+                        </ListItemText>
+                      </MenuItem>
+                    )}
+                    <MenuItem
+                      disabled={!isProducer}
+                      onClick={() => { setActionsAnchor(null); setInvestorModalOpen(true); }}
+                    >
+                      <ListItemIcon><PictureAsPdf sx={{ fontSize: 19, color: isProducer ? t.gold : t.textFaint }} /></ListItemIcon>
+                      <ListItemText primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}>Investor Summary</ListItemText>
+                      {!isProducer && <Lock sx={{ fontSize: 14, color: t.textFaint, ml: 1 }} />}
+                    </MenuItem>
+                    <MenuItem
+                      disabled={!isProducer || isExportingExcel}
+                      onClick={() => { setActionsAnchor(null); void handleExportExcel(); }}
+                    >
+                      <ListItemIcon><GridOn sx={{ fontSize: 19, color: isProducer ? t.gold : t.textFaint }} /></ListItemIcon>
+                      <ListItemText primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}>
+                        {isExportingExcel ? 'Exporting…' : 'Export Excel'}
+                      </ListItemText>
+                      {!isProducer && <Lock sx={{ fontSize: 14, color: t.textFaint, ml: 1 }} />}
+                    </MenuItem>
+                    <MenuItem
+                      disabled={!isStudio}
+                      onClick={() => { setActionsAnchor(null); setShareModalOpen(true); }}
+                    >
+                      <ListItemIcon><Share sx={{ fontSize: 19, color: isStudio ? t.gold : t.textFaint }} /></ListItemIcon>
+                      <ListItemText primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}>
+                        {shareToken ? 'Manage Share' : 'Share Report'}
+                      </ListItemText>
+                      {!isStudio && <Lock sx={{ fontSize: 14, color: t.textFaint, ml: 1 }} />}
+                    </MenuItem>
+                    {(!isProducer || !isStudio) && (
+                      <MenuItem onClick={() => { setActionsAnchor(null); navigate('/pricing'); }}>
+                        <ListItemIcon><Lock sx={{ fontSize: 19, color: t.gold }} /></ListItemIcon>
+                        <ListItemText primaryTypographyProps={{ fontSize: 14, fontWeight: 700, color: t.gold }}>
+                          Upgrade to unlock
+                        </ListItemText>
+                      </MenuItem>
+                    )}
+                  </Menu>
+                </>
               )}
             </Box>
           </Box>
-        </Container>
       </Box>
 
       <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>

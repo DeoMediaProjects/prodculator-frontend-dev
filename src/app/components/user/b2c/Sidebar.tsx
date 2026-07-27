@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { Box, IconButton, Typography, Avatar, Tooltip, Menu, MenuItem, ListItemIcon } from '@mui/material';
 import {
   DescriptionOutlined, CompareArrowsOutlined, CalculateOutlined, TimelineOutlined,
-  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight, HomeOutlined, InsightsOutlined,
+  PersonOutlineOutlined, LogoutOutlined, ChevronLeft, ChevronRight, HomeOutlined, DonutSmallOutlined,
   ExpandLess,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
-import brandLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+// Transparent mark. The hashed asset is a solid white plate, which showed as a
+// white box on the cream sidebar in light mode (and a black box in dark).
+import brandLogo from '@/assets/prodculator-logo-white.png';
 
 export const SIDEBAR_W = 248;
 export const SIDEBAR_COLLAPSED_W = 78;
@@ -90,8 +92,9 @@ export const NAV = [
   { label: 'What If', to: '/dashboard/what-if', icon: CalculateOutlined },
   { label: 'Timeline', to: '/dashboard/timeline', icon: TimelineOutlined },
   // Shown to everyone: subscribers get their console, everyone else gets an
-  // empty state that explains the product.
-  { label: 'Intelligence', to: '/dashboard/business-intelligence', icon: InsightsOutlined },
+  // empty state that explains the product. Named in full because "Intelligence"
+  // alone reads as ambiguous next to the script-analysis features.
+  { label: 'Business Intelligence', to: '/dashboard/business-intelligence', icon: DonutSmallOutlined },
   { label: 'Account', to: '/dashboard/account', icon: PersonOutlineOutlined },
 ];
 
@@ -123,7 +126,7 @@ export function Sidebar({
       {/* Logo + collapse control */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', mb: 4, px: collapsed ? 0 : 0.5, height: 46 }}>
         {!collapsed && (
-          <Box component="img" src={brandLogo} alt="Prodculator" sx={{ width: '78%', maxWidth: 170, height: 'auto', display: 'block', filter: mode === 'dark' ? 'invert(1)' : 'none' }} />
+          <Box component="img" src={brandLogo} alt="Prodculator" sx={{ width: '78%', maxWidth: 170, height: 'auto', display: 'block', filter: mode === 'light' ? 'invert(1)' : 'none' }} />
         )}
         {onToggleCollapse && (
           <Tooltip title={collapsed ? 'Expand' : 'Collapse'} placement="right">
@@ -155,8 +158,10 @@ export function Sidebar({
                 '&::before': active && !collapsed ? { content: '""', position: 'absolute', left: -20, top: 10, bottom: 10, width: 3, borderRadius: '3px', bgcolor: t.gold } : {},
               }}
             >
-              <Icon sx={{ fontSize: 23 }} />
-              {!collapsed && <Typography sx={{ fontSize: 16, fontWeight: active ? 700 : 500, color: 'inherit' }}>{item.label}</Typography>}
+              <Icon sx={{ fontSize: 23, flexShrink: 0 }} />
+              {/* Tight line height so a two-word label that wraps still reads as
+                  one nav row rather than a loose block. */}
+              {!collapsed && <Typography sx={{ fontSize: 16, fontWeight: active ? 700 : 500, color: 'inherit', lineHeight: 1.25 }}>{item.label}</Typography>}
             </Box>
           );
           return collapsed ? (

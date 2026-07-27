@@ -7,6 +7,9 @@ import { buildTourStyles, tourLocale, usePrefersReducedMotion } from './tourStyl
 // naturally after the dashboard tour (which drops them here), so it walks the
 // upload step rather than repeating the whole dashboard.
 const WIZARD_TOUR_SEEN_KEY = 'pc_wizard_tour_seen';
+// The closing nudge is tracked separately: it can only fire once the user has
+// actually reached the review step, which may be minutes after the intro.
+const WIZARD_FINISH_SEEN_KEY = 'pc_wizard_finish_seen';
 
 const WIZARD_STEPS: Step[] = [
   {
@@ -32,17 +35,30 @@ const WIZARD_STEPS: Step[] = [
   {
     target: '[data-tour="wizard-continue"]',
     title: 'Move through the steps',
-    content: 'Fill in each step, then use Continue. On the final step this becomes Generate report, and we get to work.',
+    content: 'Fill in each step, then use Continue. We will meet you again at the last step to finish the job.',
     disableBeacon: true,
     placement: 'left',
   },
 ];
 
-function markSeen() {
-  try { localStorage.setItem(WIZARD_TOUR_SEEN_KEY, '1'); } catch { /* ignore */ }
+// Fires when the user reaches the review step, which is the first moment the
+// Generate button exists in the DOM. Without this the tour ended at "Continue"
+// and never actually walked anyone to producing a report.
+const WIZARD_FINISH_STEPS: Step[] = [
+  {
+    target: '[data-tour="wizard-generate"]',
+    title: 'Last step: generate your report',
+    content: 'Everything we need is in. Press Generate report and we will analyse the script and build your production intelligence. It takes a few minutes, and we will email you when it is ready.',
+    disableBeacon: true,
+    placement: 'left',
+  },
+];
+
+function markSeen(key: string = WIZARD_TOUR_SEEN_KEY) {
+  try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
 }
-function hasSeen(): boolean {
-  try { return !!localStorage.getItem(WIZARD_TOUR_SEEN_KEY); } catch { return true; }
+function hasSeen(key: string = WIZARD_TOUR_SEEN_KEY): boolean {
+  try { return !!localStorage.getItem(key); } catch { return true; }
 }
 
 export function WizardTour() {
@@ -52,12 +68,22 @@ export function WizardTour() {
 
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
+  // Which stage is on screen, so the callback marks the right key as seen.
+  const [stage, setStage] = useState<'intro' | 'finish'>('intro');
 
   const start = useCallback(() => {
     const live = WIZARD_STEPS.filter(
       (s) => s.target === 'body' || document.querySelector(s.target as string),
     );
+    setStage('intro');
     setSteps(live);
+    setRun(true);
+  }, []);
+
+  const startFinish = useCallback(() => {
+    if (!document.querySelector('[data-tour="wizard-generate"]')) return;
+    setStage('finish');
+    setSteps(WIZARD_FINISH_STEPS);
     setRun(true);
   }, []);
 
@@ -75,15 +101,26 @@ export function WizardTour() {
     return () => window.removeEventListener('pc:start-wizard-tour', onStart);
   }, [start]);
 
+  // The wizard tells us when the review step renders. Wait a beat so the
+  // Generate button has painted before Joyride measures it.
+  useEffect(() => {
+    const onFinalStep = () => {
+      if (hasSeen(WIZARD_FINISH_SEEN_KEY)) return;
+      setTimeout(startFinish, 500);
+    };
+    window.addEventListener('pc:wizard-final-step', onFinalStep);
+    return () => window.removeEventListener('pc:wizard-final-step', onFinalStep);
+  }, [startFinish]);
+
   const handleCallback = useCallback((data: CallBackProps) => {
     // `continuous` makes Joyride treat the close button as an advance unless we
     // stop the tour here, so the X would otherwise behave as Next.
     const done: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
     if (data.action === ACTIONS.CLOSE || done.includes(data.status)) {
       setRun(false);
-      markSeen();
+      markSeen(stage === 'finish' ? WIZARD_FINISH_SEEN_KEY : WIZARD_TOUR_SEEN_KEY);
     }
-  }, []);
+  }, [stage]);
 
   return (
     <Joyride
@@ -97,7 +134,7 @@ export function WizardTour() {
       disableOverlayClose
       spotlightPadding={6}
       callback={handleCallback}
-      locale={{ ...tourLocale, last: 'Got it' }}
+      locale={{ ...tourLocale, last: stage === 'finish' ? 'Generate my report' : 'Got it' }}
       floaterProps={reducedMotion ? { disableAnimation: true } : undefined}
       styles={buildTourStyles(t, mode)}
     />
