@@ -375,8 +375,10 @@ export const apiClient = {
  * this, the newer shape silently yields an empty list and the picker loses every
  * territory.
  */
-export async function getTerritories(): Promise<Territory[]> {
-  const raw = await apiClient.get<unknown>('/api/territories');
+export async function getTerritories(includeAll = false): Promise<Territory[]> {
+  const raw = await apiClient.get<unknown>(
+    includeAll ? '/api/territories?include_all=true' : '/api/territories',
+  );
   const items = (Array.isArray(raw)
     ? raw
     : ((raw as { territories?: unknown })?.territories ?? [])) as Array<
@@ -393,6 +395,9 @@ export async function getTerritories(): Promise<Territory[]> {
         typeof item.isSubTerritory === 'boolean'
           ? item.isSubTerritory
           : item.level === 'regional' || item.parent != null,
+      // Older builds omit the flag entirely. Assume covered in that case, so a
+      // territory is never wrongly labelled as having no incentive.
+      hasActiveIncentive: item.hasActiveIncentive !== false,
     }));
 }
 

@@ -9,7 +9,12 @@ interface UseTerritories {
   error: string | null;
 }
 
-export function useTerritories(): UseTerritories {
+/**
+ * @param includeAll also return territories with no active incentive, flagged
+ *   via `hasActiveIncentive: false`. Use for intake pickers, which ask where a
+ *   production is being considered. Leave false for rebate rankings.
+ */
+export function useTerritories(includeAll = false): UseTerritories {
   const [territories, setTerritories] = useState<Territory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +22,7 @@ export function useTerritories(): UseTerritories {
   useEffect(() => {
     let cancelled = false;
 
-    getTerritories()
+    getTerritories(includeAll)
       .then((data) => {
         if (!cancelled) setTerritories(data);
       })
@@ -32,7 +37,7 @@ export function useTerritories(): UseTerritories {
       });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [includeAll]);
 
   const countries = territories.filter((t) => !t.isSubTerritory);
 

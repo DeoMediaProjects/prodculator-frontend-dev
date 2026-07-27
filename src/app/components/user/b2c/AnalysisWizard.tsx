@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
   OutlinedInput, Chip, Checkbox, ListItemText, FormHelperText, FormControlLabel, Link,
-  CircularProgress, useMediaQuery, useTheme, Drawer,
+  CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip,
 } from '@mui/material';
 import {
   ArrowBack, CloudUpload, CheckCircle, LightModeOutlined, DarkModeOutlined,
@@ -91,7 +91,10 @@ export function AnalysisWizard() {
 
   const { generateAnalysis } = useScript();
   const { showError } = useToast();
-  const { territories: allTerritories } = useTerritories();
+  // include_all: the intake picker asks where a production is being
+  // considered, which is not the same question as where a rebate can be
+  // modelled. Territories without an active incentive are flagged, not hidden.
+  const { territories: allTerritories } = useTerritories(true);
   const { isFree, isProducer } = usePlanGate();
   const maxTerritories = isFree ? 3 : !isProducer ? 5 : null;
 
@@ -496,6 +499,12 @@ export function AnalysisWizard() {
               ? `Select any territories you are considering (${territoriesConsidering.length} chosen).`
               : `Your plan lets you select up to ${maxTerritories} territories (${territoriesConsidering.length}/${maxTerritories} chosen).`}
           </Typography>
+          {allTerritories.some((x) => !x.isSubTerritory && x.hasActiveIncentive === false) && (
+            <Typography sx={{ color: t.textFaint, fontSize: 12, mb: 2 }}>
+              A dashed outline means there is no active incentive to model there today. You can
+              still select it for location, crew or currency reasons.
+            </Typography>
+          )}
           {territoryGroups.map((group) => (
             <Box key={group.continent} sx={{ mb: 2 }}>
               <Typography sx={{ color: t.textFaint, fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', mb: 1 }}>{group.continent.toUpperCase()}</Typography>
@@ -503,14 +512,35 @@ export function AnalysisWizard() {
                 {group.countries.map(({ country: c, regions }) => {
                   const on = territoriesConsidering.includes(c.label);
                   const disabled = !on && atTerritoryLimit;
-                  return (
+                  // Selectable, but say plainly that no rebate can be modelled.
+                  // South Africa's programme is suspended, Nigeria has none, and
+                  // Brazil is pending verification. Their location, crew and
+                  // currency advantages are real, so producers can still declare
+                  // them; we simply will not imply a bankable incentive.
+                  const noIncentive = c.hasActiveIncentive === false;
+                  const chip = (
                     <Chip
                       key={c.label}
                       label={regions.length > 0 ? `${c.label} ${on ? '▾' : '▸'}` : c.label}
                       onClick={() => !disabled && toggleTerritory(c.label)}
-                      sx={{ cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, fontWeight: 600, borderRadius: '9px', bgcolor: on ? t.gold : 'transparent', color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary, border: `1px solid ${on ? t.gold : t.border}`, '&:hover': { borderColor: t.gold } }}
+                      sx={{
+                        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
+                        fontWeight: 600, borderRadius: '9px',
+                        bgcolor: on ? t.gold : 'transparent',
+                        color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
+                        border: `1px ${noIncentive && !on ? 'dashed' : 'solid'} ${on ? t.gold : t.border}`,
+                        '&:hover': { borderColor: t.gold },
+                      }}
                     />
                   );
+                  return noIncentive ? (
+                    <Tooltip
+                      key={c.label}
+                      title="No active incentive to model right now. Still selectable for location, crew and currency reasons."
+                    >
+                      <span style={{ display: 'inline-flex' }}>{chip}</span>
+                    </Tooltip>
+                  ) : chip;
                 })}
               </Box>
               {/* Sub-territories (e.g. US states, Canadian provinces) reveal once
@@ -697,6 +727,13 @@ export function AnalysisWizard() {
   };
 
   const isLast = step === STEPS.length - 1;
+
+  // Tell the tour when the Generate button finally exists. The tour starts on
+  // arrival, when only the first step's anchors are in the DOM, so it cannot
+  // point at Generate until the user has actually reached the review step.
+  useEffect(() => {
+    if (isLast) window.dispatchEvent(new Event('pc:wizard-final-step'));
+  }, [isLast]);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: t.pageBg }}>

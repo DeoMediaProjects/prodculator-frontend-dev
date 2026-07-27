@@ -541,4 +541,8 @@ export interface Territory {
   parent: string | null;
   /** true for states / regions / devolved nations */
   isSubTerritory: boolean;
+  /** false when the platform knows the territory but has no active incentive
+   *  for it today (suspended, absent, or pending verification). These are
+   *  selectable at intake but excluded from rebate rankings. */
+  hasActiveIncentive?: boolean;
 }
