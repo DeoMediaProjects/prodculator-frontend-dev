@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import {
   Box, Typography, Button, Select, MenuItem, IconButton, CircularProgress, FormControl,
 } from '@mui/material';
-import { FileDownloadOutlined, Close, InfoOutlined } from '@mui/icons-material';
+import {
+  FileDownloadOutlined, Close, InfoOutlined, Percent, DescriptionOutlined,
+  MovieOutlined, PaymentsOutlined, ShieldOutlined, ScheduleOutlined, GroupsOutlined,
+  StarBorderOutlined, WarningAmberOutlined, EventAvailableOutlined,
+} from '@mui/icons-material';
 import {
   fetchTerritoryList, compareTerritories,
   type TerritoryListItem, type TerritoryCompareItem,
@@ -84,29 +88,34 @@ export function TerritoriesPage() {
 
   const grouped = groupByCountry(available);
   const availableToAdd = available.filter((x) => !selectedLabels.includes(x.label));
+  const [addOpen, setAddOpen] = useState(false);
+
+  // Sized to the territories actually chosen. Reserving all four slots meant
+  // half the table was placeholder columns; the grid simply grows as territories
+  // are added.
   const cols = `minmax(200px, 260px) repeat(${compared.length || 1}, minmax(220px, 1fr))`;
   const card = { bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px' };
 
   // Row definitions (label + per-territory renderer)
-  const rows: { label: string; render: (c: TerritoryCompareItem) => ReactNode }[] = [
-    { label: 'Tax Rebate', render: (c) => <Typography sx={{ color: t.success, fontWeight: 800, fontSize: 16 }}>{c.incentive?.tax_rebate || 'N/A'}</Typography> },
-    { label: 'Programme', render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.incentive?.programme || 'N/A'}</Typography> },
-    { label: 'Post Production / VFX Bonus', render: (c) => <Typography sx={{ color: c.incentive?.post_production_bonus ? t.success : t.textSecondary }}>{c.incentive?.post_production_bonus || 'N/A'}</Typography> },
-    { label: 'Minimum Spend', render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.incentive?.min_spend || 'No minimum'}</Typography> },
-    { label: 'Rebate Cap', render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.incentive?.cap_display || 'No cap identified'}</Typography> },
-    { label: 'Payment Timeline', render: (c) => <Typography sx={{ color: c.incentive?.payment_timeline ? t.textPrimary : t.textSecondary }}>{c.incentive?.payment_timeline || 'N/A'}</Typography> },
-    { label: 'Labor Requirement', render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.labor_requirement || 'No specific requirement'}</Typography> },
-    { label: 'Highlights', render: (c) => (
+  const rows: { label: string; icon: typeof Percent; render: (c: TerritoryCompareItem) => ReactNode }[] = [
+    { label: 'Tax Rebate', icon: Percent, render: (c) => <Typography sx={{ color: t.success, fontWeight: 800, fontSize: 16 }}>{c.incentive?.tax_rebate || 'N/A'}</Typography> },
+    { label: 'Programme', icon: DescriptionOutlined, render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.incentive?.programme || 'N/A'}</Typography> },
+    { label: 'Post Production / VFX Bonus', icon: MovieOutlined, render: (c) => <Typography sx={{ color: c.incentive?.post_production_bonus ? t.success : t.textSecondary }}>{c.incentive?.post_production_bonus || 'N/A'}</Typography> },
+    { label: 'Minimum Spend', icon: PaymentsOutlined, render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.incentive?.min_spend || 'No minimum'}</Typography> },
+    { label: 'Rebate Cap', icon: ShieldOutlined, render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.incentive?.cap_display || 'No cap identified'}</Typography> },
+    { label: 'Payment Timeline', icon: ScheduleOutlined, render: (c) => <Typography sx={{ color: c.incentive?.payment_timeline ? t.textPrimary : t.textSecondary }}>{c.incentive?.payment_timeline || 'N/A'}</Typography> },
+    { label: 'Labor Requirement', icon: GroupsOutlined, render: (c) => <Typography sx={{ color: t.textPrimary }}>{c.labor_requirement || 'No specific requirement'}</Typography> },
+    { label: 'Highlights', icon: StarBorderOutlined, render: (c) => (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         {c.highlights.length ? c.highlights.map((h, i) => <Typography key={i} sx={{ color: t.success, fontSize: 13.5 }}>✓ {h}</Typography>) : <Typography sx={{ color: t.textSecondary }}>N/A</Typography>}
       </Box>
     ) },
-    { label: 'Restrictions', render: (c) => (
+    { label: 'Restrictions', icon: WarningAmberOutlined, render: (c) => (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         {c.restrictions.length ? c.restrictions.map((r, i) => <Typography key={i} sx={{ color: t.warning, fontSize: 13.5 }}>⚠ {r}</Typography>) : <Typography sx={{ color: t.textSecondary }}>N/A</Typography>}
       </Box>
     ) },
-    { label: 'Data Last Verified', render: (c) => <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>{c.incentive?.last_verified || 'N/A'}</Typography> },
+    { label: 'Data Last Verified', icon: EventAvailableOutlined, render: (c) => <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>{c.incentive?.last_verified || 'N/A'}</Typography> },
   ];
 
   // Action button lives in the dashboard top bar next to "New Analysis".
@@ -128,6 +137,11 @@ export function TerritoriesPage() {
             <Select
               displayEmpty value="" onChange={(e) => addTerritory(e.target.value as string)}
               disabled={selectedLabels.length >= 4}
+              // Controlled so the placeholder columns in the table can open the
+              // same picker rather than duplicating the menu.
+              open={addOpen}
+              onOpen={() => setAddOpen(true)}
+              onClose={() => setAddOpen(false)}
               renderValue={() => <span style={{ color: t.textSecondary }}>Add Territory</span>}
               MenuProps={{ PaperProps: { sx: { maxHeight: 360, bgcolor: t.cardBg } } }}
             >
@@ -167,7 +181,10 @@ export function TerritoriesPage() {
               {/* data rows */}
               {rows.map((row, ri) => (
                 <Box key={row.label} sx={{ display: 'grid', gridTemplateColumns: cols, px: 2.5, py: 1.75, borderTop: `1px solid ${t.borderSoft}`, bgcolor: ri % 2 ? (mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)') : 'transparent' }}>
-                  <Typography sx={{ color: t.textPrimary, fontWeight: 700, pr: 2 }}>{row.label}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, pr: 2 }}>
+                    <row.icon sx={{ color: t.textFaint, fontSize: 17, mt: 0.25, flexShrink: 0 }} />
+                    <Typography sx={{ color: t.textPrimary, fontWeight: 700 }}>{row.label}</Typography>
+                  </Box>
                   {compared.map((c) => <Box key={c.label} sx={{ pr: 2 }}>{row.render(c)}</Box>)}
                 </Box>
               ))}
