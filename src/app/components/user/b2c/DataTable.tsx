@@ -24,10 +24,13 @@ interface Props<T> {
   rowActions?: (row: T) => ReactNode;
   actionsHeader?: string;
   maxHeight?: number;
-  emptyMessage?: string;
+  emptyMessage?: ReactNode;
   /** Icon shown above emptyMessage when there are no rows at all (not just a filtered-to-zero result). */
   emptyIcon?: ReactNode;
   minWidth?: number;
+  /** Keep the column headers visible with no rows, so the shape of the table
+   *  is still legible before any data arrives. */
+  showHeaderWhenEmpty?: boolean;
 }
 
 type SortDir = 'asc' | 'desc';
@@ -35,6 +38,7 @@ type SortDir = 'asc' | 'desc';
 export function DataTable<T>({
   columns, rows, getRowId, onRowClick, rowActions, actionsHeader = 'ACTIONS',
   maxHeight = 480, emptyMessage = 'Nothing to show.', emptyIcon, minWidth = 720,
+  showHeaderWhenEmpty = false,
 }: Props<T>) {
   const { mode } = useThemeMode();
   const t = tokens(mode);
@@ -128,8 +132,9 @@ export function DataTable<T>({
 
       <Box sx={{ overflowX: 'auto', maxHeight, overflowY: 'auto' }}>
         <Box sx={{ minWidth }}>
-          {/* Header — hidden when there's nothing to sort or filter yet */}
-          {!isEmpty && (
+          {/* Header — hidden when there's nothing to sort or filter yet, unless
+              the caller wants the table's shape to stay legible while empty. */}
+          {(!isEmpty || showHeaderWhenEmpty) && (
             <Box sx={{ display: 'grid', gridTemplateColumns: template, px: 2.5, py: 1.5, borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, zIndex: 2, bgcolor: t.cardBg }}>
               {columns.map((col) => {
                 const sorted = sortKey === col.key;
@@ -171,7 +176,9 @@ export function DataTable<T>({
           {processed.length === 0 ? (
             <Box sx={{ px: 2.5, py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               {isEmpty && (emptyIcon ?? <InboxOutlined sx={{ fontSize: 28, color: t.textFaint }} />)}
-              <Typography sx={{ color: t.textSecondary }}>{emptyMessage}</Typography>
+              {typeof emptyMessage === 'string'
+                ? <Typography sx={{ color: t.textSecondary }}>{emptyMessage}</Typography>
+                : emptyMessage}
             </Box>
           ) : processed.map((row) => {
             const id = getRowId(row);

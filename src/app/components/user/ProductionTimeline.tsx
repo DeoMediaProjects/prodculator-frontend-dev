@@ -28,6 +28,8 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Tabs,
+  Tab,
   type SelectChangeEvent,
 } from '@mui/material';
 import {
@@ -40,6 +42,8 @@ import {
   Delete,
   Event,
   AutoAwesome,
+  ArrowForward,
+  Autorenew,
 } from '@mui/icons-material';
 import {
   fetchMilestones,
@@ -299,6 +303,32 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
   const inProgressIdx = milestones.findIndex((m) => m.status === 'in-progress');
   const [expandedStep, setExpandedStep] = useState<number>(inProgressIdx >= 0 ? inProgressIdx : 0);
 
+  // Status filter. Counts come from the full list so the tabs still read as a
+  // summary of the whole timeline while one of them is active.
+  // The stored status is "upcoming"; the UI has always shown it as "Pending".
+  const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'in-progress' | 'completed'>('all');
+  const statusCounts = {
+    upcoming: milestones.filter((m) => m.status === 'upcoming').length,
+    'in-progress': milestones.filter((m) => m.status === 'in-progress').length,
+    completed: milestones.filter((m) => m.status === 'completed').length,
+  };
+  const visibleMilestones = statusFilter === 'all'
+    ? milestones
+    : milestones.filter((m) => m.status === statusFilter);
+
+  // The report the timeline is actually scoped to. The banner and Regenerate
+  // both used reports[0], which was wrong whenever the Filter by Report
+  // dropdown pointed somewhere else.
+  const activeReport = reports.find((r) => r.id === selectedReportId) ?? reports[0];
+
+  const STATUS_LABELS: Record<string, string> = {
+    upcoming: 'PENDING',
+    'in-progress': 'IN PROGRESS',
+    completed: 'COMPLETED',
+  };
+  const statusColour = (status: string) =>
+    status === 'completed' ? c.success : status === 'in-progress' ? c.gold : c.textSecondary;
+
   // Keep expandedStep in sync when milestones change (e.g. after seed/load)
   useEffect(() => {
     const idx = milestones.findIndex((m) => m.status === 'in-progress');
@@ -338,6 +368,77 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
   return (
     <Box>
       {/* Actions (Filter / Export / Add Milestone) live in the dashboard top bar. */}
+
+      {/* Analysis banner: confirms the report the timeline was built from and
+          gives a way back to it, so the two never feel disconnected. */}
+      {activeReport && milestones.length > 0 && (
+        <Box
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
+            bgcolor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: '16px',
+            p: 2.5, mb: 2.5,
+          }}
+        >
+          <CheckCircle sx={{ color: c.success, fontSize: 26, flexShrink: 0 }} />
+          <Box sx={{ flex: 1, minWidth: 220 }}>
+            <Typography sx={{ color: c.textPrimary, fontWeight: 700, fontSize: 15.5 }}>
+              Script Analysis Complete
+            </Typography>
+            <Typography sx={{ color: c.textSecondary, fontSize: 13.5, mt: 0.25 }}>
+              Your production intelligence report for "{activeReport?.title}" is ready
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+            onClick={() => { if (activeReport) window.location.href = `/report/${activeReport.id}`; }}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            View Report
+          </Button>
+        </Box>
+      )}
+
+      {/* Status filter */}
+      {milestones.length > 0 && (
+        <Tabs
+          value={statusFilter}
+          onChange={(_, v) => setStatusFilter(v)}
+          sx={{
+            mb: 2,
+            minHeight: 40,
+            borderBottom: `1px solid ${c.border}`,
+            '& .MuiTab-root': {
+              textTransform: 'none', fontWeight: 600, fontSize: 14,
+              color: c.textSecondary, minHeight: 40, px: 2,
+            },
+            '& .Mui-selected': { color: `${c.gold} !important` },
+            '& .MuiTabs-indicator': { backgroundColor: c.gold },
+          }}
+        >
+          <Tab value="all" label="All Milestones" />
+          {(['upcoming', 'in-progress', 'completed'] as const).map((key) => (
+            <Tab
+              key={key}
+              value={key}
+              label={(
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <span>{key === 'in-progress' ? 'In Progress' : key === 'upcoming' ? 'Pending' : 'Completed'}</span>
+                  <Box
+                    component="span"
+                    sx={{
+                      fontSize: 11.5, fontWeight: 700, px: 0.75, borderRadius: '6px',
+                      bgcolor: c.goldDim, color: c.gold, minWidth: 18, textAlign: 'center',
+                    }}
+                  >
+                    {statusCounts[key]}
+                  </Box>
+                </Box>
+              )}
+            />
+          ))}
+        </Tabs>
+      )}
 
       {/* Error */}
       {error && (
@@ -417,8 +518,15 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
             maxHeight: '60vh', overflowY: 'auto',
           }}
         >
+          {/* A count of zero is a selectable tab, so say so rather than
+              rendering an empty card. */}
+          {visibleMilestones.length === 0 ? (
+            <Typography sx={{ color: c.textSecondary, textAlign: 'center', py: 3, fontSize: 14 }}>
+              No {statusFilter === 'upcoming' ? 'pending' : statusFilter.replace('-', ' ')} milestones right now.
+            </Typography>
+          ) : (
           <Stepper nonLinear activeStep={expandedStep} orientation="vertical">
-            {milestones.map((milestone, stepIndex) => (
+            {visibleMilestones.map((milestone, stepIndex) => (
               <Step key={milestone.id} completed={milestone.status === 'completed'} active={stepIndex === expandedStep}>
                 <StepLabel
                   onClick={() => setExpandedStep(stepIndex)}
@@ -464,6 +572,19 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
                         <MoreVert />
                       </IconButton>
                     )}
+                    {/* Status reads at a glance without opening the milestone. */}
+                    <Box
+                      component="span"
+                      sx={{
+                        ml: 'auto', flexShrink: 0,
+                        fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em',
+                        px: 1, py: 0.4, borderRadius: '7px',
+                        color: statusColour(milestone.status),
+                        border: `1px solid ${statusColour(milestone.status)}`,
+                      }}
+                    >
+                      {STATUS_LABELS[milestone.status] ?? milestone.status}
+                    </Box>
                   </Box>
                   {milestone.description && (
                     <Typography variant="body2" sx={{ color: c.textSecondary, mt: 0.5 }}>
@@ -574,20 +695,36 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
               </Step>
             ))}
           </Stepper>
+          )}
         </Paper>
       )}
 
-      {/* Seed CTA (when milestones exist but user may want to regenerate) */}
-      {milestones.length > 0 && reports.length > 0 && (
-        <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+      {/* Regenerate. Presented as a card with its own explanation rather than a
+          bare text link, since it replaces milestones and that is worth stating. */}
+      {milestones.length > 0 && activeReport && (
+        <Box
+          sx={{
+            mt: 2.5, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
+            bgcolor: c.cardBg, border: `1px solid ${c.border}`, borderRadius: '16px', p: 2.5,
+          }}
+        >
+          <AutoAwesome sx={{ color: c.gold, fontSize: 24, flexShrink: 0 }} />
+          <Box sx={{ flex: 1, minWidth: 220 }}>
+            <Typography sx={{ color: c.textPrimary, fontWeight: 700, fontSize: 15 }}>
+              Keep your timeline up to date
+            </Typography>
+            <Typography sx={{ color: c.textSecondary, fontSize: 13.5, mt: 0.25 }}>
+              Regenerate from your latest report to refresh milestones and tasks.
+            </Typography>
+          </Box>
           <Button
-            size="small"
-            startIcon={seeding ? <CircularProgress size={14} sx={{ color: c.gold }} /> : <AutoAwesome />}
+            variant="contained"
             disabled={seeding}
-            onClick={() => handleSeed(reports[0].id)}
-            sx={{ color: c.textSecondary, '&:hover': { color: c.gold } }}
+            startIcon={seeding ? <CircularProgress size={15} sx={{ color: 'inherit' }} /> : <Autorenew />}
+            onClick={() => activeReport && handleSeed(activeReport.id)}
+            sx={{ whiteSpace: 'nowrap' }}
           >
-            Regenerate from latest report
+            {seeding ? 'Regenerating…' : 'Regenerate from latest report'}
           </Button>
         </Box>
       )}
