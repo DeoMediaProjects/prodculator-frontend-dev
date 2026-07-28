@@ -5,6 +5,8 @@ import {
 } from '@mui/material';
 import {
   ReceiptLongOutlined, FileDownloadOutlined, LogoutOutlined, DeleteOutline, CreditCardOutlined,
+  PersonOutlineOutlined, ShieldOutlined, WorkspacePremiumOutlined, MailOutlineOutlined,
+  ArrowForward,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
@@ -28,6 +30,7 @@ const ACCOUNT_DELETE_REASONS = [
 interface InvoiceItem {
   id: string; number: string | null; status: string; amount_paid: number; amount_due: number;
   currency: string; created: number | null; invoice_pdf: string | null; hosted_invoice_url: string | null;
+  description?: string | null;
 }
 
 const COUNTRIES = ['United Kingdom', 'United States', 'Canada', 'Australia', 'Ireland', 'France', 'Germany', 'Spain', 'Italy', 'Other'];
@@ -36,6 +39,14 @@ const NOTIF_KEY = 'prodculator-email-notifs';
 function money(amountMinor: number, currency: string) {
   const sym = currency?.toUpperCase() === 'USD' ? '$' : currency?.toUpperCase() === 'EUR' ? '€' : '£';
   return `${sym}${(amountMinor / 100).toFixed(2)}`;
+}
+/** Plan name as Stripe described the invoice. Returns null when the
+ *  description names no known plan, so the column can say so honestly
+ *  rather than assuming the subscriber's current plan. */
+const PLAN_NAMES = ['Studio', 'Producer', 'Professional', 'Single Report', 'Explorer'];
+function planOf(inv: InvoiceItem): string | null {
+  const text = inv.description || '';
+  return PLAN_NAMES.find((name) => text.toLowerCase().includes(name.toLowerCase())) ?? null;
 }
 function fmtDate(unixSec: number | null) {
   if (!unixSec) return '—';
@@ -155,6 +166,14 @@ export function AccountPage() {
   };
 
   const cardSx = { bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', p: 3 };
+  // Every section is titled the same way: gold icon, then the name. Previously
+  // only two of the five carried an icon, so the page read as unfinished.
+  const heading = (Icon: typeof PersonOutlineOutlined, text: string) => (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Icon sx={{ color: t.gold, fontSize: 20 }} />
+      <Typography sx={sectionTitle}>{text}</Typography>
+    </Box>
+  );
   const label = { fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: t.textSecondary, mb: 0.75 };
   const sectionTitle = { fontSize: 17, fontWeight: 800, color: t.textPrimary };
 
@@ -163,7 +182,7 @@ export function AccountPage() {
       {/* Profile */}
       <Box sx={cardSx}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Typography sx={sectionTitle}>Profile</Typography>
+          {heading(PersonOutlineOutlined, 'Profile')}
           <Button variant="contained" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
         </Box>
         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -200,7 +219,7 @@ export function AccountPage() {
           account actions so their heights read as intentional, not mismatched. */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
         <Box sx={cardSx}>
-          <Typography sx={{ ...sectionTitle, mb: 2.5 }}>Password &amp; Security</Typography>
+          <Box sx={{ mb: 2.5 }}>{heading(ShieldOutlined, 'Password & Security')}</Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography sx={{ color: t.textPrimary, fontWeight: 600 }}>Password</Typography>
@@ -213,10 +232,10 @@ export function AccountPage() {
 
         <Box sx={cardSx}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-            <Typography sx={sectionTitle}>Subscription</Typography>
+            {heading(WorkspacePremiumOutlined, 'Subscription')}
             {renews && (
-              <Box sx={{ border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: '8px', px: 1.2, py: 0.4, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>
-                {cancelAtPeriodEnd ? `CANCELS ${renews.toUpperCase()}` : `RENEWS ${renews.toUpperCase()}`}
+              <Box sx={{ border: `1px solid ${t.border}`, color: t.textSecondary, borderRadius: '8px', px: 1.2, py: 0.4, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                {cancelAtPeriodEnd ? `Cancels ${renews}` : `Renews ${renews}`}
               </Box>
             )}
           </Box>
@@ -237,17 +256,26 @@ export function AccountPage() {
             </Box>
           )}
           <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <Button variant="outlined" fullWidth onClick={() => navigate('/pricing')}>Change plan</Button>
-            <Button variant="outlined" fullWidth onClick={handleManageBilling}>Manage billing</Button>
+            <Button variant="outlined" fullWidth startIcon={<CreditCardOutlined />} onClick={() => navigate('/pricing')}>Change plan</Button>
+            <Button variant="outlined" fullWidth startIcon={<ReceiptLongOutlined />} onClick={handleManageBilling}>Manage billing</Button>
           </Box>
         </Box>
       </Box>
 
       {/* Invoice history */}
       <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <ReceiptLongOutlined sx={{ color: t.gold }} />
-          <Typography sx={sectionTitle}>Invoice History</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 1.5 }}>
+          {heading(ReceiptLongOutlined, 'Invoice History')}
+          {/* Stripe's customer portal is the canonical invoice archive, so "view
+              all" opens that rather than duplicating it in the app. */}
+          <Button
+            variant="outlined"
+            endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+            onClick={handleManageBilling}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            View all invoices
+          </Button>
         </Box>
         {invoicesLoading ? (
           <Box sx={{ ...cardSx, display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={24} sx={{ color: t.gold }} /></Box>
@@ -257,11 +285,21 @@ export function AccountPage() {
             getRowId={(inv) => inv.id}
             minWidth={560}
             maxHeight={360}
-            emptyMessage="No invoices yet."
+            showHeaderWhenEmpty
+            emptyMessage={(
+              <>
+                <Typography sx={{ color: t.textPrimary, fontWeight: 600 }}>No invoices yet.</Typography>
+                <Typography sx={{ color: t.textSecondary, fontSize: 13, mt: 0.5 }}>Your invoices will appear here.</Typography>
+              </>
+            )}
             emptyIcon={<ReceiptLongOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
             columns={[
-              { key: 'number', header: 'INVOICE', width: '1.4fr', sortValue: (inv) => inv.number || inv.id, render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{inv.number || inv.id.slice(0, 12)}</Typography> },
+              { key: 'number', header: 'INVOICE #', width: '1.4fr', sortValue: (inv) => inv.number || inv.id, render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{inv.number || inv.id.slice(0, 12)}</Typography> },
               { key: 'created', header: 'DATE', width: '1.2fr', sortValue: (inv) => inv.created || 0, render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{fmtDate(inv.created)}</Typography> },
+              // Read from the Stripe invoice description. Stamping the CURRENT
+              // plan here would mislabel historical invoices, so an invoice with
+              // no recognisable plan shows "-" instead of a guess.
+              { key: 'plan', header: 'PLAN', width: '1.1fr', sortValue: (inv) => planOf(inv) ?? '', render: (inv) => <Typography sx={{ color: t.textSecondary, fontSize: 13.5 }}>{planOf(inv) ?? '-'}</Typography> },
               { key: 'amount', header: 'AMOUNT', width: '1fr', filterable: false, sortValue: (inv) => (inv.status === 'paid' ? inv.amount_paid : inv.amount_due), render: (inv) => <Typography sx={{ color: t.textPrimary, fontWeight: 700, fontSize: 13.5 }}>{money(inv.status === 'paid' ? inv.amount_paid : inv.amount_due, inv.currency)}</Typography> },
               { key: 'status', header: 'STATUS', width: '1fr', render: (inv) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -284,19 +322,35 @@ export function AccountPage() {
           so this stands alone as a full-width preferences panel rather than being
           artificially paired with an unrelated, sparser card. */}
       <Box sx={cardSx}>
-        <Typography sx={{ ...sectionTitle, mb: 2 }}>Email Notifications</Typography>
+        <Box sx={{ mb: 2 }}>{heading(MailOutlineOutlined, 'Email Notifications')}</Box>
+        {/* Each toggle says what it actually controls. The labels alone left the
+            reader to infer what "Product news & offers" would send them. */}
         {([
-          { k: 'reportReady', label: 'Report ready notifications' },
-          { k: 'deadlines', label: 'Incentive & deadline reminders' },
-          { k: 'product', label: 'Product news & offers' },
+          { k: 'reportReady', label: 'Report ready notifications', hint: 'Get notified when your reports are ready.' },
+          { k: 'deadlines', label: 'Incentives & deadline reminders', hint: 'Receive reminders for deadlines and incentives.' },
+          { k: 'product', label: 'Product news & offers', hint: 'Stay updated on new features and offers.' },
         ] as const).map((row) => (
-          <Box key={row.k} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Checkbox
-              checked={notifs[row.k]}
-              onChange={(e) => setNotifs((n) => ({ ...n, [row.k]: e.target.checked }))}
-              sx={{ color: t.gold, '&.Mui-checked': { color: t.gold }, py: 0.5 }}
-            />
-            <Typography sx={{ color: t.textPrimary, fontSize: 14 }}>{row.label}</Typography>
+          <Box
+            key={row.k}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) minmax(0, 1.3fr)' },
+              alignItems: 'center',
+              columnGap: 2,
+              py: 0.25,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+              <Checkbox
+                checked={notifs[row.k]}
+                onChange={(e) => setNotifs((n) => ({ ...n, [row.k]: e.target.checked }))}
+                sx={{ color: t.gold, '&.Mui-checked': { color: t.gold }, py: 0.5 }}
+              />
+              <Typography sx={{ color: t.textPrimary, fontSize: 14 }}>{row.label}</Typography>
+            </Box>
+            <Typography sx={{ color: t.textSecondary, fontSize: 13, pl: { xs: 5.25, sm: 0 } }}>
+              {row.hint}
+            </Typography>
           </Box>
         ))}
       </Box>
