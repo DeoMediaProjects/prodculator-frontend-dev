@@ -311,18 +311,40 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
         ? resolvedInput.toString()
         : resolvedInput.url;
 
-  // Send cookies, and echo the CSRF token on state-changing requests.
-  const headers = new Headers(init.headers || {});
-  if (!CSRF_SAFE_METHODS.has(method.toLowerCase())) {
-    const csrf = getCsrfToken();
-    if (csrf) headers.set(CSRF_HEADER_NAME, csrf);
-  }
-  const finalInit: RequestInit = { credentials: 'include', ...init, headers };
+  // Send cookies, and echo the CSRF token on state-changing requests. Read the
+  // CSRF token per attempt, not once: a refresh rotates the cookie pair, so a
+  // retry has to echo the new token rather than the one that just expired.
+  const buildInit = (): RequestInit => {
+    const headers = new Headers(init.headers || {});
+    if (!CSRF_SAFE_METHODS.has(method.toLowerCase())) {
+      const csrf = getCsrfToken();
+      if (csrf) headers.set(CSRF_HEADER_NAME, csrf);
+    }
+    return { credentials: 'include', ...init, headers };
+  };
+
+  // A Request's body is consumed by the first fetch, so keep a clone to replay.
+  const retryInput = resolvedInput instanceof Request ? resolvedInput.clone() : resolvedInput;
 
   logRequest(method, url, init.body);
 
   try {
-    const response = await fetch(resolvedInput, finalInit);
+    let response = await fetch(resolvedInput, buildInit());
+
+    // Mirror the axios interceptor: an expired access token gets one refresh and
+    // one replay. Without this, callers of apiFetch (notably the Business
+    // Intelligence PDF download) failed outright on a token that the shared
+    // refresh path would have renewed silently. attemptTokenRefresh() bails
+    // cheaply when there is no session, so this costs nothing for a genuine 401.
+    if (response.status === 401) {
+      const refreshed = await attemptTokenRefresh();
+      if (refreshed) {
+        response = await fetch(retryInput, buildInit());
+      } else {
+        clearAuthState();
+      }
+    }
+
     const responseData = await readFetchResponseData(response);
     logResponse(method, url, response.status, responseData);
     return response;
