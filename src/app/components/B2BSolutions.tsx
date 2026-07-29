@@ -336,6 +336,7 @@ function priceAmount(product: B2BProduct, currency: B2BCurrency): string | null 
 }
 
 function money(product: B2BProduct, currency: B2BCurrency) {
+  if (product.pricing_status === 'coming_soon') return 'Coming soon';
   if (!product.self_service) return 'Custom contract';
   const amount = priceAmount(product, currency);
   return amount ? `${amount}/month` : 'Contact us';
@@ -579,7 +580,9 @@ export function B2BSolutions() {
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
                       <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', flexGrow: 1 }}>
                         {active && <Chip size="small" label="Active" sx={{ bgcolor: t.success, color: '#fff' }} />}
-                        {!product.self_service && <Chip size="small" label="Manual contract" sx={{ bgcolor: t.borderSoft, color: t.textSecondary }} />}
+                        {product.pricing_status === 'coming_soon'
+                          ? <Chip size="small" label="Coming soon" sx={{ bgcolor: t.goldDim, color: t.gold, fontWeight: 700 }} />
+                          : !product.self_service && <Chip size="small" label="Manual contract" sx={{ bgcolor: t.borderSoft, color: t.textSecondary }} />}
                       </Stack>
                       <Tooltip title="Preview a sample report">
                         <IconButton size="small" onClick={() => setPreviewProduct(product)} sx={{ color: t.gold, bgcolor: t.goldDim, '&:hover': { bgcolor: alpha(t.gold, 0.24) } }}>
@@ -601,7 +604,14 @@ export function B2BSolutions() {
                     </Stack>
                     <Box sx={{ mt: 'auto' }}>
                       <Box sx={{ textAlign: 'right', mb: 2, minHeight: 40 }}>
-                        {!product.self_service ? (
+                        {product.pricing_status === 'coming_soon' ? (
+                          // Pricing is not finalised, so show that plainly rather
+                          // than a placeholder figure a client could act on.
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography sx={{ color: t.gold, fontSize: 22, fontWeight: 900 }}>Coming soon</Typography>
+                            <Typography sx={{ color: t.textFaint, fontSize: 12.5 }}>Pricing announced shortly</Typography>
+                          </Box>
+                        ) : !product.self_service ? (
                           <Typography sx={{ color: t.textPrimary, fontSize: 24, fontWeight: 900 }}>Custom contract</Typography>
                         ) : amount ? (
                           <Box sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
@@ -623,7 +633,11 @@ export function B2BSolutions() {
                         onClick={() => openProduct(product)}
                         sx={{ height: 48 }}
                       >
-                        {active ? 'Generate PDF' : product.self_service ? 'Subscribe' : 'Contact Sales'}
+                        {active
+                          ? 'Generate PDF'
+                          : product.pricing_status === 'coming_soon'
+                            ? 'Talk to us about early access'
+                            : product.self_service ? 'Subscribe' : 'Contact Sales'}
                       </Button>
                     </Box>
                   </Card>

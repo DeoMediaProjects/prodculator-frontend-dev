@@ -19,6 +19,9 @@ export interface B2BProduct {
   price_gbp_cents: number | null;
   price_usd_cents: number | null;
   self_service: boolean;
+  /** "coming_soon" while pricing is being finalised, "custom_contract" for
+   *  bespoke agreements, "listed" once a real price is published. */
+  pricing_status?: 'coming_soon' | 'custom_contract' | 'listed';
   stripe_price_configured: Record<string, boolean>;
 }
 
