@@ -4,7 +4,30 @@
  */
 
 import type { ScriptAnalysis } from '@/app/contexts/ScriptContext';
-import { apiClient } from '@/services/api';
+import { apiClient, ApiError } from '@/services/api';
+
+/**
+ * Turn a failed PDF request into something the user can act on.
+ *
+ * Callers used to swallow these failures (a bare console.error, or an empty
+ * catch), so a failure looked like the button doing nothing. Users responded the
+ * only way they could, by clicking again, which is how one missing PDF produced
+ * a screenful of identical errors. A 404 is permanent here: the stored object is
+ * gone and retrying cannot bring it back, so say so plainly.
+ */
+export function pdfErrorMessage(error: unknown, action: 'download' | 'open'): string {
+  const status = error instanceof ApiError ? error.status : undefined;
+  if (status === 404) {
+    return 'This report has no stored PDF. Regenerate the report to produce a new one.';
+  }
+  if (status === 403) {
+    return 'You do not have access to this report PDF.';
+  }
+  if (status === 503) {
+    return 'PDF generation is temporarily unavailable. Please try again shortly.';
+  }
+  return `Could not ${action} the PDF. Please try again.`;
+}
 
 /**
  * Download a backend-generated PDF report as a file.

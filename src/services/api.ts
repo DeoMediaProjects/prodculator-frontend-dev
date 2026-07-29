@@ -13,6 +13,24 @@ const ADMIN_SESSION_KEY = 'prodculator_admin_session';
 const CSRF_COOKIE_NAME = 'pc_csrf_token';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
 
+/**
+ * A failed request, carrying the HTTP status alongside the message.
+ *
+ * The interceptor used to reject with a bare Error, so callers could not tell a
+ * "this object is gone" 404 from a transient network failure and had no way to
+ * word the difference for the user. Anything that wants to react to a specific
+ * status can now check `status` instead of matching on message text.
+ */
+export class ApiError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 type AuthListener = (authenticated: boolean) => void;
 const authListeners = new Set<AuthListener>();
 
@@ -265,7 +283,7 @@ axiosClient.interceptors.response.use(
       error.response?.data,
       error.message || `Request failed (${error.response?.status || 'unknown'})`
     );
-    return Promise.reject(new Error(detail));
+    return Promise.reject(new ApiError(detail, error.response?.status));
   }
 );
 

@@ -49,7 +49,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
-import { downloadReportPDF } from '@/services/report-pdf.service';
+import { downloadReportPDF, pdfErrorMessage } from '@/services/report-pdf.service';
 import { getCustomerPortalUrl } from '@/services/stripe.service';
 import { authService } from '@/services/auth.service';
 import { WhatIfCalculator } from '@/app/components/user/WhatIfCalculator';
@@ -682,6 +682,7 @@ export function UserDashboard() {
                                     await downloadReportPDF(report.id, report.title);
                                   } catch (error) {
                                     console.error('PDF download failed:', error);
+                                    enqueueSnackbar(pdfErrorMessage(error, 'download'), { variant: 'error' });
                                   } finally {
                                     setDownloadingId(null);
                                   }
