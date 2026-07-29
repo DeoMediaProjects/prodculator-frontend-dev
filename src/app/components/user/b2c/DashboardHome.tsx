@@ -154,11 +154,14 @@ export function DashboardHome() {
   }, [reports]);
 
   const plan = usage?.plan || user?.plan || 'free';
-  // A null reports_limit means an unlimited plan, which is why these read as
-  // Infinity rather than 0 when the field is absent.
-  const periodLimit = usage ? (usage.reports_limit ?? Infinity) : Infinity;
+  // Only claim "Unlimited" when the server actually said so. Defaulting to
+  // Infinity while usage is still loading, or after the request failed, told a
+  // Professional subscriber they had unlimited reports — the same class of lie
+  // as the old hardcoded table, just with a different wrong number.
+  const usageKnown = usage !== null;
+  const periodLimit = usage?.reports_limit ?? Infinity;
   const usedThisPeriod = usage?.reports_used ?? 0;
-  const remaining = usage ? (usage.reports_remaining ?? Infinity) : Infinity;
+  const remaining = usage?.reports_remaining ?? Infinity;
   const payCredits = usage?.credits_remaining ?? 0; // pay-per-report credits (0 on free)
   // "Scripts remaining" = what the user can generate right now: plan allowance
   // left this period PLUS any pay-per-report credits. This is the same sum the
@@ -215,7 +218,7 @@ export function DashboardHome() {
       <Box data-tour="stats" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
         {[
           { label: 'REPORTS GENERATED', value: pad(stats.generated), sub: stats.thisMonth ? `+${stats.thisMonth} this month` : 'No reports yet', gold: false },
-          { label: 'SCRIPTS REMAINING', value: pad(Number.isFinite(creditsRemaining) ? creditsRemaining : '∞'), sub: plan === 'free' ? 'Free plan credit' : (payCredits > 0 ? 'Incl. pay-per-report' : 'Reports left this period'), gold: true },
+          { label: 'SCRIPTS REMAINING', value: !usageKnown ? '—' : pad(Number.isFinite(creditsRemaining) ? creditsRemaining : '∞'), sub: !usageKnown ? 'Checking your plan' : plan === 'free' ? 'Free plan credit' : (payCredits > 0 ? 'Incl. pay-per-report' : 'Reports left this period'), gold: true },
           { label: 'ACTIVE PROJECTS', value: pad(stats.active), sub: stats.active ? 'In production pipeline' : 'Start your first', gold: false },
         ].map((s) => (
           <Box key={s.label} sx={{ ...card, p: 2.75 }}>
@@ -236,15 +239,19 @@ export function DashboardHome() {
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography sx={{ fontSize: 13, color: t.textSecondary }}>
-            {Number.isFinite(periodLimit) ? `${usedThisPeriod} / ${periodLimit} reports used this period` : 'Unlimited reports this period'}
+            {!usageKnown
+              ? 'Checking your plan allowance'
+              : Number.isFinite(periodLimit)
+                ? `${usedThisPeriod} / ${periodLimit} reports used this period`
+                : 'Unlimited reports this period'}
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: t.gold }}>
-            {Number.isFinite(remaining) ? `${remaining} remaining` : 'Unlimited'}
+            {!usageKnown ? '—' : Number.isFinite(remaining) ? `${remaining} remaining` : 'Unlimited'}
           </Typography>
         </Box>
         <LinearProgress
           variant="determinate"
-          value={Number.isFinite(periodLimit) ? Math.min(100, (usedThisPeriod / periodLimit) * 100) : 100}
+          value={!usageKnown ? 0 : Number.isFinite(periodLimit) ? Math.min(100, (usedThisPeriod / periodLimit) * 100) : 100}
           sx={{ height: 6, borderRadius: 3, bgcolor: t.goldDim, '& .MuiLinearProgress-bar': { bgcolor: t.gold } }}
         />
       </Box>
