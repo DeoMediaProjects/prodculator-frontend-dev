@@ -66,7 +66,8 @@ import {
 } from '@mui/material';
 import { useScript, mapReportToAnalysis } from '@/app/contexts/ScriptContext';
 import { generateReportPDF, downloadReportPDF, viewReportPDF } from '@/services/report-pdf.service';
-import { apiClient, ProjectDetails } from '@/services/api';
+import { apiClient, ApiError, ProjectDetails } from '@/services/api';
+import { useSnackbar } from 'notistack';
 // The canonical transparent mark, same asset and same inversion rule as
 // PageHeader. The previous hashed asset carried a solid background and was
 // inverted the wrong way round, so it read as a box floating on the header.
@@ -141,6 +142,7 @@ export function ReportViewer() {
   const [copied, setCopied] = useState(false);
   const [isFetchingReport, setIsFetchingReport] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
   // userPlan returned by the report endpoint — promoted to "producer" for pay-per-report buyers
   // whose account plan remains "free". Use this as the source of truth for access decisions.
   const [reportUserPlan, setReportUserPlan] = useState<string | null>(null);
@@ -223,6 +225,28 @@ export function ReportViewer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportId]);
 
+  /** Turn a failed PDF request into something the user can act on.
+   *
+   *  These handlers used to only console.error, so a failure looked like the
+   *  button doing nothing at all. Users responded the only way they could, by
+   *  clicking again, which is why a single missing PDF produced a screenful of
+   *  identical errors. A 404 in particular is permanent: the stored object is
+   *  gone and no amount of retrying will bring it back, so say so.
+   */
+  const reportPdfError = (error: unknown, action: 'download' | 'open') => {
+    const status = error instanceof ApiError ? error.status : undefined;
+    if (status === 404) {
+      return 'This report has no stored PDF. Regenerate the report to produce a new one.';
+    }
+    if (status === 403) {
+      return 'You do not have access to this report PDF.';
+    }
+    if (status === 503) {
+      return 'PDF generation is temporarily unavailable. Please try again shortly.';
+    }
+    return `Could not ${action} the PDF. Please try again.`;
+  };
+
   const handleDownloadPDF = async () => {
     if (!reportId) return;
     setIsDownloadingPDF(true);
@@ -230,6 +254,7 @@ export function ReportViewer() {
       await downloadReportPDF(reportId, analysis?.scriptTitle);
     } catch (error) {
       console.error('PDF download failed:', error);
+      enqueueSnackbar(reportPdfError(error, 'download'), { variant: 'error' });
     } finally {
       setIsDownloadingPDF(false);
     }
@@ -242,6 +267,7 @@ export function ReportViewer() {
       await viewReportPDF(reportId);
     } catch (error) {
       console.error('PDF view failed:', error);
+      enqueueSnackbar(reportPdfError(error, 'open'), { variant: 'error' });
     } finally {
       setIsViewingPDF(false);
     }

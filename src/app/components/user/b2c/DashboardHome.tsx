@@ -9,7 +9,8 @@ import {
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
-import { downloadReportPDF } from '@/services/report-pdf.service';
+import { downloadReportPDF, pdfErrorMessage } from '@/services/report-pdf.service';
+import { useSnackbar } from 'notistack';
 import { DataTable } from './DataTable';
 import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
 
@@ -37,7 +38,22 @@ type ReportApiResponse = {
   report_data?: AnalysisPayload | null; pdfUrl?: string | null; pdf_url?: string | null;
 };
 
-const PLAN_PERIOD_LIMIT: Record<string, number> = { free: 1, professional: 10, producer: 30, studio: Infinity };
+/** Plan allowance as reported by /api/subscriptions/usage, which is the same
+ *  value that actually gates generation.
+ *
+ *  This was previously a hardcoded table here, and every paid tier disagreed
+ *  with the server: professional 10 vs 1, producer 30 vs 3, studio unlimited vs
+ *  10. A Professional user was shown "7 remaining" and then refused at "1/1" on
+ *  clicking Generate. Limits belong to whoever enforces them, so read them
+ *  rather than restate them. */
+interface PlanUsage {
+  plan: string;
+  reports_used: number;
+  reports_limit: number | null;
+  reports_remaining: number | null;
+  credits_remaining: number;
+  period_end: string | null;
+}
 
 function fmtDate(value: string): string {
   if (!value) return 'N/A';
@@ -54,8 +70,10 @@ export function DashboardHome() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ReportRow | null>(null);
+  const [usage, setUsage] = useState<PlanUsage | null>(null);
 
   const loadReports = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -86,7 +104,15 @@ export function DashboardHome() {
     }
   }, []);
 
-  useEffect(() => { void loadReports(); }, [loadReports]);
+  const loadUsage = useCallback(async () => {
+    try {
+      setUsage(await apiClient.get<PlanUsage>('/api/subscriptions/usage', { auth: true }));
+    } catch {
+      /* keep the last known figures rather than flashing a wrong zero */
+    }
+  }, []);
+
+  useEffect(() => { void loadReports(); void loadUsage(); }, [loadReports, loadUsage]);
 
   // A report generated in the background is created immediately as a Pending
   // row, then flips to Completed when the worker finishes. Poll quietly while
@@ -94,21 +120,29 @@ export function DashboardHome() {
   // refresh needed (the previous behaviour only showed it after refresh).
   useEffect(() => {
     if (!reports.some((r) => r.status === 'Pending')) return;
-    const id = window.setInterval(() => void loadReports({ silent: true }), 7000);
+    const id = window.setInterval(() => {
+      void loadReports({ silent: true });
+      // Allowance changes as reports complete, so refresh it alongside.
+      void loadUsage();
+    }, 7000);
     return () => window.clearInterval(id);
-  }, [reports, loadReports]);
+  }, [reports, loadReports, loadUsage]);
 
   // Also refresh when the user returns to the tab — a report may have finished
   // while they were on the checkout page, their email, etc.
   useEffect(() => {
-    const onFocus = () => { if (document.visibilityState !== 'hidden') void loadReports({ silent: true }); };
+    const onFocus = () => {
+      if (document.visibilityState === 'hidden') return;
+      void loadReports({ silent: true });
+      void loadUsage();
+    };
     document.addEventListener('visibilitychange', onFocus);
     window.addEventListener('focus', onFocus);
     return () => {
       document.removeEventListener('visibilitychange', onFocus);
       window.removeEventListener('focus', onFocus);
     };
-  }, [loadReports]);
+  }, [loadReports, loadUsage]);
 
   const stats = useMemo(() => {
     const completed = reports.filter((r) => r.status === 'Completed').length;
@@ -119,19 +153,16 @@ export function DashboardHome() {
     return { generated: reports.length, thisMonth, active: completed };
   }, [reports]);
 
-  const plan = user?.plan || 'free';
-  const periodLimit = PLAN_PERIOD_LIMIT[plan] ?? 1;
-  // user.reportsUsed isn't wired from the backend yet (always 0), so fall back
-  // to the reports actually created this month — otherwise a free user who has
-  // already used their monthly report would still show "1 remaining".
-  const usedThisPeriod = Number.isFinite(periodLimit)
-    ? Math.min(Math.max(user?.reportsUsed ?? 0, stats.thisMonth), periodLimit)
-    : Math.max(user?.reportsUsed ?? 0, stats.thisMonth);
-  const remaining = Number.isFinite(periodLimit) ? Math.max(0, periodLimit - usedThisPeriod) : Infinity;
-  const payCredits = user?.reportsLimit ?? 0; // pay-per-report credits (0 on free)
-  // "Credits remaining" = reports the user can still generate right now: their
-  // plan allowance left this period PLUS any pay-per-report credits. A free
-  // user with their monthly report unused therefore correctly shows 1, not 0.
+  const plan = usage?.plan || user?.plan || 'free';
+  // A null reports_limit means an unlimited plan, which is why these read as
+  // Infinity rather than 0 when the field is absent.
+  const periodLimit = usage ? (usage.reports_limit ?? Infinity) : Infinity;
+  const usedThisPeriod = usage?.reports_used ?? 0;
+  const remaining = usage ? (usage.reports_remaining ?? Infinity) : Infinity;
+  const payCredits = usage?.credits_remaining ?? 0; // pay-per-report credits (0 on free)
+  // "Scripts remaining" = what the user can generate right now: plan allowance
+  // left this period PLUS any pay-per-report credits. This is the same sum the
+  // generation gate applies, so the number shown and the number enforced agree.
   const creditsRemaining = Number.isFinite(remaining) ? remaining + payCredits : Infinity;
 
   // The dashboard's "Recent Reports" widget only ever shows the last 5 —
@@ -163,7 +194,13 @@ export function DashboardHome() {
   const handleDownload = async (r: ReportRow) => {
     if (!r.pdfUrl) return;
     setDownloadingId(r.id);
-    try { await downloadReportPDF(r.id, r.title); } catch { /* ignore */ } finally { setDownloadingId(null); }
+    try {
+      await downloadReportPDF(r.id, r.title);
+    } catch (error) {
+      enqueueSnackbar(pdfErrorMessage(error, 'download'), { variant: 'error' });
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const statusColor = (s: ReportRow['status']) => (s === 'Completed' ? t.success : s === 'Pending' ? t.warning : t.error);

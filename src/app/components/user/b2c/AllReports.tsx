@@ -4,7 +4,8 @@ import { Box, Typography, Button, IconButton, CircularProgress, Tooltip } from '
 import { VisibilityOutlined, FileDownloadOutlined, DeleteOutline, DescriptionOutlined, ArrowBack } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { apiClient } from '@/services/api';
-import { downloadReportPDF } from '@/services/report-pdf.service';
+import { downloadReportPDF, pdfErrorMessage } from '@/services/report-pdf.service';
+import { useSnackbar } from 'notistack';
 import { DataTable } from './DataTable';
 import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
 
@@ -46,6 +47,7 @@ export function AllReports() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ReportRow | null>(null);
 
@@ -118,7 +120,13 @@ export function AllReports() {
   const handleDownload = async (r: ReportRow) => {
     if (!r.pdfUrl) return;
     setDownloadingId(r.id);
-    try { await downloadReportPDF(r.id, r.title); } catch { /* ignore */ } finally { setDownloadingId(null); }
+    try {
+      await downloadReportPDF(r.id, r.title);
+    } catch (error) {
+      enqueueSnackbar(pdfErrorMessage(error, 'download'), { variant: 'error' });
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const statusColor = (s: ReportRow['status']) => (s === 'Completed' ? t.success : s === 'Pending' ? t.warning : t.error);
