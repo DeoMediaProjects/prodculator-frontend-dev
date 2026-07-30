@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import Joyride, { ACTIONS, STATUS, type CallBackProps, type Step } from 'react-joyride';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { buildTourStyles, tourLocale, usePrefersReducedMotion } from './tourStyles';
+import { hasSeenTour, markTourSeen } from './tourStorage';
 
 /**
  * First-run walkthrough of the Business Intelligence console.
@@ -49,13 +51,6 @@ const BI_STEPS: Step[] = [
   },
 ];
 
-function markSeen() {
-  try { localStorage.setItem(BI_TOUR_SEEN_KEY, '1'); } catch { /* storage unavailable, ignore */ }
-}
-function hasSeen(): boolean {
-  try { return !!localStorage.getItem(BI_TOUR_SEEN_KEY); } catch { return true; }
-}
-
 interface Props {
   /** True once the console has loaded AND the viewer holds a subscription. */
   enabled: boolean;
@@ -65,6 +60,12 @@ export function BusinessIntelligenceTour({ enabled }: Props) {
   const { mode } = useThemeMode();
   const t = tokens(mode);
   const reducedMotion = usePrefersReducedMotion();
+  const { user } = useAuth();
+  const userId = user?.email;
+
+  // Scoped per account — see tourStorage.ts.
+  const markSeen = useCallback(() => markTourSeen(BI_TOUR_SEEN_KEY, userId), [userId]);
+  const hasSeen = useCallback(() => hasSeenTour(BI_TOUR_SEEN_KEY, userId), [userId]);
 
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -85,7 +86,7 @@ export function BusinessIntelligenceTour({ enabled }: Props) {
     if (!enabled || hasSeen()) return;
     const id = setTimeout(start, 600);
     return () => clearTimeout(id);
-  }, [enabled, start]);
+  }, [enabled, start, hasSeen]);
 
   // The header "?" button re-runs it on demand, subscription or not.
   useEffect(() => {
@@ -102,7 +103,7 @@ export function BusinessIntelligenceTour({ enabled }: Props) {
       setRun(false);
       markSeen();
     }
-  }, []);
+  }, [markSeen]);
 
   return (
     <Joyride

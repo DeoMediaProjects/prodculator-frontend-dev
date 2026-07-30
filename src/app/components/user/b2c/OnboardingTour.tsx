@@ -7,6 +7,7 @@ import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
 import logoMark from '@/assets/prodculator-logo-white.png';
 import { buildTourStyles, tourLocale, usePrefersReducedMotion } from './tourStyles';
+import { hasSeenTour, markTourSeen } from './tourStorage';
 
 // Marks that the user has been offered / completed the guided tour, so we don't
 // prompt on every visit. The header "?" button re-runs it on demand regardless.
@@ -77,13 +78,6 @@ const GrowTransition = forwardRef(function GrowTransition(
   return <Grow ref={ref} timeout={{ enter: 280, exit: 160 }} {...props} />;
 });
 
-function markSeen() {
-  try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch { /* storage unavailable, ignore */ }
-}
-function hasSeen(): boolean {
-  try { return !!localStorage.getItem(TOUR_SEEN_KEY); } catch { return true; }
-}
-
 export function OnboardingTour() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
@@ -97,6 +91,10 @@ export function OnboardingTour() {
   const [showPrompt, setShowPrompt] = useState(false);
 
   const firstName = useMemo(() => (user?.name || '').trim().split(/\s+/)[0] || '', [user]);
+  // Scoped per account — see tourStorage.ts. A shared browser must still offer
+  // the tour to each user who signs in, not just the first one.
+  const userId = user?.email;
+  const markSeen = useCallback(() => markTourSeen(TOUR_SEEN_KEY, userId), [userId]);
 
   const startTour = useCallback(() => {
     const begin = () => {
@@ -121,15 +119,17 @@ export function OnboardingTour() {
   const dismissPrompt = useCallback(() => {
     markSeen();
     setShowPrompt(false);
-  }, []);
+  }, [markSeen]);
 
-  // Offer the tour on the first dashboard visit.
+  // Offer the tour on this account's first dashboard visit. Keyed on userId so
+  // it re-evaluates once auth resolves — before that we don't know whose flag
+  // to read, and hasSeenTour deliberately reports "seen" to avoid a flash.
   useEffect(() => {
-    if (!hasSeen()) {
+    if (!hasSeenTour(TOUR_SEEN_KEY, userId)) {
       const id = setTimeout(() => setShowPrompt(true), 550);
       return () => clearTimeout(id);
     }
-  }, []);
+  }, [userId]);
 
   // Let anything (e.g. the header "?" button) re-launch the tour on demand.
   useEffect(() => {
@@ -156,7 +156,7 @@ export function OnboardingTour() {
       setRun(false);
       markSeen();
     }
-  }, [navigate]);
+  }, [navigate, markSeen]);
 
   return (
     <>

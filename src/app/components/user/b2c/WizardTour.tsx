@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import Joyride, { ACTIONS, STATUS, type CallBackProps, type Step } from 'react-joyride';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { buildTourStyles, tourLocale, usePrefersReducedMotion } from './tourStyles';
+import { hasSeenTour, markTourSeen } from './tourStorage';
 
 // Shown once, the first time a user reaches the New Analysis flow. It picks up
 // naturally after the dashboard tour (which drops them here), so it walks the
@@ -54,17 +56,22 @@ const WIZARD_FINISH_STEPS: Step[] = [
   },
 ];
 
-function markSeen(key: string = WIZARD_TOUR_SEEN_KEY) {
-  try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
-}
-function hasSeen(key: string = WIZARD_TOUR_SEEN_KEY): boolean {
-  try { return !!localStorage.getItem(key); } catch { return true; }
-}
-
 export function WizardTour() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
   const reducedMotion = usePrefersReducedMotion();
+  const { user } = useAuth();
+  const userId = user?.email;
+
+  // Scoped per account — see tourStorage.ts.
+  const markSeen = useCallback(
+    (key: string = WIZARD_TOUR_SEEN_KEY) => markTourSeen(key, userId),
+    [userId],
+  );
+  const hasSeen = useCallback(
+    (key: string = WIZARD_TOUR_SEEN_KEY) => hasSeenTour(key, userId),
+    [userId],
+  );
 
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -92,7 +99,7 @@ export function WizardTour() {
     if (hasSeen()) return;
     const id = setTimeout(start, 650);
     return () => clearTimeout(id);
-  }, [start]);
+  }, [start, hasSeen]);
 
   // Let the header "?" button re-launch it here too.
   useEffect(() => {
@@ -110,7 +117,7 @@ export function WizardTour() {
     };
     window.addEventListener('pc:wizard-final-step', onFinalStep);
     return () => window.removeEventListener('pc:wizard-final-step', onFinalStep);
-  }, [startFinish]);
+  }, [startFinish, hasSeen]);
 
   const handleCallback = useCallback((data: CallBackProps) => {
     // `continuous` makes Joyride treat the close button as an advance unless we
@@ -120,7 +127,7 @@ export function WizardTour() {
       setRun(false);
       markSeen(stage === 'finish' ? WIZARD_FINISH_SEEN_KEY : WIZARD_TOUR_SEEN_KEY);
     }
-  }, [stage]);
+  }, [stage, markSeen]);
 
   return (
     <Joyride
