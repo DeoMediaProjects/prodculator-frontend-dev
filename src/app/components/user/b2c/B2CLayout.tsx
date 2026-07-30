@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { HeaderActionsContext } from './headerActions';
 import { Sidebar, SIDEBAR_W, SIDEBAR_COLLAPSED_W, useSidebarCollapsed } from './Sidebar';
@@ -14,6 +14,7 @@ import { NotificationBell } from './NotificationBell';
 import { SegmentedToggle } from './SegmentedToggle';
 import { OnboardingTour } from './OnboardingTour';
 import { usePrefersReducedMotion } from './tourStyles';
+import { hasSeenTour, markTourSeen } from './tourStorage';
 
 // Per-browser marker that the dashboard has been opened before, so a returning
 // user gets "Welcome back" and a genuine first-timer just gets "Welcome".
@@ -53,14 +54,19 @@ export function B2CLayout() {
   const { user } = useAuth();
   const reducedMotion = usePrefersReducedMotion();
 
-  // First dashboard visit in this browser → greet with "Welcome"; thereafter
-  // "Welcome back". Captured once so it doesn't flip mid-session.
-  const [firstVisit] = useState(() => {
-    try { return !localStorage.getItem(VISITED_KEY); } catch { return false; }
-  });
+  // This account's first dashboard visit → greet with "Welcome"; thereafter
+  // "Welcome back". Scoped per user so a shared browser doesn't greet a brand
+  // new tester with "Welcome back". Captured once per account so it can't flip
+  // mid-session, and only after auth resolves so we know whose flag to read.
+  const [firstVisit, setFirstVisit] = useState(false);
+  const greetedRef = useRef<string | null>(null);
   useEffect(() => {
-    try { localStorage.setItem(VISITED_KEY, '1'); } catch { /* storage unavailable — ignore */ }
-  }, []);
+    const id = user?.email;
+    if (!id || greetedRef.current === id) return;
+    greetedRef.current = id;
+    setFirstVisit(!hasSeenTour(VISITED_KEY, id));
+    markTourSeen(VISITED_KEY, id);
+  }, [user?.email]);
 
   const baseMeta = pageMeta(location.pathname);
   // Personalise the dashboard home greeting (the only route using WELCOME BACK).
