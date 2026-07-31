@@ -108,68 +108,84 @@ export function B2CLayout() {
             zIndex: (theme) => theme.zIndex.appBar,
             bgcolor: t.pageBg,
             display: 'flex',
-            alignItems: 'center',
+            // Side by side on desktop. On mobile the action buttons cannot
+            // shrink (nowrap labels), so sharing a row with them squeezed the
+            // title to roughly one word per line — stack instead and give the
+            // title the full width.
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'stretch', md: 'center' },
             justifyContent: 'space-between',
-            gap: 2,
+            gap: { xs: 1.5, md: 2 },
             px: { xs: 2, md: 5 },
-            py: 3,
+            py: { xs: 2, md: 3 },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-            {!isDesktop && (
-              <IconButton onClick={() => setMobileOpen(true)} sx={{ color: t.textPrimary }}><MenuIcon /></IconButton>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', color: t.textSecondary }}>{meta.eyebrow}</Typography>
+            <Typography sx={{ fontSize: { xs: 24, md: 32 }, fontWeight: 800, color: t.textPrimary, lineHeight: 1.1 }}>{meta.title}</Typography>
+            {meta.description && (
+              <Typography sx={{ fontSize: 13.5, color: t.textSecondary, mt: 0.5 }}>{meta.description}</Typography>
             )}
-            <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', color: t.textSecondary }}>{meta.eyebrow}</Typography>
-              <Typography sx={{ fontSize: { xs: 24, md: 32 }, fontWeight: 800, color: t.textPrimary, lineHeight: 1.1 }}>{meta.title}</Typography>
-              {meta.description && (
-                <Typography sx={{ fontSize: 13.5, color: t.textSecondary, mt: 0.5 }}>{meta.description}</Typography>
-              )}
-            </Box>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            {/* Theme toggle */}
-            <SegmentedToggle
-              radius={12}
-              value={mode}
-              onChange={(v) => v !== mode && toggle()}
-              options={[
-                { value: 'light', icon: <LightModeOutlined sx={{ fontSize: 18 }} /> },
-                { value: 'dark', icon: <DarkModeOutlined sx={{ fontSize: 18 }} /> },
-              ]}
-            />
-            {/* Page-specific action buttons (Export CSV, Add Milestone, …) render here */}
-            {headerActions}
-            {!hideNewAnalysis && (
-              <>
-                <Tooltip title="Upload a script to generate a report">
-                  <Button data-tour="new-analysis" onClick={() => navigate('/analysis/new')} variant="contained" startIcon={<Add />} sx={{ whiteSpace: 'nowrap', display: { xs: 'none', sm: 'inline-flex' } }}>
-                    Generate Report
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Generate report">
-                  <IconButton data-tour="new-analysis-mobile" aria-label="Generate report" onClick={() => navigate('/analysis/new')} sx={{ display: { xs: 'inline-flex', sm: 'none' }, borderRadius: '10px', bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff' }}><Add /></IconButton>
-                </Tooltip>
-              </>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              // Never give up width to the title on desktop, and sit above it
+              // as a compact toolbar on mobile.
+              flexShrink: 0,
+              order: { xs: -1, md: 0 },
+              justifyContent: { xs: 'space-between', md: 'flex-end' },
+            }}
+          >
+            {!isDesktop && (
+              <IconButton onClick={() => setMobileOpen(true)} sx={{ color: t.textPrimary, ml: -1 }}><MenuIcon /></IconButton>
             )}
-            <Tooltip title="Take the product tour">
-              <IconButton
-                data-tour="help"
-                aria-label="Take the product tour"
-                onClick={() => window.dispatchEvent(new Event(
-                  // Replay the tour for the surface the user is actually on.
-                  // The dashboard tour navigates to /dashboard to find its
-                  // anchors, so firing it here would yank them off this page.
-                  location.pathname.startsWith('/dashboard/business-intelligence')
-                    ? 'pc:start-bi-tour'
-                    : 'pc:start-tour',
-                ))}
-                sx={{ color: t.textSecondary, '&:hover': { color: t.gold, bgcolor: t.goldDim } }}
-              >
-                <HelpOutlineOutlined />
-              </IconButton>
-            </Tooltip>
-            <NotificationBell />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>
+              {/* Theme toggle */}
+              <SegmentedToggle
+                radius={12}
+                value={mode}
+                onChange={(v) => v !== mode && toggle()}
+                options={[
+                  { value: 'light', icon: <LightModeOutlined sx={{ fontSize: 18 }} /> },
+                  { value: 'dark', icon: <DarkModeOutlined sx={{ fontSize: 18 }} /> },
+                ]}
+              />
+              {/* Page-specific action buttons (Export CSV, Add Milestone, …) render here */}
+              {headerActions}
+              {!hideNewAnalysis && (
+                <>
+                  <Tooltip title="Upload a script to generate a report">
+                    <Button data-tour="new-analysis" onClick={() => navigate('/analysis/new')} variant="contained" startIcon={<Add />} sx={{ whiteSpace: 'nowrap', display: { xs: 'none', sm: 'inline-flex' } }}>
+                      Generate Report
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Generate report">
+                    <IconButton data-tour="new-analysis-mobile" aria-label="Generate report" onClick={() => navigate('/analysis/new')} sx={{ display: { xs: 'inline-flex', sm: 'none' }, borderRadius: '10px', bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff' }}><Add /></IconButton>
+                  </Tooltip>
+                </>
+              )}
+              <Tooltip title="Take the product tour">
+                <IconButton
+                  data-tour="help"
+                  aria-label="Take the product tour"
+                  onClick={() => window.dispatchEvent(new Event(
+                    // Replay the tour for the surface the user is actually on.
+                    // The dashboard tour navigates to /dashboard to find its
+                    // anchors, so firing it here would yank them off this page.
+                    location.pathname.startsWith('/dashboard/business-intelligence')
+                      ? 'pc:start-bi-tour'
+                      : 'pc:start-tour',
+                  ))}
+                  sx={{ color: t.textSecondary, '&:hover': { color: t.gold, bgcolor: t.goldDim } }}
+                >
+                  <HelpOutlineOutlined />
+                </IconButton>
+              </Tooltip>
+              <NotificationBell />
+            </Box>
           </Box>
         </Box>
 
