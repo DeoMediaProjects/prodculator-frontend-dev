@@ -52,6 +52,7 @@ interface PlanUsage {
   reports_limit: number | null;
   reports_remaining: number | null;
   credits_remaining: number;
+  period_start: string | null;
   period_end: string | null;
 }
 
@@ -160,6 +161,28 @@ export function DashboardHome() {
   // as the old hardcoded table, just with a different wrong number.
   const usageKnown = usage !== null;
   const periodLimit = usage?.reports_limit ?? Infinity;
+
+  // Was hardcoded to "Renews monthly", which is wrong for any account whose
+  // period isn't a month — demo and comped accounts are issued a long
+  // non-renewing window, so the old copy told those users an allowance would
+  // come back when it never does.
+  //
+  // Judged on the period's LENGTH rather than time remaining: a granted
+  // allowance is long however late you look at it, and length needs no "now",
+  // which keeps this pure for render.
+  const renewalLabel = (() => {
+    const { period_start: start, period_end: end } = usage ?? {};
+    if (!end) return '';
+    const endDate = new Date(end);
+    if (Number.isNaN(endDate.getTime())) return '';
+    const startDate = start ? new Date(start) : null;
+    if (startDate && !Number.isNaN(startDate.getTime())) {
+      const days = (endDate.getTime() - startDate.getTime()) / 86_400_000;
+      // Longer than a year is a granted allowance, not a billing cycle.
+      if (days > 366) return 'Does not renew';
+    }
+    return `Renews ${endDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+  })();
   const usedThisPeriod = usage?.reports_used ?? 0;
   const remaining = usage?.reports_remaining ?? Infinity;
   const payCredits = usage?.credits_remaining ?? 0; // pay-per-report credits (0 on free)
@@ -235,7 +258,7 @@ export function DashboardHome() {
           <Typography sx={{ fontWeight: 700, color: t.textPrimary }}>
             Plan Usage <span style={{ color: t.gold, fontSize: 12, letterSpacing: '0.12em', marginLeft: 6 }}>{plan.toUpperCase()}</span>
           </Typography>
-          <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>Renews monthly</Typography>
+          <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>{renewalLabel}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography sx={{ fontSize: 13, color: t.textSecondary }}>
