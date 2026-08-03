@@ -64,6 +64,7 @@ const PDFReportsManager = lazy(() => import('../app/components/admin/PDFReportsM
 const BusinessMetrics = lazy(() => import('../app/components/admin/BusinessMetrics').then(m => ({ default: m.BusinessMetrics })));
 const ScriptAIOverview = lazy(() => import('../app/components/admin/ScriptAIOverview').then(m => ({ default: m.ScriptAIOverview })));
 const ProductionIntelligence = lazy(() => import('../app/components/admin/ProductionIntelligence').then(m => ({ default: m.ProductionIntelligence })));
+const BusinessIntelligenceStudio = lazy(() => import('../app/components/admin/BusinessIntelligenceStudio').then(m => ({ default: m.BusinessIntelligenceStudio })));
 
 const VerifyEmail = lazy(() => import('../app/pages/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
 const EmailVerifyCallback = lazy(() => import('../app/pages/EmailVerifyCallback').then(m => ({ default: m.EmailVerifyCallback })));
@@ -153,6 +154,7 @@ function AppContent() {
                     <Route path="metrics" element={<BusinessMetrics />} />
                     <Route path="script-ai" element={<ScriptAIOverview />} />
                     <Route path="production-intel" element={<ProductionIntelligence />} />
+                    <Route path="bi-studio" element={<BusinessIntelligenceStudio />} />
                   </Route>
 
                   {/* Test/Preview Routes — DEV ONLY. These expose internal tooling
