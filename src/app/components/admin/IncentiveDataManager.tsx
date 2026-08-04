@@ -1277,8 +1277,20 @@ function IncentiveDataManagerContent(_props?: any) {
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField fullWidth size="small" multiline minRows={2} label="Notes"
+                    helperText="Client-facing — appears in generated reports. Keep QA annotations out of this field."
                     value={editFormData.notes || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth size="small" multiline minRows={3}
+                    label="Internal audit notes (never shown to clients)"
+                    helperText="Data-team QA trail. Put [FLAGGED …] / [UPDATED …] annotations here — this field is not readable by the report generator."
+                    value={editFormData.internalAuditNotes || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, internalAuditNotes: e.target.value })}
+                    sx={{
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,167,38,0.5)' },
+                      '& .MuiInputLabel-root': { color: '#ffa726' },
+                    }} />
                 </Grid>
               </Grid>
             </AccordionDetails>

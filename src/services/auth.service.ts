@@ -25,6 +25,25 @@ export interface AuthUser {
   credits_remaining?: number;
   plan?: 'free' | 'single' | 'professional' | 'producer' | 'studio';
   email_verified?: boolean;
+  /** Presigned and short-lived, so it is read from each response rather than
+   *  cached anywhere. Absent until the account uploads a logo. */
+  logo_url?: string | null;
+}
+
+export interface LogoResponse {
+  logo_url: string | null;
+}
+
+/** Upload the account logo. The server re-encodes whatever is sent to PNG, so
+ *  the returned URL can point at a different format than the file chosen. */
+export async function uploadAccountLogo(file: File): Promise<LogoResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  return apiClient.upload<LogoResponse>('/api/auth/me/logo', form, { auth: true });
+}
+
+export async function deleteAccountLogo(): Promise<LogoResponse> {
+  return apiClient.delete<LogoResponse>('/api/auth/me/logo', { auth: true });
 }
 
 interface TokenResponse {

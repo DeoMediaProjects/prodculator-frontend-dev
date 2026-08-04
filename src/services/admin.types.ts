@@ -143,6 +143,12 @@ export interface IncentiveData {
   is_supplementary?: boolean | null;
   payment_reliability?: number | null;
   lastVerifiedAt?: string | null;
+  /**
+   * Internal data-audit trail (PROD-FIX-006). Admin-only — this is the sole
+   * field that may carry QA annotations, and the report generator cannot read
+   * it. Never render this in client-facing output.
+   */
+  internalAuditNotes?: string | null;
 }
 
 export interface IncentiveCalcRequest {
