@@ -31,6 +31,9 @@ interface User {
   plan: PlanType;
   reportsUsed: number;
   reportsLimit: number;
+  /** Presigned and short-lived, so it is read from each /me response and never
+   *  persisted anywhere. Absent until the account uploads a logo. */
+  logo_url?: string | null;
 }
 
 export interface AdminUser {
@@ -149,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             plan: normalizePlan(currentUser.plan),
             reportsUsed: 0,
             reportsLimit: currentUser.credits_remaining || 0,
+            logo_url: currentUser.logo_url ?? null,
           });
         }
       } finally {

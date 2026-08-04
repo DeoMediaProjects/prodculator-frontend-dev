@@ -1,6 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Box, Typography, InputBase, IconButton, Tooltip } from '@mui/material';
-import { ArrowUpward, ArrowDownward, FilterListOutlined, Close, InboxOutlined } from '@mui/icons-material';
+import {
+  ArrowUpward, ArrowDownward, FilterListOutlined, Close, InboxOutlined,
+  ChevronLeft, ChevronRight,
+} from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 
 export interface Column<T> {
@@ -31,6 +34,17 @@ interface Props<T> {
   /** Keep the column headers visible with no rows, so the shape of the table
    *  is still legible before any data arrives. */
   showHeaderWhenEmpty?: boolean;
+  /** Heading rendered inside the table's own card. Callers used to place a
+   *  heading above the table, which left the title visually detached from the
+   *  thing it names; wrapping the table to fix that would nest one card inside
+   *  another. */
+  title?: ReactNode;
+  /** Control rendered opposite the title, e.g. a scope filter. */
+  headerAction?: ReactNode;
+  /** Rows per page. Omitted, every row renders and no footer appears. */
+  pageSize?: number;
+  /** Singular noun for the pagination count ("report" -> "1 of 4 reports"). */
+  itemNoun?: string;
 }
 
 type SortDir = 'asc' | 'desc';
@@ -38,7 +52,7 @@ type SortDir = 'asc' | 'desc';
 export function DataTable<T>({
   columns, rows, getRowId, onRowClick, rowActions, actionsHeader = 'ACTIONS',
   maxHeight = 480, emptyMessage = 'Nothing to show.', emptyIcon, minWidth = 720,
-  showHeaderWhenEmpty = false,
+  showHeaderWhenEmpty = false, title, headerAction, pageSize, itemNoun = 'row',
 }: Props<T>) {
   const { mode } = useThemeMode();
   const t = tokens(mode);
@@ -47,6 +61,7 @@ export function DataTable<T>({
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
 
   const valueOf = (row: T, col: Column<T>): string | number =>
     col.sortValue ? col.sortValue(row) : ((row as Record<string, unknown>)[col.key] as string | number) ?? '';
@@ -84,6 +99,19 @@ export function DataTable<T>({
     else { setSortKey(null); setSortDir('asc'); }
   };
 
+  // Filtering can shrink the result set below the current page, which would
+  // render an empty table under a "showing 0 of 3" footer. Clamped during
+  // render rather than corrected in an effect: an effect would paint the empty
+  // page first, then re-render, so the user sees the flash of nothing.
+  const pageCount = pageSize ? Math.max(1, Math.ceil(processed.length / pageSize)) : 1;
+  const safePage = Math.min(page, pageCount - 1);
+
+  const visible = useMemo(() => {
+    if (!pageSize) return processed;
+    const start = safePage * pageSize;
+    return processed.slice(start, start + pageSize);
+  }, [processed, safePage, pageSize]);
+
   const hasActions = Boolean(rowActions);
   const template = [...columns.map((c) => c.width || '1fr'), ...(hasActions ? ['0.9fr'] : [])].join(' ');
   const anyFilterable = columns.some((c) => c.filterable !== false);
@@ -101,6 +129,20 @@ export function DataTable<T>({
 
   return (
     <Box sx={{ bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', overflow: 'hidden' }}>
+      {/* Title bar. Shares a row with the scope control and the filter toggle so
+          the table has one header rather than a stack of separate strips. */}
+      {(title || headerAction) && (
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 2, px: 2.5, pt: 2.25, pb: anyFilterable && !isEmpty ? 0.5 : 2.25,
+        }}>
+          {typeof title === 'string'
+            ? <Typography sx={{ fontWeight: 800, fontSize: 18, color: t.textPrimary }}>{title}</Typography>
+            : title}
+          {headerAction}
+        </Box>
+      )}
+
       {/* Filter toggle bar. Unfiltered it collapses to a slim right-aligned
           control strip: the count only says something once filtering has
           narrowed the set, since unfiltered it reads "5 of 5", which just
@@ -180,7 +222,7 @@ export function DataTable<T>({
                 ? <Typography sx={{ color: t.textSecondary }}>{emptyMessage}</Typography>
                 : emptyMessage}
             </Box>
-          ) : processed.map((row) => {
+          ) : visible.map((row) => {
             const id = getRowId(row);
             return (
               <Box
@@ -206,6 +248,39 @@ export function DataTable<T>({
           })}
         </Box>
       </Box>
+
+      {/* Pagination. Rendered whenever a pageSize is set, including on a single
+          page: the count is the useful half of this control, and having the
+          footer appear only once a table spills over makes the card change
+          height for what looks to the user like no reason. */}
+      {pageSize && !isEmpty && (
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+          px: 2.5, py: 1.25, borderTop: `1px solid ${t.borderSoft}`,
+        }}>
+          <IconButton
+            size="small"
+            aria-label="Previous page"
+            disabled={safePage === 0}
+            onClick={() => setPage(Math.max(0, safePage - 1))}
+            sx={{ color: t.textSecondary, '&.Mui-disabled': { color: t.textFaint } }}
+          >
+            <ChevronLeft sx={{ fontSize: 19 }} />
+          </IconButton>
+          <Typography sx={{ fontSize: 12.5, color: t.textSecondary, minWidth: 0 }}>
+            {`Showing ${visible.length} of ${processed.length} ${itemNoun}${processed.length === 1 ? '' : 's'}`}
+          </Typography>
+          <IconButton
+            size="small"
+            aria-label="Next page"
+            disabled={safePage >= pageCount - 1}
+            onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
+            sx={{ color: t.textSecondary, '&.Mui-disabled': { color: t.textFaint } }}
+          >
+            <ChevronRight sx={{ fontSize: 19 }} />
+          </IconButton>
+        </Box>
+      )}
     </Box>
   );
 }
