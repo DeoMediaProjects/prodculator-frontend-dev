@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { PLAN_PRICING } from '@/services/stripe.service';
 
 // Maps the backend plan key on the user to the plan name shown in this menu, so
 // a logged-in subscriber sees which plan they're currently on. "Single" is a
@@ -23,14 +24,41 @@ interface PricingMenuItem {
   description: string;
 }
 
-// Mirrors the plan data in components/user/Pricing.tsx and the B2B
-// products in components/B2BSolutions.tsx, kept short for a nav preview.
+// Prices are derived from PLAN_PRICING, never written here. This menu had its
+// own hardcoded copy that still advertised the $1/£0.79 test amounts after the
+// pricing page was corrected — a third place the same numbers lived, and the
+// one users see first. Deriving them means it cannot fall behind again.
 const PLAN_ITEMS: PricingMenuItem[] = [
-  { name: 'Explorer', priceUSD: '$0', priceGBP: '£0', description: 'Try the platform, 1 script' },
-  { name: 'Single', priceUSD: '$1 one-off', priceGBP: '£0.79 one-off', description: '1 report, 1 territory' },
-  { name: 'Professional', priceUSD: '$1/mo', priceGBP: '£0.79/mo', description: '1 script a month, up to 3 territories' },
-  { name: 'Producer', priceUSD: '$1/mo', priceGBP: '£0.79/mo', description: '3 scripts a month, up to 5 territories each' },
-  { name: 'Studio', priceUSD: '$1/mo', priceGBP: '£0.79/mo', description: '10 scripts a month, up to 7 territories each' },
+  {
+    name: 'Explorer',
+    priceUSD: 'Free',
+    priceGBP: 'Free',
+    description: 'Try the platform, 1 trial report',
+  },
+  {
+    name: 'Single',
+    priceUSD: `$${PLAN_PRICING.singleReport.monthlyUSD} one-off`,
+    priceGBP: `£${PLAN_PRICING.singleReport.monthlyGBP} one-off`,
+    description: '1 report, 1 territory',
+  },
+  {
+    name: 'Professional',
+    priceUSD: `$${PLAN_PRICING.professional.monthlyUSD}/mo`,
+    priceGBP: `£${PLAN_PRICING.professional.monthlyGBP}/mo`,
+    description: '1 script a month, up to 3 territories',
+  },
+  {
+    name: 'Producer',
+    priceUSD: `$${PLAN_PRICING.producer.monthlyUSD}/mo`,
+    priceGBP: `£${PLAN_PRICING.producer.monthlyGBP}/mo`,
+    description: '3 scripts a month, up to 5 territories each',
+  },
+  {
+    name: 'Studio',
+    priceUSD: `$${PLAN_PRICING.studio.monthlyUSD}/mo`,
+    priceGBP: `£${PLAN_PRICING.studio.monthlyGBP}/mo`,
+    description: '10 scripts a month, up to 7 territories each',
+  },
 ];
 
 // Client-facing surfaces say "Business Intelligence", never "B2B".

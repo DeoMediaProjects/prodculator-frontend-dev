@@ -320,9 +320,8 @@ export function Pricing() {
       monthlyGBP: 0,
       description: 'Try the platform',
       features: [
-        '1 script (lifetime trial)',
-        'Top 3 territory recommendations',
-        'Basic incentive summary',
+        '1 trial report',
+        '1 territory comparison',
         'Watermarked PDF download',
       ],
       cta: 'Continue for Free',
@@ -560,7 +559,11 @@ export function Pricing() {
                     {/* Price */}
                     <Box sx={{ mb: 1 }}>
                       <Typography variant="h3" component="span" sx={{ fontWeight: 700, color: t.gold }}>
-                        {plan.pricePrefix ?? ''}{symbol}{displayPrice(plan)}
+                        {/* "Free" reads better than "$0", and avoids implying a
+                            currency choice matters on a plan that has no price. */}
+                        {plan.action === 'free'
+                          ? 'Free'
+                          : <>{plan.pricePrefix ?? ''}{symbol}{displayPrice(plan)}</>}
                       </Typography>
                       {plan.action !== 'free' && (
                         <Typography variant="body1" component="span" sx={{ color: t.textSecondary }}>

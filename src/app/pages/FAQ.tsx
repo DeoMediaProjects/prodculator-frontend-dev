@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { PageHeader } from '@/app/components/common/PageHeader';
 import { SiteFooter } from '@/app/components/common/SiteFooter';
+import { PLAN_PRICING } from '@/services/stripe.service';
 
 
 interface FAQItem {
@@ -448,7 +449,7 @@ export default function FAQ() {
           answer: (
             <div>
               <p>
-                Professional is <strong>£0.79/month (£0.79/month billed annually)</strong> and gives you <strong>3 Scripteligence Reports per month</strong>.
+                Professional is <strong>£{PLAN_PRICING.professional.monthlyGBP}/month (£{PLAN_PRICING.professional.annualGBP}/month billed annually)</strong> and gives you <strong>1 Scripteligence Report per month</strong>.
               </p>
               <p>
                 Every report includes all 8 sections: full 15 territory analysis with four layer breakdowns, Investor Summary panel, budget scenarios and ROI analysis, detailed breakdowns for your top 3 territories, available funding sources (grants, soft money, co production treaties), strategic festival recommendations, and comparable productions.
@@ -464,7 +465,7 @@ export default function FAQ() {
           answer: (
             <div>
               <p>
-                Studio is <strong>£0.79/month</strong> and gives you <strong>10 Scripteligence Reports per month</strong>. It includes everything in Professional, plus:
+                Studio is <strong>£{PLAN_PRICING.studio.monthlyGBP}/month</strong> and gives you <strong>10 Scripteligence Reports per month</strong>. It includes everything in Professional, plus:
               </p>
               <ul>
                 <li><strong>White label PDF output</strong> Your logo on every PDF report. "Prepared by [Your Firm]" footer. Custom cover. Designed for production companies delivering reports to clients.</li>
