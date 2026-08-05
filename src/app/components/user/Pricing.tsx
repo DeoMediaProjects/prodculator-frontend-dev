@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -24,6 +24,7 @@ import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { PageHeader } from '@/app/components/common/PageHeader';
 import { SiteFooter } from '@/app/components/common/SiteFooter';
 import {
+  PLAN_PRICING,
   STRIPE_PRICES,
   createSubscriptionCheckout,
   createCreditCheckout,
@@ -32,6 +33,7 @@ import {
 import { cancelScheduledChange } from '@/services/subscription.service';
 import { useSnackbar } from 'notistack';
 import { ChangePlanModal } from './ChangePlanModal';
+import { AuthRequiredDialog } from '@/app/components/common/AuthRequiredDialog';
 
 type BillingCycle = 'monthly' | 'annual';
 type PlanType = 'free' | 'professional' | 'producer' | 'studio';
@@ -104,9 +106,57 @@ export function Pricing() {
     | { open: false }
   >({ open: false });
 
+  // Signed-out visitor who clicked a paid plan (see handlePlanClick).
+  const [authPrompt, setAuthPrompt] = useState<
+    { open: true; planName: string; planType: PlanType } | { open: false }
+  >({ open: false });
+
+  /** Send the visitor to auth, preserving the plan they chose so we can restore
+   *  the card selection when they land back on /pricing. Uses the same
+   *  `state.from` convention UserLogin/UserSignup already read. */
+  const goToAuth = (path: '/login' | '/signup') => {
+    if (!authPrompt.open) return;
+    const search = `?plan=${authPrompt.planType}&cycle=${billingCycle}&currency=${currency}`;
+    setAuthPrompt({ open: false });
+    navigate(path, { state: { from: { pathname: '/pricing', search } } });
+  };
+
+  // Coming back from login/signup: restore the cycle and currency the visitor
+  // had chosen so the card they clicked still shows the same price. Deliberately
+  // does NOT auto-start checkout — redirecting straight to a payment page on
+  // load would be a surprise; they click again, now signed in.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const cycle = searchParams.get('cycle');
+    const cur = searchParams.get('currency');
+    if (!cycle && !cur) return;
+    if (cycle === 'monthly' || cycle === 'annual') setBillingCycle(cycle);
+    if (cur === 'usd' || cur === 'gbp') setCurrency(cur);
+    // Clear the params so a refresh doesn't keep re-applying them.
+    const next = new URLSearchParams(searchParams);
+    ['plan', 'cycle', 'currency'].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   // Keep in sync if geo-detection resolves after first render
   const isGBP = currency === 'gbp';
   const symbol = isGBP ? '£' : '$';
+
+  /** Price line for the sign-up dialog, so the visitor sees the same figure
+   *  they clicked rather than being asked to sign up for an unnamed amount. */
+  const authPromptPriceLabel = (planType: PlanType): string | undefined => {
+    const p = PLAN_PRICING[planType as keyof typeof PLAN_PRICING];
+    if (!p) return undefined;
+    const annual = billingCycle === 'annual';
+    const perMonth = isGBP
+      ? (annual && 'annualGBP' in p ? p.annualGBP : p.monthlyGBP)
+      : (annual && 'annualUSD' in p ? p.annualUSD : p.monthlyUSD);
+    const total = annual && 'annualTotalGBP' in p
+      ? (isGBP ? p.annualTotalGBP : p.annualTotalUSD)
+      : null;
+    const base = `${symbol}${perMonth} / month`;
+    return total ? `${base} · billed ${symbol}${total.toLocaleString()} yearly` : base;
+  };
 
   const getPriceId = (planType: PlanType): string => {
     if (planType === 'professional') {
@@ -168,9 +218,12 @@ export function Pricing() {
       return;
     }
 
-    const userEmail = user?.email || prompt('Please enter your email address:');
-    if (!userEmail) {
-      enqueueSnackbar('Email is required to proceed with payment', { variant: 'error' });
+    // Signed-out visitors cannot check out: /subscription-checkout requires an
+    // authenticated user, so the old prompt() for an email always ended in a
+    // 401 "Not authenticated" — and the email was discarded regardless. Ask for
+    // an account instead, and bring them back here afterwards.
+    if (!user) {
+      setAuthPrompt({ open: true, planName, planType });
       return;
     }
 
@@ -179,7 +232,7 @@ export function Pricing() {
     try {
       const priceId = getPriceId(planType);
       const { url, error } = await createSubscriptionCheckout(
-        priceId, userEmail, user?.email || '', planType, currency, billingCycle
+        priceId, user.email, user.email, planType, currency, billingCycle
       );
 
       if (error) {
@@ -280,8 +333,8 @@ export function Pricing() {
     },
     {
       name: 'Single Report',
-      monthlyUSD: 1,
-      monthlyGBP: 0.79,
+      monthlyUSD: PLAN_PRICING.singleReport.monthlyUSD,
+      monthlyGBP: PLAN_PRICING.singleReport.monthlyGBP,
       pricePer: 'one-off',
       description: 'One full report, no subscription',
       features: [
@@ -298,10 +351,10 @@ export function Pricing() {
     },
     {
       name: 'Professional',
-      monthlyUSD: 1,
-      monthlyGBP: 0.79,
-      annualUSD: 1,
-      annualGBP: 0.79,
+      monthlyUSD: PLAN_PRICING.professional.monthlyUSD,
+      monthlyGBP: PLAN_PRICING.professional.monthlyGBP,
+      annualUSD: PLAN_PRICING.professional.annualUSD,
+      annualGBP: PLAN_PRICING.professional.annualGBP,
       description: 'Full production intelligence',
       features: [
         '1 script per month',
@@ -319,10 +372,10 @@ export function Pricing() {
     },
     {
       name: 'Producer',
-      monthlyUSD: 1,
-      monthlyGBP: 0.79,
-      annualUSD: 1,
-      annualGBP: 0.79,
+      monthlyUSD: PLAN_PRICING.producer.monthlyUSD,
+      monthlyGBP: PLAN_PRICING.producer.monthlyGBP,
+      annualUSD: PLAN_PRICING.producer.annualUSD,
+      annualGBP: PLAN_PRICING.producer.annualGBP,
       description: 'Scale your productions',
       badge: 'BEST VALUE',
       highlight: true,
@@ -340,10 +393,10 @@ export function Pricing() {
     },
     {
       name: 'Studio',
-      monthlyUSD: 1,
-      monthlyGBP: 0.79,
-      annualUSD: 1,
-      annualGBP: 0.79,
+      monthlyUSD: PLAN_PRICING.studio.monthlyUSD,
+      monthlyGBP: PLAN_PRICING.studio.monthlyGBP,
+      annualUSD: PLAN_PRICING.studio.annualUSD,
+      annualGBP: PLAN_PRICING.studio.annualGBP,
       description: 'Your brand. Your reports.',
       badge: 'FOR PRODUCTION COMPANIES',
       features: [
@@ -622,6 +675,15 @@ export function Pricing() {
           targetPlanLabel={modalState.targetPlanLabel}
         />
       )}
+
+      <AuthRequiredDialog
+        open={authPrompt.open}
+        onClose={() => setAuthPrompt({ open: false })}
+        onSignUp={() => goToAuth('/signup')}
+        onLogIn={() => goToAuth('/login')}
+        planLabel={authPrompt.open ? authPrompt.planName : undefined}
+        priceLabel={authPrompt.open ? authPromptPriceLabel(authPrompt.planType) : undefined}
+      />
     </Box>
   );
 }

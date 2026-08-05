@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  PLAN_PRICING,
   STRIPE_PRICES,
   createSubscriptionCheckout,
   formatPrice,
@@ -19,13 +20,13 @@ const mockPost = vi.mocked(apiClient.post);
 describe('STRIPE_PRICES', () => {
   // ── Professional ─────────────────────────────────────────────────────────
 
-  it('professional monthly USD has amount 100 (= $1.00)', () => {
-    expect(STRIPE_PRICES.professionalMonthlyUSD.amount).toBe(100);
+  it('professional monthly USD is $61.00', () => {
+    expect(STRIPE_PRICES.professionalMonthlyUSD.amount).toBe(6100);
     expect(STRIPE_PRICES.professionalMonthlyUSD.currency).toBe('usd');
   });
 
-  it('professional monthly GBP has amount 79 (= £0.79)', () => {
-    expect(STRIPE_PRICES.professionalMonthlyGBP.amount).toBe(79);
+  it('professional monthly GBP is £49.00', () => {
+    expect(STRIPE_PRICES.professionalMonthlyGBP.amount).toBe(4900);
     expect(STRIPE_PRICES.professionalMonthlyGBP.currency).toBe('gbp');
   });
 
@@ -35,20 +36,20 @@ describe('STRIPE_PRICES', () => {
     expect(STRIPE_PRICES.professionalAnnualGBP.reportLimit).toBe(1);
   });
 
-  it('professional annual GBP has amount 79 (= £0.79/month)', () => {
-    expect(STRIPE_PRICES.professionalAnnualGBP.amount).toBe(79);
+  it('professional annual GBP is £468.00 charged yearly', () => {
+    expect(STRIPE_PRICES.professionalAnnualGBP.amount).toBe(46800);
     expect(STRIPE_PRICES.professionalAnnualGBP.currency).toBe('gbp');
   });
 
   // ── Producer ──────────────────────────────────────────────────────────────
 
-  it('producer monthly USD has amount 100 (= $1.00)', () => {
-    expect(STRIPE_PRICES.producerMonthlyUSD.amount).toBe(100);
+  it('producer monthly USD is $149.00', () => {
+    expect(STRIPE_PRICES.producerMonthlyUSD.amount).toBe(14900);
     expect(STRIPE_PRICES.producerMonthlyUSD.currency).toBe('usd');
   });
 
-  it('producer monthly GBP has amount 79 (= £0.79)', () => {
-    expect(STRIPE_PRICES.producerMonthlyGBP.amount).toBe(79);
+  it('producer monthly GBP is £119.00', () => {
+    expect(STRIPE_PRICES.producerMonthlyGBP.amount).toBe(11900);
     expect(STRIPE_PRICES.producerMonthlyGBP.currency).toBe('gbp');
   });
 
@@ -58,15 +59,15 @@ describe('STRIPE_PRICES', () => {
     expect(STRIPE_PRICES.producerAnnualGBP.reportLimit).toBe(3);
   });
 
-  it('producer annual GBP has amount 79 (= £0.79/month)', () => {
-    expect(STRIPE_PRICES.producerAnnualGBP.amount).toBe(79);
+  it('producer annual GBP is £1,140.00 charged yearly', () => {
+    expect(STRIPE_PRICES.producerAnnualGBP.amount).toBe(114000);
     expect(STRIPE_PRICES.producerAnnualGBP.currency).toBe('gbp');
   });
 
   // ── Studio ───────────────────────────────────────────────────────────────
 
-  it('studio monthly USD has amount 100 (= $1.00)', () => {
-    expect(STRIPE_PRICES.studioMonthlyUSD.amount).toBe(100);
+  it('studio monthly USD is $299.00', () => {
+    expect(STRIPE_PRICES.studioMonthlyUSD.amount).toBe(29900);
   });
 
   it('studio plans have reportLimit of 10', () => {
@@ -75,8 +76,8 @@ describe('STRIPE_PRICES', () => {
     expect(STRIPE_PRICES.studioAnnualGBP.reportLimit).toBe(10);
   });
 
-  it('studio annual GBP has amount 79 (= £0.79/month)', () => {
-    expect(STRIPE_PRICES.studioAnnualGBP.amount).toBe(79);
+  it('studio annual GBP is £2,388.00 charged yearly', () => {
+    expect(STRIPE_PRICES.studioAnnualGBP.amount).toBe(238800);
     expect(STRIPE_PRICES.studioAnnualGBP.currency).toBe('gbp');
   });
 });
@@ -86,14 +87,22 @@ describe('createSubscriptionCheckout', () => {
     vi.clearAllMocks();
   });
 
-  it('sends price_id and plan_type in request body', async () => {
+  it('sends price_id, plan_type, currency and billing_cycle in request body', async () => {
     mockPost.mockResolvedValueOnce({ session_id: 'cs_test', url: 'https://checkout.stripe.com/test' });
 
     await createSubscriptionCheckout('price_pro_usd', 'user@test.com', 'user-1', 'professional');
 
+    // currency and billing_cycle travel with the request so the backend can
+    // resolve the price from its own config when the build-time price_id is
+    // empty. This assertion previously omitted them and had gone stale.
     expect(mockPost).toHaveBeenCalledWith(
       '/api/payments/subscription-checkout',
-      { price_id: 'price_pro_usd', plan_type: 'professional' },
+      {
+        price_id: 'price_pro_usd',
+        plan_type: 'professional',
+        currency: 'usd',
+        billing_cycle: 'monthly',
+      },
       { auth: true }
     );
   });
@@ -188,5 +197,57 @@ describe('detectUserCurrency', () => {
   it('returns usd by default', () => {
     expect(detectUserCurrency('US')).toBe('usd');
     expect(detectUserCurrency(undefined)).toBe('usd');
+  });
+});
+
+describe('PLAN_PRICING matches the published schedule', () => {
+  // Guards the defect this file previously encoded: every plan advertised
+  // $1.00/£0.79 while Stripe charged the real amount, so the pricing page and
+  // the invoice disagreed. These literals are the published schedule
+  // (compiled 29 Jul 2026) and were reconciled against live Stripe — if a
+  // number here changes, the Stripe price must change with it.
+  const SCHEDULE = {
+    singleReport: { monthlyUSD: 40, monthlyGBP: 35 },
+    professional: { monthlyUSD: 61, monthlyGBP: 49, annualTotalUSD: 588, annualTotalGBP: 468 },
+    producer: { monthlyUSD: 149, monthlyGBP: 119, annualTotalUSD: 1428, annualTotalGBP: 1140 },
+    studio: { monthlyUSD: 299, monthlyGBP: 239, annualTotalUSD: 2868, annualTotalGBP: 2388 },
+  } as const;
+
+  it('no plan is still priced at the $1 / £0.79 test amount', () => {
+    for (const [name, p] of Object.entries(PLAN_PRICING)) {
+      expect(p.monthlyUSD, `${name} USD`).toBeGreaterThan(1);
+      expect(p.monthlyGBP, `${name} GBP`).toBeGreaterThan(1);
+    }
+  });
+
+  it.each(Object.keys(SCHEDULE))('%s monthly prices match the schedule', (plan) => {
+    const key = plan as keyof typeof SCHEDULE;
+    expect(PLAN_PRICING[key].monthlyUSD).toBe(SCHEDULE[key].monthlyUSD);
+    expect(PLAN_PRICING[key].monthlyGBP).toBe(SCHEDULE[key].monthlyGBP);
+  });
+
+  it.each(['professional', 'producer', 'studio'] as const)(
+    '%s annual total equals 12x the advertised per-month rate',
+    (plan) => {
+      const p = PLAN_PRICING[plan];
+      // The per-month figure on the card must reconcile with the yearly charge,
+      // otherwise the card understates what leaves the customer's account.
+      expect(p.annualUSD * 12).toBe(p.annualTotalUSD);
+      expect(p.annualGBP * 12).toBe(p.annualTotalGBP);
+    },
+  );
+
+  it.each(['professional', 'producer', 'studio'] as const)(
+    '%s annual totals match the schedule',
+    (plan) => {
+      expect(PLAN_PRICING[plan].annualTotalUSD).toBe(SCHEDULE[plan].annualTotalUSD);
+      expect(PLAN_PRICING[plan].annualTotalGBP).toBe(SCHEDULE[plan].annualTotalGBP);
+    },
+  );
+
+  it('STRIPE_PRICES.amount mirrors PLAN_PRICING in minor units', () => {
+    expect(STRIPE_PRICES.professionalMonthlyGBP.amount).toBe(PLAN_PRICING.professional.monthlyGBP * 100);
+    expect(STRIPE_PRICES.studioAnnualUSD.amount).toBe(PLAN_PRICING.studio.annualTotalUSD * 100);
+    expect(STRIPE_PRICES.singleReportGBP.amount).toBe(PLAN_PRICING.singleReport.monthlyGBP * 100);
   });
 });

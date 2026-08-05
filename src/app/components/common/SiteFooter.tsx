@@ -31,6 +31,12 @@ const SOCIAL_LINKS = [
   { href: 'https://x.com/prodculator', icon: <Twitter sx={{ fontSize: 22 }} />, label: 'X' },
 ];
 
+/** Partner referral destination for the Grantify mark in the footer. The utm_*
+ * parameters are how Grantify attributes traffic to us, so they must travel
+ * with the link — don't strip them when editing. */
+const GRANTIFY_URL =
+  'https://www.grantify.io/uk-grant-funding-quiz?utm_source=referral&utm_medium=partner&utm_campaign=prodculator';
+
 /** Site-wide footer, theme-aware. Shared between the landing page and any
  * other top-level page that should end in the same brand/legal footer. */
 export function SiteFooter() {
@@ -67,11 +73,27 @@ export function SiteFooter() {
                 IN PARTNERSHIP WITH
               </Typography>
               <Box
-                component="img"
-                src={grantifyMark}
-                alt="Grantify"
-                sx={{ height: '22px', width: 'auto', display: 'block', alignSelf: 'flex-start', filter: mode === 'light' ? 'invert(1)' : 'none' }}
-              />
+                component="a"
+                href={GRANTIFY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Grantify — UK grant funding quiz (opens in a new tab)"
+                sx={{
+                  display: 'block',
+                  alignSelf: 'flex-start',
+                  lineHeight: 0,
+                  opacity: 0.9,
+                  transition: 'opacity 120ms ease',
+                  '&:hover': { opacity: 1 },
+                }}
+              >
+                <Box
+                  component="img"
+                  src={grantifyMark}
+                  alt="Grantify"
+                  sx={{ height: '22px', width: 'auto', display: 'block', filter: mode === 'light' ? 'invert(1)' : 'none' }}
+                />
+              </Box>
             </Box>
           </Box>
 
