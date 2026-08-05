@@ -7,20 +7,56 @@
 
 import { apiClient } from './api';
 
-// B2C pricing flattened to $1.00 USD / £0.79 GBP across every plan and cycle.
-// These amounts are display/reference only — the charged amount comes from the
-// Stripe price ID (VITE_STRIPE_PRICE_*). New $1 Stripe prices must back these IDs.
+/**
+ * Canonical B2C price schedule — the ONE place these numbers are written.
+ *
+ * Must stay equal to the amounts on the Stripe prices behind
+ * VITE_STRIPE_PRICE_* , because that is what the customer is actually charged.
+ * They previously disagreed: every plan displayed $1.00/£0.79 (a leftover from
+ * the test-billing period) while checkout used the real price IDs, so the
+ * pricing page advertised $1/mo and Stripe billed $61/mo.
+ *
+ * Major units (whole currency), matching how the pricing cards render.
+ * `annual*` is the PER-MONTH equivalent when billed annually; `annualTotal*` is
+ * the amount actually charged once a year, and must equal the Stripe price.
+ *
+ * Verified against live Stripe on 4 Aug 2026 — 14/14 prices matched.
+ */
+export const PLAN_PRICING = {
+  singleReport: { monthlyUSD: 40, monthlyGBP: 35 },
+  professional: {
+    monthlyUSD: 61, monthlyGBP: 49,
+    annualUSD: 49, annualGBP: 39,
+    annualTotalUSD: 588, annualTotalGBP: 468,
+  },
+  producer: {
+    monthlyUSD: 149, monthlyGBP: 119,
+    annualUSD: 119, annualGBP: 95,
+    annualTotalUSD: 1428, annualTotalGBP: 1140,
+  },
+  studio: {
+    monthlyUSD: 299, monthlyGBP: 239,
+    annualUSD: 239, annualGBP: 199,
+    annualTotalUSD: 2868, annualTotalGBP: 2388,
+  },
+} as const;
+
+/** Major units → minor units, for the reference `amount` fields below. */
+const minor = (major: number) => Math.round(major * 100);
+
+// `amount` mirrors PLAN_PRICING for reference/debugging only — the charged
+// amount always comes from the Stripe price ID, never from this file.
 export const STRIPE_PRICES = {
   // ── Pay-per-report (one-time) ──────────────────────────────────────────────
   singleReportUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE_USD || '',
-    amount: 100,
+    amount: minor(PLAN_PRICING.singleReport.monthlyUSD),
     currency: 'usd',
     name: 'Single Script Report (USD)',
   },
   singleReportGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_SINGLE_GBP || '',
-    amount: 79,
+    amount: minor(PLAN_PRICING.singleReport.monthlyGBP),
     currency: 'gbp',
     name: 'Single Script Report (GBP)',
   },
@@ -28,28 +64,28 @@ export const STRIPE_PRICES = {
   // ── Professional ───────────────────────────────────────────────────────────
   professionalMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_USD || '',
-    amount: 100,
+    amount: minor(PLAN_PRICING.professional.monthlyUSD),
     currency: 'usd',
     name: 'Professional Monthly (USD)',
     reportLimit: 1,
   },
   professionalMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_GBP || '',
-    amount: 79,
+    amount: minor(PLAN_PRICING.professional.monthlyGBP),
     currency: 'gbp',
     name: 'Professional Monthly (GBP)',
     reportLimit: 1,
   },
   professionalAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_USD || '',
-    amount: 100,
+    amount: minor(PLAN_PRICING.professional.annualTotalUSD),
     currency: 'usd',
     name: 'Professional Annual (USD)',
     reportLimit: 1,
   },
   professionalAnnualGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL_GBP || '',
-    amount: 79,
+    amount: minor(PLAN_PRICING.professional.annualTotalGBP),
     currency: 'gbp',
     name: 'Professional Annual (GBP)',
     reportLimit: 1,
@@ -58,28 +94,28 @@ export const STRIPE_PRICES = {
   // ── Producer ───────────────────────────────────────────────────────────────
   producerMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_USD || '',
-    amount: 100,
+    amount: minor(PLAN_PRICING.producer.monthlyUSD),
     currency: 'usd',
     name: 'Producer Monthly (USD)',
     reportLimit: 3,
   },
   producerMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_GBP || '',
-    amount: 79,
+    amount: minor(PLAN_PRICING.producer.monthlyGBP),
     currency: 'gbp',
     name: 'Producer Monthly (GBP)',
     reportLimit: 3,
   },
   producerAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_USD || '',
-    amount: 100,
+    amount: minor(PLAN_PRICING.producer.annualTotalUSD),
     currency: 'usd',
     name: 'Producer Annual (USD)',
     reportLimit: 3,
   },
   producerAnnualGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_PRODUCER_ANNUAL_GBP || '',
-    amount: 79,
+    amount: minor(PLAN_PRICING.producer.annualTotalGBP),
     currency: 'gbp',
     name: 'Producer Annual (GBP)',
     reportLimit: 3,
@@ -88,28 +124,28 @@ export const STRIPE_PRICES = {
   // ── Studio ─────────────────────────────────────────────────────────────────
   studioMonthlyUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_USD || '',
-    amount: 100,
+    amount: minor(PLAN_PRICING.studio.monthlyUSD),
     currency: 'usd',
     name: 'Studio Monthly (USD)',
     reportLimit: 10,
   },
   studioMonthlyGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_GBP || '',
-    amount: 79,
+    amount: minor(PLAN_PRICING.studio.monthlyGBP),
     currency: 'gbp',
     name: 'Studio Monthly (GBP)',
     reportLimit: 10,
   },
   studioAnnualUSD: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_USD || '',
-    amount: 100,
+    amount: minor(PLAN_PRICING.studio.annualTotalUSD),
     currency: 'usd',
     name: 'Studio Annual (USD)',
     reportLimit: 10,
   },
   studioAnnualGBP: {
     priceId: import.meta.env.VITE_STRIPE_PRICE_STUDIO_ANNUAL_GBP || '',
-    amount: 79,
+    amount: minor(PLAN_PRICING.studio.annualTotalGBP),
     currency: 'gbp',
     name: 'Studio Annual (GBP)',
     reportLimit: 10,
