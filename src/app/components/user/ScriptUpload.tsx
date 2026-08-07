@@ -1230,10 +1230,6 @@ export function ScriptUpload() {
                         <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                           Acceptable Use Policy
                         </Link>
-                        . This includes use of anonymised production metadata in aggregate market intelligence reports{' '}
-                        <Link href="/terms#section-6-3" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37', fontSize: '0.7rem' }}>
-                          (see §6.3)
-                        </Link>
                         .
                       </Typography>
                     }
@@ -1253,10 +1249,10 @@ export function ScriptUpload() {
                     label={
                       <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
                         {/* PLACEHOLDER consent copy — replace with solicitor wording when supplied. */}
-                        Optional: I consent to Prodculator including this production's anonymised,
+                        Optional: I consent to Prodculator including this production's pseudonymised,
                         aggregated details (never the script itself) in Business Intelligence market
-                        reports. You can withdraw consent by re-running the report with this box
-                        unticked.
+                        reports. Declining does not affect your report. You can withdraw consent by
+                        re-running the report with this box unticked.
                       </Typography>
                     }
                   />
@@ -1321,10 +1317,6 @@ export function ScriptUpload() {
                 <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                   Acceptable Use Policy
                 </Link>
-                . This includes use of anonymised production metadata in aggregate market intelligence reports{' '}
-                <Link href="/terms#section-6-3" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37', fontSize: '0.7rem' }}>
-                  (see §6.3)
-                </Link>
                 .
               </Typography>
             }
@@ -1335,9 +1327,9 @@ export function ScriptUpload() {
             label={
               <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
                 {/* PLACEHOLDER consent copy — replace with solicitor wording when supplied. */}
-                Optional: I consent to Prodculator including this production's anonymised,
+                Optional: I consent to Prodculator including this production's pseudonymised,
                 aggregated details (never the script itself) in Business Intelligence market
-                reports.
+                reports. Declining does not affect your report.
               </Typography>
             }
           />

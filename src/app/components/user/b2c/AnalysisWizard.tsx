@@ -712,7 +712,7 @@ export function AnalysisWizard() {
             <FormControlLabel
               sx={{ alignItems: 'flex-start', m: 0 }}
               control={<Checkbox checked={biConsent} onChange={(e) => setBiConsent(e.target.checked)} sx={{ ...cbSx, pt: 0 }} />}
-              label={<Typography sx={{ color: t.textSecondary, fontSize: 13 }}>Optionally contribute anonymised metadata to improve Business Intelligence benchmarks. <Box component="span" sx={{ color: t.textFaint }}>(Optional — never affects your report.)</Box></Typography>}
+              label={<Typography sx={{ color: t.textSecondary, fontSize: 13 }}>Optionally contribute pseudonymised production metadata to Business Intelligence benchmarks. <Box component="span" sx={{ color: t.textFaint }}>(Optional — never affects your report.)</Box></Typography>}
             />
           </Box>
           <Box sx={{ ...card, p: 3 }}>

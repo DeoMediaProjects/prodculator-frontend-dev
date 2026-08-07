@@ -122,7 +122,7 @@ export function AdminOverview() {
         },
         {
           label: 'Open data tasks',
-          value: tasksLoading ? ', ' : String(tasks.length),
+          value: tasksLoading ? '...' : String(tasks.length),
           sub: tasks.length === 0 ? 'Every dataset is current' : 'Datasets past their review window',
           to: '/admin/incentives',
         },
