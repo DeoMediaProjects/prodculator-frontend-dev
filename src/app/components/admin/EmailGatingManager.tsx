@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Snackbar } from '@mui/material';
-import { RefreshOutlined } from '@mui/icons-material';
+import {
+  Alert, Box, Button, CircularProgress, IconButton, Snackbar, Tooltip, Typography,
+} from '@mui/material';
+import {
+  BlockOutlined, LockOpenOutlined, MarkEmailReadOutlined, RefreshOutlined,
+} from '@mui/icons-material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
 import type { EmailGatingRecord } from '@/services/admin.types';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
 import { AdminAccessDenied } from './AdminAccessDenied';
-import { AdminPanel } from './AdminPanel';
-import { AdminTable, type AdminColumn } from './AdminTable';
 
-// The endpoint caps at 500. Pulled in one page so Tabulator owns sorting and
-// filtering over the whole set: server-side paging plus client-side filtering
-// would filter only the page you happen to be on, which reads as data loss.
+// The endpoint caps at 500. Fetched in one page so sorting and filtering apply
+// to the whole set: paging server-side while filtering client-side would filter
+// only the page you happen to be on, which reads as data loss.
 const FETCH_LIMIT = 500;
 
 function formatDateTime(value: string | null | undefined): string {
@@ -18,7 +22,7 @@ function formatDateTime(value: string | null | undefined): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return String(value);
   return d.toLocaleString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit',
   });
 }
 
@@ -37,6 +41,8 @@ export function EmailGatingManager() {
 }
 
 function EmailGatingManagerContent() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [records, setRecords] = useState<EmailGatingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -81,78 +87,106 @@ function EmailGatingManagerContent() {
     }
   }, []);
 
-  const columns = useMemo<AdminColumn[]>(() => [
-    { title: 'Email address', field: 'email', minWidth: 240, headerFilterPlaceholder: 'Filter email' },
+  const blockedCount = records.filter((r) => r.blocked).length;
+
+  const columns = useMemo<Column<EmailGatingRecord>[]>(() => [
     {
-      title: 'First used',
-      field: 'date',
-      width: 190,
-      sorter: 'datetime',
-      headerFilter: 'input',
-      formatter: (cell) => formatDateTime(cell.getValue()),
+      key: 'email',
+      header: 'EMAIL ADDRESS',
+      width: '2.2fr',
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {r.email}
+        </Typography>
+      ),
     },
     {
-      title: 'Report generated',
-      field: 'report_generated',
-      width: 150,
-      hozAlign: 'center',
-      // A select filter rather than a text box: the value is boolean, so typing
-      // into it could only ever be a guess at how it is spelled.
-      headerFilter: 'list',
-      headerFilterParams: { values: { '': 'All', true: 'Yes', false: 'No' } },
-      formatter: (cell) => (cell.getValue() ? 'Yes' : 'No'),
+      key: 'date',
+      header: 'FIRST USED',
+      width: '1.4fr',
+      sortValue: (r) => new Date(r.date).getTime() || 0,
+      render: (r) => <Box sx={{ color: t.textSecondary }}>{formatDateTime(r.date)}</Box>,
     },
     {
-      title: 'Status',
-      field: 'blocked',
-      width: 130,
-      hozAlign: 'center',
-      headerFilter: 'list',
-      headerFilterParams: { values: { '': 'All', true: 'Blocked', false: 'Active' } },
-      formatter: (cell) => (cell.getValue() ? 'Blocked' : 'Active'),
+      key: 'report_generated',
+      header: 'REPORT',
+      width: '0.8fr',
+      sortValue: (r) => (r.report_generated ? 'Yes' : 'No'),
+      render: (r) => (
+        <Box sx={{ color: r.report_generated ? t.textPrimary : t.textFaint }}>
+          {r.report_generated ? 'Generated' : 'Not yet'}
+        </Box>
+      ),
     },
     {
-      title: '',
-      field: 'id',
-      width: 118,
-      hozAlign: 'right',
-      headerSort: false,
-      headerFilter: undefined,
-      formatter: (cell) => {
-        const row = cell.getRow().getData() as EmailGatingRecord;
-        if (busyId === row.id) return 'Saving...';
-        return row.blocked ? 'Unblock' : 'Block';
-      },
-      cellClick: (_e, cell) => {
-        const row = cell.getRow().getData() as EmailGatingRecord;
-        if (busyId !== row.id) void toggleBlock(row);
-      },
+      key: 'blocked',
+      header: 'STATUS',
+      width: '0.9fr',
+      sortValue: (r) => (r.blocked ? 'Blocked' : 'Active'),
+      render: (r) => (
+        // A dot plus a word, matching how the B2C tables show report status.
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: r.blocked ? t.error : t.success, flexShrink: 0 }} />
+          <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: r.blocked ? t.error : t.success }}>
+            {r.blocked ? 'Blocked' : 'Active'}
+          </Typography>
+        </Box>
+      ),
     },
-  ], [busyId, toggleBlock]);
+  ], [t]);
 
   return (
     <Box>
       {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
 
-      <AdminPanel
-        title="Free report usage"
-        description="One record per email address that has claimed a free report. Blocking an address refuses further free reports from it."
-      >
-        <AdminTable<EmailGatingRecord & Record<string, unknown>>
-          rows={records as (EmailGatingRecord & Record<string, unknown>)[]}
-          columns={columns}
-          loading={loading}
-          visibleRows={14}
-          searchPlaceholder="Search by email address..."
-          emptyTitle="No free reports have been claimed yet"
-          emptyBody="Each address that generates a free report appears here, so repeat use from one address is visible before it becomes a pattern."
-          actions={
-            <Button size="small" startIcon={<RefreshOutlined />} onClick={() => void load()}>
-              Refresh
-            </Button>
+      <Typography sx={{ color: t.textSecondary, fontSize: 13.5, mb: 2, maxWidth: '78ch' }}>
+        One record per email address that has claimed a free report. Blocking an address refuses further free
+        reports from it; it does not affect a paid account using the same address.
+      </Typography>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress sx={{ color: t.gold }} />
+        </Box>
+      ) : (
+        <DataTable<EmailGatingRecord>
+          title="Free report usage"
+          headerAction={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {blockedCount > 0 && (
+                <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>
+                  {blockedCount} blocked
+                </Typography>
+              )}
+              <Button size="small" startIcon={<RefreshOutlined />} onClick={() => void load()}>
+                Refresh
+              </Button>
+            </Box>
           }
+          columns={columns}
+          rows={records}
+          getRowId={(r) => r.id}
+          pageSize={12}
+          itemNoun="address"
+          minWidth={760}
+          emptyIcon={<MarkEmailReadOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+          emptyMessage="No free reports have been claimed yet. Each address that generates one appears here, so repeat use is visible before it becomes a pattern."
+          rowActions={(r) => (
+            <Tooltip title={r.blocked ? 'Allow free reports again' : 'Block further free reports'}>
+              <IconButton
+                size="small"
+                disabled={busyId === r.id}
+                onClick={() => void toggleBlock(r)}
+                sx={{ color: r.blocked ? t.success : t.textSecondary, '&:hover': { color: r.blocked ? t.success : t.error } }}
+              >
+                {busyId === r.id
+                  ? <CircularProgress size={17} sx={{ color: t.gold }} />
+                  : r.blocked ? <LockOpenOutlined sx={{ fontSize: 19 }} /> : <BlockOutlined sx={{ fontSize: 19 }} />}
+              </IconButton>
+            </Tooltip>
+          )}
         />
-      </AdminPanel>
+      )}
 
       <Snackbar
         open={!!successMessage}

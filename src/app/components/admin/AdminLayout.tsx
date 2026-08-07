@@ -12,7 +12,6 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { usePrefersReducedMotion } from '@/app/components/user/b2c/tourStyles';
-import { AdminThemeProvider } from './AdminThemeProvider';
 import {
   ADMIN_NAV_ITEMS, ADMIN_SIDEBAR_COLLAPSED_W, ADMIN_SIDEBAR_W,
   AdminSidebar, useAdminSidebarCollapsed,
@@ -78,8 +77,7 @@ export function AdminLayout() {
   const meta = pageMeta(location.pathname);
 
   return (
-    <AdminThemeProvider>
-    <Box className="admin-shell" sx={{ display: 'flex', minHeight: '100vh', bgcolor: t.pageBg }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: t.pageBg }}>
       {isDesktop ? (
         <Box
           sx={{
@@ -203,6 +201,5 @@ export function AdminLayout() {
         </Alert>
       </Snackbar>
     </Box>
-    </AdminThemeProvider>
   );
 }

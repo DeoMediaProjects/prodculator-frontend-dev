@@ -9,7 +9,6 @@ import {
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { AdminThemeProvider } from './AdminThemeProvider';
 
 export function AdminLogin() {
   const navigate = useNavigate();
@@ -52,7 +51,6 @@ export function AdminLogin() {
   };
 
   return (
-    <AdminThemeProvider>
     <AuthLayout>
       <Paper
         elevation={0}
@@ -145,6 +143,5 @@ export function AdminLogin() {
         </Typography>
       </Paper>
     </AuthLayout>
-    </AdminThemeProvider>
   );
 }
