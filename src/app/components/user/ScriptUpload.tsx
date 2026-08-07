@@ -1205,6 +1205,28 @@ export function ScriptUpload() {
                     You've used your report limit. Upgrade to generate more.
                   </Alert>
                 )}
+                {/* Transparency notice, not a consent mechanism: no checkbox,
+                    and placed above the consent block so core AI processing is
+                    never confused with the optional Production Intelligence tick
+                    box below. The no-training sentence is omitted deliberately,
+                    see the TODO in TermsOfService.tsx section 8.2. */}
+                <Alert
+                  severity="info"
+                  icon={false}
+                  sx={{ mb: 2, bgcolor: 'action.hover', border: 1, borderColor: 'divider' }}
+                >
+                  <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6, display: 'block' }}>
+                    <strong style={{ color: '#D4AF37' }}>Your script is processed only to provide your report.</strong>{' '}
+                    To analyse it we transmit it over an encrypted connection to our AI service providers (Anthropic,
+                    with OpenAI as failover), which process it solely to generate that report. We do not store the
+                    uploaded file itself, and we do not sell your script or disclose it to anyone for their own
+                    purposes. See our{' '}
+                    <Link href="/privacy" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                      Privacy Policy
+                    </Link>
+                    .
+                  </Typography>
+                </Alert>
                 {isAuthenticated && (
                   <FormControlLabel
                     sx={{ mb: 2, alignItems: 'flex-start' }}

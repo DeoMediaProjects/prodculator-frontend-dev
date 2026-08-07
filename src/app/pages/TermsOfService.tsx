@@ -87,7 +87,7 @@ export function TermsOfService() {
             <li><strong>Production API Access:</strong> RESTful API for real time production location data and incentive tracking</li>
             <li><strong>Market Demand Forecasting:</strong> Production pipeline forecasts for equipment rental and service providers</li>
             <li><strong>Custom Report Builder:</strong> White label report generation with custom branding</li>
-            <li><strong>Aggregate Data Licensing:</strong> Anonymized production trend data for commercial use</li>
+            <li><strong>Aggregate Data Licensing:</strong> Aggregated production trend data for commercial use, derived only from productions whose owners have consented under section 6.3 and subject to the privacy floors described there</li>
           </ul>
           <Typography>
             <strong>5.3 Service Level Agreements (SLAs):</strong> Enterprise clients receive guaranteed uptime SLAs (typically 99.5% or higher) and priority support as outlined in their individual contracts.
@@ -110,10 +110,16 @@ export function TermsOfService() {
             <strong>6.1 Platform Ownership:</strong> The Platform, including all software, algorithms, designs, trademarks, and content (excluding user uploaded scripts), is the exclusive property of Prodculator and protected by copyright, trademark, and intellectual property laws.
           </Typography>
           <Typography>
-            <strong>6.2 User Scripts:</strong> You retain all rights to scripts you upload. By uploading, you grant us a limited, non exclusive license to process your script solely for the purpose of generating intelligence reports.
+            <strong>6.2 User Scripts:</strong> You retain all rights to scripts you upload. By uploading, you grant us a limited, non exclusive license to receive your script, analyse it, transmit it to the service providers described in section 8.2 where necessary to perform that analysis, and generate the intelligence report you requested. That license extends no further: it does not permit us to use your script for any other purpose, and it is not a license for the Production Intelligence processing in section 6.3, which requires your separate consent.
           </Typography>
           <Typography id="section-6-3" sx={{ scrollMarginTop: '96px' }}>
-            <strong>6.3 Anonymized Metadata for Production Intelligence:</strong> When you upload a script, we automatically extract anonymized metadata (crew size estimates, equipment requirements, cast scale indicators, production complexity) to power our Production Intelligence Dashboard. This data is aggregated with data from other users to show industry trends (e.g., "Average crew size for action productions: 85 people"). Your script's specific content, title, character names, dialogue, and plot are NEVER used or shared. Only non identifiable production logistics metadata is extracted. This aggregated data may be shared with enterprise clients (film commissions, studios, equipment rental companies) as part of market intelligence reports.
+            <strong>6.3 Pseudonymised Metadata for Production Intelligence (opt in only):</strong> This is an optional, secondary use of your data and it does not happen unless you consent to it. Consent is requested by a separate tick box at the point of upload, is off by default, and is distinct from your acceptance of these Terms. Where you have consented, we extract pseudonymised metadata (crew size estimates, equipment requirements, cast scale indicators, production complexity, budget band, format, genre, and territories under consideration) to power our Production Intelligence Dashboard. That data is aggregated with data from other productions to show industry trends (e.g., "Average crew size for action productions: 85 people"), and the aggregate may be shared with enterprise clients such as film commissions, studios, and equipment rental companies. Your script's specific content, title, character names, dialogue, and plot are never used or shared for this purpose.
+          </Typography>
+          <Typography>
+            We describe this metadata as pseudonymised rather than anonymised because it is stored against an internal reference for your script. That reference is what allows us to update or delete the record, but it also means we could link the record back to you, so we do not claim it is fully anonymous. Privacy floors are applied before any figure reaches an enterprise client, so small groups are suppressed rather than displayed.
+          </Typography>
+          <Typography>
+            Declining has no effect on your access to the Platform, on the script analysis and report generation service, on the contents of your report, or on your plan. If you withdraw consent, the metadata previously extracted from that script is deleted from the aggregation pool. See section 4.6 of our Privacy Policy for the corresponding description.
           </Typography>
           <Typography>
             <strong>6.4 Generated Reports:</strong> Intelligence reports generated by the Platform are licensed to you for internal use only. You may share reports with collaborators, investors, and production teams but may not resell, redistribute, or publish reports commercially without written permission.
@@ -141,10 +147,37 @@ export function TermsOfService() {
             Your use of the Platform is also governed by our <Link href="/privacy" sx={{ color: t.gold }}>Privacy Policy</Link>. We are committed to GDPR compliance and do not collect or store PII beyond what is necessary for account management and billing.
           </Typography>
           <Typography>
-            <strong>8.1 Script Confidentiality:</strong> We treat all uploaded scripts as confidential. Scripts are processed securely and are not shared with third parties.
+            <strong>8.1 Script Confidentiality:</strong> We treat all uploaded scripts as confidential. Generating your report requires script content to be transmitted over an encrypted connection to the artificial intelligence service providers identified in section 8.2, which process it solely to perform the analysis you requested. Apart from that processing, we do not sell your scripts, disclose them to third parties for those parties' own independent purposes, use them for advertising, or use them to train our own models. We do not write the uploaded file itself to persistent storage; script text is extracted in memory for analysis.
+          </Typography>
+
+          {/*
+            TODO (legal, retain until confirmed): section 8.2 is deliberately
+            limited to what is verifiable from this repository. The following are
+            NOT established anywhere in the repo or in any agreement available
+            here, and must be confirmed against the signed provider terms and the
+            live account settings before being asserted in user-facing text:
+              - whether Anthropic or OpenAI retain submitted prompts, and for how long;
+              - whether either provider's terms exclude API inputs from training
+                of their general-purpose models;
+              - whether either account has opted into any model-improvement or
+                data-sharing programme in the provider console;
+              - DPA status, subprocessor status, and any express confidentiality
+                undertaking for each provider;
+              - whether zero data retention is enabled on either account.
+            What IS verified in code, and is all that 8.2 claims: the API clients
+            are constructed with an API key and timeout only, and the application
+            sends no feedback, evaluation, fine-tuning or model-improvement
+            payload to either provider. Do not upgrade this wording from the
+            providers' public marketing pages.
+          */}
+          <Typography>
+            <strong>8.2 Artificial Intelligence Processing:</strong> The Platform's analysis is performed with the assistance of third party artificial intelligence providers, and a report cannot be generated without sending your script to one of them. <strong>Anthropic</strong> is currently our primary provider. <strong>OpenAI</strong> is configured as an automatic failover, and will receive the same script content if the request to Anthropic fails, so that your report can still be produced. Script content may therefore be transmitted to either provider, in each case solely as necessary to deliver the analysis you requested. We do not submit your script to either provider for feedback, evaluation, fine tuning, or model improvement.
           </Typography>
           <Typography>
-            <strong>8.2 Enterprise Data Security:</strong> Enterprise clients with API access receive encrypted connections (HTTPS/TLS) and may request data processing agreements (DPAs) upon request.
+            We make no representation in these Terms about either provider's own data retention periods, their use of submitted data for training their general purpose models, or the specific contractual protections we hold with them. If you require documented assurances on those points before uploading material, contact us and we will confirm the current position in writing.
+          </Typography>
+          <Typography>
+            <strong>8.3 Enterprise Data Security:</strong> Enterprise clients with API access receive encrypted connections (HTTPS/TLS) and may request data processing agreements (DPAs) upon request.
           </Typography>
 
           <Typography variant="h4">9. Disclaimers & Limitation of Liability</Typography>
@@ -161,7 +194,7 @@ export function TermsOfService() {
             <strong>9.4 Maximum Liability:</strong> Our total liability to you for any claims arising from use of the Platform shall not exceed the amount you paid us in the 12 months preceding the claim (or $100, whichever is greater).
           </Typography>
           <Typography>
-            <strong>9.5 Third Party Data Errors:</strong> We rely on third party APIs and government databases. We are not liable for errors, omissions, or changes in third party data sources.
+            <strong>9.5 Third Party Data Errors:</strong> We rely on third party APIs and government databases for the reference data behind our analysis (incentive rates, festival calendars, grant programmes, exchange rates). We are not liable for errors, omissions, or changes in those third party data sources. This clause concerns the accuracy of reference data only; the separate matter of which providers receive your script content is disclosed in section 8.2.
           </Typography>
 
           <Typography variant="h4">10. South Africa Payment Issues Warning</Typography>
@@ -180,7 +213,7 @@ export function TermsOfService() {
             <strong>11.2 By Us:</strong> We reserve the right to suspend or terminate accounts that violate these Terms, engage in prohibited uses, or pose security risks.
           </Typography>
           <Typography>
-            <strong>11.3 Effect of Termination:</strong> Upon termination, you lose access to the Platform and all associated data. We may delete your account data after 30 days.
+            <strong>11.3 Effect of Termination:</strong> Upon termination, you lose access to the Platform and all associated data. We may delete your account data after 30 days. Deletion after that period is discretionary rather than automatic, so if you require your data to be erased you should make an erasure request using the contact route in our Privacy Policy, and we will action it.
           </Typography>
 
           <Typography variant="h4">12. Modifications to Terms</Typography>

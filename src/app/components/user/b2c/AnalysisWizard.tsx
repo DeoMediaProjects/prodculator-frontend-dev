@@ -702,6 +702,25 @@ export function AnalysisWizard() {
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Transparency notice, not a consent mechanism: deliberately has no
+              checkbox, and sits above the consent block so the core AI
+              processing is not confused with the optional Production
+              Intelligence tick box below it. The no-training sentence is
+              omitted on purpose, see the TODO in TermsOfService.tsx section 8.2:
+              neither provider's training terms are verified anywhere in this
+              repository, so asserting it here would be a claim we cannot stand
+              behind. Add it only once those terms are confirmed. */}
+          <Box sx={{ ...card, p: 3, borderColor: t.gold }}>
+            {sectionLabel('How your script is handled')}
+            <Typography sx={{ color: t.textSecondary, fontSize: 13, lineHeight: 1.75 }}>
+              Your script is processed only to produce your report. To analyse it we transmit it over an encrypted
+              connection to our AI service providers (Anthropic, with OpenAI as failover), which process it solely to
+              generate that report. We do not store the uploaded file itself, and we do not sell your script or
+              disclose it to anyone for their own purposes. Full detail is in our{' '}
+              <Link href="/privacy" target="_blank" sx={{ color: t.gold }}>Privacy Policy</Link>.
+            </Typography>
+          </Box>
+
           <Box sx={{ ...card, p: 3 }}>
             {sectionLabel('Confirm & consent')}
             <FormControlLabel
