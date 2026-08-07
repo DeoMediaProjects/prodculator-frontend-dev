@@ -3,13 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   Alert, Box, Chip, Skeleton, Typography,
 } from '@mui/material';
-import {
-  CheckCircleOutlined, ErrorOutlineOutlined, SettingsEthernetOutlined,
-  WarningAmberOutlined,
-} from '@mui/icons-material';
+import { CheckCircleOutlined } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { adminApi } from '@/services/admin.api';
-import type { AdminMetrics, ActivityItem, ServiceStatusItem, TaskItem } from '@/services/admin.types';
+import type { AdminMetrics, ActivityItem, AuditLogEntry, TaskItem } from '@/services/admin.types';
 
 // Recent activity shows five rows and scrolls for the rest. Derived from a row
 // height constant so the container stays exactly five rows if padding changes,
@@ -29,6 +26,14 @@ function formatTimestamp(iso: string | null | undefined): string {
   });
 }
 
+/** `update.incentive` becomes `Update incentive`. Same rule as the audit reader. */
+function humaniseAction(action: string): string {
+  const [verb, ...rest] = action.split('.');
+  const resource = rest.join('.').replace(/_/g, ' ');
+  const readable = verb.replace(/[-_]/g, ' ');
+  return `${readable.charAt(0).toUpperCase()}${readable.slice(1)}${resource ? ` ${resource}` : ''}`;
+}
+
 export function AdminOverview() {
   const navigate = useNavigate();
   const { mode } = useThemeMode();
@@ -41,8 +46,11 @@ export function AdminOverview() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
-  const [systemStatus, setSystemStatus] = useState<ServiceStatusItem[]>([]);
-  const [statusLoading, setStatusLoading] = useState(true);
+  const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(true);
+  // Reading the trail needs canManageAdmins, so a narrower role gets an
+  // explanation rather than an empty panel that looks like a bug.
+  const [auditDenied, setAuditDenied] = useState(false);
 
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
@@ -57,7 +65,7 @@ export function AdminOverview() {
       const [metricsResult, activityResult, statusResult, tasksResult] = await Promise.all([
         adminApi.getMetrics(),
         adminApi.getActivity(ACTIVITY_FETCH_LIMIT),
-        adminApi.getSystemStatus(),
+        adminApi.getAuditLogs({ limit: ACTIVITY_ROWS_VISIBLE }),
         adminApi.getTasks(),
       ]);
 
@@ -68,8 +76,9 @@ export function AdminOverview() {
       setActivity(activityResult.data?.items ?? []);
       setActivityLoading(false);
 
-      setSystemStatus(statusResult.data?.services ?? []);
-      setStatusLoading(false);
+      if (statusResult.error) setAuditDenied(true);
+      else setAuditEntries(statusResult.data?.items ?? []);
+      setAuditLoading(false);
 
       setTasks(tasksResult.data?.items ?? []);
       setTasksLoading(false);
@@ -81,25 +90,6 @@ export function AdminOverview() {
   const sectionLabel = {
     fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
     color: t.textSecondary, textTransform: 'uppercase' as const,
-  };
-
-  /** Status vocabulary. `configured` is deliberately neutral rather than green:
-   *  it reports that credentials exist, not that anything was reached. */
-  const statusStyle = (status: ServiceStatusItem['status']) => {
-    switch (status) {
-      case 'operational':
-        return { icon: <CheckCircleOutlined sx={{ fontSize: 15 }} />, color: t.success, label: 'operational' };
-      case 'degraded':
-        return { icon: <WarningAmberOutlined sx={{ fontSize: 15 }} />, color: t.warning, label: 'degraded' };
-      case 'down':
-        return { icon: <ErrorOutlineOutlined sx={{ fontSize: 15 }} />, color: t.error, label: 'down' };
-      case 'configured':
-        return { icon: <SettingsEthernetOutlined sx={{ fontSize: 15 }} />, color: t.textSecondary, label: 'configured' };
-      case 'not_configured':
-        return { icon: <WarningAmberOutlined sx={{ fontSize: 15 }} />, color: t.warning, label: 'not configured' };
-      default:
-        return { icon: <SettingsEthernetOutlined sx={{ fontSize: 15 }} />, color: t.textFaint, label: status };
-    }
   };
 
   const taskAccent = (priority: TaskItem['priority']) =>
@@ -260,71 +250,78 @@ export function AdminOverview() {
           )}
         </Box>
 
-        {/* System status */}
+        {/* Recent admin changes */}
         <Box sx={{ ...panel, p: 2.75 }}>
-          <Typography sx={{ fontWeight: 800, fontSize: 17, color: t.textPrimary }}>System status</Typography>
-          <Typography sx={{ color: t.textSecondary, fontSize: 12.5, mt: 0.5, mb: 2, lineHeight: 1.6 }}>
-            Checked when this page loaded. Rows marked &ldquo;config only&rdquo; report whether credentials are
-            set; they are not a health check.
+          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
+            <Typography sx={{ fontWeight: 800, fontSize: 17, color: t.textPrimary }}>Recent admin changes</Typography>
+            <Typography
+              onClick={() => navigate('/admin/audit-trail')}
+              sx={{ fontSize: 12.5, color: t.gold, cursor: 'pointer', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
+            >
+              Full trail
+            </Typography>
+          </Box>
+          <Typography sx={{ color: t.textSecondary, fontSize: 12.5, mb: 2, lineHeight: 1.6 }}>
+            What staff changed, and whether it took effect. A failed or denied attempt is recorded too.
           </Typography>
 
-          {statusLoading ? (
+          {auditLoading ? (
             <Box>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Box key={i} sx={{ py: 1.25 }}>
-                  <Skeleton variant="text" width="55%" height={18} />
-                  <Skeleton variant="text" width="72%" height={14} />
+              {Array.from({ length: ACTIVITY_ROWS_VISIBLE }).map((_, i) => (
+                <Box key={i} sx={{ py: 1.25, borderBottom: i < ACTIVITY_ROWS_VISIBLE - 1 ? `1px solid ${t.borderSoft}` : 'none' }}>
+                  <Skeleton variant="text" width="58%" height={18} />
+                  <Skeleton variant="text" width="34%" height={14} />
                 </Box>
               ))}
             </Box>
-          ) : systemStatus.length === 0 ? (
-            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
-              Status could not be read. The console itself is reachable, so this is likely a permissions problem.
-            </Typography>
+          ) : auditDenied ? (
+            <Box sx={{ py: 4, textAlign: 'center' }}>
+              <Typography sx={{ color: t.textPrimary, fontWeight: 600, fontSize: 14, mb: 0.5 }}>
+                Not visible to your role
+              </Typography>
+              <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+                The audit trail records before and after state for users and subscriptions, so reading it needs the
+                admin-management permission.
+              </Typography>
+            </Box>
+          ) : auditEntries.length === 0 ? (
+            <Box sx={{ py: 4, textAlign: 'center' }}>
+              <Typography sx={{ color: t.textPrimary, fontWeight: 600, fontSize: 14, mb: 0.5 }}>
+                No changes recorded yet
+              </Typography>
+              <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+                Every edit an admin makes is recorded here with the state either side of it.
+              </Typography>
+            </Box>
           ) : (
-            systemStatus.map((service, index) => {
-              const s = statusStyle(service.status);
-              const configOnly = service.check === 'configuration';
-              return (
-                <Box
-                  key={service.name}
-                  sx={{
-                    py: 1.25,
-                    borderBottom: index < systemStatus.length - 1 ? `1px solid ${t.borderSoft}` : 'none',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, color: s.color }}>
-                      {s.icon}
-                      <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'inherit' }}>
-                        {s.label}
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ color: t.textPrimary, fontSize: 14, fontWeight: 600 }}>
-                      {service.name}
-                    </Typography>
-                    {configOnly && (
-                      <Chip
-                        label="config only"
-                        size="small"
-                        variant="outlined"
-                        sx={{ height: 19, fontSize: '0.66rem', color: t.textFaint, borderColor: t.border }}
-                      />
-                    )}
-                  </Box>
-                  {(service.detail || (!configOnly && service.last_checked)) && (
-                    <Typography sx={{ color: t.textSecondary, fontSize: 12, mt: 0.35, lineHeight: 1.5 }}>
-                      {service.detail}
-                      {/* Only when a probe actually ran. A config row has no
-                          check time, so claiming one would be invented. */}
-                      {!configOnly && service.last_checked
-                        ? `${service.detail ? ' · ' : ''}checked ${formatTimestamp(service.last_checked)}`
-                        : ''}
-                    </Typography>
+            auditEntries.map((entry, index) => (
+              <Box
+                key={entry.id}
+                sx={{
+                  minHeight: ACTIVITY_ROW_HEIGHT,
+                  display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                  py: 1.25,
+                  borderBottom: index < auditEntries.length - 1 ? `1px solid ${t.borderSoft}` : 'none',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography sx={{ color: t.textPrimary, fontSize: 14, fontWeight: 500 }}>
+                    {humaniseAction(entry.action)}
+                  </Typography>
+                  {entry.succeeded === false && (
+                    <Chip
+                      size="small"
+                      label={entry.status_code === 403 ? 'denied' : 'failed'}
+                      sx={{ height: 19, fontSize: '0.66rem', bgcolor: t.cardBgAlt, color: t.error, fontWeight: 700 }}
+                    />
                   )}
                 </Box>
-              );
-            })
+                <Typography sx={{ color: t.textSecondary, fontSize: 12, mt: 0.35 }}>
+                  {entry.actor_email || 'Unattributed'} · {formatTimestamp(entry.created_at)}
+                  {entry.resource_id ? ` · ${entry.resource_id}` : ''}
+                </Typography>
+              </Box>
+            ))
           )}
         </Box>
       </Box>

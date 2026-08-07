@@ -54,7 +54,7 @@ function deriveRatingBand(p: TerritoryProfileData): RatingBand {
     return {
       label: 'Not Bankable',
       detail: 'confirmed suspended',
-      fg: '#f44336',
+      fg: 'error.main',
       bg: 'rgba(244,67,54,0.15)',
       derived: false, // sourced fact, not a derived cutoff
     };
@@ -62,23 +62,23 @@ function deriveRatingBand(p: TerritoryProfileData): RatingBand {
   const hasCert = p.certWeeksMax != null;
   const hasPay = p.paymentWeeksMax != null;
   if (!hasCert || !hasPay) {
-    return { label: 'Insufficient Data', fg: '#9e9e9e', bg: 'rgba(117,117,117,0.18)', derived: false };
+    return { label: 'Insufficient Data', fg: 'text.secondary', bg: 'rgba(117,117,117,0.18)', derived: false };
   }
   const totalMax = (p.certWeeksMax || 0) + (p.paymentWeeksMax || 0);
   const contradicted = p.bankabilityRealWorldConfirms === false;
   const detail = contradicted ? 'real-world reports contradict, verify' : 'provisional band';
-  if (totalMax <= 26) return { label: 'Most Bankable', detail, fg: '#66bb6a', bg: 'rgba(46,125,50,0.18)', derived: true };
+  if (totalMax <= 26) return { label: 'Most Bankable', detail, fg: 'success.main', bg: 'rgba(46,125,50,0.18)', derived: true };
   if (totalMax <= 45) return { label: 'Bankable', detail, fg: '#8bc34a', bg: 'rgba(139,195,74,0.15)', derived: true };
-  if (totalMax <= 70) return { label: 'Slow', detail, fg: '#ffa726', bg: 'rgba(255,152,0,0.16)', derived: true };
-  return { label: 'Not Bankable', detail: `provisional band, ${Math.round(totalMax)} wk total`, fg: '#f44336', bg: 'rgba(244,67,54,0.15)', derived: true };
+  if (totalMax <= 70) return { label: 'Slow', detail, fg: 'warning.main', bg: 'rgba(255,152,0,0.16)', derived: true };
+  return { label: 'Not Bankable', detail: `provisional band, ${Math.round(totalMax)} wk total`, fg: 'error.main', bg: 'rgba(244,67,54,0.15)', derived: true };
 }
 
 function sourceChip(q?: string | null): { label: string; fg: string } {
   switch ((q || '').toLowerCase()) {
-    case 'government_direct': return { label: 'Gov Direct', fg: '#66bb6a' };
-    case 'industry_secondary': return { label: 'Industry Only', fg: '#4f83cc' };
+    case 'government_direct': return { label: 'Gov Direct', fg: 'success.main' };
+    case 'industry_secondary': return { label: 'Industry Only', fg: 'info.main' };
     case 'government_plus_industry': return { label: 'Gov + Industry', fg: '#8bc34a' };
-    case 'unverified': return { label: 'Unverified', fg: '#9e9e9e' };
+    case 'unverified': return { label: 'Unverified', fg: 'text.secondary' };
     default: return { label: ', ', fg: '#666' };
   }
 }
@@ -178,7 +178,7 @@ function CrewDepthContent(_props?: any) {
 
       {!loading && (
         <>
-          <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(212,175,55,0.07)', color: '#c9b45c', border: '1px solid rgba(212,175,55,0.25)' }}>
+          <Alert severity="info" sx={{ mb: 3, bgcolor: 'action.hover', color: 'primary.main', border: 1, borderColor: 'divider' }}>
             <strong>How to read this:</strong> ratings are <strong>PROVISIONAL</strong> placeholder
             cutoffs derived from only 6 fully-verified territories, display-only, never stored, and
             only shown when both certification and payment windows are verified. Territories without
@@ -195,8 +195,8 @@ function CrewDepthContent(_props?: any) {
             sx={{
               mb: 3,
               '& .MuiTab-root': { color: 'text.secondary' },
-              '& .Mui-selected': { color: '#D4AF37 !important' },
-              '& .MuiTabs-indicator': { backgroundColor: '#D4AF37' },
+              '& .Mui-selected': { color: 'var(--mui-palette-primary-main) !important' },
+              '& .MuiTabs-indicator': { backgroundColor: 'primary.main' },
             }}
           >
             <Tab label="Bankability, Verified Data" />
@@ -207,11 +207,11 @@ function CrewDepthContent(_props?: any) {
             <>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 {[
-                  ['Research Started', started.length, '#D4AF37'],
-                  ['Government-Direct', govDirect.length, '#66bb6a'],
-                  ['Partial Data', partial.length, '#ffa726'],
-                  ['Not Bankable (suspended)', suspended.length, '#f44336'],
-                  ['Not Started', notStarted.length, '#9e9e9e'],
+                  ['Research Started', started.length, 'primary.main'],
+                  ['Government-Direct', govDirect.length, 'success.main'],
+                  ['Partial Data', partial.length, 'warning.main'],
+                  ['Not Bankable (suspended)', suspended.length, 'error.main'],
+                  ['Not Started', notStarted.length, 'text.secondary'],
                 ].map(([label, value, colour]) => (
                   <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={String(label)}>
                     <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
@@ -247,7 +247,7 @@ function CrewDepthContent(_props?: any) {
                         const totalMax = (p.certWeeksMax ?? null) != null || (p.paymentWeeksMax ?? null) != null
                           ? (p.certWeeksMax || 0) + (p.paymentWeeksMax || 0) : null;
                         return (
-                          <TableRow key={p.id} sx={{ '&:hover': { bgcolor: 'rgba(212,175,55,0.05)' } }}>
+                          <TableRow key={p.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                             <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: 'background.paper', minWidth: 130 }}>
                               <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600 }}>{p.territory}</Typography>
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>{p.region || ''}</Typography>
@@ -300,10 +300,10 @@ function CrewDepthContent(_props?: any) {
             <>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 {[
-                  ['Territories', profiles.length, '#D4AF37'],
-                  ['Crew Depth Curated', curatedCrew.length, '#66bb6a'],
-                  ['Infrastructure Curated', curatedInfra.length, '#66bb6a'],
-                  ['Not Curated (crew)', profiles.length - curatedCrew.length, '#9e9e9e'],
+                  ['Territories', profiles.length, 'primary.main'],
+                  ['Crew Depth Curated', curatedCrew.length, 'success.main'],
+                  ['Infrastructure Curated', curatedInfra.length, 'success.main'],
+                  ['Not Curated (crew)', profiles.length - curatedCrew.length, 'text.secondary'],
                 ].map(([label, value, colour]) => (
                   <Grid size={{ xs: 6, sm: 3 }} key={String(label)}>
                     <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
@@ -334,14 +334,14 @@ function CrewDepthContent(_props?: any) {
                         const crewCurated = p.crewDepthTier != null || p.crewDepthScore != null;
                         const infraCurated = p.infrastructureTier != null || p.infrastructureScore != null;
                         return (
-                          <TableRow key={p.id} sx={{ '&:hover': { bgcolor: 'rgba(212,175,55,0.05)' } }}>
+                          <TableRow key={p.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                             <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: 'background.paper', minWidth: 130 }}>
                               <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600 }}>{p.territory}</Typography>
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>{p.region || ''}</Typography>
                             </TableCell>
                             <TableCell>
                               {crewCurated && p.crewDepthTier ? (
-                                <Chip size="small" label={p.crewDepthTier} sx={{ bgcolor: 'rgba(212,175,55,0.15)', color: 'primary.main', fontWeight: 600, fontSize: '0.7rem' }} />
+                                <Chip size="small" label={p.crewDepthTier} sx={{ bgcolor: 'action.hover', color: 'primary.main', fontWeight: 600, fontSize: '0.7rem' }} />
                               ) : (
                                 <Chip size="small" variant="outlined" label="Not curated" sx={{ borderColor: '#444', color: 'text.secondary', fontSize: '0.7rem' }} />
                               )}
@@ -354,7 +354,7 @@ function CrewDepthContent(_props?: any) {
                             </TableCell>
                             <TableCell>
                               {infraCurated && p.infrastructureTier ? (
-                                <Chip size="small" label={p.infrastructureTier} sx={{ bgcolor: 'rgba(79,131,204,0.15)', color: '#4f83cc', fontWeight: 600, fontSize: '0.7rem' }} />
+                                <Chip size="small" label={p.infrastructureTier} sx={{ bgcolor: 'rgba(79,131,204,0.15)', color: 'info.main', fontWeight: 600, fontSize: '0.7rem' }} />
                               ) : (
                                 <Chip size="small" variant="outlined" label="Not curated" sx={{ borderColor: '#444', color: 'text.secondary', fontSize: '0.7rem' }} />
                               )}
@@ -418,7 +418,7 @@ function CrewDepthContent(_props?: any) {
             </Grid>
           </Grid>
 
-          <Typography variant="subtitle2" sx={{ color: '#4f83cc', mt: 2, mb: 1 }}>Infrastructure</Typography>
+          <Typography variant="subtitle2" sx={{ color: 'info.main', mt: 2, mb: 1 }}>Infrastructure</Typography>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 4 }}>
               <TextField select fullWidth size="small" label="Tier (blank = not curated)"
@@ -502,12 +502,12 @@ function CrewDepthContent(_props?: any) {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 2, position: 'sticky', bottom: 0, bgcolor: 'background.paper', borderTop: '1px solid rgba(212,175,55,0.25)' }}>
+        <DialogActions sx={{ p: 2, position: 'sticky', bottom: 0, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider' }}>
           <Button onClick={() => { setEditOpen(false); setEditing(null); setForm({}); }} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
           <Button variant="contained" onClick={handleSave}
-            sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}>
+            sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: 'primary.dark' } }}>
             Save
           </Button>
         </DialogActions>

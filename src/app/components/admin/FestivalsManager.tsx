@@ -365,21 +365,21 @@ function FestivalsManagerContent() {
 
   const getTierBadgeColor = (tier: Festival['tier']) => {
     const colors = {
-      'a-list': '#D4AF37',
-      'tier-2': '#2196F3',
+      'a-list': 'primary.main',
+      'tier-2': 'info.main',
       'regional': '#9c27b0',
-      'specialized': '#ff9800',
+      'specialized': 'warning.main',
     };
     return colors[tier];
   };
 
   const getStatusBadgeColor = (status: Festival['currentStatus']) => {
     const colors = {
-      'early-bird-open': '#4caf50',
-      'regular-open': '#2196F3',
-      'late-open': '#ff9800',
+      'early-bird-open': 'success.main',
+      'regular-open': 'info.main',
+      'late-open': 'warning.main',
       'upcoming': '#9c27b0',
-      'closed': '#666666',
+      'closed': 'text.secondary',
     };
     return colors[status];
   };
@@ -400,7 +400,7 @@ function FestivalsManagerContent() {
             sx={{
               borderColor: 'primary.main',
               color: 'primary.main',
-              '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(212, 175, 55, 0.1)' },
+              '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
             }}
           >
             Auto Sync Settings
@@ -459,7 +459,7 @@ function FestivalsManagerContent() {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ bgcolor: 'background.paper', border: '1px solid rgba(33, 150, 243, 0.2)' }}>
             <CardContent>
-              <Typography variant="h3" sx={{ color: '#2196F3', fontWeight: 700 }}>
+              <Typography variant="h3" sx={{ color: 'info.main', fontWeight: 700 }}>
                 {stats.upcoming}
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -648,7 +648,7 @@ function FestivalsManagerContent() {
                         size="small"
                         sx={{
                           bgcolor: confidence === 'high' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
-                          color: confidence === 'high' ? '#66bb6a' : '#ffa726',
+                          color: confidence === 'high' ? 'success.main' : 'warning.main',
                           fontWeight: 600,
                         }}
                       />
@@ -697,7 +697,7 @@ function FestivalsManagerContent() {
           value={currentTab}
           onChange={(_, newValue) => setCurrentTab(newValue)}
           sx={{
-            borderBottom: '1px solid rgba(212, 175, 55, 0.2)',
+            borderBottom: 1, borderColor: 'divider',
             '& .MuiTab-root': { color: 'text.secondary' },
             '& .Mui-selected': { color: 'primary.main' },
             '& .MuiTabs-indicator': { bgcolor: 'primary.main' },
@@ -767,7 +767,7 @@ function FestivalsManagerContent() {
           },
         }}
       >
-        <DialogTitle sx={{ color: 'text.primary', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+        <DialogTitle sx={{ color: 'text.primary', borderBottom: 1, borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Movie sx={{ color: 'primary.main' }} />
             {editingFestival ? 'Edit Festival' : 'Add New Festival'}
@@ -1042,7 +1042,7 @@ function FestivalsManagerContent() {
                   <Grid size={{ xs: 12, sm: 1 }}>
                     <IconButton
                       onClick={() => removeDeadline(index)}
-                      sx={{ color: '#ff6b6b' }}
+                      sx={{ color: 'error.main' }}
                     >
                       <Delete />
                     </IconButton>
@@ -1128,7 +1128,7 @@ function FestivalsManagerContent() {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
+        <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
           <Button onClick={handleCloseDialog} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
@@ -1259,7 +1259,7 @@ function FestivalsManagerContent() {
           <Button
             onClick={handleDeleteConfirm}
             sx={{
-              bgcolor: '#ff6b6b',
+              bgcolor: 'error.main',
               color: 'text.primary',
               '&:hover': { bgcolor: '#ff5252' },
             }}
@@ -1339,7 +1339,7 @@ function FestivalTable({
                     </Typography>
                   </Box>
                 ) : (
-                  <Typography variant="caption" sx={{ color: '#666666' }}>N/A</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>N/A</Typography>
                 )}
               </TableCell>
               <TableCell>
@@ -1382,14 +1382,14 @@ function FestivalTable({
                   <IconButton
                     size="small"
                     onClick={() => onEdit(festival)}
-                    sx={{ color: '#2196F3' }}
+                    sx={{ color: 'info.main' }}
                   >
                     <Edit fontSize="small" />
                   </IconButton>
                   <IconButton
                     size="small"
                     onClick={() => onDelete(festival)}
-                    sx={{ color: '#ff6b6b' }}
+                    sx={{ color: 'error.main' }}
                   >
                     <Delete fontSize="small" />
                   </IconButton>

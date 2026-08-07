@@ -88,7 +88,7 @@ function getStatusChip(source: DataSource) {
   if (!source.credential_configured) {
     return {
       label: 'Not Configured',
-      color: source.status === 'disconnected' ? '#f44336' : '#9e9e9e',
+      color: source.status === 'disconnected' ? 'error.main' : 'text.secondary',
       bgColor: source.status === 'disconnected' ? 'rgba(211, 47, 47, 0.2)' : 'rgba(117, 117, 117, 0.2)',
       icon: source.status === 'disconnected' ? <Warning sx={{ fontSize: 16 }} /> : undefined,
     };
@@ -96,7 +96,7 @@ function getStatusChip(source: DataSource) {
 
   return {
     label: 'Untested',
-    color: '#9e9e9e',
+    color: 'text.secondary',
     bgColor: 'rgba(117, 117, 117, 0.2)',
     icon: undefined,
   };
@@ -295,7 +295,7 @@ function DataSourcesManagerContent() {
                     bgcolor: 'background.paper',
                     border: 1, borderColor: 'divider',
                     '&:hover': {
-                      borderColor: 'rgba(212, 175, 55, 0.4)',
+                      borderColor: 'action.hover',
                     },
                   }}
                 >
@@ -320,7 +320,7 @@ function DataSourcesManagerContent() {
                             label={source.category.toUpperCase()}
                             size="small"
                             sx={{
-                              bgcolor: 'rgba(212, 175, 55, 0.15)',
+                              bgcolor: 'action.hover',
                               color: 'primary.main',
                               fontWeight: 600,
                             }}
@@ -344,7 +344,7 @@ function DataSourcesManagerContent() {
                                 color: 'primary.main',
                               },
                               '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#D4AF37',
+                                backgroundColor: 'primary.main',
                               },
                             }}
                           />
@@ -419,7 +419,7 @@ function DataSourcesManagerContent() {
                             color: 'primary.main',
                             '&:hover': {
                               borderColor: 'primary.main',
-                              bgcolor: 'rgba(212, 175, 55, 0.08)',
+                              bgcolor: 'action.hover',
                             },
                             '&.Mui-disabled': {
                               borderColor: '#333',
@@ -462,7 +462,7 @@ function DataSourcesManagerContent() {
         </Button>
       </Box>
 
-      <Box sx={{ mt: 4, p: 3, bgcolor: 'rgba(212, 175, 55, 0.05)', borderRadius: 2, border: 1, borderColor: 'divider' }}>
+      <Box sx={{ mt: 4, p: 3, bgcolor: 'action.hover', borderRadius: 2, border: 1, borderColor: 'divider' }}>
         <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 2 }}>
           Curated Data Update Schedule
         </Typography>

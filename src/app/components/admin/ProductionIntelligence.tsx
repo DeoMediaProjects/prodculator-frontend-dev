@@ -181,7 +181,7 @@ function ProductionIntelligenceContent() {
             size="small"
             sx={{
               mt: 1,
-              bgcolor: 'rgba(212, 175, 55, 0.2)',
+              bgcolor: 'action.hover',
               color: 'primary.main',
             }}
           />
@@ -299,7 +299,7 @@ function ProductionIntelligenceContent() {
                   variant="determinate"
                   value={summaryStats.cameraDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
                       bgcolor: 'primary.main',
                     },
@@ -325,7 +325,7 @@ function ProductionIntelligenceContent() {
                   variant="determinate"
                   value={summaryStats.crewDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
                       bgcolor: 'primary.main',
                     },
@@ -351,7 +351,7 @@ function ProductionIntelligenceContent() {
                   variant="determinate"
                   value={summaryStats.castDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
                       bgcolor: 'primary.main',
                     },
@@ -377,7 +377,7 @@ function ProductionIntelligenceContent() {
                   variant="determinate"
                   value={summaryStats.extrasDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
                       bgcolor: 'primary.main',
                     },
@@ -394,7 +394,7 @@ function ProductionIntelligenceContent() {
             value={activeTab}
             onChange={(_, newValue) => setActiveTab(newValue)}
             sx={{
-              borderBottom: '1px solid rgba(212, 175, 55, 0.2)',
+              borderBottom: 1, borderColor: 'divider',
               '& .MuiTab-root': {
                 color: 'text.secondary',
                 '&.Mui-selected': {
@@ -487,7 +487,7 @@ function ProductionIntelligenceContent() {
                             sx={{
                               height: 8,
                               borderRadius: 4,
-                              bgcolor: 'rgba(212, 175, 55, 0.1)',
+                              bgcolor: 'action.hover',
                               '& .MuiLinearProgress-bar': {
                                 bgcolor: 'primary.main',
                               },
@@ -528,7 +528,7 @@ function ProductionIntelligenceContent() {
                               label={trend.category}
                               size="small"
                               sx={{
-                                bgcolor: 'rgba(212, 175, 55, 0.2)',
+                                bgcolor: 'action.hover',
                                 color: 'primary.main',
                                 textTransform: 'capitalize',
                               }}
@@ -577,7 +577,7 @@ function ProductionIntelligenceContent() {
                           <Chip
                             label={dist.budgetRange}
                             sx={{
-                              bgcolor: 'rgba(212, 175, 55, 0.2)',
+                              bgcolor: 'action.hover',
                               color: 'primary.main',
                               textTransform: 'capitalize',
                             }}
@@ -632,7 +632,7 @@ function ProductionIntelligenceContent() {
                           <Chip
                             label={forecast.territory}
                             sx={{
-                              bgcolor: 'rgba(212, 175, 55, 0.2)',
+                              bgcolor: 'action.hover',
                               color: 'primary.main',
                             }}
                           />
@@ -665,7 +665,7 @@ function ProductionIntelligenceContent() {
         </Paper>
 
         {/* Data Source Footer */}
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(212, 175, 55, 0.05)', borderRadius: 1, border: 1, borderColor: 'divider' }}>
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1, border: 1, borderColor: 'divider' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             <strong>Data Source:</strong> Aggregated from anonymized script upload metadata. 
             All data is indicative and based on historical industry patterns. 

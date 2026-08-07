@@ -201,8 +201,8 @@ export function ScriptAIOverview() {
 
   const planColors: Record<string, string> = {
     Free: '#666',
-    'Pro Monthly': '#42a5f5',
-    Studio: '#66bb6a',
+    'Pro Monthly': 'info.main',
+    Studio: 'success.main',
   };
 
   const counts = subscriberData?.counts ?? { active: 0, past_due: 0, canceled: 0 };
@@ -237,11 +237,11 @@ export function ScriptAIOverview() {
                 onClick={() => setCurrencyView(cv)}
                 sx={{
                   borderColor: 'primary.main',
-                  color: currencyView === cv ? '#000000' : '#D4AF37',
-                  bgcolor: currencyView === cv ? '#D4AF37' : 'transparent',
+                  color: currencyView === cv ? '#000000' : 'primary.main',
+                  bgcolor: currencyView === cv ? 'primary.main' : 'transparent',
                   '&:hover': {
                     borderColor: 'primary.main',
-                    bgcolor: currencyView === cv ? '#D4AF37' : 'rgba(212, 175, 55, 0.08)',
+                    bgcolor: currencyView === cv ? 'primary.main' : 'action.hover',
                   },
                 }}
               >
@@ -260,7 +260,7 @@ export function ScriptAIOverview() {
               sx={{
                 bgcolor: 'background.paper',
                 border: 1, borderColor: 'divider',
-                '&:hover': { borderColor: 'rgba(212, 175, 55, 0.4)' },
+                '&:hover': { borderColor: 'action.hover' },
               }}
             >
               <CardContent>
@@ -311,13 +311,13 @@ export function ScriptAIOverview() {
           </Typography>
           <Grid container spacing={3}>
             {(metrics?.plan_distribution ?? []).map((plan, index) => {
-              const color = planColors[plan.plan] ?? '#D4AF37';
+              const color = planColors[plan.plan] ?? 'primary.main';
               return (
                 <Grid size={{ xs: 12, md: Math.max(3, Math.floor(12 / (metrics?.plan_distribution.length ?? 3))) }} key={index}>
                   <Box
                     sx={{
                       p: 2,
-                      bgcolor: 'rgba(212, 175, 55, 0.05)',
+                      bgcolor: 'action.hover',
                       borderRadius: 2,
                       border: `1px solid ${color}40`,
                     }}
@@ -378,7 +378,7 @@ export function ScriptAIOverview() {
                 color: 'primary.main',
                 '&:hover': {
                   borderColor: 'primary.main',
-                  bgcolor: 'rgba(212, 175, 55, 0.08)',
+                  bgcolor: 'action.hover',
                 },
               }}
             >
@@ -413,10 +413,10 @@ export function ScriptAIOverview() {
                 fontWeight: 600,
               },
               '& .Mui-selected': {
-                color: '#D4AF37 !important',
+                color: 'var(--mui-palette-primary-main) !important',
               },
               '& .MuiTabs-indicator': {
-                backgroundColor: '#D4AF37',
+                backgroundColor: 'primary.main',
               },
             }}
           >
@@ -479,7 +479,7 @@ export function ScriptAIOverview() {
       <Dialog
         open={creditDialogOpen}
         onClose={() => setCreditDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: 'background.paper', border: '1px solid rgba(212, 175, 55, 0.3)' } }}
+        PaperProps={{ sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } }}
       >
         <DialogTitle sx={{ color: 'primary.main' }}>Adjust Report Credits</DialogTitle>
         <DialogContent>
@@ -538,23 +538,23 @@ function SubscriberRow({
 
   const planChipColor =
     user.plan === 'Studio'
-      ? { bg: 'rgba(102, 187, 106, 0.2)', text: '#66bb6a' }
+      ? { bg: 'rgba(102, 187, 106, 0.2)', text: 'success.main' }
       : user.plan === 'Pro Monthly'
-      ? { bg: 'rgba(66, 165, 245, 0.2)', text: '#42a5f5' }
-      : { bg: 'rgba(212, 175, 55, 0.2)', text: '#D4AF37' };
+      ? { bg: 'rgba(66, 165, 245, 0.2)', text: 'info.main' }
+      : { bg: 'action.hover', text: 'primary.main' };
 
   const statusChipColor =
     user.status === 'Active'
-      ? { bg: 'rgba(46, 125, 50, 0.2)', text: '#66bb6a' }
+      ? { bg: 'rgba(46, 125, 50, 0.2)', text: 'success.main' }
       : user.status === 'Past Due'
-      ? { bg: 'rgba(255, 152, 0, 0.2)', text: '#ffa726' }
-      : { bg: 'rgba(158, 158, 158, 0.2)', text: '#9e9e9e' };
+      ? { bg: 'rgba(255, 152, 0, 0.2)', text: 'warning.main' }
+      : { bg: 'rgba(158, 158, 158, 0.2)', text: 'text.secondary' };
 
   const isBlocked = user.status === 'Canceled';
   const isLoading = actionLoading === user.id;
 
   return (
-    <TableRow sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
+    <TableRow sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar
@@ -605,9 +605,9 @@ function SubscriberRow({
             variant="determinate"
             value={Math.min(usagePercent, 100)}
             sx={{
-              bgcolor: 'rgba(212, 175, 55, 0.1)',
+              bgcolor: 'action.hover',
               '& .MuiLinearProgress-bar': {
-                bgcolor: unlimited || usagePercent < 80 ? '#D4AF37' : '#ffa726',
+                bgcolor: unlimited || usagePercent < 80 ? 'primary.main' : 'warning.main',
               },
             }}
           />

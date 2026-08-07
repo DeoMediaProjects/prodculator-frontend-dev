@@ -55,9 +55,9 @@ const ROLE_LABELS: Record<AdminRole, string> = {
 };
 
 const ROLE_COLORS: Record<AdminRole, string> = {
-  master_admin: '#D4AF37',
-  senior_admin: '#42a5f5',
-  data_admin: '#66bb6a',
+  master_admin: 'primary.main',
+  senior_admin: 'info.main',
+  data_admin: 'success.main',
   support_admin: '#ab47bc',
 };
 
@@ -257,9 +257,9 @@ export function AdminUsersManager() {
         icon={<AdminPanelSettings />}
         sx={{
           mb: 3,
-          bgcolor: 'rgba(212, 175, 55, 0.1)',
+          bgcolor: 'action.hover',
           color: 'primary.main',
-          border: '1px solid rgba(212, 175, 55, 0.3)',
+          border: 1, borderColor: 'divider',
         }}
       >
         <Typography variant="body2">
@@ -293,7 +293,7 @@ export function AdminUsersManager() {
                 {adminUsers.map((admin) => (
                   <TableRow
                     key={admin.id}
-                    sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}
+                    sx={{ '&:hover': { bgcolor: 'action.hover' } }}
                   >
                     <TableCell sx={{ color: 'text.primary', fontWeight: 500 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -553,8 +553,8 @@ export function AdminUsersManager() {
               display: 'flex',
               alignItems: 'center',
               gap: 1,
-              bgcolor: 'rgba(212, 175, 55, 0.1)',
-              border: '1px solid rgba(212, 175, 55, 0.3)',
+              bgcolor: 'action.hover',
+              border: 1, borderColor: 'divider',
               borderRadius: 1,
               p: 2,
             }}

@@ -71,13 +71,13 @@ export function IncentiveDataManager(props?: any) {
 // ── v4 parity helpers ────────────────────────────────────────────────────────
 
 const REGION_COLOURS: Record<string, string> = {
-  UK: '#D4AF37',
-  Europe: '#4f83cc',
+  UK: 'primary.main',
+  Europe: 'info.main',
   'North America': '#7e57c2',
   North: '#7e57c2',
   Africa: '#e07b39',
   Asia: '#26a69a',
-  Oceania: '#66bb6a',
+  Oceania: 'success.main',
   'South America': '#ef5350',
   South: '#ef5350',
 };
@@ -88,26 +88,26 @@ function regionColour(region?: string | null): string {
 
 function statusChipProps(status?: string) {
   const s = (status || '').toLowerCase();
-  if (s === 'active') return { label: 'Active', bg: 'rgba(46,125,50,0.2)', fg: '#66bb6a' };
-  if (s === 'suspended') return { label: 'Suspended', bg: 'rgba(244,67,54,0.2)', fg: '#f44336' };
+  if (s === 'active') return { label: 'Active', bg: 'rgba(46,125,50,0.2)', fg: 'success.main' };
+  if (s === 'suspended') return { label: 'Suspended', bg: 'rgba(244,67,54,0.2)', fg: 'error.main' };
   if (s === 'no_programme') return { label: 'No Programme', bg: 'rgba(117,117,117,0.25)', fg: '#bdbdbd' };
-  if (s === 'admin_verify_required') return { label: 'Verify Required', bg: 'rgba(255,152,0,0.2)', fg: '#ffa726' };
-  return { label: status || 'Unknown', bg: 'rgba(117,117,117,0.2)', fg: '#9e9e9e' };
+  if (s === 'admin_verify_required') return { label: 'Verify Required', bg: 'rgba(255,152,0,0.2)', fg: 'warning.main' };
+  return { label: status || 'Unknown', bg: 'rgba(117,117,117,0.2)', fg: 'text.secondary' };
 }
 
 function verificationChipProps(v?: string | null) {
   const s = (v || '').toLowerCase();
-  if (s.startsWith('verified')) return { label: v || 'Verified', bg: 'rgba(212,175,55,0.18)', fg: '#D4AF37' };
-  if (s.startsWith('verify')) return { label: 'Needs Verify', bg: 'rgba(255,152,0,0.2)', fg: '#ffa726' };
+  if (s.startsWith('verified')) return { label: v || 'Verified', bg: 'action.selected', fg: 'primary.main' };
+  if (s.startsWith('verify')) return { label: 'Needs Verify', bg: 'rgba(255,152,0,0.2)', fg: 'warning.main' };
   if (s.startsWith('inherited')) return { label: v || 'Inherited', bg: 'rgba(117,117,117,0.25)', fg: '#bdbdbd' };
-  return { label: v || ', ', bg: 'rgba(117,117,117,0.15)', fg: '#9e9e9e' };
+  return { label: v || ', ', bg: 'rgba(117,117,117,0.15)', fg: 'text.secondary' };
 }
 
 function confidenceColour(c?: number | null): string {
   if (c == null) return '#555';
-  if (c >= 85) return '#66bb6a';
-  if (c >= 60) return '#D4AF37';
-  return '#f44336';
+  if (c >= 85) return 'success.main';
+  if (c >= 60) return 'primary.main';
+  return 'error.main';
 }
 
 function parseWarnings(raw?: string | null): string[] {
@@ -187,7 +187,7 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
         </TextField>
         <Button
           variant="contained" onClick={handleCalculate} disabled={calculating || !selected}
-          sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' }, order: { xs: 4, md: 0 }, flexShrink: 0 }}
+          sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: 'primary.dark' }, order: { xs: 4, md: 0 }, flexShrink: 0 }}
         >
           {calculating ? 'Calculating…' : 'Calculate'}
         </Button>
@@ -196,7 +196,7 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
       {calcError && <Alert severity="error" sx={{ mt: 2 }}>{calcError}</Alert>}
 
       {result && (
-        <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 1 }}>
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'action.hover', border: 1, borderColor: 'divider', borderRadius: 1 }}>
           <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700 }}>
             {result.territory}, {result.program}
             {result.mechanismPattern && <Chip size="small" label={`Pattern ${result.mechanismPattern}`} sx={{ ml: 1, bgcolor: 'background.paper', color: 'text.secondary' }} />}
@@ -217,7 +217,7 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
               ].filter(([, v]) => v).map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>{k}</Typography>
-                  <Typography variant="h6" sx={{ color: k === 'Net rebate' ? '#D4AF37' : '#fff', fontWeight: 700 }}>{v}</Typography>
+                  <Typography variant="h6" sx={{ color: k === 'Net rebate' ? 'primary.main' : '#fff', fontWeight: 700 }}>{v}</Typography>
                 </Box>
               ))}
             </Box>
@@ -414,7 +414,7 @@ function IncentiveDataManagerContent(_props?: any) {
               color: 'primary.main',
               '&:hover': {
                 borderColor: 'primary.main',
-                bgcolor: 'rgba(212, 175, 55, 0.08)',
+                bgcolor: 'action.hover',
               },
             }}
           >
@@ -451,12 +451,12 @@ function IncentiveDataManagerContent(_props?: any) {
       {!loading && incentives.length > 0 && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {[
-            ['Programmes', incentives.length, '#D4AF37'],
-            ['Active', incentives.filter((i) => (i.status || '').toLowerCase() === 'active').length, '#66bb6a'],
-            ['Verified Jul 2026', incentives.filter((i) => (i.verificationStatus || '').toLowerCase().startsWith('verified')).length, '#D4AF37'],
-            ['Needs Verification', incentives.filter((i) => (i.verificationStatus || '').toLowerCase().startsWith('verify')).length, '#ffa726'],
-            ['Annual Pool Caps', incentives.filter((i) => !!i.annualProgrammeCap).length, '#4f83cc'],
-            ['Territories', new Set(incentives.map((i) => i.territory)).size, '#a0a0a0'],
+            ['Programmes', incentives.length, 'primary.main'],
+            ['Active', incentives.filter((i) => (i.status || '').toLowerCase() === 'active').length, 'success.main'],
+            ['Verified Jul 2026', incentives.filter((i) => (i.verificationStatus || '').toLowerCase().startsWith('verified')).length, 'primary.main'],
+            ['Needs Verification', incentives.filter((i) => (i.verificationStatus || '').toLowerCase().startsWith('verify')).length, 'warning.main'],
+            ['Annual Pool Caps', incentives.filter((i) => !!i.annualProgrammeCap).length, 'info.main'],
+            ['Territories', new Set(incentives.map((i) => i.territory)).size, 'text.secondary'],
           ].map(([label, value, colour]) => (
             <Grid size={{ xs: 6, md: 2 }} key={String(label)}>
               <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
@@ -545,7 +545,7 @@ function IncentiveDataManagerContent(_props?: any) {
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(212, 175, 55, 0.1)', borderRadius: 2 }}>
+              <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'action.hover', borderRadius: 2 }}>
                 <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 700 }}>
                   {syncStatus?.daysSinceLastCheck ?? 'N/A'}
                 </Typography>
@@ -631,7 +631,7 @@ function IncentiveDataManagerContent(_props?: any) {
                       size="small"
                       sx={{
                         bgcolor: change.confidence === 'high' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
-                        color: change.confidence === 'high' ? '#66bb6a' : '#ffa726',
+                        color: change.confidence === 'high' ? 'success.main' : 'warning.main',
                         fontWeight: 600,
                       }}
                     />
@@ -713,7 +713,7 @@ function IncentiveDataManagerContent(_props?: any) {
                     <TableRow
                       key={rowId}
                       onClick={() => setExpandedRowId(expanded ? null : rowId)}
-                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                     >
                       <TableCell sx={{ color: 'text.primary', borderLeft: `3px solid ${regionColour(incentive.region)}`, position: 'sticky', left: 0, zIndex: 2, bgcolor: 'background.paper', minWidth: 130 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{incentive.territory}</Typography>
@@ -755,7 +755,7 @@ function IncentiveDataManagerContent(_props?: any) {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={incentive.mechanismPattern ? `Pattern ${incentive.mechanismPattern}` : ', '} sx={{ bgcolor: '#161616', color: 'text.secondary', fontSize: '0.7rem' }} />
+                        <Chip size="small" label={incentive.mechanismPattern ? `Pattern ${incentive.mechanismPattern}` : ', '} sx={{ bgcolor: 'background.paper', color: 'text.secondary', fontSize: '0.7rem' }} />
                       </TableCell>
                       <TableCell>
                         <Chip size="small" label={status.label} sx={{ bgcolor: status.bg, color: status.fg, fontWeight: 700, fontSize: '0.7rem' }} />
@@ -805,7 +805,7 @@ function IncentiveDataManagerContent(_props?: any) {
                   if (expanded) {
                     rows.push(
                       <TableRow key={`${rowId}-detail`}>
-                        <TableCell colSpan={10} sx={{ bgcolor: 'rgba(212,175,55,0.04)', borderBottom: '1px solid rgba(212,175,55,0.25)' }}>
+                        <TableCell colSpan={10} sx={{ bgcolor: 'action.hover', borderBottom: '1px solid' }}>
                           <Box sx={{ position: 'sticky', left: 0, maxWidth: 'calc(100vw - 48px)' }}>
                           <Box sx={{ py: 1.5, px: 1 }}>
                             {incentive.calcFormula && (
@@ -826,7 +826,7 @@ function IncentiveDataManagerContent(_props?: any) {
                             )}
                             {incentive.aiRule && (
                               <Box sx={{ mb: 1 }}>
-                                <Typography variant="caption" sx={{ color: '#4f83cc', fontWeight: 700, letterSpacing: 1 }}>AI RULE</Typography>
+                                <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 700, letterSpacing: 1 }}>AI RULE</Typography>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>{incentive.aiRule}</Typography>
                               </Box>
                             )}
@@ -992,7 +992,7 @@ function IncentiveDataManagerContent(_props?: any) {
             </Alert>
           )}
           {!editingIncentive && (
-            <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(212,175,55,0.08)', color: 'primary.main' }}>
+            <Alert severity="info" sx={{ mb: 2, bgcolor: 'action.hover', color: 'primary.main' }}>
               New rows default to status "Verify Required", verification "verify-required" and confidence 30,
               they are excluded from report scoring until an admin explicitly promotes them.
             </Alert>
@@ -1293,7 +1293,7 @@ function IncentiveDataManagerContent(_props?: any) {
             </AccordionDetails>
           </Accordion>
         </DialogContent>
-        <DialogActions sx={{ p: 2, position: 'sticky', bottom: 0, bgcolor: 'background.paper', borderTop: '1px solid rgba(212,175,55,0.25)', zIndex: 1 }}>
+        <DialogActions sx={{ p: 2, position: 'sticky', bottom: 0, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider', zIndex: 1 }}>
           <Button
             onClick={() => {
               setEditDialogOpen(false);
@@ -1308,7 +1308,7 @@ function IncentiveDataManagerContent(_props?: any) {
           <Button
             variant="contained"
             onClick={handleSaveIncentive}
-            sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}
+            sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: 'primary.dark' } }}
           >
             Save
           </Button>
@@ -1319,7 +1319,7 @@ function IncentiveDataManagerContent(_props?: any) {
         <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999 }}>
           <LinearProgress
             sx={{
-              bgcolor: 'rgba(212, 175, 55, 0.1)',
+              bgcolor: 'action.hover',
               '& .MuiLinearProgress-bar': {
                 bgcolor: 'primary.main',
               },

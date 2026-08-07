@@ -81,7 +81,7 @@ function humaniseAction(action: string) {
 
 function StatusChip({ entry }: { entry: AuditLogEntry }) {
   if (entry.succeeded === null) {
-    return <Chip size="small" label="No response" sx={{ bgcolor: 'rgba(117,117,117,0.2)', color: '#9e9e9e' }} />;
+    return <Chip size="small" label="No response" sx={{ bgcolor: 'rgba(117,117,117,0.2)', color: 'text.secondary' }} />;
   }
   if (entry.succeeded) {
     return (
@@ -127,10 +127,10 @@ function JsonPanel({ title, value }: { title: string; value: unknown }) {
           minHeight: 80,
           maxHeight: 320,
           overflow: 'auto',
-          bgcolor: '#050505',
+          bgcolor: 'background.default',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 1,
-          color: body ? '#e0e0e0' : 'text.secondary',
+          color: body ? 'text.primary' : 'text.secondary',
           fontSize: 11.5,
           lineHeight: 1.6,
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
@@ -276,7 +276,7 @@ function AuditTrailManagerContent() {
           </Card>
           <Card sx={{ p: 2, flex: 1 }}>
             <Typography color="text.secondary" variant="body2">Failed attempts</Typography>
-            <Typography variant="h5" sx={{ color: retention.failed_entries > 0 ? '#f44336' : undefined }}>
+            <Typography variant="h5" sx={{ color: retention.failed_entries > 0 ? 'error.main' : undefined }}>
               {retention.failed_entries.toLocaleString()}
             </Typography>
           </Card>
@@ -429,7 +429,7 @@ function AuditTrailManagerContent() {
               ) : (
                 entries.map((entry) => (
                   <TableRow key={entry.id} hover>
-                    <TableCell sx={{ color: '#e0e0e0', whiteSpace: 'nowrap' }}>
+                    <TableCell sx={{ color: 'text.primary', whiteSpace: 'nowrap' }}>
                       {formatDateTime(entry.created_at)}
                     </TableCell>
                     <TableCell sx={{ color: 'text.primary' }}>
@@ -440,11 +440,11 @@ function AuditTrailManagerContent() {
                         </Typography>
                       )}
                     </TableCell>
-                    <TableCell sx={{ color: '#e0e0e0' }}>{humaniseAction(entry.action)}</TableCell>
+                    <TableCell sx={{ color: 'text.primary' }}>{humaniseAction(entry.action)}</TableCell>
                     <TableCell sx={{ color: 'text.secondary', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {entry.resource_type.replace(/_/g, ' ')}
                       {entry.resource_id && (
-                        <Typography component="div" sx={{ color: '#6e6a61', fontSize: 11, fontFamily: 'monospace' }}>
+                        <Typography component="div" sx={{ color: 'text.secondary', fontSize: 11, fontFamily: 'monospace' }}>
                           {entry.resource_id}
                         </Typography>
                       )}
@@ -484,7 +484,7 @@ function AuditTrailManagerContent() {
         onClose={() => setSelected(null)}
         maxWidth="lg"
         fullWidth
-        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: '1px solid rgba(212,175,55,0.25)' } } }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } } }}
       >
         {selected && (
           <>
@@ -513,7 +513,7 @@ function AuditTrailManagerContent() {
                 ] as const).map(([label, value]) => (
                   <Stack key={label} direction="row" spacing={2}>
                     <Typography sx={{ color: 'text.secondary', fontSize: 12, minWidth: 100 }}>{label}</Typography>
-                    <Typography sx={{ color: '#e0e0e0', fontSize: 12, wordBreak: 'break-all' }}>{value}</Typography>
+                    <Typography sx={{ color: 'text.primary', fontSize: 12, wordBreak: 'break-all' }}>{value}</Typography>
                   </Stack>
                 ))}
               </Stack>

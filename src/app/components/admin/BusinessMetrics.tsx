@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   Grid,
-  Card,
-  CardContent,
   Table,
   TableBody,
   TableCell,
@@ -15,16 +13,6 @@ import {
   Alert,
   Tooltip,
 } from '@mui/material';
-import {
-  TrendingUp,
-  Public,
-  MonetizationOn,
-  Person,
-  People,
-  Assessment,
-  Speed,
-  Group,
-} from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { AdminAccessDenied } from './AdminAccessDenied';
 import { adminApi } from '@/services/admin.api';
@@ -36,65 +24,78 @@ const HEAD_SX = { color: 'primary.main', fontWeight: 600 } as const;
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
 const pct = (n: number) => `${n}%`;
 
-function SectionCard({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+/**
+ * Section surface for this page.
+ *
+ * The heading previously paired a gold icon with gold text on every panel, so
+ * the accent marked nothing: when six sections all shout, none of them leads.
+ * The heading is now plain text at one weight, and the icon is dropped rather
+ * than recoloured, because a decorative icon beside a text label adds no
+ * information a reader needs.
+ */
+function SectionCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <Card sx={{ ...CARD_SX, mb: 4 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Box sx={{ color: 'primary.main', display: 'flex' }}>{icon}</Box>
-          <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
-            {title}
-          </Typography>
-        </Box>
-        {children}
-      </CardContent>
-    </Card>
+    <Box sx={{ ...CARD_SX, p: 2.75, mb: 2 }}>
+      <Typography sx={{ fontWeight: 800, fontSize: 17, color: 'text.primary' }}>
+        {title}
+      </Typography>
+      {description && (
+        <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mt: 0.5, mb: 2, maxWidth: '78ch' }}>
+          {description}
+        </Typography>
+      )}
+      <Box sx={{ mt: description ? 0 : 2 }}>{children}</Box>
+    </Box>
   );
 }
 
 function Kpi({
-  icon,
   value,
   label,
   sub,
   tooltip,
-  color = 'primary.main',
+  focal = false,
 }: {
-  icon: ReactNode;
   value: string;
   label: string;
   sub?: string;
   tooltip: string;
-  color?: string;
+  /** The one figure this page exists to report. Exactly one should set it. */
+  focal?: boolean;
 }) {
   return (
     <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }} sx={{ display: 'flex' }}>
       <Tooltip title={tooltip} arrow placement="top">
-        <Card
+        <Box
           sx={{
-            width: '100%',
-            bgcolor: 'background.paper',
-            border: `1px solid ${color}40`,
-            cursor: 'help',
-            '&:hover': { borderColor: color },
+            width: '100%', ...CARD_SX, p: 2.25, cursor: 'help',
+            transition: 'border-color .15s',
+            '&:hover': { borderColor: 'primary.main' },
           }}
         >
-          <CardContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Box sx={{ color }}>{icon}</Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                {value}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {label}
-              </Typography>
-              {/* Reserve the sub-line height on every card so all cards align */}
-              <Typography variant="caption" sx={{ color, fontWeight: 600, minHeight: '1.25rem' }}>
-                {sub ?? ''}
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
+          {/* Label above value: the reader needs to know what they are looking
+              at before the number means anything. Icons are gone, they were
+              decoration repeated six times. */}
+          <Typography
+            sx={{
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+              textTransform: 'uppercase', color: 'text.secondary', mb: 0.75,
+            }}
+          >
+            {label}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: 27, fontWeight: 800, lineHeight: 1.05,
+              color: focal ? 'primary.main' : 'text.primary',
+            }}
+          >
+            {value}
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.75, minHeight: '1.15rem' }}>
+            {sub ?? ''}
+          </Typography>
+        </Box>
       </Tooltip>
     </Grid>
   );
@@ -158,51 +159,42 @@ export function BusinessMetrics() {
           {/* Core KPIs */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Kpi
-              icon={<People />}
               value={data.total_paid_users.toLocaleString()}
               label="Paid Users"
               sub={`${data.total_users.toLocaleString()} total`}
               tooltip="Users on a paid plan (Professional, Producer, Studio, or B2B). The subline shows every registered user, paid or free."
             />
             <Kpi
-              icon={<MonetizationOn />}
               value={usd(data.mrr_usd)}
               label="MRR (USD equiv.)"
-              color="#66bb6a"
+              focal
               tooltip="Monthly Recurring Revenue from all active subscriptions, with non USD currencies converted to USD."
             />
             <Kpi
-              icon={<TrendingUp />}
               value={usd(data.arr_usd)}
               label="ARR (USD equiv.)"
-              color="#66bb6a"
               tooltip="Annual Recurring Revenue, current MRR projected over 12 months, in USD."
             />
             <Kpi
-              icon={<Assessment />}
               value={data.active_subscriptions.toLocaleString()}
               label="Active Subscriptions"
               tooltip="Number of subscriptions currently in an 'active' status."
             />
             <Kpi
-              icon={<Speed />}
               value={pct(data.monthly_churn_percent)}
               label="Monthly Churn"
-              color="#ffa726"
               tooltip="Subscriptions cancelled in the last 30 days as a share of active plus recently cancelled subscriptions."
             />
             <Kpi
-              icon={<Person />}
               value={pct(data.free_to_paid_percent)}
               label="Free → Paid"
-              color="#66bb6a"
               tooltip="Share of all registered users who are on a paid plan (paid users ÷ total users)."
             />
           </Grid>
 
           {/* Geographic distribution */}
           {data.geo_available ? (
-            <SectionCard icon={<Public />} title="Geographic Distribution (Paid Users)">
+            <SectionCard title="Geographic Distribution (Paid Users)">
               <TableContainer>
                 <Table>
                   <TableHead>
@@ -236,7 +228,7 @@ export function BusinessMetrics() {
               </TableContainer>
             </SectionCard>
           ) : (
-            <SectionCard icon={<Public />} title="Geographic Distribution (Paid Users)">
+            <SectionCard title="Geographic Distribution (Paid Users)">
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 No available data
               </Typography>
@@ -245,7 +237,7 @@ export function BusinessMetrics() {
 
           {/* US state breakdown */}
           {data.us_states.length > 0 && (
-            <SectionCard icon={<Public />} title="United States State Breakdown">
+            <SectionCard title="United States State Breakdown">
               <TableContainer>
                 <Table>
                   <TableHead>
@@ -276,7 +268,7 @@ export function BusinessMetrics() {
           <Grid container spacing={3} sx={{ mb: 4 }}>
             {/* Plan distribution */}
             <Grid size={{ xs: 12, lg: 6 }}>
-              <SectionCard icon={<Assessment />} title="Plan Distribution">
+              <SectionCard title="Plan Distribution">
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
@@ -300,7 +292,7 @@ export function BusinessMetrics() {
 
             {/* Professional profile breakdown (role counts) */}
             <Grid size={{ xs: 12, lg: 6 }}>
-              <SectionCard icon={<Group />} title="Professional Profile Breakdown">
+              <SectionCard title="Professional Profile Breakdown">
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
@@ -324,7 +316,7 @@ export function BusinessMetrics() {
           </Grid>
 
           {/* Engagement & conversion */}
-          <SectionCard icon={<Speed />} title="Engagement & Conversion">
+          <SectionCard title="Engagement & Conversion">
             <Grid container spacing={3}>
               {[
                 { value: pct(data.free_to_paid_percent), label: 'Free → Paid Conversion', note: '% of users on a paid plan' },

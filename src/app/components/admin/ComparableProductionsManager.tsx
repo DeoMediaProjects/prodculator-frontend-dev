@@ -157,7 +157,7 @@ function ComparableProductionsManagerContent() {
               color: 'primary.main',
               '&:hover': {
                 borderColor: 'primary.main',
-                bgcolor: 'rgba(212, 175, 55, 0.08)',
+                bgcolor: 'action.hover',
               },
             }}
           >
@@ -213,7 +213,7 @@ function ComparableProductionsManagerContent() {
             </TableHead>
             <TableBody>
               {productions.map((production) => (
-                <TableRow key={production.id} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
+                <TableRow key={production.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                   <TableCell sx={{ color: 'text.primary' }}>
                     {production.title}
                     {production.tmdbId && (
@@ -238,7 +238,7 @@ function ComparableProductionsManagerContent() {
                         label={g}
                         size="small"
                         sx={{
-                          bgcolor: 'rgba(212, 175, 55, 0.2)',
+                          bgcolor: 'action.hover',
                           color: 'primary.main',
                           fontWeight: 600,
                           mr: 0.5,

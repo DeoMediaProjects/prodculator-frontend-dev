@@ -42,10 +42,10 @@ import {
 
 
 const STATUS_STYLES: Record<B2BInviteStatus, { label: string; bg: string; color: string }> = {
-  pending: { label: 'Awaiting claim', bg: 'rgba(184,122,31,0.2)', color: '#e0a83c' },
+  pending: { label: 'Awaiting claim', bg: 'rgba(184,122,31,0.2)', color: 'warning.main' },
   accepted: { label: 'Claimed', bg: 'rgba(46,125,50,0.2)', color: 'success.main' },
   revoked: { label: 'Revoked', bg: 'rgba(211,47,47,0.2)', color: 'error.main' },
-  expired: { label: 'Expired', bg: 'rgba(117,117,117,0.2)', color: '#9e9e9e' },
+  expired: { label: 'Expired', bg: 'rgba(117,117,117,0.2)', color: 'text.secondary' },
 };
 
 const EMPTY_FORM: AdminB2BInvitePayload = {
@@ -295,7 +295,7 @@ export function B2BInvitesPanel({
                     <TableCell>
                       {formatDate(invite.expires_at)}
                       {remaining !== null && remaining >= 0 && (
-                        <Typography sx={{ color: remaining <= 3 ? '#e0a83c' : '#a0a0a0', fontSize: 11 }}>
+                        <Typography sx={{ color: remaining <= 3 ? 'warning.main' : 'text.secondary', fontSize: 11 }}>
                           {remaining === 0 ? 'today' : `${remaining} day${remaining === 1 ? '' : 's'} left`}
                         </Typography>
                       )}
