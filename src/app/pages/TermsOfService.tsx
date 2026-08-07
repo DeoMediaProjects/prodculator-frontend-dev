@@ -54,11 +54,15 @@ export function TermsOfService() {
             <strong>4.1 Available Plans:</strong>
           </Typography>
           <ul>
-            <li><strong>Free Tier:</strong> 1 free intelligence report with watermarked output, 3 territory comparisons/month (max 2 territories), 5 what if calculator uses/month, watermarked exports</li>
-            <li><strong>Pro Monthly:</strong> $1/month 5 reports/month, unlimited territory comparisons (up to 4 territories), unlimited what if calculator, PDF/Excel exports, 7 day shareable links</li>
-            <li><strong>Producer Annual:</strong> $12/year ($1/month) 15 reports/month, unlimited comparison tools, save up to 10 scenarios, advanced features, priority support</li>
-            <li><strong>Studio Tier:</strong> $1/month Unlimited reports, unlimited comparison tools with custom branding, permanent shareable links, API access, white label reports, dedicated support</li>
+            <li><strong>Explorer (free):</strong> 1 report, limited to the top 3 territories, with premium sections withheld from the output</li>
+            <li><strong>Single Report (one off):</strong> $40 / £35 per report. One full report covering all available territories, with no subscription</li>
+            <li><strong>Professional:</strong> $61 / £49 per month, or $49 / £39 per month billed annually ($588 / £468 per year). 1 report per billing period, limited to the top 5 territories, full report sections, Territory Comparison and the What If Calculator</li>
+            <li><strong>Producer:</strong> $149 / £119 per month, or $119 / £95 per month billed annually ($1,428 / £1,140 per year). 3 reports per billing period, no territory cap, Excel export, Investor Summary PDF and editable project details</li>
+            <li><strong>Studio:</strong> $299 / £239 per month, or $239 / £199 per month billed annually ($2,868 / £2,388 per year). 10 reports per billing period, no territory cap, everything in Producer, plus shareable report links</li>
           </ul>
+          <Typography>
+            Report allowances are per billing period and are enforced by the Platform. Pay per report credits are separate from a subscription allowance and do not expire. Where a plan is described as having no territory cap, every territory the Platform holds active incentive data for is included in the report.
+          </Typography>
           <Typography>
             <strong>4.2 Billing:</strong> Subscriptions are billed in advance on a monthly or annual basis in USD or GBP (based on payment currency, not user location). All fees are non refundable except as required by law.
           </Typography>
@@ -72,7 +76,7 @@ export function TermsOfService() {
             <strong>4.5 Plan Changes:</strong> You may upgrade or downgrade your plan at any time. Upgrades are prorated; downgrades take effect at the next billing cycle.
           </Typography>
           <Typography>
-            <strong>4.6 Usage Limits:</strong> Free tier users are subject to monthly usage limits for comparison tools (3 territory comparisons, 5 calculator uses). Limits reset on the 1st of each month. Paid tier users have unlimited access within reasonable fair use parameters. We reserve the right to throttle or temporarily suspend access for abusive usage patterns (e.g., automated scraping, excessive API calls).
+            <strong>4.6 Usage Limits:</strong> The limit the Platform enforces is the number of reports per billing period, and the number of territories included in a report, as set out in section 4.1. Territory Comparison and the What If Calculator are not separately metered. All plans are subject to reasonable fair use, and we reserve the right to throttle or temporarily suspend access for abusive usage patterns (e.g., automated scraping, excessive API calls).
           </Typography>
 
           <Typography variant="h4">5. Enterprise Solutions (B2B)</Typography>
