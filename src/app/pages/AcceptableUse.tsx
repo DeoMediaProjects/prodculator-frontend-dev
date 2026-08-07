@@ -84,7 +84,7 @@ export function AcceptableUse() {
           </Typography>
           <ul>
             <li><strong>API Abuse:</strong> Exceeding contracted API rate limits or using API access for purposes not specified in your contract</li>
-            <li><strong>Report Redistribution:</strong> Forwarding automated B2B reports to individuals or organizations not listed in your contract</li>
+            <li><strong>Report Redistribution:</strong> Forwarding automated Business Intelligence reports to individuals or organizations not listed in your contract</li>
             <li><strong>Benchmark Gaming:</strong> Using territory intelligence data to artificially inflate or deflate reported production activity</li>
             <li><strong>White Label Misuse:</strong> Using white label reports to misrepresent data as your own proprietary research (appropriate attribution required)</li>
           </ul>
@@ -175,7 +175,7 @@ export function AcceptableUse() {
 
           <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${t.border}` }}>
             <Typography variant="body2" sx={{ color: t.textSecondary }}>
-              <strong>Version:</strong> 2.0 (B2B Updated)<br />
+              <strong>Version:</strong> 2.0 (Business Intelligence Updated)<br />
               <strong>Effective Date:</strong> January 24, 2026
             </Typography>
           </Box>

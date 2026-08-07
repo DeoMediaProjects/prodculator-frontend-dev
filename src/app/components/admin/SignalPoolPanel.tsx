@@ -81,7 +81,7 @@ export function SignalPoolPanel() {
 
   const revokeConsent = async (row: SignalPoolItem) => {
     if (!window.confirm(
-      'Revoke B2B consent for this signal?\n\nIt will be excluded from all future '
+      'Revoke Business Intelligence consent for this signal?\n\nIt will be excluded from all future '
       + 'Business Intelligence reports. This cannot be undone from here: only the '
       + 'producer can grant consent again.',
     )) return;

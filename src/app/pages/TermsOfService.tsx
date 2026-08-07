@@ -32,7 +32,7 @@ export function TermsOfService() {
           <ul>
             <li><strong>Individual Subscriptions:</strong> Script analysis, production location strategy, tax incentive calculations, comparable productions intelligence, territory comparison tools, and interactive what if calculators for individual producers, directors, and studios.</li>
             <li><strong>Comparison Tools:</strong> Side by side territory comparison tool and interactive what if calculator for scenario planning, available to all tiers with usage limits based on subscription level.</li>
-            <li><strong>Enterprise Solutions (B2B):</strong> Territory intelligence reports, production APIs, aggregate market data, and custom reporting for film commissions, government agencies, streamers, studios, equipment rental companies, and production service providers.</li>
+            <li><strong>Business Intelligence Solutions:</strong> Territory intelligence reports, production APIs, aggregate market data, and custom reporting for film commissions, government agencies, streamers, studios, equipment rental companies, and production service providers.</li>
           </ul>
 
           <Typography variant="h4">3. Data Accuracy & Limitations</Typography>
@@ -79,7 +79,7 @@ export function TermsOfService() {
             <strong>4.6 Usage Limits:</strong> The limit the Platform enforces is the number of reports per billing period, and the number of territories included in a report, as set out in section 4.1. Territory Comparison and the What If Calculator are not separately metered. All plans are subject to reasonable fair use, and we reserve the right to throttle or temporarily suspend access for abusive usage patterns (e.g., automated scraping, excessive API calls).
           </Typography>
 
-          <Typography variant="h4">5. Enterprise Solutions (B2B)</Typography>
+          <Typography variant="h4">5. Business Intelligence Solutions</Typography>
           <Typography>
             <strong>5.1 Custom Contracts:</strong> Enterprise clients (film commissions, streamers, studios, equipment rental companies, and production service providers) enter into separate written agreements with custom pricing, service levels, and deliverables.
           </Typography>
@@ -269,7 +269,7 @@ export function TermsOfService() {
 
           <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${t.border}` }}>
             <Typography variant="body2" sx={{ color: t.textSecondary }}>
-              <strong>Version:</strong> 2.0 (B2B Updated)<br />
+              <strong>Version:</strong> 2.0 (Business Intelligence Updated)<br />
               <strong>Effective Date:</strong> January 24, 2026<br />
               <strong>Previous Version:</strong> 1.0 (Individual Users Only)
             </Typography>

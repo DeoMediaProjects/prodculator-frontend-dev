@@ -162,7 +162,7 @@ export function BusinessMetrics() {
               value={data.total_paid_users.toLocaleString()}
               label="Paid Users"
               sub={`${data.total_users.toLocaleString()} total`}
-              tooltip="Users on a paid plan (Professional, Producer, Studio, or B2B). The subline shows every registered user, paid or free."
+              tooltip="Users on a paid plan (Professional, Producer, Studio, or Business Intelligence). The subline shows every registered user, paid or free."
             />
             <Kpi
               value={usd(data.mrr_usd)}

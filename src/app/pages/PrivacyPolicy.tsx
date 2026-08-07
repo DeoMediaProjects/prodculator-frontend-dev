@@ -22,7 +22,7 @@ export function PrivacyPolicy() {
 
           <Typography variant="h4">1. Introduction</Typography>
           <Typography>
-            Prodculator (operated by Deo Media Limited) (\"we\", \"us\", \"our\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Platform, including both individual subscriptions and enterprise (B2B) solutions.
+            Prodculator (operated by Deo Media Limited) (\"we\", \"us\", \"our\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Platform, including both individual subscriptions and Business Intelligence solutions for organisations.
           </Typography>
           <Typography>
             <strong>Important:</strong> Prodculator is NOT designed for collecting personally identifiable information (PII) or securing highly sensitive personal data. This Platform is intended for professional film production intelligence only.
@@ -31,7 +31,7 @@ export function PrivacyPolicy() {
           <Typography variant="h4">2. Information We Collect</Typography>
           
           <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
-            2.1 Individual Users (B2C)
+            2.1 Individual Users
           </Typography>
           <Typography>
             <strong>Account Information:</strong>
@@ -57,7 +57,7 @@ export function PrivacyPolicy() {
           </ul>
 
           <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
-            2.2 Enterprise Clients (B2B)
+            2.2 Business Intelligence Clients
           </Typography>
           <Typography>
             <strong>Organization Information:</strong>
@@ -190,7 +190,7 @@ export function PrivacyPolicy() {
           </Typography>
           <ul>
             <li><strong>Payment Processors:</strong> Stripe (for payment processing)</li>
-            <li><strong>Email Service:</strong> Brevo/AWS SES (for transactional emails and automated B2B report delivery)</li>
+            <li><strong>Email Service:</strong> Brevo/AWS SES (for transactional emails and automated Business Intelligence report delivery)</li>
             <li><strong>AI Processing:</strong> Anthropic (primary) and OpenAI (failover), which receive uploaded script content solely to generate the report you requested, as described in section 5.1</li>
             <li><strong>Cloud Infrastructure:</strong> AWS/Google Cloud (for hosting and data storage)</li>
             <li><strong>Analytics:</strong> Google Analytics (anonymized usage data only; no PII)</li>
@@ -290,7 +290,7 @@ export function PrivacyPolicy() {
             <strong>Version History:</strong>
           </Typography>
           <ul>
-            <li>Version 2.0 (January 24, 2026): Added B2B/enterprise provisions, API data handling, automated report delivery</li>
+            <li>Version 2.0 (January 24, 2026): Added Business Intelligence provisions, API data handling, automated report delivery</li>
             <li>Version 1.0 (Initial): Individual user privacy policy</li>
           </ul>
 
@@ -327,7 +327,7 @@ export function PrivacyPolicy() {
 
           <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${t.border}` }}>
             <Typography variant="body2" sx={{ color: t.textSecondary }}>
-              <strong>Version:</strong> 2.0 (B2B Updated)<br />
+              <strong>Version:</strong> 2.0 (Business Intelligence Updated)<br />
               <strong>Effective Date:</strong> January 24, 2026<br />
               <strong>GDPR Compliant:</strong> Yes<br />
               <strong>CCPA Compliant:</strong> Yes<br />
