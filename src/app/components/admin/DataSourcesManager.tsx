@@ -18,6 +18,7 @@ import {
 import { Save, CheckCircle, Warning, Refresh, Schedule } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import type { DataSource, DataSourceSyncSchedule, SyncScheduleItem } from '@/services/admin.types';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
@@ -245,6 +246,23 @@ function DataSourcesManagerContent() {
     }
   };
 
+  useHeaderActions(
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={<Save />}
+      onClick={handleSave}
+      disabled={saving || pendingChangesCount === 0}
+    >
+      {saving
+        ? 'Saving...'
+        : pendingChangesCount === 0
+          ? 'No changes'
+          : `Save ${pendingChangesCount} change${pendingChangesCount === 1 ? '' : 's'}`}
+    </Button>,
+    [saving, pendingChangesCount],
+  );
+
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
@@ -439,28 +457,10 @@ function DataSourcesManagerContent() {
         </Grid>
       )}
 
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          <strong>Security:</strong> Secret keys are stored server side only. Frontend never stores OpenAI or backend service credentials.
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Save />}
-          onClick={handleSave}
-          disabled={saving || pendingChangesCount === 0}
-          sx={{
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            fontWeight: 600,
-            px: 4,
-            '&:hover': {
-              bgcolor: 'primary.main',
-            },
-          }}
-        >
-          {saving ? 'Saving...' : 'Save Configuration'}
-        </Button>
-      </Box>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mt: 3 }}>
+        <strong>Security:</strong> Secret keys are stored server side only. The frontend never holds provider or
+        backend service credentials.
+      </Typography>
 
       <Box sx={{ mt: 4, p: 3, bgcolor: 'action.hover', borderRadius: 2, border: 1, borderColor: 'divider' }}>
         <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 2 }}>

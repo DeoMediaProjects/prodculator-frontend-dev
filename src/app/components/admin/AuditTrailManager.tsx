@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
+  CircularProgress,
   Button,
   Card,
   Chip,
@@ -13,13 +14,6 @@ import {
   MenuItem,
   Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -28,6 +22,7 @@ import {
   Close,
   FilterAltOff,
   Refresh,
+  HistoryOutlined,
   Search,
   Visibility,
 } from '@mui/icons-material';
@@ -39,6 +34,9 @@ import type {
   AuditLogFilters,
   AuditRetention,
 } from '@/services/admin.types';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
 const PANEL_SX = { p: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider' } as const;
@@ -164,11 +162,14 @@ export function AuditTrailManager() {
 
 const EMPTY_FILTERS: AuditLogFilters = {};
 
+// The endpoint caps at 200. Fetched in one page so sorting and filtering
+// apply to the whole set rather than to one server page.
+const FETCH_LIMIT = 200;
+
 function AuditTrailManagerContent() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [facets, setFacets] = useState<AuditLogFacets | null>(null);
@@ -185,7 +186,7 @@ function AuditTrailManagerContent() {
       setLoading(true);
       setError(null);
       const { data, error: err } = await adminApi.getAuditLogs(
-        { ...filters, limit: rowsPerPage, offset: page * rowsPerPage },
+        { ...filters, limit: FETCH_LIMIT },
         signal,
       );
       if (signal?.aborted) return;
@@ -195,10 +196,9 @@ function AuditTrailManagerContent() {
         return;
       }
       setEntries(data?.items ?? []);
-      setTotal(data?.total ?? 0);
       setLoading(false);
     },
-    [filters, page, rowsPerPage],
+    [filters],
   );
 
   useEffect(() => {
@@ -224,7 +224,6 @@ function AuditTrailManagerContent() {
   }, []);
 
   const setFilter = <K extends keyof AuditLogFilters>(key: K, value: AuditLogFilters[K]) => {
-    setPage(0);
     setFilters((prev) => {
       const next = { ...prev };
       if (value === undefined || value === '') delete next[key];
@@ -236,32 +235,81 @@ function AuditTrailManagerContent() {
   const applySearch = () => setFilter('search', searchDraft.trim() || undefined);
 
   const clearFilters = () => {
-    setPage(0);
     setSearchDraft('');
     setFilters(EMPTY_FILTERS);
   };
 
   const activeFilterCount = Object.keys(filters).length;
 
+  const columns = useMemo<Column<AuditLogEntry>[]>(() => [
+    {
+      key: 'created_at', header: 'WHEN', width: '1.15fr',
+      sortValue: (r) => new Date(r.created_at || 0).getTime() || 0,
+      render: (r) => <Box sx={{ color: t.textPrimary, fontSize: 13.5 }}>{formatDateTime(r.created_at)}</Box>,
+    },
+    {
+      key: 'actor_email', header: 'ADMIN', width: '1.4fr',
+      sortValue: (r) => r.actor_email || 'Unattributed',
+      render: (r) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {r.actor_email || 'Unattributed'}
+          </Typography>
+          {r.actor_role && (
+            <Typography sx={{ fontSize: 11.5, color: t.textSecondary }}>{r.actor_role.replace(/_/g, ' ')}</Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'action', header: 'ACTION', width: '1.3fr',
+      sortValue: (r) => humaniseAction(r.action),
+      render: (r) => <Box sx={{ color: t.textPrimary, fontSize: 13.5 }}>{humaniseAction(r.action)}</Box>,
+    },
+    {
+      key: 'resource_id', header: 'RESOURCE', width: '1.3fr',
+      sortValue: (r) => `${r.resource_type} ${r.resource_id || ''}`,
+      render: (r) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 13.5, color: t.textSecondary }}>{r.resource_type.replace(/_/g, ' ')}</Typography>
+          {r.resource_id && (
+            <Typography sx={{ fontSize: 11, color: t.textFaint, fontFamily: 'ui-monospace, monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {r.resource_id}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'succeeded', header: 'OUTCOME', width: '0.9fr',
+      sortValue: (r) => (r.succeeded === null ? 'unknown' : r.succeeded ? 'succeeded' : 'failed'),
+      render: (r) => {
+        // A denied attempt is the entry most worth spotting, so failure is the
+        // only outcome that carries colour.
+        if (r.succeeded === null) return <Box sx={{ color: t.textFaint, fontSize: 13 }}>No response</Box>;
+        if (r.succeeded) return <Box sx={{ color: t.textSecondary, fontSize: 13 }}>{r.status_code ?? 'OK'}</Box>;
+        return (
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: t.error }}>
+            {r.status_code === 403 ? 'Denied' : `Failed ${r.status_code ?? ''}`.trim()}
+          </Typography>
+        );
+      },
+    },
+    {
+      key: 'ip_address', header: 'IP', width: '0.85fr',
+      render: (r) => <Box sx={{ color: t.textSecondary, fontSize: 12.5 }}>{r.ip_address || 'Unknown'}</Box>,
+    },
+  ], [t]);
+
+  useHeaderActions(
+    <Button size="small" startIcon={<Refresh />} onClick={() => void loadEntries()}>
+      Refresh
+    </Button>,
+    [loadEntries],
+  );
+
   return (
     <Box>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        justifyContent="space-between"
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        spacing={2}
-        sx={{ mb: 3 }}
-      >
-        <Box>
-          <Typography sx={{ color: 'text.secondary' }}>
-            Every change an admin has made, with the state either side of it. Read-only: entries cannot be edited or deleted here.
-          </Typography>
-        </Box>
-        <Button startIcon={<Refresh />} onClick={() => void loadEntries()}>
-          Refresh
-        </Button>
-      </Stack>
-
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
@@ -397,87 +445,35 @@ function AuditTrailManagerContent() {
         </Stack>
       </Paper>
 
-      <Paper sx={PANEL_SX}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ color: 'text.secondary' }}>When</TableCell>
-                <TableCell sx={{ color: 'text.secondary' }}>Admin</TableCell>
-                <TableCell sx={{ color: 'text.secondary' }}>Action</TableCell>
-                <TableCell sx={{ color: 'text.secondary' }}>Resource</TableCell>
-                <TableCell sx={{ color: 'text.secondary' }}>Outcome</TableCell>
-                <TableCell sx={{ color: 'text.secondary' }}>IP</TableCell>
-                <TableCell sx={{ color: 'text.secondary' }} align="right">Detail</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} sx={{ textAlign: 'center', color: 'text.secondary', py: 6 }}>
-                    Loading audit trail…
-                  </TableCell>
-                </TableRow>
-              ) : entries.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} sx={{ textAlign: 'center', color: 'text.secondary', py: 6 }}>
-                    {activeFilterCount > 0
-                      ? 'No entries match these filters.'
-                      : 'No admin changes have been recorded yet.'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                entries.map((entry) => (
-                  <TableRow key={entry.id} hover>
-                    <TableCell sx={{ color: 'text.primary', whiteSpace: 'nowrap' }}>
-                      {formatDateTime(entry.created_at)}
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.primary' }}>
-                      {entry.actor_email ?? 'Unattributed'}
-                      {entry.actor_role && (
-                        <Typography component="div" sx={{ color: 'text.secondary', fontSize: 11 }}>
-                          {entry.actor_role.replace(/_/g, ' ')}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.primary' }}>{humaniseAction(entry.action)}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {entry.resource_type.replace(/_/g, ' ')}
-                      {entry.resource_id && (
-                        <Typography component="div" sx={{ color: 'text.secondary', fontSize: 11, fontFamily: 'monospace' }}>
-                          {entry.resource_id}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell><StatusChip entry={entry} /></TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: 12 }}>{entry.ip_address ?? ', '}</TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="View before and after">
-                        <IconButton size="small" onClick={() => setSelected(entry)} sx={{ color: 'primary.main' }}>
-                          <Visibility fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          component="div"
-          count={total}
-          page={page}
-          onPageChange={(_, next) => setPage(next)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-          rowsPerPageOptions={[25, 50, 100]}
-          sx={{ color: 'text.secondary' }}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress sx={{ color: t.gold }} />
+        </Box>
+      ) : (
+        <DataTable<AuditLogEntry>
+          title="Recorded changes"
+          columns={columns}
+          rows={entries}
+          getRowId={(r) => r.id}
+          onRowClick={(r) => setSelected(r)}
+          pageSize={25}
+          itemNoun="entry"
+          minWidth={1020}
+          emptyIcon={<HistoryOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+          emptyMessage={
+            activeFilterCount > 0
+              ? 'No entries match these filters.'
+              : 'No admin changes have been recorded yet. Every edit an admin makes appears here with the state either side of it.'
+          }
+          rowActions={(r) => (
+            <Tooltip title="View before and after">
+              <IconButton size="small" onClick={() => setSelected(r)} sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}>
+                <Visibility sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          )}
         />
-      </Paper>
+      )}
 
       <Dialog
         open={!!selected}

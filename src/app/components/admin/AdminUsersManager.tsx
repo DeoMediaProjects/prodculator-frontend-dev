@@ -1,18 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Button,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -38,13 +30,15 @@ import {
   Shield,
   CheckCircle,
   Cancel,
-  Person,
   AdminPanelSettings,
   ContentCopy,
 } from '@mui/icons-material';
 import { useAuth, AdminRole, ROLE_PERMISSIONS } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
 import type { AdminUserRecord } from '@/services/admin.types';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
 const ROLE_LABELS: Record<AdminRole, string> = {
@@ -62,6 +56,8 @@ const ROLE_COLORS: Record<AdminRole, string> = {
 };
 
 export function AdminUsersManager() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const { hasAdminPermission, adminUser } = useAuth();
   const [adminUsers, setAdminUsers] = useState<AdminUserRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -226,135 +222,104 @@ export function AdminUsersManager() {
     );
   }
 
+  const columns = useMemo<Column<AdminUserRecord>[]>(() => [
+    {
+      key: 'name', header: 'NAME', width: '1.3fr',
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {r.name || 'Unnamed'}
+        </Typography>
+      ),
+    },
+    { key: 'email', header: 'EMAIL', width: '1.7fr' },
+    {
+      key: 'role', header: 'ROLE', width: '1.1fr',
+      sortValue: (r) => ROLE_LABELS[r.role] || r.role,
+      render: (r) => (
+        // Role is the only thing on this row that changes what the account can
+        // do, so it is the one value that carries colour.
+        <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: ROLE_COLORS[r.role] || t.textSecondary }}>
+          {ROLE_LABELS[r.role] || r.role}
+        </Typography>
+      ),
+    },
+    {
+      key: 'created_at', header: 'CREATED', width: '0.85fr',
+      sortValue: (r) => new Date(r.created_at || 0).getTime() || 0,
+      render: (r) => (
+        <Box sx={{ color: t.textSecondary, fontSize: 13.5 }}>
+          {r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Unknown'}
+        </Box>
+      ),
+    },
+    {
+      key: 'last_login', header: 'LAST SIGN IN', width: '0.95fr',
+      sortValue: (r) => new Date(r.last_login || 0).getTime() || 0,
+      render: (r) => (
+        // "Never" is the value worth noticing here: an account that has never
+        // signed in is either unused or was provisioned and forgotten.
+        <Box sx={{ color: r.last_login ? t.textSecondary : t.warning, fontSize: 13.5 }}>
+          {r.last_login ? new Date(r.last_login).toLocaleDateString() : 'Never'}
+        </Box>
+      ),
+    },
+  ], [t]);
+
+  useHeaderActions(
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={<Add />}
+      onClick={() => { resetForm(); setAddDialogOpen(true); }}
+    >
+      Add admin
+    </Button>,
+    [],
+  );
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Manage admin accounts and assign role based permissions
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            resetForm();
-            setAddDialogOpen(true);
-          }}
-          sx={{
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            fontWeight: 600,
-            '&:hover': { bgcolor: 'primary.main' },
-          }}
-        >
-          Add Admin
-        </Button>
-      </Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* Current Admin Info */}
-      <Alert
-        icon={<AdminPanelSettings />}
-        sx={{
-          mb: 3,
-          bgcolor: 'action.hover',
-          color: 'primary.main',
-          border: 1, borderColor: 'divider',
-        }}
-      >
-        <Typography variant="body2">
-          <strong>Logged in as:</strong> {adminUser?.name} ({adminUser?.email}){' '}
-          <strong>{ROLE_LABELS[adminUser?.role || 'support_admin']}</strong>
-        </Typography>
-      </Alert>
+      <Typography sx={{ color: 'text.secondary', fontSize: 13.5, mb: 2, maxWidth: '78ch' }}>
+        Every account here can sign in to this console. Role decides what it can reach, so treat granting one as
+        granting the permissions listed further down this page. You are signed in as{' '}
+        <Box component="span" sx={{ color: 'text.primary', fontWeight: 600 }}>{adminUser?.email}</Box>{' '}
+        ({ROLE_LABELS[adminUser?.role || 'support_admin']}).
+      </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3, bgcolor: 'rgba(244, 67, 54, 0.1)', color: 'error.main' }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Admin Users Table */}
-      <Card sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', mb: 4 }}>
-        <CardContent>
-          <TableContainer component={Paper} sx={{ bgcolor: 'transparent' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Name</TableCell>
-                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Email</TableCell>
-                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Role</TableCell>
-                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Created</TableCell>
-                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Last Login</TableCell>
-                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {adminUsers.map((admin) => (
-                  <TableRow
-                    key={admin.id}
-                    sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-                  >
-                    <TableCell sx={{ color: 'text.primary', fontWeight: 500 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Person sx={{ color: 'primary.main', fontSize: 20 }} />
-                        {admin.name}
-                      </Box>
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>{admin.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={<Shield sx={{ fontSize: 16 }} />}
-                        label={ROLE_LABELS[admin.role]}
-                        size="small"
-                        sx={{
-                          bgcolor: `${ROLE_COLORS[admin.role]}20`,
-                          color: ROLE_COLORS[admin.role],
-                          fontWeight: 600,
-                          border: `1px solid ${ROLE_COLORS[admin.role]}40`,
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-                      {admin.created_at
-                        ? new Date(admin.created_at).toLocaleDateString()
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-                      {admin.last_login
-                        ? new Date(admin.last_login).toLocaleDateString()
-                        : 'Never'}
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Tooltip title="Edit Admin">
-                          <IconButton
-                            size="small"
-                            onClick={() => openEditDialog(admin)}
-                            sx={{ color: 'primary.main' }}
-                          >
-                            <Edit fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete Admin">
-                          <IconButton
-                            size="small"
-                            onClick={() => openDeleteDialog(admin)}
-                            sx={{ color: 'error.main' }}
-                            disabled={admin.id === adminUser?.id}
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
+      <DataTable<AdminUserRecord>
+        title="Admin accounts"
+        columns={columns}
+        rows={adminUsers}
+        getRowId={(r) => r.id}
+        pageSize={12}
+        itemNoun="account"
+        minWidth={860}
+        emptyIcon={<AdminPanelSettings sx={{ fontSize: 28, color: t.textFaint }} />}
+        emptyMessage="No admin accounts yet. The seeded master admin is the only way in until another is created here."
+        rowActions={(r) => (
+          <>
+            <Tooltip title="Edit role or details">
+              <IconButton size="small" onClick={() => openEditDialog(r)} sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}>
+                <Edit sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={r.id === adminUser?.id ? 'You cannot remove your own account' : 'Remove this admin'}>
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={r.id === adminUser?.id}
+                  onClick={() => openDeleteDialog(r)}
+                  sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}
+                >
+                  <Delete sx={{ fontSize: 18 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </>
+        )}
+      />
 
       {/* Role Permissions Reference */}
       <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', mb: 3 }}>

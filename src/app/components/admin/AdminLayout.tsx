@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import {
   Alert, Box, Drawer, IconButton, Snackbar, Tooltip, Typography,
@@ -12,6 +12,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { usePrefersReducedMotion } from '@/app/components/user/b2c/tourStyles';
+import { HeaderActionsContext } from '@/app/components/user/b2c/headerActions';
 import {
   ADMIN_NAV_ITEMS, ADMIN_SIDEBAR_COLLAPSED_W, ADMIN_SIDEBAR_W,
   AdminSidebar, useAdminSidebarCollapsed,
@@ -64,6 +65,10 @@ export function AdminLayout() {
   const { collapsed, toggle: toggleCollapsed } = useAdminSidebarCollapsed();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  // Every page's action buttons render here in the top bar, never inside the
+  // page body, so the primary actions sit in one predictable place across the
+  // whole console.
+  const [headerActions, setHeaderActions] = useState<ReactNode>(null);
 
   // The session check is async; redirecting before it settles would bounce a
   // signed-in admin to the login screen on every refresh.
@@ -77,6 +82,7 @@ export function AdminLayout() {
   const meta = pageMeta(location.pathname);
 
   return (
+    <HeaderActionsContext.Provider value={{ setActions: setHeaderActions }}>
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: t.pageBg }}>
       {isDesktop ? (
         <Box
@@ -146,7 +152,8 @@ export function AdminLayout() {
                 <MenuIcon />
               </IconButton>
             )}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {headerActions}
               <SegmentedToggle
                 radius={12}
                 value={mode}
@@ -201,5 +208,6 @@ export function AdminLayout() {
         </Alert>
       </Snackbar>
     </Box>
+    </HeaderActionsContext.Provider>
   );
 }
