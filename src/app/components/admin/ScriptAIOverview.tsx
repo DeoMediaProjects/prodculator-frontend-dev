@@ -172,14 +172,14 @@ export function ScriptAIOverview() {
       value: metrics?.total_paid_users?.toString() ?? 'N/A',
       change: '',
       icon: <People />,
-      color: '#D4AF37',
+      color: 'primary.main',
     },
     {
       label: 'Monthly Recurring Revenue',
       value: mrrDisplay,
       change: mrrSubtext,
       icon: <AttachMoney />,
-      color: '#66bb6a',
+      color: 'success.main',
     },
     {
       label: 'Reports Generated (MTD)',
@@ -188,14 +188,14 @@ export function ScriptAIOverview() {
         ? `${metrics.reports_this_month_free.toLocaleString()} free, ${metrics.reports_this_month_paid.toLocaleString()} paid`
         : '',
       icon: <Description />,
-      color: '#42a5f5',
+      color: 'info.main',
     },
     {
       label: 'Avg. Reports per User',
       value: metrics?.avg_reports_per_user?.toFixed(1) ?? 'N/A',
       change: 'Per paid user',
       icon: <TrendingUp />,
-      color: '#ffa726',
+      color: 'warning.main',
     },
   ];
 
@@ -211,7 +211,7 @@ export function ScriptAIOverview() {
   if (loadingMetrics && loadingSubscribers) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress sx={{ color: '#D4AF37' }} />
+        <CircularProgress sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
@@ -224,10 +224,7 @@ export function ScriptAIOverview() {
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
-              Paid Users & Subscription Overview
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               Monitor subscriber activity, revenue, and usage metrics
             </Typography>
           </Box>
@@ -239,11 +236,11 @@ export function ScriptAIOverview() {
                 variant={currencyView === cv ? 'contained' : 'outlined'}
                 onClick={() => setCurrencyView(cv)}
                 sx={{
-                  borderColor: '#D4AF37',
+                  borderColor: 'primary.main',
                   color: currencyView === cv ? '#000000' : '#D4AF37',
                   bgcolor: currencyView === cv ? '#D4AF37' : 'transparent',
                   '&:hover': {
-                    borderColor: '#D4AF37',
+                    borderColor: 'primary.main',
                     bgcolor: currencyView === cv ? '#D4AF37' : 'rgba(212, 175, 55, 0.08)',
                   },
                 }}
@@ -261,8 +258,8 @@ export function ScriptAIOverview() {
           <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
             <Card
               sx={{
-                bgcolor: '#0a0a0a',
-                border: '1px solid rgba(212, 175, 55, 0.2)',
+                bgcolor: 'background.paper',
+                border: 1, borderColor: 'divider',
                 '&:hover': { borderColor: 'rgba(212, 175, 55, 0.4)' },
               }}
             >
@@ -281,10 +278,10 @@ export function ScriptAIOverview() {
                     <Box sx={{ color: stat.color }}>{stat.icon}</Box>
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff', mb: 0.5 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5 }}>
                       {stat.value}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
                       {stat.label}
                     </Typography>
                     {stat.change && (
@@ -304,12 +301,12 @@ export function ScriptAIOverview() {
       <Card
         sx={{
           mb: 4,
-          bgcolor: '#0a0a0a',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
+          bgcolor: 'background.paper',
+          border: 1, borderColor: 'divider',
         }}
       >
         <CardContent>
-          <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600, mb: 3 }}>
+          <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 3 }}>
             Plan Distribution & Revenue Breakdown
           </Typography>
           <Grid container spacing={3}>
@@ -334,25 +331,25 @@ export function ScriptAIOverview() {
                           bgcolor: color,
                         }}
                       />
-                      <Typography variant="subtitle2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                      <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600 }}>
                         {plan.plan}
                       </Typography>
                     </Box>
-                    <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700, mb: 0.5 }}>
+                    <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 700, mb: 0.5 }}>
                       {plan.user_count}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                       Users
                     </Typography>
                     {plan.revenue > 0 && (
                       <>
                         <Typography
                           variant="h6"
-                          sx={{ color: '#66bb6a', fontWeight: 700, mt: 2, mb: 0.5 }}
+                          sx={{ color: 'success.main', fontWeight: 700, mt: 2, mb: 0.5 }}
                         >
                           ${plan.revenue.toLocaleString()}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                           Monthly Revenue
                         </Typography>
                       </>
@@ -366,10 +363,10 @@ export function ScriptAIOverview() {
       </Card>
 
       {/* Paid Users Table */}
-      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Box sx={{ p: 3, borderBottom: '1px solid rgba(212, 175, 55, 0.1)' }}>
+      <Paper sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
+        <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
+            <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
               Paid Subscribers
             </Typography>
             <Button
@@ -377,10 +374,10 @@ export function ScriptAIOverview() {
               startIcon={<Download />}
               size="small"
               sx={{
-                borderColor: '#D4AF37',
-                color: '#D4AF37',
+                borderColor: 'primary.main',
+                color: 'primary.main',
                 '&:hover': {
-                  borderColor: '#D4AF37',
+                  borderColor: 'primary.main',
                   bgcolor: 'rgba(212, 175, 55, 0.08)',
                 },
               }}
@@ -398,7 +395,7 @@ export function ScriptAIOverview() {
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ color: '#666' }} />
+                    <Search sx={{ color: 'text.secondary' }} />
                   </InputAdornment>
                 ),
               },
@@ -411,7 +408,7 @@ export function ScriptAIOverview() {
             onChange={(_, newValue) => setTabValue(newValue)}
             sx={{
               '& .MuiTab-root': {
-                color: '#a0a0a0',
+                color: 'text.secondary',
                 textTransform: 'none',
                 fontWeight: 600,
               },
@@ -433,22 +430,22 @@ export function ScriptAIOverview() {
 
         {loadingSubscribers ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress sx={{ color: '#D4AF37' }} />
+            <CircularProgress sx={{ color: 'primary.main' }} />
           </Box>
         ) : (
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>User</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Company</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Plan</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Usage</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Monthly Spend</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Join Date</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Last Active</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Actions</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>User</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Company</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Plan</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Usage</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Monthly Spend</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Join Date</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Last Active</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -467,7 +464,7 @@ export function ScriptAIOverview() {
                 ))}
                 {subscribers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} sx={{ textAlign: 'center', color: '#a0a0a0', py: 4 }}>
+                    <TableCell colSpan={9} sx={{ textAlign: 'center', color: 'text.secondary', py: 4 }}>
                       No subscribers found
                     </TableCell>
                   </TableRow>
@@ -482,9 +479,9 @@ export function ScriptAIOverview() {
       <Dialog
         open={creditDialogOpen}
         onClose={() => setCreditDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#1a1a1a', border: '1px solid rgba(212, 175, 55, 0.3)' } }}
+        PaperProps={{ sx: { bgcolor: 'background.paper', border: '1px solid rgba(212, 175, 55, 0.3)' } }}
       >
-        <DialogTitle sx={{ color: '#D4AF37' }}>Adjust Report Credits</DialogTitle>
+        <DialogTitle sx={{ color: 'primary.main' }}>Adjust Report Credits</DialogTitle>
         <DialogContent>
           <TextField
             label="Credit Adjustment"
@@ -503,15 +500,15 @@ export function ScriptAIOverview() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreditDialogOpen(false)} sx={{ color: '#a0a0a0' }}>
+          <Button onClick={() => setCreditDialogOpen(false)} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
           <Button
             onClick={handleCreditSubmit}
             disabled={!creditAmount || creditLoading}
-            sx={{ color: '#D4AF37' }}
+            sx={{ color: 'primary.main' }}
           >
-            {creditLoading ? <CircularProgress size={20} sx={{ color: '#D4AF37' }} /> : 'Submit'}
+            {creditLoading ? <CircularProgress size={20} sx={{ color: 'primary.main' }} /> : 'Submit'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -562,8 +559,8 @@ function SubscriberRow({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
               width: 36,
               height: 36,
               fontSize: '0.875rem',
@@ -576,16 +573,16 @@ function SubscriberRow({
               .join('')}
           </Avatar>
           <Box>
-            <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+            <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600 }}>
               {user.name}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {user.email}
             </Typography>
           </Box>
         </Box>
       </TableCell>
-      <TableCell sx={{ color: '#ffffff', fontSize: '0.875rem' }}>{user.company}</TableCell>
+      <TableCell sx={{ color: 'text.primary', fontSize: '0.875rem' }}>{user.company}</TableCell>
       <TableCell>
         <Chip
           label={user.plan}
@@ -597,10 +594,10 @@ function SubscriberRow({
       <TableCell>
         <Box sx={{ minWidth: 120 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {user.reports_this_month}/{unlimited ? '∞' : user.report_limit}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
               {unlimited ? '100' : Math.round(usagePercent)}%
             </Typography>
           </Box>
@@ -614,17 +611,17 @@ function SubscriberRow({
               },
             }}
           />
-          <Typography variant="caption" sx={{ color: '#666', mt: 0.5, display: 'block' }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
             {user.total_reports_generated} total reports
           </Typography>
         </Box>
       </TableCell>
-      <TableCell sx={{ color: '#66bb6a', fontWeight: 600, fontSize: '0.875rem' }}>
+      <TableCell sx={{ color: 'success.main', fontWeight: 600, fontSize: '0.875rem' }}>
         {user.payment_currency === 'GBP' ? '£' : '$'}
         {user.monthly_spend}/mo
       </TableCell>
-      <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{user.join_date}</TableCell>
-      <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{user.last_active ?? 'N/A'}</TableCell>
+      <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{user.join_date}</TableCell>
+      <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{user.last_active ?? 'N/A'}</TableCell>
       <TableCell>
         <Chip
           icon={user.status === 'Active' ? <CheckCircle sx={{ fontSize: 14 }} /> : undefined}
@@ -637,21 +634,21 @@ function SubscriberRow({
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <Tooltip title="View">
             <IconButton size="small">
-              <Visibility sx={{ color: '#D4AF37', fontSize: 18 }} />
+              <Visibility sx={{ color: 'primary.main', fontSize: 18 }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Adjust credits">
             <IconButton size="small" onClick={() => onCredit(user.id)}>
-              <CreditCard sx={{ color: '#42a5f5', fontSize: 18 }} />
+              <CreditCard sx={{ color: 'info.main', fontSize: 18 }} />
             </IconButton>
           </Tooltip>
           {!isBlocked && (
             <Tooltip title="Block user">
               <IconButton size="small" onClick={() => onBlock(user.id)} disabled={isLoading}>
                 {isLoading ? (
-                  <CircularProgress size={18} sx={{ color: '#f44336' }} />
+                  <CircularProgress size={18} sx={{ color: 'error.main' }} />
                 ) : (
-                  <Block sx={{ color: '#f44336', fontSize: 18 }} />
+                  <Block sx={{ color: 'error.main', fontSize: 18 }} />
                 )}
               </IconButton>
             </Tooltip>
@@ -660,9 +657,9 @@ function SubscriberRow({
             <Tooltip title="Unblock user">
               <IconButton size="small" onClick={() => onUnblock(user.id)} disabled={isLoading}>
                 {isLoading ? (
-                  <CircularProgress size={18} sx={{ color: '#66bb6a' }} />
+                  <CircularProgress size={18} sx={{ color: 'success.main' }} />
                 ) : (
-                  <LockOpen sx={{ color: '#66bb6a', fontSize: 18 }} />
+                  <LockOpen sx={{ color: 'success.main', fontSize: 18 }} />
                 )}
               </IconButton>
             </Tooltip>

@@ -91,8 +91,7 @@ function ComparableProductionsManagerContent() {
   const handleSave = async () => {
     if (editingProduction) {
       const payload: ComparableProduction = {
-        ...editingProduction,
-        ...formData,
+        ...editingProduction, ...formData,
         lastUpdated: new Date().toISOString().split('T')[0],
       } as ComparableProduction;
       const { data, error } = await adminApi.updateComparable(editingProduction.id, payload);
@@ -143,10 +142,7 @@ function ComparableProductionsManagerContent() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
-            Comparable Productions Database
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Curated database of film/TV productions with budgets, locations, and incentives used
           </Typography>
         </Box>
@@ -157,10 +153,10 @@ function ComparableProductionsManagerContent() {
             onClick={handleSyncTMDB}
             disabled={syncing}
             sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
+              borderColor: 'primary.main',
+              color: 'primary.main',
               '&:hover': {
-                borderColor: '#D4AF37',
+                borderColor: 'primary.main',
                 bgcolor: 'rgba(212, 175, 55, 0.08)',
               },
             }}
@@ -172,11 +168,11 @@ function ComparableProductionsManagerContent() {
             startIcon={<Add />}
             onClick={handleAdd}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#D4AF37',
+                bgcolor: 'primary.main',
               },
             }}
           >
@@ -195,30 +191,30 @@ function ComparableProductionsManagerContent() {
       )}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress sx={{ color: '#D4AF37' }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       )}
 
-      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+      <Paper sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Title</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Year</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Genre</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Budget</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Territory</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Incentive Used</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Source</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Last Updated</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Title</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Year</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Genre</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Budget</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Territory</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Incentive Used</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Source</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Last Updated</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {productions.map((production) => (
                 <TableRow key={production.id} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
-                  <TableCell sx={{ color: '#ffffff' }}>
+                  <TableCell sx={{ color: 'text.primary' }}>
                     {production.title}
                     {production.tmdbId && (
                       <Chip
@@ -234,7 +230,7 @@ function ComparableProductionsManagerContent() {
                       />
                     )}
                   </TableCell>
-                  <TableCell sx={{ color: '#ffffff' }}>{production.year}</TableCell>
+                  <TableCell sx={{ color: 'text.primary' }}>{production.year}</TableCell>
                   <TableCell>
                     {(Array.isArray(production.genre) ? production.genre : [production.genre]).map((g) => (
                       <Chip
@@ -243,26 +239,26 @@ function ComparableProductionsManagerContent() {
                         size="small"
                         sx={{
                           bgcolor: 'rgba(212, 175, 55, 0.2)',
-                          color: '#D4AF37',
+                          color: 'primary.main',
                           fontWeight: 600,
                           mr: 0.5,
                         }}
                       />
                     ))}
                   </TableCell>
-                  <TableCell sx={{ color: '#ffffff' }}>
+                  <TableCell sx={{ color: 'text.primary' }}>
                     ${(production.budget / 1000000).toFixed(1)}M
                   </TableCell>
-                  <TableCell sx={{ color: '#ffffff', fontSize: '0.875rem' }}>{production.territory}</TableCell>
-                  <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{production.incentiveUsed}</TableCell>
-                  <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{production.source}</TableCell>
-                  <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{production.lastUpdated}</TableCell>
+                  <TableCell sx={{ color: 'text.primary', fontSize: '0.875rem' }}>{production.territory}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{production.incentiveUsed}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{production.source}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{production.lastUpdated}</TableCell>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>
                     <IconButton size="small" onClick={() => handleEdit(production)}>
-                      <Edit sx={{ color: '#D4AF37', fontSize: 18 }} />
+                      <Edit sx={{ color: 'primary.main', fontSize: 18 }} />
                     </IconButton>
                     <IconButton size="small" onClick={() => handleDelete(production.id)}>
-                      <Delete sx={{ color: '#f44336', fontSize: 18 }} />
+                      <Delete sx={{ color: 'error.main', fontSize: 18 }} />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -280,12 +276,12 @@ function ComparableProductionsManagerContent() {
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            bgcolor: 'background.paper',
+            border: 1, borderColor: 'divider',
           }
         }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>
           {editingProduction ? 'Edit Production' : 'Add Production'}
         </DialogTitle>
         <DialogContent>
@@ -357,16 +353,16 @@ function ComparableProductionsManagerContent() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={handleClose} sx={{ color: '#a0a0a0' }}>
+          <Button onClick={handleClose} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleSave}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': { bgcolor: 'primary.main' },
             }}
           >
             {editingProduction ? 'Update' : 'Add'} Production

@@ -130,10 +130,6 @@ function EmailGatingManagerContent() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4, color: '#D4AF37' }}>
-        Email Gating Management
-      </Typography>
-
       {errorMessage && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {errorMessage}
@@ -146,7 +142,7 @@ function EmailGatingManagerContent() {
           sx={{
             mb: 3,
             bgcolor: 'rgba(46, 125, 50, 0.1)',
-            color: '#66bb6a',
+            color: 'success.main',
             border: '1px solid rgba(46, 125, 50, 0.3)',
           }}
         >
@@ -154,11 +150,11 @@ function EmailGatingManagerContent() {
         </Alert>
       )}
 
-      <Paper sx={{ p: 3, mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#ffffff' }}>
+      <Paper sx={{ p: 3, mb: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
+        <Typography variant="h6" gutterBottom sx={{ color: 'text.primary' }}>
           Abuse Prevention
         </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
           Monitor and manage free report usage per email address
         </Typography>
 
@@ -173,7 +169,7 @@ function EmailGatingManagerContent() {
             }}
             slotProps={{
               input: {
-                startAdornment: <Search sx={{ mr: 1, color: '#a0a0a0' }} />,
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
               },
             }}
           />
@@ -181,9 +177,9 @@ function EmailGatingManagerContent() {
             variant="outlined"
             onClick={handleSearch}
             sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
-              '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.08)' },
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(212, 175, 55, 0.08)' },
             }}
           >
             Search
@@ -191,10 +187,10 @@ function EmailGatingManagerContent() {
         </Box>
       </Paper>
 
-      <Paper sx={{ p: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+      <Paper sx={{ p: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress sx={{ color: '#D4AF37' }} />
+            <CircularProgress sx={{ color: 'primary.main' }} />
           </Box>
         ) : (
           <>
@@ -202,25 +198,25 @@ function EmailGatingManagerContent() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Email Address</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Date Used</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Report Generated</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Status</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Actions</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>Email Address</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>Date Used</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>Report Generated</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>Status</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {records.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} sx={{ textAlign: 'center', color: '#a0a0a0', py: 4 }}>
+                      <TableCell colSpan={5} sx={{ textAlign: 'center', color: 'text.secondary', py: 4 }}>
                         No records found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     records.map((record) => (
                       <TableRow key={record.id}>
-                        <TableCell sx={{ color: '#ffffff' }}>{record.email}</TableCell>
-                        <TableCell sx={{ color: '#a0a0a0' }}>{formatDateTime(record.date)}</TableCell>
+                        <TableCell sx={{ color: 'text.primary' }}>{record.email}</TableCell>
+                        <TableCell sx={{ color: 'text.secondary' }}>{formatDateTime(record.date)}</TableCell>
                         <TableCell>
                           {record.report_generated ? (
                             <Chip
@@ -229,8 +225,8 @@ function EmailGatingManagerContent() {
                               icon={<CheckCircle />}
                               sx={{
                                 bgcolor: 'rgba(46, 125, 50, 0.2)',
-                                color: '#66bb6a',
-                                '& .MuiChip-icon': { color: '#66bb6a' },
+                                color: 'success.main',
+                                '& .MuiChip-icon': { color: 'success.main' },
                               }}
                             />
                           ) : (
@@ -268,7 +264,7 @@ function EmailGatingManagerContent() {
                             }}
                           >
                             {actionInProgress === record.id ? (
-                              <CircularProgress size={20} sx={{ color: '#D4AF37' }} />
+                              <CircularProgress size={20} sx={{ color: 'primary.main' }} />
                             ) : record.blocked ? (
                               <LockOpen />
                             ) : (
@@ -293,7 +289,7 @@ function EmailGatingManagerContent() {
                 setPage(0);
               }}
               rowsPerPageOptions={[10, 25, 50]}
-              sx={{ color: '#a0a0a0' }}
+              sx={{ color: 'text.secondary' }}
             />
           </>
         )}

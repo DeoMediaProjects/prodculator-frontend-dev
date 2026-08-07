@@ -59,6 +59,14 @@ export const ADMIN_EMAIL_GATING_URL = '/api/admin/email-gating';
 export const adminEmailGatingBlockUrl   = (recordId: string) => `/api/admin/email-gating/${recordId}/block`;
 export const adminEmailGatingUnblockUrl = (recordId: string) => `/api/admin/email-gating/${recordId}/unblock`;
 
+// ── Audit trail endpoints (read-only) ────────────────────────────────────────
+// The table is append-only: there is deliberately no write URL here, because a
+// mutating endpoint would be a way to edit history.
+export const ADMIN_AUDIT_LOGS_URL = '/api/admin/audit-logs';
+export const ADMIN_AUDIT_LOGS_FACETS_URL = '/api/admin/audit-logs/facets';
+export const ADMIN_AUDIT_LOGS_RETENTION_URL = '/api/admin/audit-logs/retention';
+export const adminAuditLogUrl = (logId: string) => `/api/admin/audit-logs/${logId}`;
+
 // ── PDF report endpoints ─────────────────────────────────────────────────────
 export const ADMIN_PDF_REPORTS_URL = '/api/admin/pdf-reports';
 export const adminPdfReportPreviewUrl = (id: string) => `/api/admin/pdf-reports/${id}/preview`;

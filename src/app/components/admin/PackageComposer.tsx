@@ -27,8 +27,8 @@ const STANDARD_PRODUCTS = [
 ];
 
 const PART_LABEL: Record<string, string> = {
-  context: 'Part A — Curated market context',
-  signals: 'Part B — Platform demand signals',
+  context: 'Part A, Curated market context',
+  signals: 'Part B, Platform demand signals',
 };
 
 function isoDate(d: Date): string {

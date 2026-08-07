@@ -110,17 +110,13 @@ function PDFReportsManagerContent() {
   if (loading && reports.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress sx={{ color: '#D4AF37' }} />
+        <CircularProgress sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-        PDF Reports Manager
-      </Typography>
-
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}

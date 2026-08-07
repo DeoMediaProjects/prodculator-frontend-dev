@@ -30,9 +30,8 @@ import { AdminAccessDenied } from './AdminAccessDenied';
 import { adminApi } from '@/services/admin.api';
 import type { BusinessMetricsDashboard } from '@/services/admin.types';
 
-const GOLD = '#D4AF37';
-const CARD_SX = { bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' } as const;
-const HEAD_SX = { color: GOLD, fontWeight: 600 } as const;
+const CARD_SX = { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } as const;
+const HEAD_SX = { color: 'primary.main', fontWeight: 600 } as const;
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
 const pct = (n: number) => `${n}%`;
@@ -42,8 +41,8 @@ function SectionCard({ icon, title, children }: { icon: ReactNode; title: string
     <Card sx={{ ...CARD_SX, mb: 4 }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Box sx={{ color: GOLD, display: 'flex' }}>{icon}</Box>
-          <Typography variant="h6" sx={{ color: GOLD, fontWeight: 600 }}>
+          <Box sx={{ color: 'primary.main', display: 'flex' }}>{icon}</Box>
+          <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
             {title}
           </Typography>
         </Box>
@@ -59,7 +58,7 @@ function Kpi({
   label,
   sub,
   tooltip,
-  color = GOLD,
+  color = 'primary.main',
 }: {
   icon: ReactNode;
   value: string;
@@ -74,7 +73,7 @@ function Kpi({
         <Card
           sx={{
             width: '100%',
-            bgcolor: '#0a0a0a',
+            bgcolor: 'background.paper',
             border: `1px solid ${color}40`,
             cursor: 'help',
             '&:hover': { borderColor: color },
@@ -83,10 +82,10 @@ function Kpi({
           <CardContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Box sx={{ color }}>{icon}</Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
                 {value}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {label}
               </Typography>
               {/* Reserve the sub-line height on every card so all cards align */}
@@ -137,17 +136,14 @@ export function BusinessMetrics() {
     <Box>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: GOLD, mb: 1 }}>
-          Business Metrics Dashboard
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Live platform health from subscriptions, reports, and billing geography
         </Typography>
       </Box>
 
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-          <CircularProgress sx={{ color: GOLD }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       )}
 
@@ -220,19 +216,19 @@ export function BusinessMetrics() {
                   <TableBody>
                     {data.geographic.map((row) => (
                       <TableRow key={row.country_code || row.country}>
-                        <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>{row.country}</TableCell>
-                        <TableCell sx={{ color: '#ffffff' }}>{row.users}</TableCell>
+                        <TableCell sx={{ color: 'text.primary', fontWeight: 600 }}>{row.country}</TableCell>
+                        <TableCell sx={{ color: 'text.primary' }}>{row.users}</TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ flex: 1, maxWidth: 100 }}>
-                              <Box sx={{ height: 8, bgcolor: GOLD, borderRadius: 1, width: `${row.percentage}%` }} />
+                              <Box sx={{ height: 8, bgcolor: 'primary.main', borderRadius: 1, width: `${row.percentage}%` }} />
                             </Box>
-                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                               {row.percentage}%
                             </Typography>
                           </Box>
                         </TableCell>
-                        <TableCell sx={{ color: '#66bb6a', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
+                        <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -241,7 +237,7 @@ export function BusinessMetrics() {
             </SectionCard>
           ) : (
             <SectionCard icon={<Public />} title="Geographic Distribution (Paid Users)">
-              <Typography variant="body2" sx={{ color: '#777' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 No available data
               </Typography>
             </SectionCard>
@@ -263,10 +259,10 @@ export function BusinessMetrics() {
                   <TableBody>
                     {data.us_states.map((row) => (
                       <TableRow key={row.state_code}>
-                        <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>{row.state}</TableCell>
-                        <TableCell sx={{ color: '#ffffff' }}>{row.users}</TableCell>
-                        <TableCell sx={{ color: '#66bb6a', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
-                        <TableCell sx={{ color: '#42a5f5' }}>
+                        <TableCell sx={{ color: 'text.primary', fontWeight: 600 }}>{row.state}</TableCell>
+                        <TableCell sx={{ color: 'text.primary' }}>{row.users}</TableCell>
+                        <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
+                        <TableCell sx={{ color: 'info.main' }}>
                           {row.users ? usd(row.revenue_usd / row.users) : 'N/A'}
                         </TableCell>
                       </TableRow>
@@ -292,8 +288,8 @@ export function BusinessMetrics() {
                     <TableBody>
                       {data.plan_distribution.map((row) => (
                         <TableRow key={row.plan}>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.plan}</TableCell>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.count}</TableCell>
+                          <TableCell sx={{ color: 'text.primary' }}>{row.plan}</TableCell>
+                          <TableCell sx={{ color: 'text.primary' }}>{row.count}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -316,8 +312,8 @@ export function BusinessMetrics() {
                     <TableBody>
                       {data.role_distribution.map((row) => (
                         <TableRow key={row.role}>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.role}</TableCell>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.count}</TableCell>
+                          <TableCell sx={{ color: 'text.primary' }}>{row.role}</TableCell>
+                          <TableCell sx={{ color: 'text.primary' }}>{row.count}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -348,13 +344,13 @@ export function BusinessMetrics() {
                       border: '1px solid #66bb6a40',
                     }}
                   >
-                    <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1 }}>
+                    <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700, mb: 1 }}>
                       {m.value}
                     </Typography>
-                    <Typography variant="subtitle2" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
                       {m.label}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                       {m.note}
                     </Typography>
                   </Box>

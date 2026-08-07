@@ -103,7 +103,7 @@ export function AdminUsersManager() {
     return () => controller.abort();
   }, [fetchAdminUsers]);
 
-  // Permission gate — must run AFTER all hooks so hook order stays stable across
+  // Permission gate, must run AFTER all hooks so hook order stays stable across
   // renders (Rules of Hooks). Previously this early return preceded the
   // useCallback/useEffect above, so the hook count changed when the permission
   // flag flipped between renders, which crashes React.
@@ -221,7 +221,7 @@ export function AdminUsersManager() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress sx={{ color: '#D4AF37' }} />
+        <CircularProgress sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
@@ -230,10 +230,7 @@ export function AdminUsersManager() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
-            Admin User Management
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#a0a0a0' }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             Manage admin accounts and assign role based permissions
           </Typography>
         </Box>
@@ -245,10 +242,10 @@ export function AdminUsersManager() {
             setAddDialogOpen(true);
           }}
           sx={{
-            bgcolor: '#D4AF37',
-            color: '#000000',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
             fontWeight: 600,
-            '&:hover': { bgcolor: '#D4AF37' },
+            '&:hover': { bgcolor: 'primary.main' },
           }}
         >
           Add Admin
@@ -261,7 +258,7 @@ export function AdminUsersManager() {
         sx={{
           mb: 3,
           bgcolor: 'rgba(212, 175, 55, 0.1)',
-          color: '#D4AF37',
+          color: 'primary.main',
           border: '1px solid rgba(212, 175, 55, 0.3)',
         }}
       >
@@ -272,24 +269,24 @@ export function AdminUsersManager() {
       </Alert>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3, bgcolor: 'rgba(244, 67, 54, 0.1)', color: '#f44336' }}>
+        <Alert severity="error" sx={{ mb: 3, bgcolor: 'rgba(244, 67, 54, 0.1)', color: 'error.main' }}>
           {error}
         </Alert>
       )}
 
       {/* Admin Users Table */}
-      <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)', mb: 4 }}>
+      <Card sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', mb: 4 }}>
         <CardContent>
           <TableContainer component={Paper} sx={{ bgcolor: 'transparent' }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Name</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Email</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Role</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Created</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Last Login</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Actions</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Email</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Role</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Created</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Last Login</TableCell>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -298,13 +295,13 @@ export function AdminUsersManager() {
                     key={admin.id}
                     sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}
                   >
-                    <TableCell sx={{ color: '#ffffff', fontWeight: 500 }}>
+                    <TableCell sx={{ color: 'text.primary', fontWeight: 500 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Person sx={{ color: '#D4AF37', fontSize: 20 }} />
+                        <Person sx={{ color: 'primary.main', fontSize: 20 }} />
                         {admin.name}
                       </Box>
                     </TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>{admin.email}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{admin.email}</TableCell>
                     <TableCell>
                       <Chip
                         icon={<Shield sx={{ fontSize: 16 }} />}
@@ -318,12 +315,12 @@ export function AdminUsersManager() {
                         }}
                       />
                     </TableCell>
-                    <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
                       {admin.created_at
                         ? new Date(admin.created_at).toLocaleDateString()
                         : 'N/A'}
                     </TableCell>
-                    <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
                       {admin.last_login
                         ? new Date(admin.last_login).toLocaleDateString()
                         : 'Never'}
@@ -334,7 +331,7 @@ export function AdminUsersManager() {
                           <IconButton
                             size="small"
                             onClick={() => openEditDialog(admin)}
-                            sx={{ color: '#D4AF37' }}
+                            sx={{ color: 'primary.main' }}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
@@ -343,7 +340,7 @@ export function AdminUsersManager() {
                           <IconButton
                             size="small"
                             onClick={() => openDeleteDialog(admin)}
-                            sx={{ color: '#f44336' }}
+                            sx={{ color: 'error.main' }}
                             disabled={admin.id === adminUser?.id}
                           >
                             <Delete fontSize="small" />
@@ -360,7 +357,7 @@ export function AdminUsersManager() {
       </Card>
 
       {/* Role Permissions Reference */}
-      <Typography variant="h5" sx={{ fontWeight: 700, color: '#D4AF37', mb: 3 }}>
+      <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', mb: 3 }}>
         Role Permissions Reference
       </Typography>
 
@@ -369,7 +366,7 @@ export function AdminUsersManager() {
           <Grid size={{ xs: 12, md: 6 }} key={role}>
             <Card
               sx={{
-                bgcolor: '#0a0a0a',
+                bgcolor: 'background.paper',
                 border: `2px solid ${ROLE_COLORS[role]}40`,
               }}
             >
@@ -388,9 +385,9 @@ export function AdminUsersManager() {
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             {enabled ? (
-                              <CheckCircle sx={{ color: '#66bb6a', fontSize: 18 }} />
+                              <CheckCircle sx={{ color: 'success.main', fontSize: 18 }} />
                             ) : (
-                              <Cancel sx={{ color: '#666', fontSize: 18 }} />
+                              <Cancel sx={{ color: 'text.secondary', fontSize: 18 }} />
                             )}
                             <Typography
                               variant="body2"
@@ -427,16 +424,16 @@ export function AdminUsersManager() {
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            bgcolor: 'background.paper',
+            border: 1, borderColor: 'divider',
           },
         }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>Add New Admin</DialogTitle>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>Add New Admin</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
             {formError && (
-              <Alert severity="error" sx={{ bgcolor: 'rgba(244, 67, 54, 0.1)', color: '#f44336' }}>
+              <Alert severity="error" sx={{ bgcolor: 'rgba(244, 67, 54, 0.1)', color: 'error.main' }}>
                 {formError}
               </Alert>
             )}
@@ -502,7 +499,7 @@ export function AdminUsersManager() {
               setAddDialogOpen(false);
               resetForm();
             }}
-            sx={{ color: '#a0a0a0' }}
+            sx={{ color: 'text.secondary' }}
             disabled={saving}
           >
             Cancel
@@ -512,12 +509,12 @@ export function AdminUsersManager() {
             onClick={handleAddAdmin}
             disabled={!formEmail || saving}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': { bgcolor: 'primary.main' },
             }}
           >
-            {saving ? <CircularProgress size={20} sx={{ color: '#000' }} /> : 'Add Admin'}
+            {saving ? <CircularProgress size={20} sx={{ color: 'primary.contrastText' }} /> : 'Add Admin'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -530,26 +527,26 @@ export function AdminUsersManager() {
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            bgcolor: 'background.paper',
+            border: 1, borderColor: 'divider',
           },
         }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>Admin Created Successfully</DialogTitle>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>Admin Created Successfully</DialogTitle>
         <DialogContent>
           <Alert
             severity="warning"
             sx={{
               mb: 3,
               bgcolor: 'rgba(255, 152, 0, 0.1)',
-              color: '#ff9800',
+              color: 'warning.main',
               border: '1px solid rgba(255, 152, 0, 0.3)',
             }}
           >
             Save this temporary password now. It won't be shown again.
           </Alert>
-          <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
-            Admin: <strong style={{ color: '#ffffff' }}>{createdAdminEmail}</strong>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+            Admin: <strong style={{ color: 'text.primary' }}>{createdAdminEmail}</strong>
           </Typography>
           <Box
             sx={{
@@ -564,7 +561,7 @@ export function AdminUsersManager() {
           >
             <Typography
               variant="body1"
-              sx={{ color: '#D4AF37', fontFamily: 'monospace', fontWeight: 600, flex: 1 }}
+              sx={{ color: 'primary.main', fontFamily: 'monospace', fontWeight: 600, flex: 1 }}
             >
               {tempPassword}
             </Typography>
@@ -572,7 +569,7 @@ export function AdminUsersManager() {
               <IconButton
                 size="small"
                 onClick={() => copyToClipboard(tempPassword)}
-                sx={{ color: '#D4AF37' }}
+                sx={{ color: 'primary.main' }}
               >
                 <ContentCopy fontSize="small" />
               </IconButton>
@@ -584,9 +581,9 @@ export function AdminUsersManager() {
             variant="contained"
             onClick={() => setTempPasswordDialogOpen(false)}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': { bgcolor: 'primary.main' },
             }}
           >
             Done
@@ -606,16 +603,16 @@ export function AdminUsersManager() {
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            bgcolor: 'background.paper',
+            border: 1, borderColor: 'divider',
           },
         }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>Edit Admin</DialogTitle>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>Edit Admin</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
             {formError && (
-              <Alert severity="error" sx={{ bgcolor: 'rgba(244, 67, 54, 0.1)', color: '#f44336' }}>
+              <Alert severity="error" sx={{ bgcolor: 'rgba(244, 67, 54, 0.1)', color: 'error.main' }}>
                 {formError}
               </Alert>
             )}
@@ -656,7 +653,7 @@ export function AdminUsersManager() {
               setSelectedAdmin(null);
               resetForm();
             }}
-            sx={{ color: '#a0a0a0' }}
+            sx={{ color: 'text.secondary' }}
             disabled={saving}
           >
             Cancel
@@ -666,12 +663,12 @@ export function AdminUsersManager() {
             onClick={handleEditAdmin}
             disabled={saving}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': { bgcolor: 'primary.main' },
             }}
           >
-            {saving ? <CircularProgress size={20} sx={{ color: '#000' }} /> : 'Save Changes'}
+            {saving ? <CircularProgress size={20} sx={{ color: 'primary.contrastText' }} /> : 'Save Changes'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -687,24 +684,24 @@ export function AdminUsersManager() {
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: '#0a0a0a',
+            bgcolor: 'background.paper',
             border: '2px solid rgba(244, 67, 54, 0.4)',
           },
         }}
       >
-        <DialogTitle sx={{ color: '#f44336', fontWeight: 600 }}>Delete Admin?</DialogTitle>
+        <DialogTitle sx={{ color: 'error.main', fontWeight: 600 }}>Delete Admin?</DialogTitle>
         <DialogContent>
           <Alert
             severity="error"
             sx={{
               mb: 2,
               bgcolor: 'rgba(244, 67, 54, 0.1)',
-              color: '#f44336',
+              color: 'error.main',
             }}
           >
             <strong>Warning:</strong> This action cannot be undone!
           </Alert>
-          <Typography variant="body1" sx={{ color: '#ffffff' }}>
+          <Typography variant="body1" sx={{ color: 'text.primary' }}>
             Are you sure you want to delete <strong>{selectedAdmin?.name}</strong> (
             {selectedAdmin?.email})?
           </Typography>
@@ -715,7 +712,7 @@ export function AdminUsersManager() {
               setDeleteDialogOpen(false);
               setSelectedAdmin(null);
             }}
-            sx={{ color: '#a0a0a0' }}
+            sx={{ color: 'text.secondary' }}
             disabled={saving}
           >
             Cancel
@@ -725,12 +722,12 @@ export function AdminUsersManager() {
             onClick={handleDeleteAdmin}
             disabled={saving}
             sx={{
-              bgcolor: '#f44336',
-              color: '#ffffff',
+              bgcolor: 'error.main',
+              color: 'text.primary',
               '&:hover': { bgcolor: '#d32f2f' },
             }}
           >
-            {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Delete Admin'}
+            {saving ? <CircularProgress size={20} sx={{ color: 'text.primary' }} /> : 'Delete Admin'}
           </Button>
         </DialogActions>
       </Dialog>

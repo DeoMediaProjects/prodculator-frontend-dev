@@ -101,11 +101,27 @@ export function createAppTheme(mode: ThemeMode): Theme {
           text: { color: t.gold },
         },
       },
+      // Surfaces are separated by a hairline border, never by a drop shadow.
+      // elevation 0 by default kills MUI's shadow at the source: every Card and
+      // Paper in the app inherited elevation 1, which is where the soft grey
+      // halo under every admin panel came from. Any surface that genuinely needs
+      // lift (a menu over content) opts in explicitly.
+      // elevation 0 by default, but no blanket `boxShadow: none` here: Menu,
+      // Dialog and Popover are all Paper and pass their own elevation, and an
+      // overlay with no separation from the content beneath it is worse than the
+      // halo this removes.
       MuiPaper: {
+        defaultProps: { elevation: 0 },
         styleOverrides: { root: { backgroundImage: 'none', backgroundColor: t.cardBg } },
       },
       MuiCard: {
-        styleOverrides: { root: { backgroundImage: 'none', backgroundColor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 14 } },
+        defaultProps: { elevation: 0 },
+        styleOverrides: {
+          root: {
+            backgroundImage: 'none', backgroundColor: t.cardBg,
+            border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: 'none',
+          },
+        },
       },
       MuiOutlinedInput: {
         styleOverrides: {

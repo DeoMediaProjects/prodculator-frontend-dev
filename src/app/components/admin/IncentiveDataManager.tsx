@@ -100,7 +100,7 @@ function verificationChipProps(v?: string | null) {
   if (s.startsWith('verified')) return { label: v || 'Verified', bg: 'rgba(212,175,55,0.18)', fg: '#D4AF37' };
   if (s.startsWith('verify')) return { label: 'Needs Verify', bg: 'rgba(255,152,0,0.2)', fg: '#ffa726' };
   if (s.startsWith('inherited')) return { label: v || 'Inherited', bg: 'rgba(117,117,117,0.25)', fg: '#bdbdbd' };
-  return { label: v || '—', bg: 'rgba(117,117,117,0.15)', fg: '#9e9e9e' };
+  return { label: v || ', ', bg: 'rgba(117,117,117,0.15)', fg: '#9e9e9e' };
 }
 
 function confidenceColour(c?: number | null): string {
@@ -122,7 +122,7 @@ function parseWarnings(raw?: string | null): string[] {
 
 const CALC_CURRENCIES = ['GBP', 'USD', 'EUR', 'ZAR', 'CAD', 'AUD', 'HUF', 'CZK', 'NGN'];
 
-// HONEST DEFAULTS for a newly created row — it must NEVER look verified.
+// HONEST DEFAULTS for a newly created row, it must NEVER look verified.
 // The admin has to explicitly promote status / verification / confidence.
 const NEW_ROW_DEFAULTS: Partial<IncentiveData> = {
   status: 'admin_verify_required',
@@ -134,7 +134,7 @@ const RATE_TYPES = ['cash_rebate', 'tax_credit', 'enhanced_tax_credit', 'refunda
 const REGIONS = ['UK', 'Europe', 'North America', 'Africa', 'Asia', 'Oceania', 'South America'];
 const QS_TYPES = ['total', 'local_spend', 'labour', 'pdv'];
 
-// ── Qualifying Spend Calculator — ALL maths runs server-side
+// ── Qualifying Spend Calculator, ALL maths runs server-side
 //    (ReportValidator._compute_corrected_rebate via /api/admin/incentives/calculate)
 function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[] }) {
   const [budget, setBudget] = useState('30000000');
@@ -145,7 +145,7 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
   const [calculating, setCalculating] = useState(false);
 
   const options = incentives
-    .map((i) => ({ key: `${i.territory}|||${i.program}`, label: `${i.territory} — ${i.program}` }))
+    .map((i) => ({ key: `${i.territory}|||${i.program}`, label: `${i.territory}, ${i.program}` }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
   const handleCalculate = async () => {
@@ -166,12 +166,12 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
   };
 
   return (
-    <Paper sx={{ mb: 3, p: 2.5, bgcolor: '#0a0a0a', border: '1px solid #D4AF37' }}>
-      <Typography variant="subtitle1" sx={{ color: '#D4AF37', fontWeight: 700, letterSpacing: 1, mb: 0.5 }}>
-        QUALIFYING SPEND CALCULATOR — RESOLVES WHAT A PRODUCTION CAN ACTUALLY CLAIM
+    <Paper sx={{ mb: 3, p: 2.5, bgcolor: 'background.paper', border: '1px solid #D4AF37' }}>
+      <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: 1, mb: 0.5 }}>
+        QUALIFYING SPEND CALCULATOR, RESOLVES WHAT A PRODUCTION CAN ACTUALLY CLAIM
       </Typography>
-      <Typography variant="caption" sx={{ color: '#777', display: 'block', mb: 2 }}>
-        Computed server-side by the report engine (single source of truth) — approximate illustrative FX for non-GBP budgets.
+      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
+        Computed server-side by the report engine (single source of truth), approximate illustrative FX for non-GBP budgets.
       </Typography>
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
@@ -182,12 +182,12 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
         <TextField select label="Currency" size="small" value={currency} onChange={(e) => setCurrency(e.target.value)} sx={{ flex: '0 1 110px', minWidth: 96 }}>
           {CALC_CURRENCIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </TextField>
-        <TextField select label="Territory — Programme" size="small" value={selected} onChange={(e) => setSelected(e.target.value)} sx={{ flex: '1 1 100%', minWidth: 0, width: { xs: '100%', md: 'auto' }, order: { xs: 3, md: 0 } }}>
+        <TextField select label="Territory, Programme" size="small" value={selected} onChange={(e) => setSelected(e.target.value)} sx={{ flex: '1 1 100%', minWidth: 0, width: { xs: '100%', md: 'auto' }, order: { xs: 3, md: 0 } }}>
           {options.map((o) => <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>)}
         </TextField>
         <Button
           variant="contained" onClick={handleCalculate} disabled={calculating || !selected}
-          sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' }, order: { xs: 4, md: 0 }, flexShrink: 0 }}
+          sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' }, order: { xs: 4, md: 0 }, flexShrink: 0 }}
         >
           {calculating ? 'Calculating…' : 'Calculate'}
         </Button>
@@ -197,12 +197,12 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
 
       {result && (
         <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: 1 }}>
-          <Typography variant="subtitle2" sx={{ color: '#fff', fontWeight: 700 }}>
-            {result.territory} — {result.program}
-            {result.mechanismPattern && <Chip size="small" label={`Pattern ${result.mechanismPattern}`} sx={{ ml: 1, bgcolor: '#1a1a1a', color: '#a0a0a0' }} />}
+          <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700 }}>
+            {result.territory}, {result.program}
+            {result.mechanismPattern && <Chip size="small" label={`Pattern ${result.mechanismPattern}`} sx={{ ml: 1, bgcolor: 'background.paper', color: 'text.secondary' }} />}
           </Typography>
           {result.refusalReason && (
-            <Typography variant="body2" sx={{ color: '#f44336', fontWeight: 600, mt: 1 }}>
+            <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 600, mt: 1 }}>
               {result.refusalReason}
             </Typography>
           )}
@@ -210,27 +210,27 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
             <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mt: 1.5 }}>
               {[
                 ['Budget', result.budget],
-                [`Qualifying spend (${result.qualifyingSpendPct || '—'})`, result.qualifyingSpend],
+                [`Qualifying spend (${result.qualifyingSpendPct || ', '})`, result.qualifyingSpend],
                 ['Gross rebate', result.grossRebate],
                 ['Net rebate', result.netRebate],
                 ['Net budget', result.netBudget],
               ].filter(([, v]) => v).map(([k, v]) => (
                 <Box key={String(k)}>
-                  <Typography variant="caption" sx={{ color: '#777', textTransform: 'uppercase', letterSpacing: 1 }}>{k}</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>{k}</Typography>
                   <Typography variant="h6" sx={{ color: k === 'Net rebate' ? '#D4AF37' : '#fff', fontWeight: 700 }}>{v}</Typography>
                 </Box>
               ))}
             </Box>
           )}
           {(result.rateGrossDisplay || result.rateNetDisplay) && (
-            <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', mt: 1 }}>
-              Rate: {result.rateGrossDisplay || '—'} gross{result.rateNetDisplay ? ` · ${result.rateNetDisplay} net` : ''}
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
+              Rate: {result.rateGrossDisplay || ', '} gross{result.rateNetDisplay ? ` · ${result.rateNetDisplay} net` : ''}
             </Typography>
           )}
           {(result.notes || []).map((n, i) => (
             <Typography key={i} variant="caption" sx={{ color: '#888', display: 'block', mt: 0.5 }}>• {n}</Typography>
           ))}
-          {result.fxNote && <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>{result.fxNote}</Typography>}
+          {result.fxNote && <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>{result.fxNote}</Typography>}
         </Box>
       )}
     </Paper>
@@ -337,11 +337,11 @@ function IncentiveDataManagerContent(_props?: any) {
       errors.push('Territory must be one of the canonical territories.');
     }
     if (!editFormData.program?.trim()) errors.push('Programme name is required.');
-    if (!editFormData.sourceUrl?.trim()) errors.push('Source URL is required — no row without a source.');
+    if (!editFormData.sourceUrl?.trim()) errors.push('Source URL is required, no row without a source.');
     if (errors.length > 0) { setFormErrors(errors); return; }
     setFormErrors([]);
 
-    // warnings: one per line → JSON array (verbatim — no derivation)
+    // warnings: one per line → JSON array (verbatim, no derivation)
     const warningLines = warningsText.split('\n').map((w) => w.trim()).filter(Boolean);
     const payload: Partial<IncentiveData> = {
       ...editFormData,
@@ -400,10 +400,7 @@ function IncentiveDataManagerContent(_props?: any) {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
-            Incentive Data Management
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Manage tax incentive data with AI powered quarterly auto sync from official sources
           </Typography>
         </Box>
@@ -413,10 +410,10 @@ function IncentiveDataManagerContent(_props?: any) {
             startIcon={<Schedule />}
             onClick={handleOpenSyncSettings}
             sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
+              borderColor: 'primary.main',
+              color: 'primary.main',
               '&:hover': {
-                borderColor: '#D4AF37',
+                borderColor: 'primary.main',
                 bgcolor: 'rgba(212, 175, 55, 0.08)',
               },
             }}
@@ -428,11 +425,11 @@ function IncentiveDataManagerContent(_props?: any) {
             startIcon={<Add />}
             onClick={() => { setEditingIncentive(null); setEditFormData({ ...NEW_ROW_DEFAULTS }); setWarningsText(''); setFormErrors([]); setEditDialogOpen(true); }}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
               fontWeight: 600,
               '&:hover': {
-                bgcolor: '#D4AF37',
+                bgcolor: 'primary.main',
               },
             }}
           >
@@ -446,7 +443,7 @@ function IncentiveDataManagerContent(_props?: any) {
       )}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress sx={{ color: '#D4AF37' }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       )}
 
@@ -462,16 +459,16 @@ function IncentiveDataManagerContent(_props?: any) {
             ['Territories', new Set(incentives.map((i) => i.territory)).size, '#a0a0a0'],
           ].map(([label, value, colour]) => (
             <Grid size={{ xs: 6, md: 2 }} key={String(label)}>
-              <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0a0a0a', border: '1px solid rgba(212,175,55,0.15)' }}>
+              <Paper sx={{ p: 1.5, textAlign: 'center', bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
                 <Typography variant="h5" sx={{ color: String(colour), fontWeight: 800 }}>{String(value)}</Typography>
-                <Typography variant="caption" sx={{ color: '#777', textTransform: 'uppercase', letterSpacing: 0.8 }}>{String(label)}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.8 }}>{String(label)}</Typography>
               </Paper>
             </Grid>
           ))}
         </Grid>
       )}
 
-      {/* Qualifying Spend Calculator — server-side maths */}
+      {/* Qualifying Spend Calculator, server-side maths */}
       {!loading && incentives.length > 0 && <QualifyingSpendCalculator incentives={incentives} />}
 
       {/* Search + Filters */}
@@ -497,16 +494,16 @@ function IncentiveDataManagerContent(_props?: any) {
       )}
 
       {/* Auto-Sync Status Card */}
-      <Card sx={{ mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+      <Card sx={{ mb: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Sync sx={{ color: '#D4AF37', fontSize: 28 }} />
+              <Sync sx={{ color: 'primary.main', fontSize: 28 }} />
               <Box>
-                <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
+                <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
                   AI Powered Auto Sync Status
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Next scheduled check: <strong>{formatDate(syncStatus?.nextScheduledCheck)}</strong>
                 </Typography>
               </Box>
@@ -517,9 +514,9 @@ function IncentiveDataManagerContent(_props?: any) {
               onClick={handleAutoSync}
               disabled={syncing}
               sx={{
-                bgcolor: '#D4AF37',
-                color: '#000000',
-                '&:hover': { bgcolor: '#D4AF37' },
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': { bgcolor: 'primary.main' },
               }}
             >
               {syncing ? 'Syncing...' : 'Run Sync Now'}
@@ -529,30 +526,30 @@ function IncentiveDataManagerContent(_props?: any) {
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(46, 125, 50, 0.1)', borderRadius: 2 }}>
-                <Typography variant="h4" sx={{ color: '#66bb6a', fontWeight: 700 }}>
+                <Typography variant="h4" sx={{ color: 'success.main', fontWeight: 700 }}>
                   {syncStatus?.territoriesSyncing ?? 'N/A'}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Territories Auto Syncing
                 </Typography>
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(255, 152, 0, 0.1)', borderRadius: 2 }}>
-                <Typography variant="h4" sx={{ color: '#ffa726', fontWeight: 700 }}>
+                <Typography variant="h4" sx={{ color: 'warning.main', fontWeight: 700 }}>
                   {pendingChanges.length}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Pending Changes
                 </Typography>
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'rgba(212, 175, 55, 0.1)', borderRadius: 2 }}>
-                <Typography variant="h4" sx={{ color: '#D4AF37', fontWeight: 700 }}>
+                <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 700 }}>
                   {syncStatus?.daysSinceLastCheck ?? 'N/A'}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   Days Since Last Check
                 </Typography>
               </Box>
@@ -568,7 +565,7 @@ function IncentiveDataManagerContent(_props?: any) {
           sx={{
             mb: 3,
             bgcolor: 'rgba(255, 152, 0, 0.1)',
-            color: '#ffa726',
+            color: 'warning.main',
             border: '1px solid rgba(255, 152, 0, 0.3)',
           }}
           action={
@@ -588,9 +585,9 @@ function IncentiveDataManagerContent(_props?: any) {
 
       {/* Pending Changes Section */}
       <Collapse in={showPendingChanges}>
-        <Paper sx={{ mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(255, 152, 0, 0.3)' }}>
+        <Paper sx={{ mb: 3, bgcolor: 'background.paper', border: '1px solid rgba(255, 152, 0, 0.3)' }}>
           <Box sx={{ p: 2, bgcolor: 'rgba(255, 152, 0, 0.05)' }}>
-            <Typography variant="h6" sx={{ color: '#ffa726', fontWeight: 600 }}>
+            <Typography variant="h6" sx={{ color: 'warning.main', fontWeight: 600 }}>
               Pending Changes for Review
             </Typography>
           </Box>
@@ -604,26 +601,26 @@ function IncentiveDataManagerContent(_props?: any) {
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
                     {change.territory}: {change.field}
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, md: 5 }}>
-                      <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
                         Current Value:
                       </Typography>
-                      <Typography variant="body2" sx={{ color: '#f44336', fontWeight: 600 }}>
+                      <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 600 }}>
                         {change.currentValue ?? 'N/A'}
                       </Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 2 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Typography sx={{ color: '#666' }}>→</Typography>
+                      <Typography sx={{ color: 'text.secondary' }}>→</Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 5 }}>
-                      <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
                         Detected Value:
                       </Typography>
-                      <Typography variant="body2" sx={{ color: '#66bb6a', fontWeight: 600 }}>
+                      <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
                         {change.detectedValue}
                       </Typography>
                     </Grid>
@@ -638,7 +635,7 @@ function IncentiveDataManagerContent(_props?: any) {
                         fontWeight: 600,
                       }}
                     />
-                    <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                       {change.source}
                     </Typography>
                   </Box>
@@ -650,9 +647,9 @@ function IncentiveDataManagerContent(_props?: any) {
                     startIcon={<CheckCircle />}
                     onClick={() => handleApproveChange(change)}
                     sx={{
-                      bgcolor: '#66bb6a',
-                      color: '#000000',
-                      '&:hover': { bgcolor: '#4caf50' },
+                      bgcolor: 'success.main',
+                      color: 'primary.contrastText',
+                      '&:hover': { bgcolor: 'success.main' },
                     }}
                   >
                     Approve
@@ -663,7 +660,7 @@ function IncentiveDataManagerContent(_props?: any) {
                     onClick={() => handleRejectChange(change)}
                     sx={{
                       borderColor: '#666',
-                      color: '#a0a0a0',
+                      color: 'text.secondary',
                       '&:hover': {
                         borderColor: '#999',
                         bgcolor: 'rgba(255, 255, 255, 0.05)',
@@ -679,22 +676,22 @@ function IncentiveDataManagerContent(_props?: any) {
         </Paper>
       </Collapse>
 
-      {/* Incentives Table — v4 parity */}
-      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)', maxWidth: '100%' }}>
+      {/* Incentives Table, v4 parity */}
+      <Paper sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider', maxWidth: '100%' }}>
         <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
           <Table size="small" sx={{ minWidth: 1180 }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1, position: 'sticky', left: 0, zIndex: 3, bgcolor: '#0a0a0a' }}>Territory</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Programme</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Rate</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Per-Project Cap</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Annual Pool</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Mechanism</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Status</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Verification</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Confidence</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Actions</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1, position: 'sticky', left: 0, zIndex: 3, bgcolor: 'background.paper' }}>Territory</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Programme</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Rate</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Per-Project Cap</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Annual Pool</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Mechanism</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Status</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Verification</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Confidence</TableCell>
+                <TableCell sx={{ color: 'primary.main', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: 1 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -718,29 +715,29 @@ function IncentiveDataManagerContent(_props?: any) {
                       onClick={() => setExpandedRowId(expanded ? null : rowId)}
                       sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}
                     >
-                      <TableCell sx={{ color: '#fff', borderLeft: `3px solid ${regionColour(incentive.region)}`, position: 'sticky', left: 0, zIndex: 2, bgcolor: '#0a0a0a', minWidth: 130 }}>
+                      <TableCell sx={{ color: 'text.primary', borderLeft: `3px solid ${regionColour(incentive.region)}`, position: 'sticky', left: 0, zIndex: 2, bgcolor: 'background.paper', minWidth: 130 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{incentive.territory}</Typography>
-                        <Typography variant="caption" sx={{ color: '#777' }}>{incentive.region || ''}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{incentive.region || ''}</Typography>
                       </TableCell>
-                      <TableCell sx={{ color: '#fff', maxWidth: 260 }}>
+                      <TableCell sx={{ color: 'text.primary', maxWidth: 260 }}>
                         <Typography variant="body2">{incentive.program}</Typography>
                         {incentive.rateType && (
-                          <Typography variant="caption" sx={{ color: '#666' }}>{incentive.rateType}</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{incentive.rateType}</Typography>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ color: '#D4AF37', fontWeight: 700 }}>
-                          {incentive.rateGrossDisplay || incentive.rate || '—'}
+                        <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 700 }}>
+                          {incentive.rateGrossDisplay || incentive.rate || ', '}
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#888' }}>
                           gross{incentive.rateNetDisplay ? ` · net ${incentive.rateNetDisplay}` : ''}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ maxWidth: 190 }}>
-                        <Typography variant="body2" sx={{ color: '#fff' }}>{incentive.rebateCapDisplay || incentive.cap || '—'}</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.primary' }}>{incentive.rebateCapDisplay || incentive.cap || ', '}</Typography>
                         {incentive.qsBasis && (
                           <Tooltip title={incentive.qsBasis}>
-                            <Typography variant="caption" sx={{ color: '#666', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               QS: {incentive.qsBasis}
                             </Typography>
                           </Tooltip>
@@ -749,16 +746,16 @@ function IncentiveDataManagerContent(_props?: any) {
                       <TableCell sx={{ maxWidth: 170 }}>
                         {incentive.annualProgrammeCap ? (
                           <Tooltip title={incentive.annualProgrammeCap}>
-                            <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {incentive.annualProgrammeCap}
                             </Typography>
                           </Tooltip>
                         ) : (
-                          <Typography variant="caption" sx={{ color: '#555' }}>—</Typography>
+                          <Typography variant="caption" sx={{ color: '#555' }}>, </Typography>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={incentive.mechanismPattern ? `Pattern ${incentive.mechanismPattern}` : '—'} sx={{ bgcolor: '#161616', color: '#a0a0a0', fontSize: '0.7rem' }} />
+                        <Chip size="small" label={incentive.mechanismPattern ? `Pattern ${incentive.mechanismPattern}` : ', '} sx={{ bgcolor: '#161616', color: 'text.secondary', fontSize: '0.7rem' }} />
                       </TableCell>
                       <TableCell>
                         <Chip size="small" label={status.label} sx={{ bgcolor: status.bg, color: status.fg, fontWeight: 700, fontSize: '0.7rem' }} />
@@ -772,12 +769,12 @@ function IncentiveDataManagerContent(_props?: any) {
                             <LinearProgress
                               variant="determinate"
                               value={Math.min(100, incentive.confidence)}
-                              sx={{ height: 6, borderRadius: 1, bgcolor: '#1a1a1a', '& .MuiLinearProgress-bar': { bgcolor: confidenceColour(incentive.confidence) } }}
+                              sx={{ height: 6, borderRadius: 1, bgcolor: 'background.paper', '& .MuiLinearProgress-bar': { bgcolor: confidenceColour(incentive.confidence) } }}
                             />
                             <Typography variant="caption" sx={{ color: '#888' }}>{incentive.confidence}</Typography>
                           </Box>
                         ) : (
-                          <Typography variant="caption" sx={{ color: '#555' }}>—</Typography>
+                          <Typography variant="caption" sx={{ color: '#555' }}>, </Typography>
                         )}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -792,13 +789,13 @@ function IncentiveDataManagerContent(_props?: any) {
                               setEditDialogOpen(true);
                             }}
                           >
-                            <Edit sx={{ color: '#D4AF37', fontSize: 18 }} />
+                            <Edit sx={{ color: 'primary.main', fontSize: 18 }} />
                           </IconButton>
                           <IconButton
                             size="small"
                             onClick={() => incentive.id && handleDeleteIncentive(incentive.id)}
                           >
-                            <Delete sx={{ color: '#f44336', fontSize: 18 }} />
+                            <Delete sx={{ color: 'error.main', fontSize: 18 }} />
                           </IconButton>
                         </Box>
                       </TableCell>
@@ -813,33 +810,33 @@ function IncentiveDataManagerContent(_props?: any) {
                           <Box sx={{ py: 1.5, px: 1 }}>
                             {incentive.calcFormula && (
                               <Box sx={{ mb: 1.5 }}>
-                                <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 700, letterSpacing: 1 }}>CALC FORMULA</Typography>
-                                <Typography variant="body2" sx={{ color: '#ccc', fontFamily: 'monospace', fontSize: '0.78rem', whiteSpace: 'pre-wrap' }}>
+                                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: 1 }}>CALC FORMULA</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.secondary', fontFamily: 'monospace', fontSize: '0.78rem', whiteSpace: 'pre-wrap' }}>
                                   {incentive.calcFormula}
                                 </Typography>
                               </Box>
                             )}
                             {warnings.length > 0 && (
                               <Box sx={{ mb: 1.5 }}>
-                                <Typography variant="caption" sx={{ color: '#ffa726', fontWeight: 700, letterSpacing: 1 }}>WARNINGS</Typography>
+                                <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 700, letterSpacing: 1 }}>WARNINGS</Typography>
                                 {warnings.map((w, wi) => (
-                                  <Typography key={wi} variant="body2" sx={{ color: '#ccc', fontSize: '0.8rem' }}>⚠ {w}</Typography>
+                                  <Typography key={wi} variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>⚠ {w}</Typography>
                                 ))}
                               </Box>
                             )}
                             {incentive.aiRule && (
                               <Box sx={{ mb: 1 }}>
                                 <Typography variant="caption" sx={{ color: '#4f83cc', fontWeight: 700, letterSpacing: 1 }}>AI RULE</Typography>
-                                <Typography variant="body2" sx={{ color: '#ccc', fontSize: '0.8rem' }}>{incentive.aiRule}</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>{incentive.aiRule}</Typography>
                               </Box>
                             )}
                             {incentive.budgetEligibilityCeiling && (
-                              <Typography variant="caption" sx={{ color: '#f44336', display: 'block' }}>
+                              <Typography variant="caption" sx={{ color: 'error.main', display: 'block' }}>
                                 Eligibility ceiling: {incentive.budgetEligibilityCeiling}
                               </Typography>
                             )}
                             {incentive.sourceUrl && (
-                              <Link href={incentive.sourceUrl} target="_blank" rel="noopener" sx={{ color: '#D4AF37', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                              <Link href={incentive.sourceUrl} target="_blank" rel="noopener" sx={{ color: 'primary.main', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                                 Official Source <OpenInNew sx={{ fontSize: 13 }} />
                               </Link>
                             )}
@@ -864,12 +861,12 @@ function IncentiveDataManagerContent(_props?: any) {
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            bgcolor: 'background.paper',
+            border: 1, borderColor: 'divider',
           },
         }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Schedule />
             Auto Sync Configuration
@@ -878,35 +875,35 @@ function IncentiveDataManagerContent(_props?: any) {
         <DialogContent>
           {syncSettingsLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress sx={{ color: '#D4AF37' }} />
+              <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
           ) : (
             <>
-              <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', color: '#42a5f5' }}>
+              <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', color: 'info.main' }}>
                 <strong>How it works:</strong> Our AI agent reads official government websites and PDFs quarterly,
                 extracts tax incentive data, and flags changes for your review before auto applying.
               </Alert>
 
               {syncSettings && (
-                <Box sx={{ mb: 3, p: 2, bgcolor: '#1a1a1a', borderRadius: 2, border: '1px solid rgba(212, 175, 55, 0.1)' }}>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                    Last sync: <strong style={{ color: '#ffffff' }}>{formatDate(syncSettings.lastSyncAt)}</strong>
+                <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Last sync: <strong style={{ color: 'text.primary' }}>{formatDate(syncSettings.lastSyncAt)}</strong>
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5 }}>
-                    Next scheduled: <strong style={{ color: '#ffffff' }}>{formatDate(syncSettings.nextScheduledCheck)}</strong>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    Next scheduled: <strong style={{ color: 'text.primary' }}>{formatDate(syncSettings.nextScheduledCheck)}</strong>
                   </Typography>
                 </Box>
               )}
 
-              <Typography variant="subtitle1" sx={{ color: '#D4AF37', fontWeight: 600, mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 600, mb: 2 }}>
                 Monitored Official Sources:
               </Typography>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {incentives.filter(i => i.autoSyncEnabled).map((incentive, index) => (
-                  <Card key={index} sx={{ bgcolor: '#1a1a1a', border: '1px solid rgba(212, 175, 55, 0.1)' }}>
+                  <Card key={index} sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
                     <CardContent>
-                      <Typography variant="subtitle2" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
+                      <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
                         {incentive.territory}
                       </Typography>
                       {incentive.sourceUrl && (
@@ -914,13 +911,13 @@ function IncentiveDataManagerContent(_props?: any) {
                           href={incentive.sourceUrl ?? undefined}
                           target="_blank"
                           sx={{
-                            color: '#D4AF37',
+                            color: 'primary.main',
                             fontSize: '0.875rem',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 0.5,
                             textDecoration: 'none',
-                            '&:hover': { color: '#D4AF37' },
+                            '&:hover': { color: 'primary.main' },
                           }}
                         >
                           {incentive.sourceUrl}
@@ -933,7 +930,7 @@ function IncentiveDataManagerContent(_props?: any) {
               </Box>
 
               <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#a0a0a0', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>
                   Sync Schedule:
                 </Typography>
                 <TextField
@@ -953,7 +950,7 @@ function IncentiveDataManagerContent(_props?: any) {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setSyncDialogOpen(false)} sx={{ color: '#a0a0a0' }}>
+          <Button onClick={() => setSyncDialogOpen(false)} sx={{ color: 'text.secondary' }}>
             Close
           </Button>
           <Button
@@ -961,9 +958,9 @@ function IncentiveDataManagerContent(_props?: any) {
             onClick={handleSaveSyncSettings}
             disabled={syncSettingsLoading}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': { bgcolor: 'primary.main' },
             }}
           >
             Save Settings
@@ -971,7 +968,7 @@ function IncentiveDataManagerContent(_props?: any) {
         </DialogActions>
       </Dialog>
 
-      {/* Add / Edit Dialog — full schema coverage, honest defaults */}
+      {/* Add / Edit Dialog, full schema coverage, honest defaults */}
       <Dialog
         open={editDialogOpen}
         onClose={() => {
@@ -983,9 +980,9 @@ function IncentiveDataManagerContent(_props?: any) {
         maxWidth="md"
         fullWidth
         fullScreen={formFullScreen}
-        PaperProps={{ sx: { bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' } }}
+        PaperProps={{ sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>
           {editingIncentive ? 'Edit Incentive Programme' : 'Add Incentive Programme'}
         </DialogTitle>
         <DialogContent sx={{ pb: 1 }}>
@@ -995,21 +992,21 @@ function IncentiveDataManagerContent(_props?: any) {
             </Alert>
           )}
           {!editingIncentive && (
-            <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(212,175,55,0.08)', color: '#D4AF37' }}>
-              New rows default to status "Verify Required", verification "verify-required" and confidence 30 —
+            <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(212,175,55,0.08)', color: 'primary.main' }}>
+              New rows default to status "Verify Required", verification "verify-required" and confidence 30,
               they are excluded from report scoring until an admin explicitly promotes them.
             </Alert>
           )}
           {!editFormData.calcFormula?.trim() && (
             <Alert severity="warning" sx={{ mb: 2 }}>
-              calc_formula is empty — the Qualifying Spend Calculator cannot compute this row. Saving is allowed.
+              calc_formula is empty, the Qualifying Spend Calculator cannot compute this row. Saving is allowed.
             </Alert>
           )}
 
           {/* ── Identity ── */}
-          <Accordion defaultExpanded sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
-            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Identity</Typography>
+          <Accordion defaultExpanded sx={{ bgcolor: 'background.paper', color: 'text.primary', border: 1, borderColor: 'divider' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: 'primary.main' }} />}>
+              <Typography sx={{ color: 'primary.main', fontWeight: 700 }}>Identity</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
@@ -1054,21 +1051,21 @@ function IncentiveDataManagerContent(_props?: any) {
           </Accordion>
 
           {/* ── Rates ── */}
-          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
-            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Rates</Typography>
+          <Accordion sx={{ bgcolor: 'background.paper', color: 'text.primary', border: 1, borderColor: 'divider' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: 'primary.main' }} />}>
+              <Typography sx={{ color: 'primary.main', fontWeight: 700 }}>Rates</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth size="small" label="Rate gross — display string"
-                    helperText={'Verbatim (\u201cup to 35%\u201d, tiered, \u201cNone\u201d) — never derived from the numeric'}
+                  <TextField fullWidth size="small" label="Rate gross, display string"
+                    helperText={'Verbatim (\u201cup to 35%\u201d, tiered, \u201cNone\u201d), never derived from the numeric'}
                     value={editFormData.rateGrossDisplay || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, rateGrossDisplay: e.target.value })} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth size="small" label="Rate net — display string"
-                    helperText="Verbatim — never derived"
+                  <TextField fullWidth size="small" label="Rate net, display string"
+                    helperText="Verbatim, never derived"
                     value={editFormData.rateNetDisplay || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, rateNetDisplay: e.target.value })} />
                 </Grid>
@@ -1087,9 +1084,9 @@ function IncentiveDataManagerContent(_props?: any) {
           </Accordion>
 
           {/* ── Qualifying spend ── */}
-          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
-            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Qualifying spend</Typography>
+          <Accordion sx={{ bgcolor: 'background.paper', color: 'text.primary', border: 1, borderColor: 'divider' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: 'primary.main' }} />}>
+              <Typography sx={{ color: 'primary.main', fontWeight: 700 }}>Qualifying spend</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
@@ -1125,7 +1122,7 @@ function IncentiveDataManagerContent(_props?: any) {
                     control={<Checkbox checked={editFormData.atl_exempt === true}
                       indeterminate={editFormData.atl_exempt == null}
                       onChange={(e) => setEditFormData({ ...editFormData, atl_exempt: e.target.checked })}
-                      sx={{ color: '#D4AF37' }} />}
+                      sx={{ color: 'primary.main' }} />}
                     label="ATL costs included in qualifying spend (atl_exempt)" />
                 </Grid>
               </Grid>
@@ -1133,9 +1130,9 @@ function IncentiveDataManagerContent(_props?: any) {
           </Accordion>
 
           {/* ── Caps & ceilings ── */}
-          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
-            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Caps &amp; ceilings</Typography>
+          <Accordion sx={{ bgcolor: 'background.paper', color: 'text.primary', border: 1, borderColor: 'divider' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: 'primary.main' }} />}>
+              <Typography sx={{ color: 'primary.main', fontWeight: 700 }}>Caps &amp; ceilings</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
@@ -1172,9 +1169,9 @@ function IncentiveDataManagerContent(_props?: any) {
           </Accordion>
 
           {/* ── Engine ── */}
-          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
-            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Engine</Typography>
+          <Accordion sx={{ bgcolor: 'background.paper', color: 'text.primary', border: 1, borderColor: 'divider' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: 'primary.main' }} />}>
+              <Typography sx={{ color: 'primary.main', fontWeight: 700 }}>Engine</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
@@ -1197,17 +1194,17 @@ function IncentiveDataManagerContent(_props?: any) {
                   <FormControlLabel
                     control={<Checkbox checked={editFormData.is_supplementary === true}
                       onChange={(e) => setEditFormData({ ...editFormData, is_supplementary: e.target.checked })}
-                      sx={{ color: '#D4AF37' }} />}
-                    label="Supplementary credit (spend-subset uplift — never a full-budget alternative)" />
+                      sx={{ color: 'primary.main' }} />}
+                    label="Supplementary credit (spend-subset uplift, never a full-budget alternative)" />
                 </Grid>
               </Grid>
             </AccordionDetails>
           </Accordion>
 
           {/* ── Payment ── */}
-          <Accordion sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
-            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Payment</Typography>
+          <Accordion sx={{ bgcolor: 'background.paper', color: 'text.primary', border: 1, borderColor: 'divider' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: 'primary.main' }} />}>
+              <Typography sx={{ color: 'primary.main', fontWeight: 700 }}>Payment</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
@@ -1227,15 +1224,15 @@ function IncentiveDataManagerContent(_props?: any) {
           </Accordion>
 
           {/* ── Governance ── */}
-          <Accordion defaultExpanded sx={{ bgcolor: '#111', color: '#fff', border: '1px solid #222' }}>
-            <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#D4AF37' }} />}>
-              <Typography sx={{ color: '#D4AF37', fontWeight: 700 }}>Governance &amp; verification</Typography>
+          <Accordion defaultExpanded sx={{ bgcolor: 'background.paper', color: 'text.primary', border: 1, borderColor: 'divider' }}>
+            <AccordionSummary expandIcon={<ExpandMore sx={{ color: 'primary.main' }} />}>
+              <Typography sx={{ color: 'primary.main', fontWeight: 700 }}>Governance &amp; verification</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12 }}>
                   <TextField required fullWidth size="small" label="Source URL"
-                    helperText="Required — no row without a source"
+                    helperText="Required, no row without a source"
                     value={editFormData.sourceUrl || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, sourceUrl: e.target.value })} />
                 </Grid>
@@ -1261,7 +1258,7 @@ function IncentiveDataManagerContent(_props?: any) {
                 <Grid size={{ xs: 6, sm: 4 }}>
                   <TextField fullWidth size="small" label="Confidence (0–100)" type="number"
                     inputProps={{ min: 0, max: 100 }}
-                    helperText={editingIncentive ? undefined : 'Defaults to 30 — set explicitly'}
+                    helperText={editingIncentive ? undefined : 'Defaults to 30, set explicitly'}
                     value={editFormData.confidence ?? ''}
                     onChange={(e) => setEditFormData({ ...editFormData, confidence: e.target.value === '' ? null : Number(e.target.value) })} />
                 </Grid>
@@ -1277,26 +1274,26 @@ function IncentiveDataManagerContent(_props?: any) {
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField fullWidth size="small" multiline minRows={2} label="Notes"
-                    helperText="Client-facing — appears in generated reports. Keep QA annotations out of this field."
+                    helperText="Client-facing, appears in generated reports. Keep QA annotations out of this field."
                     value={editFormData.notes || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })} />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField fullWidth size="small" multiline minRows={3}
                     label="Internal audit notes (never shown to clients)"
-                    helperText="Data-team QA trail. Put [FLAGGED …] / [UPDATED …] annotations here — this field is not readable by the report generator."
+                    helperText="Data-team QA trail. Put [FLAGGED …] / [UPDATED …] annotations here, this field is not readable by the report generator."
                     value={editFormData.internalAuditNotes || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, internalAuditNotes: e.target.value })}
                     sx={{
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,167,38,0.5)' },
-                      '& .MuiInputLabel-root': { color: '#ffa726' },
+                      '& .MuiInputLabel-root': { color: 'warning.main' },
                     }} />
                 </Grid>
               </Grid>
             </AccordionDetails>
           </Accordion>
         </DialogContent>
-        <DialogActions sx={{ p: 2, position: 'sticky', bottom: 0, bgcolor: '#0a0a0a', borderTop: '1px solid rgba(212,175,55,0.25)', zIndex: 1 }}>
+        <DialogActions sx={{ p: 2, position: 'sticky', bottom: 0, bgcolor: 'background.paper', borderTop: '1px solid rgba(212,175,55,0.25)', zIndex: 1 }}>
           <Button
             onClick={() => {
               setEditDialogOpen(false);
@@ -1304,14 +1301,14 @@ function IncentiveDataManagerContent(_props?: any) {
               setEditFormData({});
               setFormErrors([]);
             }}
-            sx={{ color: '#a0a0a0' }}
+            sx={{ color: 'text.secondary' }}
           >
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleSaveIncentive}
-            sx={{ bgcolor: '#D4AF37', color: '#000000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}
+            sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}
           >
             Save
           </Button>
@@ -1324,7 +1321,7 @@ function IncentiveDataManagerContent(_props?: any) {
             sx={{
               bgcolor: 'rgba(212, 175, 55, 0.1)',
               '& .MuiLinearProgress-bar': {
-                bgcolor: '#D4AF37',
+                bgcolor: 'primary.main',
               },
             }}
           />

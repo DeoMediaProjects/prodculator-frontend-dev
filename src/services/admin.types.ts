@@ -449,6 +449,70 @@ export interface EmailGatingRecord {
   blocked: boolean;
 }
 
+// ── Audit trail (handoff §4.4/§4.5) ──────────────────────────────────────────
+
+/** One recorded admin mutation. Read-only: nothing accepts this as input. */
+export interface AuditLogEntry {
+  id: string;
+  /** Null only when a request never resolved an admin (a rejected call). */
+  actor_id: string | null;
+  actor_email: string | null;
+  actor_role: string | null;
+  /** Stable `verb.resource` string, e.g. "update.incentive". */
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  /** Resource state either side of the change, redacted for secrets. */
+  before_json: unknown;
+  after_json: unknown;
+  method: string | null;
+  path: string | null;
+  status_code: number | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  error_message: string | null;
+  created_at: string | null;
+  /** Derived server-side from status_code. Null when no response was recorded. */
+  succeeded: boolean | null;
+}
+
+export interface AuditLogFilters {
+  limit?: number;
+  offset?: number;
+  actor_id?: string;
+  actor_email?: string;
+  action?: string;
+  resource_type?: string;
+  resource_id?: string;
+  /** 'success' is 2xx/3xx, 'failed' is 4xx/5xx. Omit for both. */
+  status?: 'success' | 'failed';
+  start_date?: string;
+  end_date?: string;
+  search?: string;
+}
+
+export interface AuditLogActorFacet {
+  actor_id: string | null;
+  actor_email: string | null;
+  count: number;
+}
+
+/** Filter values actually present in the trail, so the UI offers real options. */
+export interface AuditLogFacets {
+  actors: AuditLogActorFacet[];
+  actions: string[];
+  resource_types: string[];
+}
+
+export interface AuditRetention {
+  retention_days: number;
+  retains_indefinitely: boolean;
+  total_entries: number;
+  failed_entries: number;
+  oldest_entry_at: string | null;
+  newest_entry_at: string | null;
+}
+
 // ── PDF Reports ──────────────────────────────────────────────────────────────
 export interface PdfReport {
   id: string;
@@ -516,8 +580,18 @@ export interface ActivityResponse {
 // ── Admin Overview — System status ────────────────────────────────────────────
 export interface ServiceStatusItem {
   name: string;
-  status: 'operational' | 'degraded' | 'down' | 'unknown';
-  last_checked: string;
+  /** operational/degraded/down come from a live probe; configured/not_configured
+   *  from inspecting credentials only. `unknown` is legacy and no longer sent. */
+  status: 'operational' | 'degraded' | 'down' | 'configured' | 'not_configured' | 'unknown';
+  /** What the row is based on. 'live' means a probe ran during the request;
+   *  'configuration' means only credential presence was read. The UI must show
+   *  this, or a config row reads as a health result. */
+  check?: 'live' | 'configuration';
+  /** One line on what was measured, e.g. "PING acknowledged". */
+  detail?: string | null;
+  /** Null on configuration rows — nothing was checked, so there is no time at
+   *  which it was checked. */
+  last_checked?: string | null;
 }
 
 export interface SystemStatusResponse {

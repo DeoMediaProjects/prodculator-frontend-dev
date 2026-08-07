@@ -41,6 +41,7 @@ import {
   type B2BSubscription,
 } from '@/services/b2b.service';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
+import { B2BInvitesPanel } from './B2BInvitesPanel';
 
 const PRODUCT_LABELS: Record<B2BProductType, string> = {
   camera_equipment: 'Camera & Equipment',
@@ -215,10 +216,7 @@ export function B2BClientManager() {
     <Box>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#D4AF37' }}>
-            B2B Client Management
-          </Typography>
-          <Typography sx={{ color: '#bbb' }}>
+          <Typography sx={{ color: 'text.secondary' }}>
             Manage B2B subscriptions, manual contracts, delivery schedules, recipients, PDFs, and metrics.
           </Typography>
         </Box>
@@ -242,6 +240,7 @@ export function B2BClientManager() {
       <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
         <Tab label="Subscriptions" />
         <Tab label="Requests & Metrics" />
+        <Tab label="Contract Invites" />
       </Tabs>
 
       {tab === 0 && (
@@ -323,6 +322,9 @@ export function B2BClientManager() {
         </TableContainer>
       )}
 
+      {/* A claim creates a subscription, so reload the lists when one lands. */}
+      {tab === 2 && <B2BInvitesPanel productLabels={PRODUCT_LABELS} onClaimed={load} />}
+
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Edit B2B Subscription</DialogTitle>
         <DialogContent>
@@ -334,7 +336,7 @@ export function B2BClientManager() {
               <MenuItem value="monthly">Monthly</MenuItem>
               <MenuItem value="quarterly">Quarterly</MenuItem>
             </TextField>
-            <TextField label="Extra recipient" value={editForm.extra_recipient_email || ''} onChange={(event) => setEditForm({ ...editForm, extra_recipient_email: event.target.value })} InputProps={{ startAdornment: <Email sx={{ mr: 1, color: '#999' }} /> }} />
+            <TextField label="Extra recipient" value={editForm.extra_recipient_email || ''} onChange={(event) => setEditForm({ ...editForm, extra_recipient_email: event.target.value })} InputProps={{ startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} /> }} />
             <TextField label="Next delivery ISO timestamp" value={editForm.next_delivery_at || ''} onChange={(event) => setEditForm({ ...editForm, next_delivery_at: event.target.value })} />
             <TextField label="Company" value={editForm.company_name || ''} onChange={(event) => setEditForm({ ...editForm, company_name: event.target.value })} />
             <TextField label="Admin notes" multiline minRows={3} value={editForm.admin_notes || ''} onChange={(event) => setEditForm({ ...editForm, admin_notes: event.target.value })} />

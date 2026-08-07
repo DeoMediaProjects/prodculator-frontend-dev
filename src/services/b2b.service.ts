@@ -243,6 +243,85 @@ export interface AdminB2BManualSubscriptionPayload {
   admin_notes?: string | null;
 }
 
+// ── Manual-contract invites (handoff §4.3/§4.4) ─────────────────────────────
+// An invite lets an admin act on a signed contract before the client has an
+// account: the subscription is created when the client claims it, not up front.
+
+export type B2BInviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
+
+export interface AdminB2BInvitePayload {
+  email: string;
+  product_type: B2BProductType;
+  delivery_frequency: B2BDeliveryFrequency;
+  extra_recipient_email?: string | null;
+  company_name?: string | null;
+  admin_notes?: string | null;
+  expires_in_days?: number;
+  /** Off when the admin will pass the link on themselves. */
+  send_email?: boolean;
+}
+
+export interface AdminB2BInvite {
+  id: string;
+  email: string;
+  product_type: B2BProductType;
+  /** `expired` is derived from expires_at server-side, never stored. */
+  status: B2BInviteStatus;
+  /** First few characters of the token, enough to tell two invites apart and
+   *  not enough to reconstruct a link. */
+  token_prefix: string | null;
+  expires_at: string | null;
+  delivery_frequency: string | null;
+  extra_recipient_email: string | null;
+  company_name: string | null;
+  admin_notes: string | null;
+  created_by: string | null;
+  sent_count: number;
+  last_sent_at: string | null;
+  accepted_at: string | null;
+  accepted_by_user_id: string | null;
+  b2b_subscription_id: string | null;
+  revoked_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/** The only response that carries the accept URL. The raw token is not stored,
+ *  so this link cannot be recovered later; resending mints a new one. */
+export interface AdminB2BInviteIssued {
+  invite: AdminB2BInvite;
+  accept_url: string;
+}
+
+/** Unauthenticated view of an invite, for the accept page. */
+export interface B2BInvitePreview {
+  email: string;
+  product_type: B2BProductType;
+  company_name: string | null;
+  delivery_frequency: string | null;
+  expires_at: string | null;
+  status: B2BInviteStatus;
+  claimable: boolean;
+}
+
+/** What a client may receive for a product, and what exclusivity withholds. */
+export interface B2BWithheldSection {
+  section_key: string;
+  section_title: string;
+  module_label: string | null;
+  /** Null means the exclusivity is perpetual, not that it is unknown. */
+  available_from: string | null;
+}
+
+export interface B2BRequestEntitlement {
+  product_type: string;
+  section_keys: string[];
+  allowed_section_keys: string[];
+  withheld_sections: B2BWithheldSection[];
+  /** False only when exclusivity leaves nothing renderable at all. */
+  can_request: boolean;
+}
+
 async function downloadPdf(path: string, filename: string) {
   const response = await apiFetch(path);
   if (!response.ok) {
@@ -284,6 +363,25 @@ export const b2bService = {
       { extra_recipient_email: extraRecipientEmail },
       { auth: true },
     ),
+
+  /** What this client may request for a product. The console reads this to
+   *  disable withheld sections up front, so exclusivity reads as a stated
+   *  constraint with a reversion date rather than a refusal after the fact. */
+  getRequestEntitlement: (productType: string) =>
+    apiClient.get<B2BRequestEntitlement>(
+      `/api/b2b/requests/entitlement?product_type=${encodeURIComponent(productType)}`,
+      { auth: true },
+    ),
+
+  // ── Manual-contract invite claim ──────────────────────────────────────────
+  /** Unauthenticated on purpose: the client may not have an account yet, and
+   *  needs to see what they are claiming before creating one. */
+  previewInvite: (token: string) =>
+    apiClient.get<B2BInvitePreview>(`/api/b2b/invites/${encodeURIComponent(token)}`),
+  acceptInvite: (token: string) =>
+    apiClient.post<B2BSubscription>(
+      `/api/b2b/invites/${encodeURIComponent(token)}/accept`, {}, { auth: true },
+    ),
 };
 
 export const adminB2BService = {
@@ -295,6 +393,25 @@ export const adminB2BService = {
     apiClient.post<B2BSubscription>('/api/admin/b2b/subscriptions', payload, { auth: true }),
   updateSubscription: (id: string, payload: AdminB2BSubscriptionUpdate) =>
     apiClient.patch<B2BSubscription>(`/api/admin/b2b/subscriptions/${id}`, payload, { auth: true }),
+
+  // ── Manual-contract invites ───────────────────────────────────────────────
+  getInvites: async (params: { status?: B2BInviteStatus; email?: string } = {}) => {
+    const qs = new URLSearchParams({ limit: '200' });
+    if (params.status) qs.set('status', params.status);
+    if (params.email) qs.set('email', params.email);
+    const response = await apiClient.get<ListResponse<AdminB2BInvite>>(
+      `/api/admin/b2b/invites?${qs.toString()}`, { auth: true },
+    );
+    return response.items;
+  },
+  issueInvite: (payload: AdminB2BInvitePayload) =>
+    apiClient.post<AdminB2BInviteIssued>('/api/admin/b2b/invites', payload, { auth: true }),
+  /** Rotates the token, which invalidates the previous link — the reason an
+   *  admin resends is usually that the first link went somewhere it shouldn't. */
+  resendInvite: (id: string) =>
+    apiClient.post<AdminB2BInviteIssued>(`/api/admin/b2b/invites/${id}/resend`, {}, { auth: true }),
+  revokeInvite: (id: string) =>
+    apiClient.post<AdminB2BInvite>(`/api/admin/b2b/invites/${id}/revoke`, {}, { auth: true }),
   getRequests: async () => {
     const response = await apiClient.get<ListResponse<B2BIntelligenceRequest>>('/api/admin/b2b/requests', { auth: true });
     return response.items;
