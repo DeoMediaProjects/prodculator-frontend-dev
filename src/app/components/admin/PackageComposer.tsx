@@ -256,7 +256,7 @@ export function PackageComposer() {
         deliver: false,
       });
       enqueueSnackbar(
-        `Package generated (${res.status}). Find it under Clients → Requests to download or send.`,
+        `Package generated (${res.status}). Find it under Clients, then Requests to download or send.`,
         { variant: 'success', autoHideDuration: 8000 },
       );
     } catch (err) {
@@ -493,7 +493,7 @@ export function PackageComposer() {
                   variant="contained" startIcon={generating ? <CircularProgress size={16} /> : <PictureAsPdf />}
                   disabled={!canGenerate} onClick={() => void generate()}
                 >
-                  {generating ? 'Generating…' : 'Generate PDF'}
+                  {generating ? 'Generating...' : 'Generate PDF'}
                 </Button>
                 <Button
                   startIcon={<BookmarkAdd />} disabled={!selected.length}
@@ -503,7 +503,7 @@ export function PackageComposer() {
                 </Button>
               </Stack>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Generating does not email the client. Send it from Clients → Requests.
+                Generating does not email the client. Send it from Clients, then Requests.
               </Typography>
             </>
           )}
@@ -565,7 +565,7 @@ export function PackageComposer() {
         <DialogActions>
           <Button onClick={() => setSaveOpen(false)}>Cancel</Button>
           <Button variant="contained" disabled={!templateName.trim() || saving} onClick={() => void saveTemplate()}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>

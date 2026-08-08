@@ -42,7 +42,7 @@ import { AdminAccessDenied } from './AdminAccessDenied';
 const PANEL_SX = { p: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider' } as const;
 
 function formatDateTime(value: string | null) {
-  if (!value) return ', ';
+  if (!value) return '-';
   try {
     return new Date(value).toLocaleString('en-GB', {
       year: 'numeric',
@@ -58,7 +58,7 @@ function formatDateTime(value: string | null) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return ', ';
+  if (!value) return '-';
   try {
     return new Date(value).toLocaleDateString('en-GB', {
       year: 'numeric', month: 'short', day: 'numeric',
@@ -338,7 +338,7 @@ function AuditTrailManagerContent() {
             <Typography color="text.secondary" variant="body2">Record covers</Typography>
             <Typography variant="body1" sx={{ mt: 0.5 }}>
               {retention.oldest_entry_at
-                ? `${formatDate(retention.oldest_entry_at)} → ${formatDate(retention.newest_entry_at)}`
+                ? `${formatDate(retention.oldest_entry_at)} to ${formatDate(retention.newest_entry_at)}`
                 : 'Nothing recorded yet'}
             </Typography>
           </Card>
@@ -429,7 +429,7 @@ function AuditTrailManagerContent() {
           />
           <TextField
             fullWidth
-            placeholder="Search path, resource id, action or error…"
+            placeholder="Search path, resource id, action or error..."
             value={searchDraft}
             onChange={(e) => setSearchDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') applySearch(); }}
@@ -500,11 +500,11 @@ function AuditTrailManagerContent() {
             <DialogContent>
               <Stack spacing={0.75} sx={{ mb: 2 }}>
                 {([
-                  ['Request', `${selected.method ?? ', '} ${selected.path ?? ', '}`],
+                  ['Request', `${selected.method ?? '-'} ${selected.path ?? '-'}`],
                   ['Resource', `${selected.resource_type}${selected.resource_id ? ` · ${selected.resource_id}` : ''}`],
-                  ['Admin role', selected.actor_role?.replace(/_/g, ' ') ?? ', '],
-                  ['IP address', selected.ip_address ?? ', '],
-                  ['User agent', selected.user_agent ?? ', '],
+                  ['Admin role', selected.actor_role?.replace(/_/g, ' ') ?? '-'],
+                  ['IP address', selected.ip_address ?? '-'],
+                  ['User agent', selected.user_agent ?? '-'],
                   ['Entry id', selected.id],
                 ] as const).map(([label, value]) => (
                   <Stack key={label} direction="row" spacing={2}>

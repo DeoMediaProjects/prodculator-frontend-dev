@@ -133,7 +133,7 @@ export function AdminLogin() {
             disabled={loading || !email.trim() || !password}
             sx={{ py: 1.4, fontSize: '1rem' }}
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </Button>
         </Box>
 

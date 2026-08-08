@@ -17,6 +17,7 @@ import {
 import { Edit, Add, Refresh, Delete, MovieFilterOutlined } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
 import { fetchTerritoryList } from '@/services/territory.service';
@@ -200,48 +201,24 @@ function ComparableProductionsManagerContent() {
     },
   ], [t]);
 
+  useHeaderActions(
+    <>
+      <Button size="small" startIcon={<Refresh />} onClick={handleSyncTMDB} disabled={syncing}>
+        {syncing ? 'Syncing...' : 'Sync catalogue'}
+      </Button>
+      <Button size="small" variant="contained" startIcon={<Add />} onClick={handleAdd}>
+        Add production
+      </Button>
+    </>,
+    [syncing],
+  );
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-        <Box>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Curated database of film/TV productions with budgets, locations, and incentives used
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={handleSyncTMDB}
-            disabled={syncing}
-            sx={{
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              '&:hover': {
-                borderColor: 'primary.main',
-                bgcolor: 'action.hover',
-              },
-            }}
-          >
-            {syncing ? 'Syncing...' : 'Sync Catalog'}
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleAdd}
-            sx={{
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              fontWeight: 600,
-              '&:hover': {
-                bgcolor: 'primary.main',
-              },
-            }}
-          >
-            Add Production
-          </Button>
-        </Box>
-      </Box>
+      <Typography sx={{ color: 'text.secondary', fontSize: 13.5, mb: 2, maxWidth: '78ch' }}>
+        Productions with a known budget, shoot territory and incentive outcome. Reports anchor a projected budget
+        against these, so an inaccurate row skews every comparison drawn from it.
+      </Typography>
 
       {fetchError && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setFetchError(null)}>{fetchError}</Alert>
@@ -289,12 +266,7 @@ function ComparableProductionsManagerContent() {
         onClose={handleClose}
         maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            border: 1, borderColor: 'divider',
-          }
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider', } } }}
       >
         <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>
           {editingProduction ? 'Edit Production' : 'Add Production'}

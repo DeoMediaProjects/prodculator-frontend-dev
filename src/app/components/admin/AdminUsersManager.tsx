@@ -56,9 +56,26 @@ const ROLE_COLORS: Record<AdminRole, string> = {
 };
 
 export function AdminUsersManager() {
+  const { hasAdminPermission } = useAuth();
+
+  // Gate in a wrapper, so the content component's hooks always run in the same
+  // order. Held inside the body, every hook added later had to remember to sit
+  // above the early return, and one that did not would crash React.
+  if (!hasAdminPermission('canManageAdmins')) {
+    return (
+      <AdminAccessDenied
+        requiredPermission="Manage Admin Users"
+        requiredRole="Master Admin"
+      />
+    );
+  }
+  return <AdminUsersManagerContent />;
+}
+
+function AdminUsersManagerContent() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
-  const { hasAdminPermission, adminUser } = useAuth();
+  const { adminUser } = useAuth();
   const [adminUsers, setAdminUsers] = useState<AdminUserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,19 +115,6 @@ export function AdminUsersManager() {
     fetchAdminUsers(controller.signal);
     return () => controller.abort();
   }, [fetchAdminUsers]);
-
-  // Permission gate, must run AFTER all hooks so hook order stays stable across
-  // renders (Rules of Hooks). Previously this early return preceded the
-  // useCallback/useEffect above, so the hook count changed when the permission
-  // flag flipped between renders, which crashes React.
-  if (!hasAdminPermission('canManageAdmins')) {
-    return (
-      <AdminAccessDenied
-        requiredPermission="Manage Admin Users"
-        requiredRole="Master Admin"
-      />
-    );
-  }
 
   const handleAddAdmin = async () => {
     setSaving(true);
@@ -214,14 +218,6 @@ export function AdminUsersManager() {
     navigator.clipboard.writeText(text);
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress sx={{ color: 'primary.main' }} />
-      </Box>
-    );
-  }
-
   const columns = useMemo<Column<AdminUserRecord>[]>(() => [
     {
       key: 'name', header: 'NAME', width: '1.3fr',
@@ -276,6 +272,15 @@ export function AdminUsersManager() {
     </Button>,
     [],
   );
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
+      </Box>
+    );
+  }
+
 
   return (
     <Box>
@@ -357,7 +362,7 @@ export function AdminUsersManager() {
                             <Typography
                               variant="body2"
                               sx={{
-                                color: enabled ? '#ffffff' : '#666',
+                                color: enabled ? 'text.primary' : 'text.disabled',
                                 fontSize: '0.875rem',
                               }}
                             >
@@ -387,12 +392,7 @@ export function AdminUsersManager() {
         }}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            border: 1, borderColor: 'divider',
-          },
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider', } } }}
       >
         <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>Add New Admin</DialogTitle>
         <DialogContent>
@@ -490,12 +490,7 @@ export function AdminUsersManager() {
         onClose={() => setTempPasswordDialogOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            border: 1, borderColor: 'divider',
-          },
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider', } } }}
       >
         <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>Admin Created Successfully</DialogTitle>
         <DialogContent>
@@ -566,12 +561,7 @@ export function AdminUsersManager() {
         }}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            border: 1, borderColor: 'divider',
-          },
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider', } } }}
       >
         <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>Edit Admin</DialogTitle>
         <DialogContent>
@@ -647,12 +637,7 @@ export function AdminUsersManager() {
         }}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            border: '2px solid rgba(244, 67, 54, 0.4)',
-          },
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: '2px solid rgba(244, 67, 54, 0.4)', } } }}
       >
         <DialogTitle sx={{ color: 'error.main', fontWeight: 600 }}>Delete Admin?</DialogTitle>
         <DialogContent>
@@ -689,7 +674,7 @@ export function AdminUsersManager() {
             sx={{
               bgcolor: 'error.main',
               color: 'text.primary',
-              '&:hover': { bgcolor: '#d32f2f' },
+              '&:hover': { bgcolor: 'error.dark' },
             }}
           >
             {saving ? <CircularProgress size={20} sx={{ color: 'text.primary' }} /> : 'Delete Admin'}

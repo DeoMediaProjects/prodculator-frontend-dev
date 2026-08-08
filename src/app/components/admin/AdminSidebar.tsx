@@ -311,7 +311,7 @@ export function AdminSidebar({
             <ListItemIcon sx={{ color: t.textSecondary, minWidth: 34 }}>
               {loggingOut ? <LoadingSpinner size={20} /> : <LogoutOutlined sx={{ fontSize: 20 }} />}
             </ListItemIcon>
-            {loggingOut ? 'Signing out…' : 'Sign out'}
+            {loggingOut ? 'Signing out...' : 'Sign out'}
           </MenuItem>
         </Menu>
       </Box>

@@ -37,7 +37,7 @@ const PAGE_META: Record<string, { title: string; description?: string }> = {
   '/admin/crew-depth': { title: 'Crew Depth & Bankability', description: 'Territory profiles, payment timing and bankability research' },
   '/admin/comparables': { title: 'Comparable Productions', description: 'Reference productions used to anchor budgets' },
   '/admin/pdf-reports': { title: 'Customer Reports', description: 'Generated reports, delivery state and re-issue' },
-  '/admin/script-ai': { title: 'Script AI', description: 'Analysis pipeline behaviour and model availability' },
+  '/admin/script-ai': { title: 'Subscribers', description: 'Paid accounts, plan mix, report usage and recurring revenue' },
   '/admin/email-gating': { title: 'Email Gating', description: 'Free-report abuse prevention per email address' },
   '/admin/data-sources': { title: 'Data Sources', description: 'External integrations and their sync schedules' },
   '/admin/users': { title: 'Admin Users', description: 'Who holds admin access, and what they can do with it' },

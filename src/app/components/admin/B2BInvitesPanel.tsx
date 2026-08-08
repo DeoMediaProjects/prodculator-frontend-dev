@@ -60,7 +60,7 @@ const EMPTY_FORM: AdminB2BInvitePayload = {
 };
 
 function formatDate(value: string | null) {
-  if (!value) return ', ';
+  if (!value) return '-';
   try {
     return new Date(value).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
   } catch {
@@ -267,7 +267,7 @@ export function B2BInvitesPanel({
           </TableHead>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>Loading invites…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>Loading invites...</TableCell></TableRow>
             ) : invites.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
@@ -302,7 +302,7 @@ export function B2BInvitesPanel({
                     </TableCell>
                     <TableCell>{invite.sent_count + 1}</TableCell>
                     <TableCell>
-                      {invite.accepted_at ? formatDate(invite.accepted_at) : ', '}
+                      {invite.accepted_at ? formatDate(invite.accepted_at) : '-'}
                     </TableCell>
                     <TableCell align="right">
                       {invite.status === 'accepted' ? (
@@ -437,7 +437,7 @@ export function B2BInvitesPanel({
             disabled={saving || !form.email.trim()}
             startIcon={<MailOutline />}
           >
-            {saving ? 'Issuing…' : 'Issue invite'}
+            {saving ? 'Issuing...' : 'Issue invite'}
           </Button>
         </DialogActions>
       </Dialog>

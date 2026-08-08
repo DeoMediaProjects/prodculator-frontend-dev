@@ -378,7 +378,7 @@ function DataSourcesManagerContent() {
                       <Grid size={{ xs: 12, md: 3 }}>
                         <TextField
                           label="Endpoint"
-                          value={source.endpoint || 'N/A'}
+                          value={source.endpoint || 'Not configured'}
                           fullWidth
                           size="small"
                           InputProps={{
@@ -440,7 +440,7 @@ function DataSourcesManagerContent() {
                               bgcolor: 'action.hover',
                             },
                             '&.Mui-disabled': {
-                              borderColor: '#333',
+                              borderColor: 'divider',
                               color: 'text.secondary',
                             },
                           }}

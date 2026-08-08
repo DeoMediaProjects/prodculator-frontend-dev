@@ -171,9 +171,9 @@ export function SignalPoolPanel() {
                 )}
                 {items.map((row) => (
                   <TableRow key={row.id} hover>
-                    <TableCell>{row.submission_date || ', '}</TableCell>
-                    <TableCell>{row.territory || row.home_country || ', '}</TableCell>
-                    <TableCell>{row.format || ', '}</TableCell>
+                    <TableCell>{row.submission_date || '-'}</TableCell>
+                    <TableCell>{row.territory || row.home_country || '-'}</TableCell>
+                    <TableCell>{row.format || '-'}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"

@@ -67,7 +67,7 @@ function metricSummary(request: B2BIntelligenceRequest) {
   const sourceCount = typeof metrics.source_signal_count === 'number' ? metrics.source_signal_count : null;
   const suppressed = Array.isArray(metrics.suppressed_segments) ? metrics.suppressed_segments.length : 0;
   const insufficient = metrics.insufficient_data === true;
-  return `${sourceCount ?? 'N/A'} signals, ${suppressed} suppressed${insufficient ? ', insufficient overall data' : ''}`;
+  return `${sourceCount ?? 'unknown'} signals, ${suppressed} suppressed${insufficient ? ', insufficient overall data' : ''}`;
 }
 
 function blankToNull(value: string | null | undefined) {

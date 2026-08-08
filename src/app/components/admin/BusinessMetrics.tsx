@@ -187,7 +187,7 @@ export function BusinessMetrics() {
             />
             <Kpi
               value={pct(data.free_to_paid_percent)}
-              label="Free → Paid"
+              label="Free to paid"
               tooltip="Share of all registered users who are on a paid plan (paid users ÷ total users)."
             />
           </Grid>
@@ -255,7 +255,7 @@ export function BusinessMetrics() {
                         <TableCell sx={{ color: 'text.primary' }}>{row.users}</TableCell>
                         <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
                         <TableCell sx={{ color: 'info.main' }}>
-                          {row.users ? usd(row.revenue_usd / row.users) : 'N/A'}
+                          {row.users ? usd(row.revenue_usd / row.users) : 'No users'}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -319,11 +319,11 @@ export function BusinessMetrics() {
           <SectionCard title="Engagement & Conversion">
             <Grid container spacing={3}>
               {[
-                { value: pct(data.free_to_paid_percent), label: 'Free → Paid Conversion', note: '% of users on a paid plan' },
+                { value: pct(data.free_to_paid_percent), label: 'Free to paid conversion', note: '% of users on a paid plan' },
                 {
-                  value: data.avg_days_to_convert != null ? `${data.avg_days_to_convert} days` : 'N/A',
+                  value: data.avg_days_to_convert != null ? `${data.avg_days_to_convert} days` : 'Not enough data',
                   label: 'Avg. Time to Convert',
-                  note: 'Signup → first paid subscription',
+                  note: 'Signup to first paid subscription',
                 },
                 { value: pct(data.activation_rate_percent), label: 'Activation Rate', note: '% who generated ≥1 report' },
               ].map((m) => (
@@ -333,7 +333,7 @@ export function BusinessMetrics() {
                       p: 3,
                       bgcolor: 'rgba(102, 187, 106, 0.05)',
                       borderRadius: 2,
-                      border: '1px solid #66bb6a40',
+                      border: 1, borderColor: 'divider',
                     }}
                   >
                     <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700, mb: 1 }}>
