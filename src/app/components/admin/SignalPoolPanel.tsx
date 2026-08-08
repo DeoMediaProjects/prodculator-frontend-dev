@@ -12,6 +12,7 @@ import {
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { EYEBROW_SX } from './adminSurfaces';
 
 type Scope = 'all' | 'eligible' | 'excluded';
 
@@ -19,7 +20,6 @@ type Scope = 'all' | 'eligible' | 'excluded';
 // whole pool rather than one server page of twenty-five.
 const FETCH_LIMIT = 500;
 
-const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' } as const;
 
 /** Governance view over the pool that feeds every Business Intelligence
  *  aggregate. Shows how much of what we hold is actually usable, and why the

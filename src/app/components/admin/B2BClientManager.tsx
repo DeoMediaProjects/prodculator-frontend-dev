@@ -40,6 +40,7 @@ import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import { B2BInvitesPanel } from './B2BInvitesPanel';
+import { EYEBROW_SX, PANEL_SX } from './adminSurfaces';
 
 const PRODUCT_LABELS: Record<B2BProductType, string> = {
   camera_equipment: 'Camera and equipment',
@@ -51,9 +52,6 @@ const PRODUCT_LABELS: Record<B2BProductType, string> = {
 
 const PRODUCT_OPTIONS = Object.entries(PRODUCT_LABELS) as [B2BProductType, string][];
 
-/** Shared section surface, matching the rest of the console. */
-const PANEL_SX = { border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: { xs: 2.5, md: 3 } } as const;
-const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' } as const;
 
 type View = 'subscriptions' | 'requests' | 'invites';
 

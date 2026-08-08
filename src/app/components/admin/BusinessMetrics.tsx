@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Typography, CircularProgress, Alert, Tooltip, Button } from '@mui/material';
 import { Refresh, PublicOutlined, MapOutlined } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { EYEBROW_SX, PANEL_SX } from './adminSurfaces';
 import { AdminAccessDenied } from './AdminAccessDenied';
 import { adminApi } from '@/services/admin.api';
 import type { BusinessMetricsDashboard, GeoCountry, GeoState } from '@/services/admin.types';
@@ -10,8 +11,6 @@ import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 
-const PANEL_SX = { border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: { xs: 2.5, md: 3 } } as const;
-const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' } as const;
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
 const pct = (n: number) => `${n}%`;

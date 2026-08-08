@@ -44,11 +44,9 @@ import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
+import { EYEBROW_SX, PANEL_SX } from './adminSurfaces';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
-/** Shared section surface, so the summary, sync line and table read as one page. */
-const PANEL_SX = { border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: { xs: 2.5, md: 3 } } as const;
-const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' } as const;
 
 /** Stored slug to sentence case: "past_due" reads "Past due". Used for both the
  *  cell and its filter option, so a dropdown choice reads the way the row does. */

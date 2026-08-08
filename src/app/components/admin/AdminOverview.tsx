@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Alert, Box, Chip, Skeleton, Typography,
+  Alert, Box, Skeleton, Tooltip, Typography,
 } from '@mui/material';
 import { CheckCircleOutlined } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { adminApi } from '@/services/admin.api';
 import type { AdminMetrics, ActivityItem, AuditLogEntry, TaskItem } from '@/services/admin.types';
+import { EYEBROW_SX, PANEL_SX } from './adminSurfaces';
+import { describeOutcome, humaniseAction } from './auditLabels';
 
 // Recent activity shows five rows and scrolls for the rest. Derived from a row
 // height constant so the container stays exactly five rows if padding changes,
@@ -24,14 +26,6 @@ function formatTimestamp(iso: string | null | undefined): string {
   return d.toLocaleString(undefined, {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
   });
-}
-
-/** `update.incentive` becomes `Update incentive`. Same rule as the audit reader. */
-function humaniseAction(action: string): string {
-  const [verb, ...rest] = action.split('.');
-  const resource = rest.join('.').replace(/_/g, ' ');
-  const readable = verb.replace(/[-_]/g, ' ');
-  return `${readable.charAt(0).toUpperCase()}${readable.slice(1)}${resource ? ` ${resource}` : ''}`;
 }
 
 export function AdminOverview() {
@@ -85,45 +79,35 @@ export function AdminOverview() {
     })();
   }, []);
 
-  // Shared surface, identical to the B2C dashboard's card token.
-  const panel = { bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px' } as const;
-  const sectionLabel = {
-    fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
-    color: t.textSecondary, textTransform: 'uppercase' as const,
-  };
+  const sectionHeading = { fontWeight: 800, fontSize: 17, color: t.textPrimary } as const;
 
   const taskAccent = (priority: TaskItem['priority']) =>
     priority === 'high' ? t.error : priority === 'medium' ? t.warning : t.textSecondary;
 
   const money = (value: number) => `$${Math.round(value).toLocaleString()}`;
 
-  // Four figures, one focal. Revenue carries the gold because it is the number
-  // the console exists to protect; making all six gold (as before) meant the
-  // accent said nothing at all.
-  const stats: { label: string; value: string; sub: string; focal?: boolean; to?: string }[] = metrics
+  const estimatedSubs = metrics?.mrr_estimated_subscriptions ?? 0;
+
+  // Supporting figures sit beside the headline rather than in four equal cards.
+  // Four cards of identical weight gave the reader no entry point, and the other
+  // pages in the console all lead with the one number that page is about.
+  const supporting: { label: string; value: string; hint: string; to?: string }[] = metrics
     ? [
-        {
-          label: 'Monthly revenue',
-          value: money(metrics.mrr_usd),
-          sub: `${metrics.active_subscriptions.toLocaleString()} active subscription${metrics.active_subscriptions === 1 ? '' : 's'}`,
-          focal: true,
-          to: '/admin/metrics',
-        },
         {
           label: 'Total users',
           value: metrics.total_users.toLocaleString(),
-          sub: `${metrics.conversion_rate_percent.toFixed(1)}% converted to paid`,
+          hint: `${metrics.conversion_rate_percent.toFixed(1)}% converted to paid`,
         },
         {
           label: 'Reports this month',
           value: metrics.reports_this_month.toLocaleString(),
-          sub: `${metrics.total_reports.toLocaleString()} generated all time`,
+          hint: `${metrics.total_reports.toLocaleString()} generated all time`,
           to: '/admin/pdf-reports',
         },
         {
           label: 'Open data tasks',
           value: tasksLoading ? '...' : String(tasks.length),
-          sub: tasks.length === 0 ? 'Every dataset is current' : 'Datasets past their review window',
+          hint: tasks.length === 0 ? 'Every dataset is current' : 'Datasets past their review window',
           to: '/admin/incentives',
         },
       ]
@@ -137,45 +121,89 @@ export function AdminOverview() {
         </Alert>
       )}
 
-      {/* Stat strip */}
       <Box
         sx={{
+          ...PANEL_SX, mb: 2,
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
-          gap: 2, mb: 3,
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(240px, 1fr) 2fr' },
+          gap: { xs: 3, md: 4 },
+          alignItems: 'start',
         }}
       >
-        {metricsLoading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              // Skeletons rather than a spinner: the layout does not jump when
-              // the numbers land, so the page stops feeling like it reloaded.
-              <Box key={i} sx={{ ...panel, p: 2.75 }}>
-                <Skeleton variant="text" width="55%" height={14} />
-                <Skeleton variant="text" width="45%" height={44} sx={{ my: 0.5 }} />
-                <Skeleton variant="text" width="70%" height={14} />
-              </Box>
-            ))
-          : stats.map((s) => (
-              <Box
-                key={s.label}
-                onClick={s.to ? () => navigate(s.to as string) : undefined}
+        {metricsLoading ? (
+          <>
+            <Box>
+              <Skeleton variant="text" width="70%" height={14} />
+              <Skeleton variant="text" width="55%" height={52} sx={{ my: 0.5 }} />
+              <Skeleton variant="text" width="80%" height={14} />
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                // Skeletons rather than a spinner: the layout does not jump when
+                // the numbers land, so the page stops feeling like it reloaded.
+                <Box key={i}>
+                  <Skeleton variant="text" width="60%" height={30} />
+                  <Skeleton variant="text" width="80%" height={14} />
+                  <Skeleton variant="text" width="70%" height={13} />
+                </Box>
+              ))}
+            </Box>
+          </>
+        ) : (
+          <>
+            <Box
+              onClick={() => navigate('/admin/metrics')}
+              sx={{ cursor: 'pointer', '&:hover .pcHeadline': { color: t.gold } }}
+            >
+              <Typography sx={EYEBROW_SX}>MONTHLY REVENUE</Typography>
+              <Typography
+                className="pcHeadline"
                 sx={{
-                  ...panel, p: 2.75, ...(s.to
-                    ? {
-                        cursor: 'pointer',
-                        transition: 'border-color .15s, background .15s',
-                        '&:hover': { borderColor: t.gold, bgcolor: t.cardBgAlt },
-                      }
-                    : {}),
+                  fontSize: { xs: 34, md: 44 }, fontWeight: 800, lineHeight: 1.05,
+                  color: t.textPrimary, fontVariantNumeric: 'tabular-nums',
+                  transition: 'color .15s',
                 }}
               >
-                <Typography sx={{ ...sectionLabel, mb: 1 }}>{s.label}</Typography>
-                <Typography sx={{ fontSize: 34, fontWeight: 800, lineHeight: 1, color: s.focal ? t.gold : t.textPrimary }}>
-                  {s.value}
+                {money(metrics?.mrr_usd ?? 0)}
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: t.textSecondary, mt: 0.5 }}>
+                {`${(metrics?.active_subscriptions ?? 0).toLocaleString()} active subscription${metrics?.active_subscriptions === 1 ? '' : 's'}`}
+              </Typography>
+              {/* An imputed figure that does not say so is what let this number
+                  read as zero while two customers were paying. */}
+              {estimatedSubs > 0 && (
+                <Typography sx={{ fontSize: 12.5, color: t.warning, fontWeight: 600, mt: 0.75 }}>
+                  Partly estimated: {estimatedSubs} {estimatedSubs === 1 ? 'subscription has' : 'subscriptions have'} no
+                  billed amount recorded, so the plan list price stands in.
                 </Typography>
-                <Typography sx={{ fontSize: 12.5, color: t.textSecondary, mt: 1 }}>{s.sub}</Typography>
-              </Box>
-            ))}
+              )}
+            </Box>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+              {supporting.map((s) => (
+                <Box
+                  key={s.label}
+                  onClick={s.to ? () => navigate(s.to as string) : undefined}
+                  sx={{
+                    ...(s.to ? { cursor: 'pointer', '&:hover .pcFigure': { color: t.gold } } : {}),
+                  }}
+                >
+                  <Typography
+                    className="pcFigure"
+                    sx={{
+                      fontSize: 22, fontWeight: 700, color: t.textPrimary, lineHeight: 1.2,
+                      fontVariantNumeric: 'tabular-nums', transition: 'color .15s',
+                    }}
+                  >
+                    {s.value}
+                  </Typography>
+                  <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>{s.label}</Typography>
+                  <Typography sx={{ fontSize: 11.5, color: t.textFaint, mt: 0.25 }}>{s.hint}</Typography>
+                </Box>
+              ))}
+            </Box>
+          </>
+        )}
       </Box>
 
       <Box
@@ -186,9 +214,9 @@ export function AdminOverview() {
         }}
       >
         {/* Recent activity */}
-        <Box sx={{ ...panel, p: 2.75 }}>
+        <Box sx={PANEL_SX}>
           <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-            <Typography sx={{ fontWeight: 800, fontSize: 17, color: t.textPrimary }}>Recent activity</Typography>
+            <Typography sx={sectionHeading}>Recent activity</Typography>
             {activity.length > ACTIVITY_ROWS_VISIBLE && (
               <Typography sx={{ fontSize: 12, color: t.textSecondary }}>
                 {ACTIVITY_ROWS_VISIBLE} of {activity.length}, scroll for more
@@ -251,9 +279,9 @@ export function AdminOverview() {
         </Box>
 
         {/* Recent admin changes */}
-        <Box sx={{ ...panel, p: 2.75 }}>
+        <Box sx={PANEL_SX}>
           <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
-            <Typography sx={{ fontWeight: 800, fontSize: 17, color: t.textPrimary }}>Recent admin changes</Typography>
+            <Typography sx={sectionHeading}>Recent admin changes</Typography>
             <Typography
               onClick={() => navigate('/admin/audit-trail')}
               sx={{ fontSize: 12.5, color: t.gold, cursor: 'pointer', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
@@ -308,12 +336,21 @@ export function AdminOverview() {
                   <Typography sx={{ color: t.textPrimary, fontSize: 14, fontWeight: 500 }}>
                     {humaniseAction(entry.action)}
                   </Typography>
-                  {entry.succeeded === false && (
-                    <Chip
-                      size="small"
-                      label={entry.status_code === 403 ? 'denied' : 'failed'}
-                      sx={{ height: 19, fontSize: '0.66rem', bgcolor: t.cardBgAlt, color: t.error, fontWeight: 700 }}
-                    />
+                  {entry.succeeded !== true && (
+                    // Only a failure is called out. Labelling every success
+                    // "Success" would make the panel a wall of green saying
+                    // nothing, but a denied attempt has to be visible here.
+                    <Tooltip title={describeOutcome(entry.status_code ?? null, entry.succeeded).detail}>
+                      <Typography
+                        sx={{
+                          fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                          color: entry.succeeded === false ? t.error : t.textFaint,
+                          cursor: 'help',
+                        }}
+                      >
+                        {describeOutcome(entry.status_code ?? null, entry.succeeded).label}
+                      </Typography>
+                    </Tooltip>
                   )}
                 </Box>
                 <Typography sx={{ color: t.textSecondary, fontSize: 12, mt: 0.35 }}>
@@ -327,8 +364,8 @@ export function AdminOverview() {
       </Box>
 
       {/* Data maintenance */}
-      <Box sx={{ ...panel, p: 2.75, mt: 2 }}>
-        <Typography sx={{ fontWeight: 800, fontSize: 17, color: t.textPrimary, mb: 0.5 }}>
+      <Box sx={{ ...PANEL_SX, mt: 2 }}>
+        <Typography sx={{ ...sectionHeading, mb: 0.5 }}>
           Data maintenance
         </Typography>
         <Typography sx={{ color: t.textSecondary, fontSize: 12.5, mb: 2 }}>

@@ -44,12 +44,11 @@ import type { IncentiveData, IncentiveCalcResult, PendingChange, SyncStatus, Syn
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
 import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
+import { EYEBROW_SX, PANEL_SX } from './adminSurfaces';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
 /** Section surface shared by every panel on this page, so the calculator, the
  *  sync strip and the table read as one console rather than three widgets. */
-const PANEL_SX = { border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: { xs: 2.5, md: 3 } } as const;
-const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' } as const;
 
 export function IncentiveDataManager() {
   const { hasAdminPermission } = useAuth();

@@ -13,6 +13,10 @@ export interface AdminMetrics {
   total_reports: number;
   reports_this_month: number;
   mrr_usd: number;
+  /** How many active subscriptions were valued at plan list price because no
+   *  amount was recorded on the row. Non-zero means the figure is partly imputed
+   *  and must not be presented as billed. */
+  mrr_estimated_subscriptions?: number;
   conversion_rate_percent: number;
 }
 
