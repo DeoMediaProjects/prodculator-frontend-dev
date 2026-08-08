@@ -44,6 +44,10 @@ import {
   adminSubscriberUnblockUrl,
   adminSubscriberCreditUrl,
   ADMIN_EMAIL_GATING_URL,
+  ADMIN_AUDIT_LOGS_URL,
+  ADMIN_AUDIT_LOGS_FACETS_URL,
+  ADMIN_AUDIT_LOGS_RETENTION_URL,
+  adminAuditLogUrl,
   adminEmailGatingBlockUrl,
   adminEmailGatingUnblockUrl,
   ADMIN_PDF_REPORTS_URL,
@@ -82,6 +86,10 @@ import type {
   DataSourceBulkSaveResponse,
   SyncScheduleResponse,
   EmailGatingRecord,
+  AuditLogEntry,
+  AuditLogFilters,
+  AuditLogFacets,
+  AuditRetention,
   PdfReport,
   PdfReportPreviewResponse,
   ResendReportResponse,
@@ -805,6 +813,65 @@ async function getEmailGatingRecords(
   }
 }
 
+// ── Audit trail (handoff §4.4/§4.5) ──────────────────────────────────────────
+// Read-only by design. The table is append-only, so there is no update or
+// delete counterpart here — the only removal path is the server-side retention
+// purge, which is not reachable over HTTP.
+
+async function getAuditLogs(
+  filters: AuditLogFilters = {},
+  signal?: AbortSignal,
+): ApiResult<PaginatedResponse<AuditLogEntry>> {
+  try {
+    const query = new URLSearchParams();
+    query.set('limit', String(filters.limit ?? 50));
+    query.set('offset', String(filters.offset ?? 0));
+    // Only send filters that carry a value: an empty string is a valid query
+    // parameter server-side and would filter everything out.
+    for (const key of [
+      'actor_id', 'actor_email', 'action', 'resource_type',
+      'resource_id', 'status', 'start_date', 'end_date', 'search',
+    ] as const) {
+      const value = filters[key];
+      if (value) query.set(key, String(value));
+    }
+    const data = await apiClient.get<PaginatedResponse<AuditLogEntry>>(
+      `${ADMIN_AUDIT_LOGS_URL}?${query.toString()}`,
+      { auth: true, signal },
+    );
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch audit logs' };
+  }
+}
+
+async function getAuditLog(logId: string, signal?: AbortSignal): ApiResult<AuditLogEntry> {
+  try {
+    const data = await apiClient.get<AuditLogEntry>(adminAuditLogUrl(logId), { auth: true, signal });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch audit log entry' };
+  }
+}
+
+async function getAuditLogFacets(signal?: AbortSignal): ApiResult<AuditLogFacets> {
+  try {
+    const data = await apiClient.get<AuditLogFacets>(ADMIN_AUDIT_LOGS_FACETS_URL, { auth: true, signal });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch audit filters' };
+  }
+}
+
+async function getAuditRetention(signal?: AbortSignal): ApiResult<AuditRetention> {
+  try {
+    const data = await apiClient.get<AuditRetention>(ADMIN_AUDIT_LOGS_RETENTION_URL, { auth: true, signal });
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Failed to fetch retention settings' };
+  }
+}
+
 async function blockEmailGatingRecord(recordId: string): ApiResult<EmailGatingRecord> {
   try {
     const data = await apiClient.post<EmailGatingRecord>(adminEmailGatingBlockUrl(recordId), {}, { auth: true });
@@ -1003,6 +1070,10 @@ export const adminApi = {
   unblockSubscriber,
   creditSubscriber,
   getEmailGatingRecords,
+  getAuditLogs,
+  getAuditLog,
+  getAuditLogFacets,
+  getAuditRetention,
   blockEmailGatingRecord,
   unblockEmailGatingRecord,
   getPdfReports,

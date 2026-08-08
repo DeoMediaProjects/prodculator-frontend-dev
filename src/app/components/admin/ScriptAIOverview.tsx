@@ -1,25 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Grid,
-  Card,
-  CardContent,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
   IconButton,
   Button,
   TextField,
   InputAdornment,
-  Tabs,
-  Tab,
-  Avatar,
   LinearProgress,
   CircularProgress,
   Alert,
@@ -30,36 +17,44 @@ import {
   Tooltip,
 } from '@mui/material';
 import {
-  TrendingUp,
-  Description,
-  AttachMoney,
-  People,
   Search,
-  Visibility,
   Block,
-  CheckCircle,
   Star,
   CreditCard,
   Download,
   LockOpen,
+  PeopleOutlined,
 } from '@mui/icons-material';
 import { adminApi } from '@/services/admin.api';
 import type { SubscriberMetrics, Subscriber, SubscriberListResponse } from '@/services/admin.types';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 
 type StatusFilter = 'active' | 'past_due' | 'canceled';
+type CurrencyView = 'BOTH' | 'USD' | 'GBP';
 
-const TAB_TO_STATUS: Record<number, StatusFilter> = {
-  0: 'active',
-  1: 'past_due',
-  2: 'canceled',
-};
+// Fetched deep in one page so sorting and filtering cover every subscriber in
+// the selected status rather than the first server page of twenty-five.
+const FETCH_LIMIT = 500;
+
+function initials(name: string): string {
+  return name.split(' ').filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+}
+
+function csvCell(value: string | number | null): string {
+  const s = value == null ? '' : String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 
 export function ScriptAIOverview() {
-  const [tabValue, setTabValue] = useState(0);
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+  const [status, setStatus] = useState<StatusFilter>('active');
   const [searchQuery, setSearchQuery] = useState('');
-  const [currencyView, setCurrencyView] = useState<'BOTH' | 'USD' | 'GBP'>('BOTH');
+  const [currencyView, setCurrencyView] = useState<CurrencyView>('BOTH');
 
-  // API state
   const [metrics, setMetrics] = useState<SubscriberMetrics | null>(null);
   const [subscriberData, setSubscriberData] = useState<SubscriberListResponse | null>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
@@ -67,17 +62,15 @@ export function ScriptAIOverview() {
   const [metricsError, setMetricsError] = useState<string | null>(null);
   const [subscribersError, setSubscribersError] = useState<string | null>(null);
 
-  // Credit dialog state
   const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const [creditUserId, setCreditUserId] = useState<string | null>(null);
   const [creditAmount, setCreditAmount] = useState('');
   const [creditReason, setCreditReason] = useState('');
   const [creditLoading, setCreditLoading] = useState(false);
 
-  // Action loading state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Debounce search
+  // Search runs server-side, so it is debounced rather than fired per keystroke.
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
@@ -97,10 +90,7 @@ export function ScriptAIOverview() {
   const fetchSubscribers = useCallback(async (signal?: AbortSignal) => {
     setLoadingSubscribers(true);
     const { data, error } = await adminApi.getSubscribers(
-      {
-        status: TAB_TO_STATUS[tabValue],
-        search: debouncedSearch || undefined,
-      },
+      { status, search: debouncedSearch || undefined, limit: FETCH_LIMIT, offset: 0 },
       signal,
     );
     if (!signal?.aborted) {
@@ -108,17 +98,17 @@ export function ScriptAIOverview() {
       setSubscribersError(error);
       setLoadingSubscribers(false);
     }
-  }, [tabValue, debouncedSearch]);
+  }, [status, debouncedSearch]);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchMetrics(controller.signal);
+    void fetchMetrics(controller.signal);
     return () => controller.abort();
   }, [fetchMetrics]);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchSubscribers(controller.signal);
+    void fetchSubscribers(controller.signal);
     return () => controller.abort();
   }, [fetchSubscribers]);
 
@@ -126,14 +116,14 @@ export function ScriptAIOverview() {
     setActionLoading(userId);
     const { error } = await adminApi.blockSubscriber(userId);
     setActionLoading(null);
-    if (!error) fetchSubscribers();
+    if (!error) void fetchSubscribers();
   };
 
   const handleUnblock = async (userId: string) => {
     setActionLoading(userId);
     const { error } = await adminApi.unblockSubscriber(userId);
     setActionLoading(null);
-    if (!error) fetchSubscribers();
+    if (!error) void fetchSubscribers();
   };
 
   const handleCreditSubmit = async () => {
@@ -149,350 +139,386 @@ export function ScriptAIOverview() {
       setCreditUserId(null);
       setCreditAmount('');
       setCreditReason('');
-      fetchSubscribers();
+      void fetchSubscribers();
     }
   };
 
-  // Derived display values from metrics
-  const mrrDisplay =
-    currencyView === 'USD'
-      ? `$${(metrics?.mrr_usd ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-      : currencyView === 'GBP'
-      ? `£${(metrics?.mrr_gbp ?? 0).toLocaleString('en-GB', { maximumFractionDigits: 0 })}`
-      : 'Multi Currency';
-
-  const mrrSubtext =
-    currencyView === 'BOTH'
-      ? `$${(metrics?.mrr_usd ?? 0).toLocaleString()} USD + £${(metrics?.mrr_gbp ?? 0).toLocaleString()} GBP`
-      : '';
-
-  const stats = [
-    {
-      label: 'Total Paid Users',
-      value: metrics?.total_paid_users?.toString() ?? 'N/A',
-      change: '',
-      icon: <People />,
-      color: '#D4AF37',
-    },
-    {
-      label: 'Monthly Recurring Revenue',
-      value: mrrDisplay,
-      change: mrrSubtext,
-      icon: <AttachMoney />,
-      color: '#66bb6a',
-    },
-    {
-      label: 'Reports Generated (MTD)',
-      value: metrics?.reports_this_month_total?.toLocaleString() ?? 'N/A',
-      change: metrics
-        ? `${metrics.reports_this_month_free.toLocaleString()} free, ${metrics.reports_this_month_paid.toLocaleString()} paid`
-        : '',
-      icon: <Description />,
-      color: '#42a5f5',
-    },
-    {
-      label: 'Avg. Reports per User',
-      value: metrics?.avg_reports_per_user?.toFixed(1) ?? 'N/A',
-      change: 'Per paid user',
-      icon: <TrendingUp />,
-      color: '#ffa726',
-    },
-  ];
-
-  const planColors: Record<string, string> = {
-    Free: '#666',
-    'Pro Monthly': '#42a5f5',
-    Studio: '#66bb6a',
-  };
-
   const counts = subscriberData?.counts ?? { active: 0, past_due: 0, canceled: 0 };
-  const subscribers = subscriberData?.items ?? [];
+  // Memoised so the CSV export callback is not rebuilt on every render by a
+  // fresh empty-array fallback.
+  const subscribers = useMemo(() => subscriberData?.items ?? [], [subscriberData]);
+
+  const exportCsv = useCallback(() => {
+    const header = [
+      'Name', 'Email', 'Company', 'Plan', 'Status', 'Reports this month',
+      'Report limit', 'Monthly spend', 'Currency', 'Joined', 'Last active', 'Total reports',
+    ];
+    const body = subscribers.map((u) => [
+      u.name, u.email, u.company, u.plan, u.status, u.reports_this_month,
+      u.report_limit ?? 'Unlimited', u.monthly_spend, u.payment_currency,
+      u.join_date, u.last_active ?? '', u.total_reports_generated,
+    ]);
+    const csv = [header, ...body].map((row) => row.map(csvCell).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `subscribers-${status}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [subscribers, status]);
+
+  useHeaderActions(
+    <>
+      <SegmentedToggle
+        size="sm"
+        value={currencyView}
+        onChange={(v) => setCurrencyView(v as CurrencyView)}
+        options={[
+          { value: 'BOTH', label: 'Both' },
+          { value: 'USD', label: 'USD' },
+          { value: 'GBP', label: 'GBP' },
+        ]}
+      />
+      <Button size="small" startIcon={<Download />} onClick={exportCsv} disabled={!subscribers.length}>
+        Export CSV
+      </Button>
+    </>,
+    [currencyView, exportCsv, subscribers.length],
+  );
+
+  const columns = useMemo<Column<Subscriber>[]>(() => [
+    {
+      key: 'name', header: 'SUBSCRIBER', width: '1.9fr',
+      sortValue: (u) => u.name || u.email,
+      render: (u) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+          <Box
+            sx={{
+              width: 32, height: 32, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: t.goldDim, color: t.gold,
+              fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
+            }}
+          >
+            {initials(u.name)}
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {u.name}
+            </Typography>
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {u.email}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      key: 'company', header: 'COMPANY', width: '1.2fr',
+      render: (u) => (
+        <Typography sx={{ fontSize: 13.5, color: u.company ? t.textSecondary : t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {u.company || 'Not given'}
+        </Typography>
+      ),
+    },
+    {
+      key: 'plan', header: 'PLAN', width: '1fr', filterSelect: true,
+      render: (u) => (
+        <Chip
+          label={u.plan}
+          size="small"
+          icon={u.plan === 'Studio' ? <Star sx={{ fontSize: 14 }} /> : undefined}
+          sx={{ bgcolor: t.goldDim, color: t.gold, fontWeight: 600, fontSize: '0.7rem' }}
+        />
+      ),
+    },
+    {
+      key: 'usage', header: 'USAGE THIS MONTH', width: '1.4fr',
+      // Sorts on how close the account is to its cap, since that is the number
+      // that decides who is about to be blocked from generating a report.
+      sortValue: (u) => (u.report_limit == null ? -1
+        : u.report_limit > 0 ? (u.reports_this_month / u.report_limit) * 100 : 0),
+      render: (u) => {
+        const unlimited = u.report_limit == null;
+        const pct = unlimited ? 100
+          : u.report_limit! > 0 ? (u.reports_this_month / u.report_limit!) * 100 : 0;
+        const nearCap = !unlimited && pct >= 80;
+        return (
+          <Box sx={{ minWidth: 110, width: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 0.4 }}>
+              <Typography sx={{ fontSize: 12, color: t.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+                {u.reports_this_month} of {unlimited ? 'unlimited' : u.report_limit}
+              </Typography>
+              {!unlimited && (
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: nearCap ? t.warning : t.textSecondary }}>
+                  {Math.round(pct)}%
+                </Typography>
+              )}
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(pct, 100)}
+              sx={{
+                height: 4,
+                bgcolor: t.inputBg,
+                '& .MuiLinearProgress-bar': { bgcolor: nearCap ? t.warning : t.gold },
+              }}
+            />
+            <Typography sx={{ fontSize: 11, color: t.textFaint, mt: 0.4 }}>
+              {u.total_reports_generated} all time
+            </Typography>
+          </Box>
+        );
+      },
+    },
+    {
+      key: 'monthly_spend', header: 'SPEND', width: '0.95fr', align: 'right',
+      sortValue: (u) => u.monthly_spend,
+      render: (u) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            {u.payment_currency === 'GBP' ? '£' : '$'}{u.monthly_spend}/mo
+          </Typography>
+          {/* An imputed figure that does not say it was imputed is exactly what
+              hid the NULL-amount bug that showed paying customers at $0/mo. */}
+          {u.monthly_spend_estimated && (
+            <Tooltip title="No amount is recorded on this subscription, so the plan's list price is shown.">
+              <Typography sx={{ fontSize: 11, color: t.warning, whiteSpace: 'nowrap' }}>list price</Typography>
+            </Tooltip>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'join_date', header: 'JOINED', width: '0.9fr',
+      sortValue: (u) => new Date(u.join_date || 0).getTime() || 0,
+      render: (u) => <Box sx={{ fontSize: 13.5, color: t.textSecondary }}>{u.join_date || 'Unknown'}</Box>,
+    },
+    {
+      key: 'last_active', header: 'LAST ACTIVE', width: '0.95fr',
+      sortValue: (u) => new Date(u.last_active || 0).getTime() || 0,
+      render: (u) => (
+        <Typography sx={{ fontSize: 13.5, color: u.last_active ? t.textSecondary : t.textFaint }}>
+          {u.last_active ?? 'Never signed in'}
+        </Typography>
+      ),
+    },
+    {
+      key: 'status', header: 'STATUS', width: '0.9fr', filterSelect: true,
+      render: (u) => {
+        const colour = u.status === 'Active' ? t.success
+          : u.status === 'Past Due' ? t.warning : t.textFaint;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colour, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: colour }}>{u.status}</Typography>
+          </Box>
+        );
+      },
+    },
+  ], [t]);
 
   if (loadingMetrics && loadingSubscribers) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress sx={{ color: '#D4AF37' }} />
+        <CircularProgress sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
+
+  const usd = metrics?.mrr_usd ?? 0;
+  const gbp = metrics?.mrr_gbp ?? 0;
+  const planMix = metrics?.plan_distribution ?? [];
+  const mixTotal = planMix.reduce((sum, p) => sum + p.user_count, 0);
 
   return (
     <Box>
       {metricsError && <Alert severity="error" sx={{ mb: 2 }}>{metricsError}</Alert>}
 
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
-              Paid Users & Subscription Overview
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-              Monitor subscriber activity, revenue, and usage metrics
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {(['BOTH', 'USD', 'GBP'] as const).map((cv) => (
-              <Button
-                key={cv}
-                size="small"
-                variant={currencyView === cv ? 'contained' : 'outlined'}
-                onClick={() => setCurrencyView(cv)}
-                sx={{
-                  borderColor: '#D4AF37',
-                  color: currencyView === cv ? '#000000' : '#D4AF37',
-                  bgcolor: currencyView === cv ? '#D4AF37' : 'transparent',
-                  '&:hover': {
-                    borderColor: '#D4AF37',
-                    bgcolor: currencyView === cv ? '#D4AF37' : 'rgba(212, 175, 55, 0.08)',
-                  },
-                }}
-              >
-                {cv === 'BOTH' ? 'Both Currencies' : `${cv} Only`}
-              </Button>
-            ))}
-          </Box>
+      {/* Revenue leads because it is the one figure the rest of the page
+          explains. The supporting counts sit beside it rather than in four
+          equally weighted cards that give no reading order. */}
+      <Box
+        sx={{
+          border: 1, borderColor: 'divider', bgcolor: 'background.paper',
+          p: { xs: 2.5, md: 3 }, mb: 3,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(240px, 1fr) 2fr' },
+          gap: { xs: 3, md: 4 },
+          alignItems: 'start',
+        }}
+      >
+        <Box>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: t.textFaint }}>
+            MONTHLY RECURRING REVENUE
+          </Typography>
+          <Typography sx={{ fontSize: { xs: 34, md: 42 }, fontWeight: 800, color: t.textPrimary, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+            {currencyView === 'GBP'
+              ? `£${gbp.toLocaleString('en-GB', { maximumFractionDigits: 0 })}`
+              : `$${usd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
+          </Typography>
+          <Typography sx={{ fontSize: 13, color: t.textSecondary, mt: 0.5 }}>
+            {currencyView === 'BOTH'
+              // Two currencies are billed separately and never converted, so
+              // showing a single blended total would be a made-up number.
+              ? `Billed as $${usd.toLocaleString()} USD and £${gbp.toLocaleString()} GBP, shown unconverted`
+              : `${currencyView} subscriptions only`}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+          {([
+            ['Paid accounts', metrics?.total_paid_users?.toLocaleString() ?? 'Unknown', null],
+            [
+              'Reports this month',
+              metrics?.reports_this_month_total?.toLocaleString() ?? 'Unknown',
+              metrics ? `${metrics.reports_this_month_free.toLocaleString()} free, ${metrics.reports_this_month_paid.toLocaleString()} paid` : null,
+            ],
+            ['Reports per paid user', metrics?.avg_reports_per_user?.toFixed(1) ?? 'Unknown', 'Monthly average'],
+          ] as [string, string, string | null][]).map(([label, value, hint]) => (
+            <Box key={label}>
+              <Typography sx={{ fontSize: 22, fontWeight: 700, color: t.textPrimary, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
+                {value}
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>{label}</Typography>
+              {hint && <Typography sx={{ fontSize: 11.5, color: t.textFaint, mt: 0.25 }}>{hint}</Typography>}
+            </Box>
+          ))}
         </Box>
       </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {stats.map((stat, index) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-            <Card
-              sx={{
-                bgcolor: '#0a0a0a',
-                border: '1px solid rgba(212, 175, 55, 0.2)',
-                '&:hover': { borderColor: 'rgba(212, 175, 55, 0.4)' },
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      bgcolor: `${stat.color}20`,
-                      borderRadius: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Box sx={{ color: stat.color }}>{stat.icon}</Box>
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff', mb: 0.5 }}>
-                      {stat.value}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 1 }}>
-                      {stat.label}
-                    </Typography>
-                    {stat.change && (
-                      <Typography variant="caption" sx={{ color: stat.color, fontWeight: 600 }}>
-                        {stat.change}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Plan Distribution */}
-      <Card
-        sx={{
-          mb: 4,
-          bgcolor: '#0a0a0a',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
-        }}
-      >
-        <CardContent>
-          <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600, mb: 3 }}>
-            Plan Distribution & Revenue Breakdown
+      {/* Plan mix as one proportional bar: the question is what share of the
+          base sits on each plan, which a row of separate cards cannot show. */}
+      {mixTotal > 0 && (
+        <Box sx={{ border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: { xs: 2.5, md: 3 }, mb: 3 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: t.textFaint, mb: 1.5 }}>
+            PLAN MIX AND REVENUE
           </Typography>
-          <Grid container spacing={3}>
-            {(metrics?.plan_distribution ?? []).map((plan, index) => {
-              const color = planColors[plan.plan] ?? '#D4AF37';
-              return (
-                <Grid size={{ xs: 12, md: Math.max(3, Math.floor(12 / (metrics?.plan_distribution.length ?? 3))) }} key={index}>
-                  <Box
-                    sx={{
-                      p: 2,
-                      bgcolor: 'rgba(212, 175, 55, 0.05)',
-                      borderRadius: 2,
-                      border: `1px solid ${color}40`,
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: '50%',
-                          bgcolor: color,
-                        }}
-                      />
-                      <Typography variant="subtitle2" sx={{ color: '#ffffff', fontWeight: 600 }}>
-                        {plan.plan}
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700, mb: 0.5 }}>
-                      {plan.user_count}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                      Users
-                    </Typography>
-                    {plan.revenue > 0 && (
-                      <>
-                        <Typography
-                          variant="h6"
-                          sx={{ color: '#66bb6a', fontWeight: 700, mt: 2, mb: 0.5 }}
-                        >
-                          ${plan.revenue.toLocaleString()}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                          Monthly Revenue
-                        </Typography>
-                      </>
-                    )}
-                  </Box>
-                </Grid>
-              );
-            })}
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Paid Users Table */}
-      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Box sx={{ p: 3, borderBottom: '1px solid rgba(212, 175, 55, 0.1)' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
-              Paid Subscribers
-            </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<Download />}
-              size="small"
-              sx={{
-                borderColor: '#D4AF37',
-                color: '#D4AF37',
-                '&:hover': {
-                  borderColor: '#D4AF37',
-                  bgcolor: 'rgba(212, 175, 55, 0.08)',
-                },
-              }}
-            >
-              Export CSV
-            </Button>
+          <Box sx={{ display: 'flex', height: 8, overflow: 'hidden', mb: 2 }}>
+            {planMix.map((plan, i) => (
+              <Tooltip key={plan.plan} title={`${plan.plan}: ${plan.user_count} of ${mixTotal}`}>
+                <Box
+                  sx={{
+                    width: `${(plan.user_count / mixTotal) * 100}%`,
+                    bgcolor: t.gold,
+                    opacity: 1 - i * 0.22,
+                    borderRight: i < planMix.length - 1 ? `2px solid ${t.cardBg}` : 'none',
+                  }}
+                />
+              </Tooltip>
+            ))}
           </Box>
-
-          <TextField
-            fullWidth
-            placeholder="Search by name, email, or company..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: '#666' }} />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{ mb: 2 }}
-          />
-
-          <Tabs
-            value={tabValue}
-            onChange={(_, newValue) => setTabValue(newValue)}
-            sx={{
-              '& .MuiTab-root': {
-                color: '#a0a0a0',
-                textTransform: 'none',
-                fontWeight: 600,
-              },
-              '& .Mui-selected': {
-                color: '#D4AF37 !important',
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#D4AF37',
-              },
-            }}
-          >
-            <Tab label={`Active (${counts.active})`} />
-            <Tab label={`Past Due (${counts.past_due})`} />
-            <Tab label={`Canceled (${counts.canceled})`} />
-          </Tabs>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 4, rowGap: 1.5 }}>
+            {planMix.map((plan, i) => (
+              <Box key={plan.plan} sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                <Box sx={{ width: 8, height: 8, bgcolor: t.gold, opacity: 1 - i * 0.22, flexShrink: 0, transform: 'translateY(-1px)' }} />
+                <Box>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: t.textPrimary }}>
+                    {plan.plan}
+                    <Typography component="span" sx={{ fontSize: 13.5, fontWeight: 400, color: t.textSecondary }}>
+                      {' '}{plan.user_count} {plan.user_count === 1 ? 'user' : 'users'}
+                    </Typography>
+                  </Typography>
+                  <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>
+                    {plan.revenue > 0 ? `$${plan.revenue.toLocaleString()} per month` : 'No revenue'}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
         </Box>
+      )}
 
-        {subscribersError && <Alert severity="error" sx={{ m: 2 }}>{subscribersError}</Alert>}
+      {subscribersError && <Alert severity="error" sx={{ mb: 2 }}>{subscribersError}</Alert>}
 
-        {loadingSubscribers ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress sx={{ color: '#D4AF37' }} />
-          </Box>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>User</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Company</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Plan</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Usage</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Monthly Spend</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Join Date</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Last Active</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {subscribers.map((user) => (
-                  <SubscriberRow
-                    key={user.id}
-                    user={user}
-                    actionLoading={actionLoading}
-                    onBlock={handleBlock}
-                    onUnblock={handleUnblock}
-                    onCredit={(id) => {
-                      setCreditUserId(id);
-                      setCreditDialogOpen(true);
-                    }}
-                  />
-                ))}
-                {subscribers.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={9} sx={{ textAlign: 'center', color: '#a0a0a0', py: 4 }}>
-                      No subscribers found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
+        <SegmentedToggle
+          value={status}
+          onChange={(v) => setStatus(v as StatusFilter)}
+          options={[
+            { value: 'active', label: `Active ${counts.active}` },
+            { value: 'past_due', label: `Past due ${counts.past_due}` },
+            { value: 'canceled', label: `Cancelled ${counts.canceled}` },
+          ]}
+        />
+        <TextField
+          size="small"
+          placeholder="Search every subscriber by name, email or company"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: t.textFaint, fontSize: 18 }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ flex: '1 1 280px', maxWidth: 420 }}
+        />
+      </Box>
 
-      {/* Credit Dialog */}
+      <DataTable<Subscriber>
+        title="Paid subscribers"
+        columns={columns}
+        rows={subscribers}
+        getRowId={(u) => u.id}
+        pageSize={12}
+        itemNoun="subscriber"
+        minWidth={1180}
+        maxHeight={620}
+        emptyIcon={<PeopleOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+        emptyMessage={debouncedSearch
+          ? `No subscriber matches "${debouncedSearch}" in this status.`
+          : 'No subscribers hold this status.'}
+        rowActions={(u) => {
+          const isBlocked = u.status === 'Canceled';
+          const isLoading = actionLoading === u.id;
+          return (
+            <>
+              <Tooltip title="Adjust report credits">
+                <IconButton
+                  size="small"
+                  onClick={() => { setCreditUserId(u.id); setCreditDialogOpen(true); }}
+                  sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}
+                >
+                  <CreditCard sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title={isBlocked ? 'Restore access' : 'Block this account'}>
+                <IconButton
+                  size="small"
+                  disabled={isLoading}
+                  onClick={() => void (isBlocked ? handleUnblock(u.id) : handleBlock(u.id))}
+                  sx={{ color: t.textSecondary, '&:hover': { color: isBlocked ? t.success : t.error } }}
+                >
+                  {isLoading
+                    ? <CircularProgress size={16} sx={{ color: t.textSecondary }} />
+                    : isBlocked ? <LockOpen sx={{ fontSize: 18 }} /> : <Block sx={{ fontSize: 18 }} />}
+                </IconButton>
+              </Tooltip>
+            </>
+          );
+        }}
+      />
+
       <Dialog
         open={creditDialogOpen}
         onClose={() => setCreditDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#1a1a1a', border: '1px solid rgba(212, 175, 55, 0.3)' } }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } } }}
       >
-        <DialogTitle sx={{ color: '#D4AF37' }}>Adjust Report Credits</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Adjust report credits</DialogTitle>
         <DialogContent>
           <TextField
-            label="Credit Adjustment"
+            label="Credit adjustment"
             type="number"
             fullWidth
             value={creditAmount}
             onChange={(e) => setCreditAmount(e.target.value)}
-            helperText="Positive to add, negative to deduct"
+            helperText="Positive adds credits, negative deducts them"
             sx={{ mt: 1, mb: 2 }}
           />
           <TextField
@@ -500,175 +526,18 @@ export function ScriptAIOverview() {
             fullWidth
             value={creditReason}
             onChange={(e) => setCreditReason(e.target.value)}
+            helperText="Recorded in the audit trail alongside the change"
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreditDialogOpen(false)} sx={{ color: '#a0a0a0' }}>
+          <Button onClick={() => setCreditDialogOpen(false)} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
-          <Button
-            onClick={handleCreditSubmit}
-            disabled={!creditAmount || creditLoading}
-            sx={{ color: '#D4AF37' }}
-          >
-            {creditLoading ? <CircularProgress size={20} sx={{ color: '#D4AF37' }} /> : 'Submit'}
+          <Button variant="contained" onClick={handleCreditSubmit} disabled={!creditAmount || creditLoading}>
+            {creditLoading ? <CircularProgress size={18} /> : 'Apply'}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
-  );
-}
-
-function SubscriberRow({
-  user,
-  actionLoading,
-  onBlock,
-  onUnblock,
-  onCredit,
-}: {
-  user: Subscriber;
-  actionLoading: string | null;
-  onBlock: (id: string) => void;
-  onUnblock: (id: string) => void;
-  onCredit: (id: string) => void;
-}) {
-  const unlimited = user.report_limit === null;
-  const usagePercent = unlimited
-    ? 100
-    : user.report_limit! > 0
-    ? (user.reports_this_month / user.report_limit!) * 100
-    : 0;
-
-  const planChipColor =
-    user.plan === 'Studio'
-      ? { bg: 'rgba(102, 187, 106, 0.2)', text: '#66bb6a' }
-      : user.plan === 'Pro Monthly'
-      ? { bg: 'rgba(66, 165, 245, 0.2)', text: '#42a5f5' }
-      : { bg: 'rgba(212, 175, 55, 0.2)', text: '#D4AF37' };
-
-  const statusChipColor =
-    user.status === 'Active'
-      ? { bg: 'rgba(46, 125, 50, 0.2)', text: '#66bb6a' }
-      : user.status === 'Past Due'
-      ? { bg: 'rgba(255, 152, 0, 0.2)', text: '#ffa726' }
-      : { bg: 'rgba(158, 158, 158, 0.2)', text: '#9e9e9e' };
-
-  const isBlocked = user.status === 'Canceled';
-  const isLoading = actionLoading === user.id;
-
-  return (
-    <TableRow sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
-      <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              width: 36,
-              height: 36,
-              fontSize: '0.875rem',
-              fontWeight: 600,
-            }}
-          >
-            {user.name
-              .split(' ')
-              .map((n) => n[0])
-              .join('')}
-          </Avatar>
-          <Box>
-            <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
-              {user.name}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-              {user.email}
-            </Typography>
-          </Box>
-        </Box>
-      </TableCell>
-      <TableCell sx={{ color: '#ffffff', fontSize: '0.875rem' }}>{user.company}</TableCell>
-      <TableCell>
-        <Chip
-          label={user.plan}
-          size="small"
-          icon={user.plan === 'Studio' ? <Star sx={{ fontSize: 14 }} /> : undefined}
-          sx={{ bgcolor: planChipColor.bg, color: planChipColor.text, fontWeight: 600 }}
-        />
-      </TableCell>
-      <TableCell>
-        <Box sx={{ minWidth: 120 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-              {user.reports_this_month}/{unlimited ? '∞' : user.report_limit}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#D4AF37', fontWeight: 600 }}>
-              {unlimited ? '100' : Math.round(usagePercent)}%
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={Math.min(usagePercent, 100)}
-            sx={{
-              bgcolor: 'rgba(212, 175, 55, 0.1)',
-              '& .MuiLinearProgress-bar': {
-                bgcolor: unlimited || usagePercent < 80 ? '#D4AF37' : '#ffa726',
-              },
-            }}
-          />
-          <Typography variant="caption" sx={{ color: '#666', mt: 0.5, display: 'block' }}>
-            {user.total_reports_generated} total reports
-          </Typography>
-        </Box>
-      </TableCell>
-      <TableCell sx={{ color: '#66bb6a', fontWeight: 600, fontSize: '0.875rem' }}>
-        {user.payment_currency === 'GBP' ? '£' : '$'}
-        {user.monthly_spend}/mo
-      </TableCell>
-      <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{user.join_date}</TableCell>
-      <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{user.last_active ?? 'N/A'}</TableCell>
-      <TableCell>
-        <Chip
-          icon={user.status === 'Active' ? <CheckCircle sx={{ fontSize: 14 }} /> : undefined}
-          label={user.status}
-          size="small"
-          sx={{ bgcolor: statusChipColor.bg, color: statusChipColor.text, fontWeight: 600 }}
-        />
-      </TableCell>
-      <TableCell>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="View">
-            <IconButton size="small">
-              <Visibility sx={{ color: '#D4AF37', fontSize: 18 }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Adjust credits">
-            <IconButton size="small" onClick={() => onCredit(user.id)}>
-              <CreditCard sx={{ color: '#42a5f5', fontSize: 18 }} />
-            </IconButton>
-          </Tooltip>
-          {!isBlocked && (
-            <Tooltip title="Block user">
-              <IconButton size="small" onClick={() => onBlock(user.id)} disabled={isLoading}>
-                {isLoading ? (
-                  <CircularProgress size={18} sx={{ color: '#f44336' }} />
-                ) : (
-                  <Block sx={{ color: '#f44336', fontSize: 18 }} />
-                )}
-              </IconButton>
-            </Tooltip>
-          )}
-          {isBlocked && (
-            <Tooltip title="Unblock user">
-              <IconButton size="small" onClick={() => onUnblock(user.id)} disabled={isLoading}>
-                {isLoading ? (
-                  <CircularProgress size={18} sx={{ color: '#66bb6a' }} />
-                ) : (
-                  <LockOpen sx={{ color: '#66bb6a', fontSize: 18 }} />
-                )}
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-      </TableCell>
-    </TableRow>
   );
 }

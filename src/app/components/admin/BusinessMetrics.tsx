@@ -1,128 +1,25 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  CircularProgress,
-  Alert,
-  Tooltip,
-} from '@mui/material';
-import {
-  TrendingUp,
-  Public,
-  MonetizationOn,
-  Person,
-  People,
-  Assessment,
-  Speed,
-  Group,
-} from '@mui/icons-material';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Box, Typography, CircularProgress, Alert, Tooltip, Button } from '@mui/material';
+import { Refresh, PublicOutlined, MapOutlined } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { EYEBROW_SX, PANEL_SX } from './adminSurfaces';
 import { AdminAccessDenied } from './AdminAccessDenied';
 import { adminApi } from '@/services/admin.api';
-import type { BusinessMetricsDashboard } from '@/services/admin.types';
+import type { BusinessMetricsDashboard, GeoCountry, GeoState } from '@/services/admin.types';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 
-const GOLD = '#D4AF37';
-const CARD_SX = { bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' } as const;
-const HEAD_SX = { color: GOLD, fontWeight: 600 } as const;
 
 const usd = (n: number) => `$${Math.round(n).toLocaleString()}`;
 const pct = (n: number) => `${n}%`;
 
-function SectionCard({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
-  return (
-    <Card sx={{ ...CARD_SX, mb: 4 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Box sx={{ color: GOLD, display: 'flex' }}>{icon}</Box>
-          <Typography variant="h6" sx={{ color: GOLD, fontWeight: 600 }}>
-            {title}
-          </Typography>
-        </Box>
-        {children}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Kpi({
-  icon,
-  value,
-  label,
-  sub,
-  tooltip,
-  color = GOLD,
-}: {
-  icon: ReactNode;
-  value: string;
-  label: string;
-  sub?: string;
-  tooltip: string;
-  color?: string;
-}) {
-  return (
-    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }} sx={{ display: 'flex' }}>
-      <Tooltip title={tooltip} arrow placement="top">
-        <Card
-          sx={{
-            width: '100%',
-            bgcolor: '#0a0a0a',
-            border: `1px solid ${color}40`,
-            cursor: 'help',
-            '&:hover': { borderColor: color },
-          }}
-        >
-          <CardContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Box sx={{ color }}>{icon}</Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                {value}
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                {label}
-              </Typography>
-              {/* Reserve the sub-line height on every card so all cards align */}
-              <Typography variant="caption" sx={{ color, fontWeight: 600, minHeight: '1.25rem' }}>
-                {sub ?? ''}
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
-      </Tooltip>
-    </Grid>
-  );
-}
+type GeoScope = 'countries' | 'states';
 
 export function BusinessMetrics() {
   const { hasAdminPermission } = useAuth();
   const allowed = hasAdminPermission('canViewBusinessMetrics');
-
-  const [data, setData] = useState<BusinessMetricsDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!allowed) return;
-    const controller = new AbortController();
-    (async () => {
-      setLoading(true);
-      setError(null);
-      const result = await adminApi.getBusinessMetrics(controller.signal);
-      if (controller.signal.aborted) return;
-      if (result.error) setError(result.error);
-      else setData(result.data);
-      setLoading(false);
-    })();
-    return () => controller.abort();
-  }, [allowed]);
 
   if (!allowed) {
     return (
@@ -133,236 +30,297 @@ export function BusinessMetrics() {
     );
   }
 
+  return <BusinessMetricsContent />;
+}
+
+function BusinessMetricsContent() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+  const [data, setData] = useState<BusinessMetricsDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [geoScope, setGeoScope] = useState<GeoScope>('countries');
+
+  const load = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    const result = await adminApi.getBusinessMetrics(signal);
+    if (signal?.aborted) return;
+    if (result.error) setError(result.error);
+    else setData(result.data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
+
+  const countryColumns = useMemo<Column<GeoCountry>[]>(() => [
+    {
+      key: 'country', header: 'COUNTRY', width: '1.8fr',
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {r.country}
+        </Typography>
+      ),
+    },
+    {
+      key: 'users', header: 'PAID USERS', width: '0.9fr', align: 'right',
+      sortValue: (r) => r.users,
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, color: t.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
+          {r.users.toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
+      key: 'percentage', header: 'SHARE OF PAID BASE', width: '1.6fr',
+      sortValue: (r) => r.percentage,
+      render: (r) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, width: '100%' }}>
+          <Box sx={{ flex: 1, minWidth: 40, height: 4, bgcolor: t.inputBg }}>
+            <Box sx={{ height: '100%', width: `${Math.min(100, r.percentage)}%`, bgcolor: t.gold }} />
+          </Box>
+          <Typography sx={{ fontSize: 12.5, color: t.textSecondary, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+            {r.percentage}%
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      key: 'revenue_usd', header: 'MONTHLY REVENUE', width: '1.2fr', align: 'right',
+      sortValue: (r) => r.revenue_usd,
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+          {usd(r.revenue_usd)}
+        </Typography>
+      ),
+    },
+    {
+      key: 'arpu', header: 'PER USER', width: '1fr', align: 'right',
+      sortValue: (r) => (r.users ? r.revenue_usd / r.users : -1),
+      render: (r) => (
+        <Typography sx={{ fontSize: 13.5, color: r.users ? t.textSecondary : t.textFaint, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+          {r.users ? usd(r.revenue_usd / r.users) : 'No users'}
+        </Typography>
+      ),
+    },
+  ], [t]);
+
+  const stateColumns = useMemo<Column<GeoState>[]>(() => [
+    {
+      key: 'state', header: 'STATE', width: '1.8fr',
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {r.state}
+        </Typography>
+      ),
+    },
+    {
+      key: 'users', header: 'PAID USERS', width: '0.9fr', align: 'right',
+      sortValue: (r) => r.users,
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, color: t.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
+          {r.users.toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
+      key: 'revenue_usd', header: 'MONTHLY REVENUE', width: '1.2fr', align: 'right',
+      sortValue: (r) => r.revenue_usd,
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+          {usd(r.revenue_usd)}
+        </Typography>
+      ),
+    },
+    {
+      key: 'arpu', header: 'PER USER', width: '1fr', align: 'right',
+      sortValue: (r) => (r.users ? r.revenue_usd / r.users : -1),
+      render: (r) => (
+        <Typography sx={{ fontSize: 13.5, color: r.users ? t.textSecondary : t.textFaint, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+          {r.users ? usd(r.revenue_usd / r.users) : 'No users'}
+        </Typography>
+      ),
+    },
+  ], [t]);
+
+  useHeaderActions(
+    <Button size="small" startIcon={<Refresh />} onClick={() => void load()} disabled={loading}>
+      Refresh
+    </Button>,
+    [load, loading],
+  );
+
+  if (loading && !data) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
+      </Box>
+    );
+  }
+
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (!data) return null;
+
+  const estimated = data.mrr_estimated_subscriptions ?? 0;
+  const mixed = data.mrr_by_currency.filter((c) => c.amount > 0);
+  const showStates = data.us_states.length > 0;
+
+  /** Supporting figure, rendered as a value with its own caption rather than as
+   *  one of six identical cards where nothing leads. */
+  const figure = (label: string, value: string, hint: string, tip: string) => (
+    <Tooltip key={label} title={tip} arrow placement="top">
+      <Box sx={{ cursor: 'help' }}>
+        <Typography sx={{ fontSize: 22, fontWeight: 700, color: t.textPrimary, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+          {value}
+        </Typography>
+        <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>{label}</Typography>
+        <Typography sx={{ fontSize: 11.5, color: t.textFaint, mt: 0.25 }}>{hint}</Typography>
+      </Box>
+    </Tooltip>
+  );
+
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: GOLD, mb: 1 }}>
-          Business Metrics Dashboard
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-          Live platform health from subscriptions, reports, and billing geography
-        </Typography>
+      {/* Recurring revenue leads. The other figures on this page all explain it,
+          so giving all six equal weight left the reader no entry point. */}
+      <Box sx={{ ...PANEL_SX, mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(260px, 1fr) 2fr' }, gap: { xs: 3, md: 4 }, alignItems: 'start' }}>
+        <Box>
+          <Typography sx={EYEBROW_SX}>MONTHLY RECURRING REVENUE</Typography>
+          <Typography sx={{ fontSize: { xs: 34, md: 44 }, fontWeight: 800, color: t.textPrimary, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums' }}>
+            {usd(data.mrr_usd)}
+          </Typography>
+          <Typography sx={{ fontSize: 13, color: t.textSecondary, mt: 0.5 }}>
+            {usd(data.arr_usd)} annualised.
+            {mixed.length > 1 && ` Billed in ${mixed.map((c) => c.currency).join(' and ')}, converted to USD.`}
+          </Typography>
+          {/* An imputed figure that does not say so is what let platform MRR read
+              as zero for months without anyone noticing. */}
+          {estimated > 0 && (
+            <Typography sx={{ fontSize: 12.5, color: t.warning, fontWeight: 600, mt: 0.75 }}>
+              Partly estimated: {estimated} active {estimated === 1 ? 'subscription has' : 'subscriptions have'} no
+              billed amount recorded, so the plan list price stands in.
+            </Typography>
+          )}
+        </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+          {figure(
+            'Paid users',
+            data.total_paid_users.toLocaleString(),
+            `${data.total_users.toLocaleString()} registered in total`,
+            'Users on a paid plan: Professional, Producer, Studio or Business Intelligence.',
+          )}
+          {figure(
+            'Active subscriptions',
+            data.active_subscriptions.toLocaleString(),
+            'Currently in an active status',
+            'Subscriptions whose status is active. A user can hold more than one.',
+          )}
+          {figure(
+            'Monthly churn',
+            pct(data.monthly_churn_percent),
+            'Cancelled in the last 30 days',
+            'Subscriptions cancelled in the last 30 days as a share of active plus recently cancelled subscriptions.',
+          )}
+          {figure(
+            'Free to paid',
+            pct(data.free_to_paid_percent),
+            'Share of all registered users',
+            'Paid users divided by total registered users.',
+          )}
+          {figure(
+            'Time to convert',
+            data.avg_days_to_convert != null ? `${data.avg_days_to_convert} days` : 'Not enough data',
+            'Signup to first subscription',
+            'Mean days between registering and starting a first paid subscription.',
+          )}
+          {figure(
+            'Activation',
+            pct(data.activation_rate_percent),
+            'Generated at least one report',
+            'Share of registered users who have generated at least one report.',
+          )}
+        </Box>
       </Box>
 
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-          <CircularProgress sx={{ color: GOLD }} />
+      {/* Plan and role mix side by side: two short lists, each of which only
+          makes sense next to the other. */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
+        {([
+          ['PLAN MIX', data.plan_distribution.map((r) => [r.plan, r.count] as [string, number]), 'No plans recorded.'],
+          ['PROFESSIONAL ROLES', data.role_distribution.map((r) => [r.role, r.count] as [string, number]), 'No roles recorded.'],
+        ] as [string, [string, number][], string][]).map(([heading, rows, empty]) => {
+          const max = Math.max(1, ...rows.map(([, n]) => n));
+          return (
+            <Box key={heading} sx={PANEL_SX}>
+              <Typography sx={{ ...EYEBROW_SX, mb: 2 }}>{heading}</Typography>
+              {rows.length === 0 ? (
+                <Typography sx={{ fontSize: 13, color: t.textFaint }}>{empty}</Typography>
+              ) : rows.map(([label, count]) => (
+                <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.25 }}>
+                  <Typography sx={{ fontSize: 13.5, color: t.textPrimary, flex: '0 0 40%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {label}
+                  </Typography>
+                  {/* Bars scaled against the largest row, so the shape of the
+                      distribution is readable without reading every number. */}
+                  <Box sx={{ flex: 1, height: 4, bgcolor: t.inputBg, minWidth: 30 }}>
+                    <Box sx={{ height: '100%', width: `${(count / max) * 100}%`, bgcolor: t.gold }} />
+                  </Box>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: t.textPrimary, fontVariantNumeric: 'tabular-nums', flexShrink: 0, minWidth: 32, textAlign: 'right' }}>
+                    {count.toLocaleString()}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          );
+        })}
+      </Box>
+
+      {showStates && (
+        <Box sx={{ mb: 2 }}>
+          <SegmentedToggle
+            value={geoScope}
+            onChange={(v) => setGeoScope(v as GeoScope)}
+            options={[
+              { value: 'countries', label: `Countries ${data.geographic.length}` },
+              { value: 'states', label: `US states ${data.us_states.length}` },
+            ]}
+          />
         </Box>
       )}
 
-      {!loading && error && (
-        <Alert severity="error" sx={{ mb: 4 }}>
-          {error}
-        </Alert>
-      )}
-
-      {!loading && !error && data && (
-        <>
-          {/* Core KPIs */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Kpi
-              icon={<People />}
-              value={data.total_paid_users.toLocaleString()}
-              label="Paid Users"
-              sub={`${data.total_users.toLocaleString()} total`}
-              tooltip="Users on a paid plan (Professional, Producer, Studio, or B2B). The subline shows every registered user, paid or free."
-            />
-            <Kpi
-              icon={<MonetizationOn />}
-              value={usd(data.mrr_usd)}
-              label="MRR (USD equiv.)"
-              color="#66bb6a"
-              tooltip="Monthly Recurring Revenue from all active subscriptions, with non USD currencies converted to USD."
-            />
-            <Kpi
-              icon={<TrendingUp />}
-              value={usd(data.arr_usd)}
-              label="ARR (USD equiv.)"
-              color="#66bb6a"
-              tooltip="Annual Recurring Revenue, current MRR projected over 12 months, in USD."
-            />
-            <Kpi
-              icon={<Assessment />}
-              value={data.active_subscriptions.toLocaleString()}
-              label="Active Subscriptions"
-              tooltip="Number of subscriptions currently in an 'active' status."
-            />
-            <Kpi
-              icon={<Speed />}
-              value={pct(data.monthly_churn_percent)}
-              label="Monthly Churn"
-              color="#ffa726"
-              tooltip="Subscriptions cancelled in the last 30 days as a share of active plus recently cancelled subscriptions."
-            />
-            <Kpi
-              icon={<Person />}
-              value={pct(data.free_to_paid_percent)}
-              label="Free → Paid"
-              color="#66bb6a"
-              tooltip="Share of all registered users who are on a paid plan (paid users ÷ total users)."
-            />
-          </Grid>
-
-          {/* Geographic distribution */}
-          {data.geo_available ? (
-            <SectionCard icon={<Public />} title="Geographic Distribution (Paid Users)">
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={HEAD_SX}>Country</TableCell>
-                      <TableCell sx={HEAD_SX}>Paid Users</TableCell>
-                      <TableCell sx={HEAD_SX}>% of Total</TableCell>
-                      <TableCell sx={HEAD_SX}>Monthly Revenue (USD)</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {data.geographic.map((row) => (
-                      <TableRow key={row.country_code || row.country}>
-                        <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>{row.country}</TableCell>
-                        <TableCell sx={{ color: '#ffffff' }}>{row.users}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Box sx={{ flex: 1, maxWidth: 100 }}>
-                              <Box sx={{ height: 8, bgcolor: GOLD, borderRadius: 1, width: `${row.percentage}%` }} />
-                            </Box>
-                            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                              {row.percentage}%
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell sx={{ color: '#66bb6a', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </SectionCard>
-          ) : (
-            <SectionCard icon={<Public />} title="Geographic Distribution (Paid Users)">
-              <Typography variant="body2" sx={{ color: '#777' }}>
-                No available data
-              </Typography>
-            </SectionCard>
-          )}
-
-          {/* US state breakdown */}
-          {data.us_states.length > 0 && (
-            <SectionCard icon={<Public />} title="United States State Breakdown">
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={HEAD_SX}>State</TableCell>
-                      <TableCell sx={HEAD_SX}>Paid Users</TableCell>
-                      <TableCell sx={HEAD_SX}>Monthly Revenue (USD)</TableCell>
-                      <TableCell sx={HEAD_SX}>ARPU</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {data.us_states.map((row) => (
-                      <TableRow key={row.state_code}>
-                        <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>{row.state}</TableCell>
-                        <TableCell sx={{ color: '#ffffff' }}>{row.users}</TableCell>
-                        <TableCell sx={{ color: '#66bb6a', fontWeight: 600 }}>{usd(row.revenue_usd)}</TableCell>
-                        <TableCell sx={{ color: '#42a5f5' }}>
-                          {row.users ? usd(row.revenue_usd / row.users) : 'N/A'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </SectionCard>
-          )}
-
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            {/* Plan distribution */}
-            <Grid size={{ xs: 12, lg: 6 }}>
-              <SectionCard icon={<Assessment />} title="Plan Distribution">
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={HEAD_SX}>Plan</TableCell>
-                        <TableCell sx={HEAD_SX}>Users</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {data.plan_distribution.map((row) => (
-                        <TableRow key={row.plan}>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.plan}</TableCell>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.count}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </SectionCard>
-            </Grid>
-
-            {/* Professional profile breakdown (role counts) */}
-            <Grid size={{ xs: 12, lg: 6 }}>
-              <SectionCard icon={<Group />} title="Professional Profile Breakdown">
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={HEAD_SX}>Role</TableCell>
-                        <TableCell sx={HEAD_SX}>Users</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {data.role_distribution.map((row) => (
-                        <TableRow key={row.role}>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.role}</TableCell>
-                          <TableCell sx={{ color: '#ffffff' }}>{row.count}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </SectionCard>
-            </Grid>
-          </Grid>
-
-          {/* Engagement & conversion */}
-          <SectionCard icon={<Speed />} title="Engagement & Conversion">
-            <Grid container spacing={3}>
-              {[
-                { value: pct(data.free_to_paid_percent), label: 'Free → Paid Conversion', note: '% of users on a paid plan' },
-                {
-                  value: data.avg_days_to_convert != null ? `${data.avg_days_to_convert} days` : 'N/A',
-                  label: 'Avg. Time to Convert',
-                  note: 'Signup → first paid subscription',
-                },
-                { value: pct(data.activation_rate_percent), label: 'Activation Rate', note: '% who generated ≥1 report' },
-              ].map((m) => (
-                <Grid size={{ xs: 12, md: 4 }} key={m.label}>
-                  <Box
-                    sx={{
-                      p: 3,
-                      bgcolor: 'rgba(102, 187, 106, 0.05)',
-                      borderRadius: 2,
-                      border: '1px solid #66bb6a40',
-                    }}
-                  >
-                    <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1 }}>
-                      {m.value}
-                    </Typography>
-                    <Typography variant="subtitle2" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
-                      {m.label}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                      {m.note}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </SectionCard>
-        </>
+      {geoScope === 'countries' || !showStates ? (
+        <DataTable<GeoCountry>
+          title="Paid users by country"
+          columns={countryColumns}
+          rows={data.geo_available ? data.geographic : []}
+          getRowId={(r) => r.country_code || r.country}
+          pageSize={12}
+          itemNoun="country"
+          itemNounPlural="countries"
+          minWidth={960}
+          maxHeight={560}
+          emptyIcon={<PublicOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+          emptyMessage={data.geo_available
+            ? 'No paid users have a billing country recorded.'
+            : 'Billing geography is not available. No paid subscription carries a country on its billing record.'}
+        />
+      ) : (
+        <DataTable<GeoState>
+          title="Paid users by US state"
+          columns={stateColumns}
+          rows={data.us_states}
+          getRowId={(r) => r.state_code}
+          pageSize={12}
+          itemNoun="state"
+          minWidth={880}
+          maxHeight={560}
+          emptyIcon={<MapOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+          emptyMessage="No US paid users have a state recorded."
+        />
       )}
     </Box>
   );

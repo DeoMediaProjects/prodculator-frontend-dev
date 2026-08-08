@@ -1,16 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
   IconButton,
   Dialog,
   DialogTitle,
@@ -20,15 +12,19 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
-import { Edit, Add, Refresh, Delete } from '@mui/icons-material';
+import { Edit, Add, Refresh, Delete, MovieFilterOutlined } from '@mui/icons-material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
+import { fetchTerritoryList } from '@/services/territory.service';
 import type { ComparableProduction, TmdbSyncResponse } from '@/services/admin.types';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
 const genres = ['Action', 'Drama', 'Comedy', 'Sci Fi', 'Thriller', 'Horror', 'Adventure', 'Romance'];
-const territories = ['United Kingdom', 'British Columbia', 'Georgia (USA)', 'Malta', 'South Africa'];
 
 export function ComparableProductionsManager() {
   const { hasAdminPermission } = useAuth();
@@ -46,6 +42,11 @@ export function ComparableProductionsManager() {
 }
 
 function ComparableProductionsManagerContent() {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+  // Territories come from the same source the report engine ranks against,
+  // rather than a hardcoded five that silently excluded most of the platform.
+  const [territories, setTerritories] = useState<string[]>([]);
   const [productions, setProductions] = useState<ComparableProduction[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -60,6 +61,11 @@ function ComparableProductionsManagerContent() {
     if (didFetch.current) return;
     didFetch.current = true;
     (async () => {
+      void fetchTerritoryList().then(({ data: tData }) => {
+        if (tData?.territories?.length) {
+          setTerritories(tData.territories.map((x) => x.label).sort((a, b) => a.localeCompare(b)));
+        }
+      });
       const { data, error } = await adminApi.getComparables();
       if (error) {
         setFetchError(error);
@@ -91,8 +97,7 @@ function ComparableProductionsManagerContent() {
   const handleSave = async () => {
     if (editingProduction) {
       const payload: ComparableProduction = {
-        ...editingProduction,
-        ...formData,
+        ...editingProduction, ...formData,
         lastUpdated: new Date().toISOString().split('T')[0],
       } as ComparableProduction;
       const { data, error } = await adminApi.updateComparable(editingProduction.id, payload);
@@ -139,51 +144,84 @@ function ComparableProductionsManagerContent() {
     }
   };
 
+  const columns = useMemo<Column<ComparableProduction>[]>(() => [
+    {
+      key: 'title', header: 'TITLE', width: '1.8fr',
+      render: (r) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {r.title}
+          </Typography>
+          {/* Says the row came from the catalogue sync rather than a curator,
+              which is what decides how much to trust its budget. */}
+          {r.tmdbId && (
+            <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: t.textFaint, flexShrink: 0 }}>
+              SYNCED
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    { key: 'year', header: 'YEAR', width: '0.55fr', sortValue: (r) => r.year ?? 0 },
+    {
+      key: 'genre', header: 'GENRE', width: '1.2fr',
+      sortValue: (r) => (Array.isArray(r.genre) ? r.genre.join(', ') : String(r.genre ?? '')),
+      render: (r) => (
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {(Array.isArray(r.genre) ? r.genre : [r.genre]).filter(Boolean).join(', ') || 'Unspecified'}
+        </Typography>
+      ),
+    },
+    {
+      key: 'budget', header: 'BUDGET', width: '0.8fr', align: 'right',
+      sortValue: (r) => r.budget ?? 0,
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
+          {r.budget ? `$${(r.budget / 1_000_000).toFixed(1)}M` : 'Unknown'}
+        </Typography>
+      ),
+    },
+    { key: 'territory', header: 'TERRITORY', width: '1.1fr' },
+    {
+      key: 'incentiveUsed', header: 'INCENTIVE USED', width: '1.2fr',
+      render: (r) => (
+        <Typography sx={{ fontSize: 13.5, color: r.incentiveUsed ? t.textSecondary : t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {r.incentiveUsed || 'Not recorded'}
+        </Typography>
+      ),
+    },
+    {
+      key: 'source', header: 'SOURCE', width: '0.9fr', filterSelect: true,
+      // Explicit, so a row with no recorded source is selectable as "Manual"
+      // rather than dropping out of the filter's option list entirely.
+      sortValue: (r) => r.source || 'Manual',
+      render: (r) => <Box sx={{ color: t.textSecondary, fontSize: 13.5 }}>{r.source || 'Manual'}</Box>,
+    },
+    {
+      key: 'lastUpdated', header: 'UPDATED', width: '0.9fr',
+      sortValue: (r) => new Date(r.lastUpdated || 0).getTime() || 0,
+      render: (r) => <Box sx={{ color: t.textSecondary, fontSize: 13.5 }}>{r.lastUpdated || 'Unknown'}</Box>,
+    },
+  ], [t]);
+
+  useHeaderActions(
+    <>
+      <Button size="small" startIcon={<Refresh />} onClick={handleSyncTMDB} disabled={syncing}>
+        {syncing ? 'Syncing...' : 'Sync catalogue'}
+      </Button>
+      <Button size="small" variant="contained" startIcon={<Add />} onClick={handleAdd}>
+        Add production
+      </Button>
+    </>,
+    [syncing],
+  );
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
-            Comparable Productions Database
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-            Curated database of film/TV productions with budgets, locations, and incentives used
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={handleSyncTMDB}
-            disabled={syncing}
-            sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
-              '&:hover': {
-                borderColor: '#D4AF37',
-                bgcolor: 'rgba(212, 175, 55, 0.08)',
-              },
-            }}
-          >
-            {syncing ? 'Syncing...' : 'Sync Catalog'}
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleAdd}
-            sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              fontWeight: 600,
-              '&:hover': {
-                bgcolor: '#D4AF37',
-              },
-            }}
-          >
-            Add Production
-          </Button>
-        </Box>
-      </Box>
+      <Typography sx={{ color: 'text.secondary', fontSize: 13.5, mb: 2, maxWidth: '78ch' }}>
+        Productions with a known budget, shoot territory and incentive outcome. Reports anchor a projected budget
+        against these, so an inaccurate row skews every comparison drawn from it.
+      </Typography>
 
       {fetchError && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setFetchError(null)}>{fetchError}</Alert>
@@ -195,82 +233,35 @@ function ComparableProductionsManagerContent() {
       )}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress sx={{ color: '#D4AF37' }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       )}
 
-      <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Title</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Year</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Genre</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Budget</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Territory</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Incentive Used</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Source</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Last Updated</TableCell>
-                <TableCell sx={{ color: '#D4AF37', fontWeight: 600 }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {productions.map((production) => (
-                <TableRow key={production.id} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
-                  <TableCell sx={{ color: '#ffffff' }}>
-                    {production.title}
-                    {production.tmdbId && (
-                      <Chip
-                        label="Catalog"
-                        size="small"
-                        sx={{
-                          ml: 1,
-                          bgcolor: 'rgba(3, 169, 244, 0.2)',
-                          color: '#03a9f4',
-                          fontSize: '0.65rem',
-                          height: 18,
-                        }}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ color: '#ffffff' }}>{production.year}</TableCell>
-                  <TableCell>
-                    {(Array.isArray(production.genre) ? production.genre : [production.genre]).map((g) => (
-                      <Chip
-                        key={g}
-                        label={g}
-                        size="small"
-                        sx={{
-                          bgcolor: 'rgba(212, 175, 55, 0.2)',
-                          color: '#D4AF37',
-                          fontWeight: 600,
-                          mr: 0.5,
-                        }}
-                      />
-                    ))}
-                  </TableCell>
-                  <TableCell sx={{ color: '#ffffff' }}>
-                    ${(production.budget / 1000000).toFixed(1)}M
-                  </TableCell>
-                  <TableCell sx={{ color: '#ffffff', fontSize: '0.875rem' }}>{production.territory}</TableCell>
-                  <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{production.incentiveUsed}</TableCell>
-                  <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{production.source}</TableCell>
-                  <TableCell sx={{ color: '#a0a0a0', fontSize: '0.875rem' }}>{production.lastUpdated}</TableCell>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                    <IconButton size="small" onClick={() => handleEdit(production)}>
-                      <Edit sx={{ color: '#D4AF37', fontSize: 18 }} />
-                    </IconButton>
-                    <IconButton size="small" onClick={() => handleDelete(production.id)}>
-                      <Delete sx={{ color: '#f44336', fontSize: 18 }} />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <DataTable<ComparableProduction>
+        title="Comparable productions"
+        columns={columns}
+        rows={productions}
+        getRowId={(r) => r.id}
+        pageSize={12}
+        itemNoun="production"
+        minWidth={1080}
+        emptyIcon={<MovieFilterOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+        emptyMessage="No comparables yet. Reports use these to anchor a budget against real productions, so a thin catalogue weakens every budget comparison."
+        rowActions={(r) => (
+          <>
+            <Tooltip title="Edit">
+              <IconButton size="small" onClick={() => handleEdit(r)} sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}>
+                <Edit sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton size="small" onClick={() => handleDelete(r.id)} sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}>
+                <Delete sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
+      />
 
       {/* Edit/Add Dialog */}
       <Dialog 
@@ -278,14 +269,9 @@ function ComparableProductionsManagerContent() {
         onClose={handleClose}
         maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
-          }
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider', } } }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>
           {editingProduction ? 'Edit Production' : 'Add Production'}
         </DialogTitle>
         <DialogContent>
@@ -357,16 +343,16 @@ function ComparableProductionsManagerContent() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={handleClose} sx={{ color: '#a0a0a0' }}>
+          <Button onClick={handleClose} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleSave}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': { bgcolor: 'primary.main' },
             }}
           >
             {editingProduction ? 'Update' : 'Add'} Production

@@ -18,6 +18,7 @@ import {
 import { Save, CheckCircle, Warning, Refresh, Schedule } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import type { DataSource, DataSourceSyncSchedule, SyncScheduleItem } from '@/services/admin.types';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
@@ -61,7 +62,7 @@ function getStatusChip(source: DataSource) {
   if (!source.is_implemented) {
     return {
       label: 'Planned',
-      color: '#ffa726',
+      color: 'warning.main',
       bgColor: 'rgba(255, 167, 38, 0.15)',
       icon: <Schedule sx={{ fontSize: 16 }} />,
     };
@@ -70,7 +71,7 @@ function getStatusChip(source: DataSource) {
   if (source.status === 'connected' && source.credential_configured) {
     return {
       label: 'Active',
-      color: '#66bb6a',
+      color: 'success.main',
       bgColor: 'rgba(46, 125, 50, 0.2)',
       icon: <CheckCircle sx={{ fontSize: 16 }} />,
     };
@@ -79,7 +80,7 @@ function getStatusChip(source: DataSource) {
   if (source.status === 'disconnected' && source.credential_configured) {
     return {
       label: 'Error',
-      color: '#f44336',
+      color: 'error.main',
       bgColor: 'rgba(211, 47, 47, 0.2)',
       icon: <Warning sx={{ fontSize: 16 }} />,
     };
@@ -88,7 +89,7 @@ function getStatusChip(source: DataSource) {
   if (!source.credential_configured) {
     return {
       label: 'Not Configured',
-      color: source.status === 'disconnected' ? '#f44336' : '#9e9e9e',
+      color: source.status === 'disconnected' ? 'error.main' : 'text.secondary',
       bgColor: source.status === 'disconnected' ? 'rgba(211, 47, 47, 0.2)' : 'rgba(117, 117, 117, 0.2)',
       icon: source.status === 'disconnected' ? <Warning sx={{ fontSize: 16 }} /> : undefined,
     };
@@ -96,7 +97,7 @@ function getStatusChip(source: DataSource) {
 
   return {
     label: 'Untested',
-    color: '#9e9e9e',
+    color: 'text.secondary',
     bgColor: 'rgba(117, 117, 117, 0.2)',
     icon: undefined,
   };
@@ -245,13 +246,27 @@ function DataSourcesManagerContent() {
     }
   };
 
+  useHeaderActions(
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={<Save />}
+      onClick={handleSave}
+      disabled={saving || pendingChangesCount === 0}
+    >
+      {saving
+        ? 'Saving...'
+        : pendingChangesCount === 0
+          ? 'No changes'
+          : `Save ${pendingChangesCount} change${pendingChangesCount === 1 ? '' : 's'}`}
+    </Button>,
+    [saving, pendingChangesCount],
+  );
+
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 1 }}>
-          Data Source Connectivity
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 3 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
           Visibility into active integrations.
         </Typography>
 
@@ -267,7 +282,7 @@ function DataSourcesManagerContent() {
             sx={{
               mb: 3,
               bgcolor: 'rgba(46, 125, 50, 0.1)',
-              color: '#66bb6a',
+              color: 'success.main',
               border: '1px solid rgba(46, 125, 50, 0.3)',
             }}
           >
@@ -284,7 +299,7 @@ function DataSourcesManagerContent() {
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress sx={{ color: '#D4AF37' }} />
+          <CircularProgress sx={{ color: 'primary.main' }} />
         </Box>
       ) : (
         <Grid container spacing={3}>
@@ -295,10 +310,10 @@ function DataSourcesManagerContent() {
               <Grid size={{ xs: 12 }} key={source.id}>
                 <Card
                   sx={{
-                    bgcolor: '#0a0a0a',
-                    border: '1px solid rgba(212, 175, 55, 0.2)',
+                    bgcolor: 'background.paper',
+                    border: 1, borderColor: 'divider',
                     '&:hover': {
-                      borderColor: 'rgba(212, 175, 55, 0.4)',
+                      borderColor: 'action.hover',
                     },
                   }}
                 >
@@ -306,7 +321,7 @@ function DataSourcesManagerContent() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Box sx={{ flex: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
-                          <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
+                          <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
                             {source.name}
                           </Typography>
                           <Chip
@@ -323,16 +338,16 @@ function DataSourcesManagerContent() {
                             label={source.category.toUpperCase()}
                             size="small"
                             sx={{
-                              bgcolor: 'rgba(212, 175, 55, 0.15)',
-                              color: '#D4AF37',
+                              bgcolor: 'action.hover',
+                              color: 'primary.main',
                               fontWeight: 600,
                             }}
                           />
                         </Box>
-                        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
                           {source.description}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#666', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <Refresh sx={{ fontSize: 14 }} />
                           Last tested: {formatDateTime(source.last_tested_at)}
                         </Typography>
@@ -344,26 +359,26 @@ function DataSourcesManagerContent() {
                             onChange={(_, checked) => handleToggle(source.id, checked)}
                             sx={{
                               '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#D4AF37',
+                                color: 'primary.main',
                               },
                               '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#D4AF37',
+                                backgroundColor: 'primary.main',
                               },
                             }}
                           />
                         }
                         label={isEnabled ? 'Enabled' : 'Disabled'}
-                        sx={{ color: '#a0a0a0' }}
+                        sx={{ color: 'text.secondary' }}
                       />
                     </Box>
 
-                    <Divider sx={{ my: 2, borderColor: 'rgba(212, 175, 55, 0.1)' }} />
+                    <Divider sx={{ my: 2, borderColor: 'divider' }} />
 
                     <Grid container spacing={2} alignItems="center">
                       <Grid size={{ xs: 12, md: 3 }}>
                         <TextField
                           label="Endpoint"
-                          value={source.endpoint || 'N/A'}
+                          value={source.endpoint || 'Not configured'}
                           fullWidth
                           size="small"
                           InputProps={{
@@ -372,7 +387,7 @@ function DataSourcesManagerContent() {
                           sx={{
                             '& .MuiInputBase-input': {
                               fontSize: '0.875rem',
-                              color: '#a0a0a0',
+                              color: 'text.secondary',
                             },
                           }}
                         />
@@ -418,15 +433,15 @@ function DataSourcesManagerContent() {
                           onClick={() => void handleTestConnection(source)}
                           disabled={!isEnabled || !source.is_implemented || Boolean(testingById[source.id])}
                           sx={{
-                            borderColor: '#D4AF37',
-                            color: '#D4AF37',
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
                             '&:hover': {
-                              borderColor: '#D4AF37',
-                              bgcolor: 'rgba(212, 175, 55, 0.08)',
+                              borderColor: 'primary.main',
+                              bgcolor: 'action.hover',
                             },
                             '&.Mui-disabled': {
-                              borderColor: '#333',
-                              color: '#666',
+                              borderColor: 'divider',
+                              color: 'text.secondary',
                             },
                           }}
                         >
@@ -442,45 +457,27 @@ function DataSourcesManagerContent() {
         </Grid>
       )}
 
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-          <strong>Security:</strong> Secret keys are stored server side only. Frontend never stores OpenAI or backend service credentials.
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Save />}
-          onClick={handleSave}
-          disabled={saving || pendingChangesCount === 0}
-          sx={{
-            bgcolor: '#D4AF37',
-            color: '#000000',
-            fontWeight: 600,
-            px: 4,
-            '&:hover': {
-              bgcolor: '#D4AF37',
-            },
-          }}
-        >
-          {saving ? 'Saving...' : 'Save Configuration'}
-        </Button>
-      </Box>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mt: 3 }}>
+        <strong>Security:</strong> Secret keys are stored server side only. The frontend never holds provider or
+        backend service credentials.
+      </Typography>
 
-      <Box sx={{ mt: 4, p: 3, bgcolor: 'rgba(212, 175, 55, 0.05)', borderRadius: 2, border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600, mb: 2 }}>
+      <Box sx={{ mt: 4, p: 3, bgcolor: 'action.hover', borderRadius: 2, border: 1, borderColor: 'divider' }}>
+        <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 2 }}>
           Curated Data Update Schedule
         </Typography>
         {scheduleItems.length === 0 ? (
-          <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             No schedule data available.
           </Typography>
         ) : (
           <Grid container spacing={2}>
             {scheduleItems.map((item) => (
               <Grid size={{ xs: 12, md: 6 }} key={item.slug}>
-                <Typography variant="body2" sx={{ color: '#ffffff', mb: 0.5 }}>
+                <Typography variant="body2" sx={{ color: 'text.primary', mb: 0.5 }}>
                   <strong>{item.name}:</strong> {formatScheduleLabel(item.sync_schedule)}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Last tested: {formatDateTime(item.last_tested_at)} • {item.enabled ? 'Enabled' : 'Disabled'}
                 </Typography>
               </Grid>

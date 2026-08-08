@@ -5,7 +5,6 @@ import {
   Container,
   Typography,
   Button,
-  Paper,
   Grid,
   Card,
   CardContent,
@@ -81,7 +80,7 @@ function classifyDirection(currentPlan: string, targetPlan: PlanType): ChangeDir
 
 export function Pricing() {
   const navigate = useNavigate();
-  const { hasAdminPermission, user } = useAuth();
+  const { user } = useAuth();
   const { isUK } = useGeoCurrency();
   const { mode } = useThemeMode();
   const t = tokens(mode);
@@ -100,6 +99,16 @@ export function Pricing() {
   const currentPlan = subscriptionData?.plan ?? user?.plan ?? 'free';
   const pendingPlan = subscriptionData?.pending_plan ?? null;
   const hasActiveSubscription = !!subscriptionData?.subscription;
+
+  // Producer and Studio are organization plans, so a customer on one would land
+  // on the "For individuals" tab and not see the plan they are actually paying
+  // for. Open on their own side of the toggle instead. Runs once per resolved
+  // plan rather than on every render, so it never fights a manual toggle.
+  useEffect(() => {
+    if (currentPlan === 'producer' || currentPlan === 'studio') {
+      setAudience('organization');
+    }
+  }, [currentPlan]);
 
   const [modalState, setModalState] = useState<
     | { open: true; targetPlan: PlanType; targetPriceId: string; targetPlanLabel: string }
@@ -388,7 +397,7 @@ export function Pricing() {
       ctaSubtext: 'Cancel anytime',
       action: 'subscribe',
       planType: 'producer',
-      audience: 'both',
+      audience: 'organization',
     },
     {
       name: 'Studio',
@@ -625,40 +634,6 @@ export function Pricing() {
             );
           })}
         </Grid>
-
-        {/* Platform Economics — admin only */}
-        {hasAdminPermission('canViewPlatformEconomics') && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 4,
-              mt: 4,
-              bgcolor: t.cardBg,
-              border: `1px solid ${t.border}`,
-            }}
-          >
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: t.textPrimary }}>
-              Platform Economics
-            </Typography>
-            <Grid container spacing={3}>
-              {[
-                { label: 'Avg. Cost Per Report', value: '~$0.30', sub: 'AI processing + infrastructure', color: t.gold },
-                { label: 'Gross Margin', value: '~99%', sub: 'Highly scalable model', color: t.success },
-                { label: 'Scalability', value: 'Infinite', sub: 'Marginal cost near zero', color: t.gold },
-              ].map(({ label, value, sub, color }) => (
-                <Grid size={{ xs: 12, sm: 4 }} key={label}>
-                  <Card elevation={0} sx={{ bgcolor: t.cardBgAlt, border: `1px solid ${t.border}` }}>
-                    <CardContent>
-                      <Typography variant="overline" sx={{ color: t.textSecondary }}>{label}</Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 600, color }}>{value}</Typography>
-                      <Typography variant="caption" sx={{ color: t.textSecondary }}>{sub}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Paper>
-        )}
 
       </Container>
 

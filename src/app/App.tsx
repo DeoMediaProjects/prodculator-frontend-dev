@@ -65,10 +65,14 @@ const BusinessMetrics = lazy(() => import('../app/components/admin/BusinessMetri
 const ScriptAIOverview = lazy(() => import('../app/components/admin/ScriptAIOverview').then(m => ({ default: m.ScriptAIOverview })));
 const ProductionIntelligence = lazy(() => import('../app/components/admin/ProductionIntelligence').then(m => ({ default: m.ProductionIntelligence })));
 const BusinessIntelligenceStudio = lazy(() => import('../app/components/admin/BusinessIntelligenceStudio').then(m => ({ default: m.BusinessIntelligenceStudio })));
+const AuditTrailManager = lazy(() => import('../app/components/admin/AuditTrailManager').then(m => ({ default: m.AuditTrailManager })));
 
 const VerifyEmail = lazy(() => import('../app/pages/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
 const EmailVerifyCallback = lazy(() => import('../app/pages/EmailVerifyCallback').then(m => ({ default: m.EmailVerifyCallback })));
 const ResetPassword = lazy(() => import('../app/pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
+// Reached from a contract-invite email. Public on purpose: the client may not
+// have an account yet and needs to see what they are claiming before creating one.
+const AcceptBusinessIntelligenceInvite = lazy(() => import('../app/pages/AcceptBusinessIntelligenceInvite').then(m => ({ default: m.AcceptBusinessIntelligenceInvite })));
 
 // Test/preview pages (dev-only routes) — also lazy so they never enter the prod bundle.
 const ScriptAnalysisTester = lazy(() => import('../app/pages/ScriptAnalysisTester').then(m => ({ default: m.ScriptAnalysisTester })));
@@ -129,6 +133,10 @@ function AppContent() {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/acceptable-use" element={<AcceptableUse />} />
                   <Route path="/contact" element={<Contact />} />
+                  {/* Public: the invited client may not have an account yet. Must
+                      stay outside ProtectedRoute, and must match the accept URL
+                      the backend mints ({FRONTEND_URL}/b2b/invite/{token}). */}
+                  <Route path="/b2b/invite/:token" element={<AcceptBusinessIntelligenceInvite />} />
                   <Route path="/b2b" element={<ProtectedRoute><B2BSolutions /></ProtectedRoute>} />
                   {/* Delivery emails link here; the console now lives in the dashboard shell. */}
                   <Route path="/business-intelligence" element={<Navigate to="/dashboard/business-intelligence" replace />} />
@@ -155,6 +163,7 @@ function AppContent() {
                     <Route path="script-ai" element={<ScriptAIOverview />} />
                     <Route path="production-intel" element={<ProductionIntelligence />} />
                     <Route path="bi-studio" element={<BusinessIntelligenceStudio />} />
+                    <Route path="audit-trail" element={<AuditTrailManager />} />
                   </Route>
 
                   {/* Test/Preview Routes — DEV ONLY. These expose internal tooling

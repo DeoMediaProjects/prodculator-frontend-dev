@@ -1,14 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
   Chip,
   IconButton,
@@ -18,12 +12,9 @@ import {
   DialogActions,
   TextField,
   MenuItem,
+  Tooltip,
   Alert,
-  Tabs,
-  Tab,
   Grid,
-  Card,
-  CardContent,
   FormControlLabel,
   CircularProgress,
   Collapse,
@@ -34,18 +25,16 @@ import {
   Add,
   Edit,
   Delete,
-  Visibility,
   OpenInNew,
   CheckCircle,
-  Warning,
   Sync,
   Schedule,
-  Event,
   Upload,
   Download,
   Refresh,
   ExpandMore,
   ExpandLess,
+  VolunteerActivismOutlined,
 } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
@@ -59,23 +48,58 @@ import type {
   SyncSettings,
   SyncSettingsUpdate,
 } from '@/services/admin.types';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
+import { EYEBROW_SX, PANEL_SX } from './adminSurfaces';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  value: number;
-  index: number;
+
+/** Which slice of the grants an admin is working through. */
+type Scope = 'all' | 'unverified' | 'closing';
+
+/** Stored enum values reach the console as snake_case ("public_fund",
+ *  "tv_series", "co_production"). These are column values, not prose, so they
+ *  are rewritten for display only and the stored value stays the filter key. */
+const TERM_LABELS: Record<string, string> = {
+  public_fund: 'Public fund',
+  private_fund: 'Private fund',
+  co_production: 'Co-production',
+  broadcaster: 'Broadcaster',
+  tax_incentive: 'Tax incentive',
+  tv_series: 'TV series',
+  tv_movie: 'TV movie',
+  short: 'Short',
+  feature: 'Feature',
+  documentary: 'Documentary',
+  animation: 'Animation',
+  rolling: 'Rolling',
+  annual: 'Annual',
+  biannual: 'Twice a year',
+  quarterly: 'Quarterly',
+  one_off: 'One off',
+  opening_soon: 'Opening soon',
+  closing_soon: 'Closing soon',
+  open: 'Open',
+  closed: 'Closed',
+};
+
+function humaniseTerm(value: string): string {
+  const key = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (TERM_LABELS[key]) return TERM_LABELS[key];
+  const spaced = value.replace(/[_-]+/g, ' ').trim();
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
 }
 
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
+/** True when maxAmount is a plain number rather than a display string such as
+ *  "Up to £250,000" or "Tiered rate-based (grid)". */
+function isNumericAmount(amount: string): boolean {
+  const num = parseFloat(amount);
+  return !Number.isNaN(num) && String(num) === String(amount).trim();
 }
 
-// Normalise a raw grant from the API — handles CSV-imported rows where the
+// Normalise a raw grant from the API, handles CSV-imported rows where the
 // backend may return eligibility as a semicolon-separated string or null,
 // and status/daysUntilDeadline may be absent if not computed server-side.
 function normalizeGrant(raw: any): Grant {
@@ -128,7 +152,8 @@ export function GrantsManager() {
 }
 
 function GrantsManagerContent() {
-  const [currentTab, setCurrentTab] = useState(0);
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -216,10 +241,12 @@ function GrantsManagerContent() {
   const [previewGrantOpen, setPreviewGrantOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
+  // Scope, not filtering. Per-column filtering and sorting belong to the table.
+  const [scope, setScope] = useState<Scope>('all');
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
-  // Form state — HONEST DEFAULTS: a new grant never looks verified.
-  // verified=false, no verification date, status unset ('' — excluded from
+  // Form state, HONEST DEFAULTS: a new grant never looks verified.
+  // verified=false, no verification date, status unset ('', excluded from
   // reports until the admin explicitly chooses one).
   const EMPTY_GRANT_FORM = {
     title: '',
@@ -260,34 +287,15 @@ function GrantsManagerContent() {
   }, []);
   const currencies = ['GBP', 'USD', 'CAD', 'EUR', 'ZAR', 'AUD', 'HUF', 'CZK', 'NGN', 'INR', 'JPY', 'KRW'];
 
-  // Filters + search
-  const [search, setSearch] = useState('');
-  const [filterContinent, setFilterContinent] = useState('all');
-  const [filterType, setFilterType] = useState('all');
-  const [filterFormat, setFilterFormat] = useState('all');
-  const [filterGenre, setFilterGenre] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterVerified, setFilterVerified] = useState('all');
-  const [filterEmerging, setFilterEmerging] = useState('all');
 
   const normStatus = (status?: string) => (status || '').replace(/-/g, '_');
   const getStatusColor = (status?: string) => {
     switch (normStatus(status)) {
-      case 'opening_soon': return '#2196F3';
-      case 'open': return '#4caf50';
-      case 'closing_soon': return '#ff9800';
-      case 'closed': return '#666666';
-      default: return '#666666';
-    }
-  };
-
-  const getStatusIcon = (status?: string) => {
-    switch (normStatus(status)) {
-      case 'opening_soon': return <Schedule />;
-      case 'open': return <CheckCircle />;
-      case 'closing_soon': return <Warning />;
-      case 'closed': return <Event />;
-      default: return <Event />;
+      case 'opening_soon': return 'info.main';
+      case 'open': return 'success.main';
+      case 'closing_soon': return 'warning.main';
+      case 'closed': return 'text.secondary';
+      default: return 'text.secondary';
     }
   };
 
@@ -296,7 +304,7 @@ function GrantsManagerContent() {
     const errors: string[] = [];
     const warnings: string[] = [];
     if (!formData.title?.trim()) errors.push('Grant title is required.');
-    if (!formData.websiteUrl?.trim()) errors.push('Website / source URL is required — no grant without a source.');
+    if (!formData.websiteUrl?.trim()) errors.push('Website / source URL is required, no grant without a source.');
     if (!formData.territory) errors.push('Territory is required.');
     else if (territories.length > 0 && !territories.includes(formData.territory)) {
       errors.push('Territory must be a canonical territory (or Global).');
@@ -306,14 +314,14 @@ function GrantsManagerContent() {
     }
     for (const [label, v] of [['Opens', formData.applicationOpens], ['Deadline', formData.applicationDeadline]] as const) {
       if (v && v.toLowerCase() !== 'rolling' && !/^tbc/i.test(v) && Number.isNaN(Date.parse(v))) {
-        errors.push(`${label} must be a date (YYYY-MM-DD), "rolling", or "tbc…".`);
+        errors.push(`${label} must be a date (YYYY-MM-DD), "rolling", or "tbc...".`);
       }
     }
     if (formData.verified && !formData.lastVerifiedAt) {
-      errors.push('Verified requires an explicit verification date — it is never auto-filled.');
+      errors.push('Verified requires an explicit verification date, it is never auto-filled.');
     }
-    if (!formData.status) warnings.push('Status is unset — this grant is excluded from reports until a status is chosen.');
-    if (!formData.eligible_formats?.trim()) warnings.push('No eligible formats — the grants matcher cannot format-gate this fund.');
+    if (!formData.status) warnings.push('Status is unset, this grant is excluded from reports until a status is chosen.');
+    if (!formData.eligible_formats?.trim()) warnings.push('No eligible formats, the grants matcher cannot format-gate this fund.');
     if (!formData.genre_tags?.trim()) warnings.push('No genre tags set.');
     if (!isEdit) {
       const dupe = grants.find(
@@ -336,7 +344,7 @@ function GrantsManagerContent() {
     currency: formData.currency,
     applicationOpens: formData.applicationOpens,
     applicationDeadline: formData.applicationDeadline,
-    // status is the admin's explicit choice — never auto-recomputed
+    // status is the admin's explicit choice, never auto-recomputed
     status: formData.status || null as any,
     eligibility: (formData.eligibility || '').split('\n').filter((e: string) => e.trim()),
     websiteUrl: formData.websiteUrl,
@@ -526,7 +534,7 @@ function GrantsManagerContent() {
   };
 
   const formatDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return 'N/A';
+    if (!dateStr) return 'unknown';
     try {
       return new Date(dateStr).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -546,7 +554,7 @@ function GrantsManagerContent() {
   };
 
   const formatCurrency = (amount: string, currency: string) => {
-    // v2 amounts are display strings ("Up to £250,000") — show them verbatim.
+    // v2 amounts are display strings ("Up to £250,000"), show them verbatim.
     const num = parseFloat(amount);
     if (Number.isNaN(num) || String(num) !== String(amount).trim()) {
       return amount;
@@ -570,209 +578,108 @@ function GrantsManagerContent() {
     emerging: grants.filter(g => g.emergingFilmmaker === true).length,
   };
 
-  // Client-side filters + search (applied before the tabs' own slicing)
-  const filteredGrants = grants.filter((g) => {
-    const q = search.trim().toLowerCase();
-    if (q && !`${g.title} ${g.fundingBody || ''}`.toLowerCase().includes(q)) return false;
-    if (filterContinent !== 'all' && g.continent !== filterContinent) return false;
-    if (filterType !== 'all' && g.grant_type !== filterType) return false;
-    if (filterFormat !== 'all' && !(g.eligible_formats || []).includes(filterFormat)) return false;
-    if (filterGenre !== 'all' && !(g.genre_tags || []).includes(filterGenre)) return false;
-    if (filterStatus !== 'all' && normStatus(g.status) !== filterStatus) return false;
-    if (filterVerified !== 'all' && String(g.verified) !== filterVerified) return false;
-    if (filterEmerging !== 'all' && String(g.emergingFilmmaker === true) !== filterEmerging) return false;
-    return true;
-  });
+  const filteredGrants = grants;
+
+  const scopedGrants = scope === 'unverified'
+    ? filteredGrants.filter((g) => !g.verified)
+    : scope === 'closing'
+      ? filteredGrants.filter((g) => normStatus(g.status) === 'closing_soon')
+      : filteredGrants;
+
+  useHeaderActions(
+    <>
+      <Button size="small" startIcon={<Refresh />} onClick={() => void handleTriggerSync()} disabled={syncing}>
+        {syncing ? 'Syncing' : 'Run sync now'}
+      </Button>
+      <Button size="small" startIcon={<Sync />} onClick={() => void handleOpenSyncSettings()}>
+        Sync settings
+      </Button>
+      <Button size="small" startIcon={<Upload />} onClick={() => setBulkImportOpen(true)}>
+        Bulk import
+      </Button>
+      <Button size="small" variant="contained" startIcon={<Add />} onClick={() => { resetForm(); setAddGrantOpen(true); }}>
+        Add grant
+      </Button>
+    </>,
+    [syncing],
+  );
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+      {fetchError && <Alert severity="error" sx={{ mb: 3 }}>{fetchError}</Alert>}
+      {syncSuccessMessage && <Alert severity="success" sx={{ mb: 3 }}>{syncSuccessMessage}</Alert>}
+      {syncErrorMessage && <Alert severity="error" sx={{ mb: 3 }}>{syncErrorMessage}</Alert>}
+
+      {/* Verification leads. An unverified grant with a passed deadline is the
+          thing that sends a producer to a closed application. */}
+      <Box sx={{ ...PANEL_SX, mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(230px, 1fr) 2fr' }, gap: { xs: 3, md: 4 }, alignItems: 'start' }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#D4AF37', mb: 0.5 }}>
-            Grant Management
+          <Typography sx={EYEBROW_SX}>VERIFIED GRANTS</Typography>
+          <Typography sx={{ fontSize: { xs: 34, md: 42 }, fontWeight: 800, color: t.textPrimary, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+            {stats.verified}
+            <Typography component="span" sx={{ fontSize: 17, fontWeight: 600, color: t.textSecondary }}>
+              {' '}of {stats.total}
+            </Typography>
           </Typography>
-          <Typography variant="body1" sx={{ color: '#a0a0a0' }}>
-            Manage film funding opportunities and grant programs
+          <Typography sx={{ fontSize: 13, color: stats.total - stats.verified > 0 ? t.warning : t.textSecondary, mt: 0.5, fontWeight: stats.total - stats.verified > 0 ? 600 : 400 }}>
+            {stats.total - stats.verified > 0
+              ? `${stats.total - stats.verified} unverified, so their deadlines and amounts are unconfirmed`
+              : 'Every grant has been verified against its official page'}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            variant="outlined"
-            startIcon={<Sync />}
-            onClick={handleOpenSyncSettings}
-            sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
-              '&:hover': {
-                borderColor: '#D4AF37',
-                bgcolor: 'rgba(212, 175, 55, 0.1)',
-              },
-            }}
-          >
-            Auto Sync Settings
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Upload />}
-            onClick={() => setBulkImportOpen(true)}
-            sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
-              '&:hover': {
-                borderColor: '#D4AF37',
-                bgcolor: 'rgba(212, 175, 55, 0.1)',
-              },
-            }}
-          >
-            Bulk Import
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => { resetForm(); setAddGrantOpen(true); }}
-            sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              fontWeight: 600,
-              '&:hover': {
-                bgcolor: '#D4AF37',
-              },
-            }}
-          >
-            Add Grant
-          </Button>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+          {([
+            ['Open now', stats.open, 'Accepting applications'],
+            ['Closing soon', stats.closingSoon, 'Deadline within reach'],
+            ['Opening soon', stats.openingSoon, 'Not yet accepting'],
+            ['Rolling', stats.rolling, 'No fixed deadline'],
+            ['Emerging friendly', stats.emerging, 'First-time filmmakers'],
+            ['Pending changes', pendingChanges.length, pendingChanges.length ? 'Awaiting review' : 'Nothing to review'],
+          ] as [string, number, string][]).map(([label, value, hint]) => (
+            <Box key={label}>
+              <Typography sx={{ fontSize: 22, fontWeight: 700, color: t.textPrimary, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+                {value}
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>{label}</Typography>
+              <Typography sx={{ fontSize: 11.5, color: t.textFaint, mt: 0.25 }}>{hint}</Typography>
+            </Box>
+          ))}
         </Box>
       </Box>
 
-      {fetchError && (
-        <Alert severity="error" sx={{ mb: 3 }}>{fetchError}</Alert>
-      )}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress sx={{ color: '#D4AF37' }} />
-        </Box>
-      )}
+      {/* Sync state as one sentence rather than three tinted boxes. */}
+      <Box
+        sx={{
+          ...PANEL_SX, py: 2, mb: 3,
+          display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 3, rowGap: 1,
+        }}
+      >
+        <Typography sx={EYEBROW_SX}>AUTOMATED SOURCE SYNC</Typography>
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary }}>
+          {syncStatus?.territoriesSyncing == null
+            ? 'No territories are configured for automated syncing.'
+            : `${syncStatus.territoriesSyncing} ${syncStatus.territoriesSyncing === 1 ? 'territory syncs' : 'territories sync'} from official sources.`}
+          {' '}
+          {syncStatus?.daysSinceLastCheck == null
+            ? 'No check has run yet.'
+            : `Last checked ${syncStatus.daysSinceLastCheck} ${syncStatus.daysSinceLastCheck === 1 ? 'day' : 'days'} ago.`}
+          {' '}
+          Next scheduled {formatDate(syncStatus?.nextScheduledCheck)}.
+        </Typography>
+      </Box>
 
-      {/* Stats Cards */}
-
-      {/* AI Auto-Sync Status */}
-      <Card sx={{ mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Sync sx={{ color: '#D4AF37', fontSize: 28 }} />
-              <Box>
-                <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 600 }}>
-                  AI Powered Auto Sync Status
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                  Next scheduled check: <strong>{formatDate(syncStatus?.nextScheduledCheck)}</strong>
-                </Typography>
-              </Box>
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={syncing ? <CircularProgress size={16} sx={{ color: '#000000' }} /> : <Refresh />}
-              onClick={handleTriggerSync}
-              disabled={syncing}
-              sx={{
-                bgcolor: '#D4AF37',
-                color: '#000000',
-                fontWeight: 600,
-                '&:hover': { bgcolor: '#D4AF37' },
-              }}
-            >
-              {syncing ? 'Syncing...' : 'Run Sync Now'}
-            </Button>
-          </Box>
-
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'rgba(102, 187, 106, 0.1)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(102, 187, 106, 0.3)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CheckCircle sx={{ color: '#66bb6a', fontSize: 20 }} />
-                  <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.territoriesSyncing ?? 'N/A'}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                  Territories Auto Syncing
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'rgba(255, 167, 38, 0.1)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(255, 167, 38, 0.3)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Warning sx={{ color: '#ffa726', fontSize: 20 }} />
-                  <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {pendingChanges.length}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                  Pending Updates
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'rgba(66, 165, 245, 0.1)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(66, 165, 245, 0.3)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Schedule sx={{ color: '#42a5f5', fontSize: 20 }} />
-                  <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                    {syncStatus?.daysSinceLastCheck ?? 'N/A'}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                  Days Since Last Check
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-
-          {syncSuccessMessage && (
-            <Alert severity="success" sx={{ mt: 2 }}>
-              {syncSuccessMessage}
-            </Alert>
-          )}
-          {syncErrorMessage && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {syncErrorMessage}
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Pending Updates Alert */}
       {pendingChanges.length > 0 && (
         <Alert
           severity="warning"
-          icon={<Warning />}
-          sx={{
-            mb: 4,
-            bgcolor: 'rgba(255, 167, 38, 0.1)',
-            border: '1px solid rgba(255, 167, 38, 0.3)',
-            color: '#ffffff',
-          }}
+          sx={{ mb: 3 }}
           action={(
             <Button
               color="inherit"
@@ -784,18 +691,19 @@ function GrantsManagerContent() {
             </Button>
           )}
         >
-          <Typography variant="body2">
-            <strong>{pendingChanges.length} update(s) detected</strong> by AI auto sync and awaiting your review
-          </Typography>
+          <strong>
+            {pendingChanges.length} {pendingChanges.length === 1 ? 'update' : 'updates'} detected
+          </strong>{' '}
+          by the automated source sync. Nothing is applied until you approve it.
         </Alert>
       )}
 
-      {/* Pending Changes Section */}
       <Collapse in={showPendingChanges}>
-        <Paper sx={{ mb: 4, bgcolor: '#0a0a0a', border: '1px solid rgba(255, 152, 0, 0.3)' }}>
-          <Box sx={{ p: 2, bgcolor: 'rgba(255, 152, 0, 0.05)' }}>
-            <Typography variant="h6" sx={{ color: '#ffa726', fontWeight: 600 }}>
-              Pending Grant Changes for Review
+        <Box sx={{ mb: 3, border: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Box sx={{ p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography sx={EYEBROW_SX}>PENDING GRANT CHANGES</Typography>
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
+              Each one replaces a stored value on approval and is written to the audit trail.
             </Typography>
           </Box>
           {pendingChanges.map((change, index) => (
@@ -803,206 +711,87 @@ function GrantsManagerContent() {
               key={change.id}
               sx={{
                 p: 3,
-                borderBottom: index < pendingChanges.length - 1 ? '1px solid rgba(255, 152, 0, 0.1)' : 'none',
+                borderBottom: index < pendingChanges.length - 1 ? 1 : 0,
+                borderColor: 'divider',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                gap: 2, flexWrap: 'wrap',
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
-                    {change.territory}: {change.field}
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 5 }}>
-                      <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', mb: 0.5 }}>
-                        Current Value:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#f44336', fontWeight: 600 }}>
-                        {change.currentValue ?? 'N/A'}
-                      </Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 2 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Typography sx={{ color: '#666' }}>→</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 5 }}>
-                      <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', mb: 0.5 }}>
-                        Detected Value:
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: '#66bb6a', fontWeight: 600 }}>
-                        {change.detectedValue}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                  <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <Chip
-                      label={`${change.confidence.toUpperCase()} CONFIDENCE`}
-                      size="small"
-                      sx={{
-                        bgcolor: change.confidence === 'high' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
-                        color: change.confidence === 'high' ? '#66bb6a' : '#ffa726',
-                        fontWeight: 600,
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
-                      {change.source}
+              <Box sx={{ flex: '1 1 320px', minWidth: 0 }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 1 }}>
+                  {change.territory}: {change.field}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Box>
+                    <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>Stored value</Typography>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>
+                      {change.currentValue ?? 'Not set'}
+                    </Typography>
+                  </Box>
+                  <Typography sx={{ color: 'text.secondary', fontSize: 18 }}>&rarr;</Typography>
+                  <Box>
+                    <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>Detected value</Typography>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'success.main' }}>
+                      {change.detectedValue}
                     </Typography>
                   </Box>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<CheckCircle />}
-                    onClick={() => handleApproveChange(change)}
-                    sx={{
-                      bgcolor: '#66bb6a',
-                      color: '#000000',
-                      '&:hover': { bgcolor: '#4caf50' },
-                    }}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleRejectChange(change)}
-                    sx={{
-                      borderColor: '#666',
-                      color: '#a0a0a0',
-                      '&:hover': {
-                        borderColor: '#999',
-                        bgcolor: 'rgba(255, 255, 255, 0.05)',
-                      },
-                    }}
-                  >
-                    Reject
-                  </Button>
-                </Box>
+                <Typography sx={{ fontSize: 11.5, color: 'text.secondary', mt: 1 }}>
+                  {change.confidence} confidence, from {change.source}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<CheckCircle />}
+                  onClick={() => void handleApproveChange(change)}
+                >
+                  Approve
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => void handleRejectChange(change)}
+                  sx={{ borderColor: 'divider', color: 'text.secondary' }}
+                >
+                  Reject
+                </Button>
               </Box>
             </Box>
           ))}
-        </Paper>
+        </Box>
       </Collapse>
 
-      {/* Tabs */}
-      {/* v2 stat header */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        {[
-          ['Total', stats.total, '#D4AF37'],
-          ['Verified', stats.verified, '#66bb6a'],
-          ['Open Now', stats.open, '#4caf50'],
-          ['Opening Soon', stats.openingSoon, '#2196F3'],
-          ['Closing Soon', stats.closingSoon, '#ff9800'],
-          ['Rolling', stats.rolling, '#a0a0a0'],
-          ['Emerging-Friendly', stats.emerging, '#ce93d8'],
-        ].map(([label, value, colour]) => (
-          <Grid size={{ xs: 6, sm: 4, md: 'grow' }} key={String(label)}>
-            <Paper sx={{ p: 1.2, textAlign: 'center', bgcolor: '#0a0a0a', border: '1px solid rgba(212,175,55,0.15)' }}>
-              <Typography variant="h6" sx={{ color: String(colour), fontWeight: 800 }}>{String(value)}</Typography>
-              <Typography variant="caption" sx={{ color: '#777', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.62rem' }}>{String(label)}</Typography>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Search + filters */}
-      <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
-        <TextField size="small" placeholder="Search title or funding body…" value={search}
-          onChange={(e) => setSearch(e.target.value)} sx={{ flex: '2 1 220px', minWidth: 180 }} />
-        <TextField select size="small" label="Continent" value={filterContinent} onChange={(e) => setFilterContinent(e.target.value)} sx={{ flex: '1 1 120px', minWidth: 110 }}>
-          <MenuItem value="all">All</MenuItem>
-          {[...new Set(grants.map(g => g.continent).filter(Boolean))].sort().map(c => <MenuItem key={String(c)} value={String(c)}>{String(c)}</MenuItem>)}
-        </TextField>
-        <TextField select size="small" label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} sx={{ flex: '1 1 130px', minWidth: 120 }}>
-          <MenuItem value="all">All</MenuItem>
-          {[...new Set(grants.map(g => g.grant_type).filter(Boolean))].sort().map(c => <MenuItem key={String(c)} value={String(c)}>{String(c)}</MenuItem>)}
-        </TextField>
-        <TextField select size="small" label="Format" value={filterFormat} onChange={(e) => setFilterFormat(e.target.value)} sx={{ flex: '1 1 120px', minWidth: 110 }}>
-          <MenuItem value="all">All</MenuItem>
-          {[...new Set(grants.flatMap(g => g.eligible_formats || []))].sort().map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-        </TextField>
-        <TextField select size="small" label="Genre" value={filterGenre} onChange={(e) => setFilterGenre(e.target.value)} sx={{ flex: '1 1 120px', minWidth: 110 }}>
-          <MenuItem value="all">All</MenuItem>
-          {[...new Set(grants.flatMap(g => g.genre_tags || []))].sort().map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-        </TextField>
-        <TextField select size="small" label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} sx={{ flex: '1 1 130px', minWidth: 120 }}>
-          <MenuItem value="all">All</MenuItem>
-          {['open', 'opening_soon', 'closing_soon', 'closed'].map(s => <MenuItem key={s} value={s}>{s.replace('_', ' ')}</MenuItem>)}
-        </TextField>
-        <TextField select size="small" label="Verified" value={filterVerified} onChange={(e) => setFilterVerified(e.target.value)} sx={{ flex: '1 1 110px', minWidth: 100 }}>
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="true">Verified</MenuItem>
-          <MenuItem value="false">Unverified</MenuItem>
-        </TextField>
-        <TextField select size="small" label="Emerging" value={filterEmerging} onChange={(e) => setFilterEmerging(e.target.value)} sx={{ flex: '1 1 110px', minWidth: 100 }}>
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="true">Emerging-friendly</MenuItem>
-          <MenuItem value="false">Not flagged</MenuItem>
-        </TextField>
+      {/* One scope control. The eight standalone filter dropdowns duplicated the
+          table's own per-column filters and pushed the grants below the fold. */}
+      <Box sx={{ mb: 2 }}>
+        <SegmentedToggle
+          value={scope}
+          onChange={(v) => setScope(v as Scope)}
+          options={[
+            { value: 'all', label: `All ${filteredGrants.length}` },
+            { value: 'unverified', label: `Unverified ${filteredGrants.filter((g) => !g.verified).length}` },
+            { value: 'closing', label: `Closing soon ${stats.closingSoon}` },
+          ]}
+        />
       </Box>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'rgba(212, 175, 55, 0.2)' }}>
-        <Tabs
-          value={currentTab}
-          onChange={(_, newValue) => setCurrentTab(newValue)}
-          sx={{
-            '& .MuiTab-root': {
-              color: '#a0a0a0',
-              fontWeight: 600,
-              '&.Mui-selected': {
-                color: '#D4AF37',
-              },
-            },
-            '& .MuiTabs-indicator': {
-              backgroundColor: '#D4AF37',
-              height: 3,
-            },
-          }}
-        >
-          <Tab label={`All Grants (${filteredGrants.length})`} />
-          <Tab label={`Unverified (${filteredGrants.filter(g => !g.verified).length})`} />
-          <Tab label={`Closing Soon (${stats.closingSoon})`} />
-        </Tabs>
-      </Box>
-
-      {/* Tab Panels */}
-      <TabPanel value={currentTab} index={0}>
-        <GrantsTable 
-          grants={filteredGrants}
-          onEdit={openEditDialog}
-          onPreview={openPreviewDialog}
-          onDelete={openDeleteDialog}
-          onToggleVerified={toggleVerified}
-          formatCurrency={formatCurrency}
-          getStatusColor={getStatusColor}
-          getStatusIcon={getStatusIcon}
-        />
-      </TabPanel>
-
-      <TabPanel value={currentTab} index={1}>
-        <GrantsTable 
-          grants={filteredGrants.filter(g => !g.verified)}
-          onEdit={openEditDialog}
-          onPreview={openPreviewDialog}
-          onDelete={openDeleteDialog}
-          onToggleVerified={toggleVerified}
-          formatCurrency={formatCurrency}
-          getStatusColor={getStatusColor}
-          getStatusIcon={getStatusIcon}
-        />
-      </TabPanel>
-
-      <TabPanel value={currentTab} index={2}>
-        <GrantsTable 
-          grants={filteredGrants.filter(g => normStatus(g.status) === 'closing_soon')}
-          onEdit={openEditDialog}
-          onPreview={openPreviewDialog}
-          onDelete={openDeleteDialog}
-          onToggleVerified={toggleVerified}
-          formatCurrency={formatCurrency}
-          getStatusColor={getStatusColor}
-          getStatusIcon={getStatusIcon}
-        />
-      </TabPanel>
+      <GrantsTable
+        key={scope}
+        grants={scopedGrants}
+        onEdit={openEditDialog}
+        onPreview={openPreviewDialog}
+        onDelete={openDeleteDialog}
+        onToggleVerified={toggleVerified}
+        formatCurrency={formatCurrency}
+        getStatusColor={getStatusColor}
+        emptyMessage={scope === 'unverified'
+          ? 'Every grant has been verified.'
+          : scope === 'closing'
+            ? 'No grant is closing soon.'
+            : 'No grants have been recorded. Reports match soft money against this table.'}
+      />
 
       {/* Add/Edit Grant Dialog */}
       <GrantFormDialog
@@ -1045,18 +834,13 @@ function GrantsManagerContent() {
           setDeleteConfirmOpen(false);
           setSelectedGrant(null);
         }}
-        PaperProps={{
-          sx: {
-            bgcolor: '#1a1a1a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
-          },
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } } }}
       >
-        <DialogTitle sx={{ color: '#ffffff' }}>
+        <DialogTitle sx={{ color: 'text.primary' }}>
           Delete Grant
         </DialogTitle>
         <DialogContent>
-          <Typography sx={{ color: '#a0a0a0' }}>
+          <Typography sx={{ color: 'text.secondary' }}>
             Are you sure you want to delete "{selectedGrant?.title}"? This action cannot be undone.
           </Typography>
         </DialogContent>
@@ -1064,16 +848,16 @@ function GrantsManagerContent() {
           <Button onClick={() => {
             setDeleteConfirmOpen(false);
             setSelectedGrant(null);
-          }} sx={{ color: '#a0a0a0' }}>
+          }} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
           <Button
             onClick={handleDeleteGrant}
             sx={{
-              bgcolor: '#f44336',
-              color: '#ffffff',
+              bgcolor: 'error.main',
+              color: 'text.primary',
               '&:hover': {
-                bgcolor: '#d32f2f',
+                bgcolor: 'error.dark',
               },
             }}
           >
@@ -1088,14 +872,9 @@ function GrantsManagerContent() {
         onClose={() => setSyncDialogOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            bgcolor: '#0a0a0a',
-            border: '1px solid rgba(212, 175, 55, 0.2)',
-          },
-        }}
+        slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } } }}
       >
-        <DialogTitle sx={{ color: '#D4AF37', fontWeight: 600 }}>
+        <DialogTitle sx={{ color: 'primary.main', fontWeight: 600 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Schedule />
             Auto Sync Configuration
@@ -1104,28 +883,28 @@ function GrantsManagerContent() {
         <DialogContent>
           {syncSettingsLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress sx={{ color: '#D4AF37' }} />
+              <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
           ) : (
             <>
-              <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', color: '#42a5f5' }}>
+              <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', color: 'info.main' }}>
                 <strong>How it works:</strong> Our scraper reads official grants sources, extracts structured changes,
                 and queues them for admin moderation before they are applied.
               </Alert>
 
               {syncSettings && (
-                <Box sx={{ mb: 3, p: 2, bgcolor: '#1a1a1a', borderRadius: 2, border: '1px solid rgba(212, 175, 55, 0.1)' }}>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-                    Last sync: <strong style={{ color: '#ffffff' }}>{formatDate(syncSettings.lastSyncAt)}</strong>
+                <Box sx={{ mb: 3, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: 1, borderColor: 'divider' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Last sync: <strong style={{ color: 'text.primary' }}>{formatDate(syncSettings.lastSyncAt)}</strong>
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#a0a0a0', mt: 0.5 }}>
-                    Next scheduled: <strong style={{ color: '#ffffff' }}>{formatDate(syncSettings.nextScheduledCheck)}</strong>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    Next scheduled: <strong style={{ color: 'text.primary' }}>{formatDate(syncSettings.nextScheduledCheck)}</strong>
                   </Typography>
                 </Box>
               )}
 
               <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" sx={{ color: '#a0a0a0', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>
                   Sync Schedule:
                 </Typography>
                 <TextField
@@ -1148,7 +927,7 @@ function GrantsManagerContent() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setSyncDialogOpen(false)} sx={{ color: '#a0a0a0' }}>
+          <Button onClick={() => setSyncDialogOpen(false)} sx={{ color: 'text.secondary' }}>
             Close
           </Button>
           <Button
@@ -1156,9 +935,9 @@ function GrantsManagerContent() {
             onClick={handleSaveSyncSettings}
             disabled={syncSettingsLoading}
             sx={{
-              bgcolor: '#D4AF37',
-              color: '#000000',
-              '&:hover': { bgcolor: '#D4AF37' },
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': { bgcolor: 'primary.main' },
             }}
           >
             Save Settings
@@ -1185,32 +964,28 @@ interface GrantsTableProps {
   onToggleVerified: (id: string) => void;
   formatCurrency: (amount: string, currency: string) => string;
   getStatusColor: (s?: string) => string;
-  getStatusIcon: (s?: string) => React.ReactElement;
+  /** Shown when the current scope has no rows, phrased for that scope. */
+  emptyMessage: string;
 }
 
-// Staleness flags — derived for DISPLAY only, from stored dates. The stored
+// Staleness flags, derived for DISPLAY only, from stored dates. The stored
 // status/verification themselves are never recomputed or overwritten.
 function stalenessFlags(g: Grant): { label: string; colour: string }[] {
   const flags: { label: string; colour: string }[] = [];
   const dl = g.applicationDeadline || '';
   if (dl && dl.toLowerCase() !== 'rolling' && !/^tbc/i.test(dl)) {
     const d = Date.parse(dl);
-    if (!Number.isNaN(d) && d < Date.now()) flags.push({ label: 'DEADLINE PASSED', colour: '#f44336' });
+    if (!Number.isNaN(d) && d < Date.now()) flags.push({ label: 'Deadline has passed', colour: 'error.main' });
   }
   if (g.lastVerifiedAt) {
     const ageDays = (Date.now() - Date.parse(g.lastVerifiedAt)) / 86400000;
-    if (ageDays > 183) flags.push({ label: 'STALE — RE-VERIFY (>6mo)', colour: '#f44336' });
-    else if (ageDays > 122) flags.push({ label: 'RE-VERIFY (>4mo)', colour: '#ff9800' });
+    if (ageDays > 183) flags.push({ label: 'Stale, over 6 months old', colour: 'error.main' });
+    else if (ageDays > 122) flags.push({ label: 'Re-verify, over 4 months old', colour: 'warning.main' });
   } else {
-    flags.push({ label: 'NEVER VERIFIED', colour: '#f44336' });
+    flags.push({ label: 'Never verified', colour: 'error.main' });
   }
   return flags;
 }
-
-const grantHeadCell = {
-  color: '#D4AF37', fontWeight: 700, textTransform: 'uppercase',
-  fontSize: '0.7rem', letterSpacing: 1, whiteSpace: 'nowrap',
-} as const;
 
 function GrantsTable({
   grants,
@@ -1220,177 +995,254 @@ function GrantsTable({
   onToggleVerified,
   formatCurrency,
   getStatusColor,
-  getStatusIcon,
+  emptyMessage,
 }: GrantsTableProps) {
-  if (grants.length === 0) {
-    return (
-      <Paper sx={{ p: 6, textAlign: 'center', bgcolor: '#0a0a0a', border: '1px dashed rgba(212, 175, 55, 0.3)' }}>
-        <Typography variant="h6" sx={{ color: '#a0a0a0', mb: 1 }}>No grants found</Typography>
-        <Typography variant="body2" sx={{ color: '#666666' }}>Adjust the filters or add a grant</Typography>
-      </Paper>
-    );
-  }
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
 
   const fmtDate = (s?: string | null) => {
     if (!s) return null;
     if (s.toLowerCase?.() === 'rolling') return 'Rolling';
-    if (/^tbc/i.test(s)) return s.toUpperCase();
+    // Stored as "tbc_2027" and similar. Uppercasing verbatim printed the
+    // underscore, so the separator is normalised to a space first.
+    if (/^tbc/i.test(s)) return s.replace(/[_-]+/g, ' ').toUpperCase();
     const d = Date.parse(s);
     return Number.isNaN(d) ? s : new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const columns = useMemo<Column<Grant>[]>(() => [
+    {
+      key: 'title', header: 'GRANT', width: '2.4fr', clamp: 4,
+      sortValue: (g) => g.title || '',
+      render: (g) => (
+        <Box sx={{ minWidth: 0 }}>
+          {/* Wraps rather than ellipsising: two grants from the same body differ
+              only in their suffix, so a clipped title is unidentifiable. */}
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, lineHeight: 1.35 }}>
+            {g.title}
+          </Typography>
+          <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>
+            {g.fundingBody}
+          </Typography>
+          {/* Only the conditions that disqualify an applicant are surfaced here.
+              Everything descriptive lives in the preview. */}
+          {(g.nationality_required || g.co_production_required) && (
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: t.warning, mt: 0.3 }}>
+              {[g.nationality_required && 'Nationality required', g.co_production_required && 'Co-production required']
+                .filter(Boolean).join(' + ')}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'territory', header: 'TERRITORY', width: '1.1fr', clamp: 3, filterSelect: true,
+      sortValue: (g) => g.territory || '',
+      render: (g) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 13.5, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {g.territory}
+          </Typography>
+          {g.continent && <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>{g.continent}</Typography>}
+        </Box>
+      ),
+    },
+    {
+      key: 'grant_type', header: 'TYPE', width: '1.1fr', filterSelect: true,
+      sortValue: (g) => (g.grant_type ? humaniseTerm(g.grant_type) : 'Unclassified'),
+      render: (g) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 13, color: g.grant_type ? t.textSecondary : t.textFaint }}>
+            {g.grant_type ? humaniseTerm(g.grant_type) : 'Unclassified'}
+          </Typography>
+          {g.recurrence && (
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>{humaniseTerm(g.recurrence)}</Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'eligibility', header: 'FORMATS AND GENRES', width: '1.7fr', clamp: 4,
+      sortValue: (g) => (g.eligible_formats || []).map(humaniseTerm).join(', '),
+      render: (g) => {
+        const formats = (g.eligible_formats || []).map(humaniseTerm);
+        const genres = (g.genre_tags || []).map(humaniseTerm);
+        if (!formats.length && !genres.length) {
+          return <Typography sx={{ fontSize: 12.5, color: t.textFaint }}>Open to any format</Typography>;
+        }
+        return (
+          <Box sx={{ minWidth: 0 }}>
+            {/* Formats decide eligibility, so they wrap in full. Genres are a
+                long tail that only matters on inspection, hence the tooltip. */}
+            {formats.length > 0 && (
+              <Typography sx={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.4 }}>
+                {formats.join(', ')}
+              </Typography>
+            )}
+            {genres.length > 0 && (
+              <Tooltip title={genres.join(', ')}>
+                <Typography sx={{ fontSize: 11.5, color: t.textFaint, lineHeight: 1.4 }}>
+                  {genres.length > 3
+                    ? `${genres.slice(0, 3).join(', ')} and ${genres.length - 3} more`
+                    : genres.join(', ')}
+                </Typography>
+              </Tooltip>
+            )}
+          </Box>
+        );
+      },
+    },
+    {
+      // Not right-aligned: maxAmount is a display string as often as a number
+      // ("Tiered rate-based (grid)"), and right-aligning prose in a narrow
+      // track clipped its start rather than its end.
+      key: 'maxAmount', header: 'AMOUNT', width: '1.6fr', clamp: 4,
+      // Sorts on the approximate USD figure so amounts in different currencies
+      // are actually comparable; the display value stays in its own currency.
+      sortValue: (g) => g.amount_usd_approx ?? -1,
+      render: (g) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Tooltip title={g.maxAmount && !isNumericAmount(g.maxAmount) ? g.maxAmount : ''}>
+            <Typography sx={{
+              fontSize: 14, fontWeight: 600,
+              color: g.maxAmount ? t.textPrimary : t.textFaint,
+              fontVariantNumeric: 'tabular-nums', lineHeight: 1.35,
+            }}>
+              {g.maxAmount ? formatCurrency(g.maxAmount, g.currency) : 'Not stated'}
+            </Typography>
+          </Tooltip>
+          {g.amount_usd_approx != null && (
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>
+              about ${g.amount_usd_approx.toLocaleString()} USD
+            </Typography>
+          )}
+          {(g.budget_min_usd != null || g.budget_max_usd != null) && (
+            <Typography sx={{ fontSize: 11, color: t.textFaint }}>
+              budget {g.budget_min_usd != null ? `$${g.budget_min_usd.toLocaleString()}` : 'any'} to{' '}
+              {g.budget_max_usd != null ? `$${g.budget_max_usd.toLocaleString()}` : 'any'}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'applicationDeadline', header: 'DEADLINE', width: '1.2fr', clamp: 3,
+      sortValue: (g) => {
+        const d = Date.parse(g.applicationDeadline || '');
+        // Rolling and unset deadlines sort last: they are never the urgent ones.
+        return Number.isNaN(d) ? Number.MAX_SAFE_INTEGER : d;
+      },
+      render: (g) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 13.5, color: t.textPrimary }}>
+            {fmtDate(g.applicationDeadline) || 'Not stated'}
+          </Typography>
+          {g.applicationOpens && (
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>opens {fmtDate(g.applicationOpens)}</Typography>
+          )}
+          {g.daysUntilDeadline != null && g.daysUntilDeadline > 0 && (
+            <Typography sx={{ fontSize: 11.5, color: g.daysUntilDeadline <= 14 ? t.warning : t.textFaint }}>
+              {g.daysUntilDeadline} days left as at last verification
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'status', header: 'STATUS', width: '1.4fr', clamp: 4, filterSelect: true,
+      sortValue: (g) => (g.status ? humaniseTerm(String(g.status)) : 'Status unset'),
+      render: (g) => {
+        const flags = stalenessFlags(g);
+        return (
+          <Box sx={{ minWidth: 0 }}>
+            {g.status ? (
+              <Chip
+                size="small"
+                label={humaniseTerm(String(g.status))}
+                sx={{
+                  bgcolor: `${getStatusColor(g.status)}22`,
+                  color: getStatusColor(g.status),
+                  fontWeight: 600, fontSize: '0.7rem',
+                }}
+              />
+            ) : (
+              <Chip size="small" variant="outlined" label="Status unset" sx={{ borderColor: t.border, color: t.textFaint, fontSize: '0.7rem' }} />
+            )}
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint, mt: 0.4 }}>
+              {g.lastVerifiedAt ? `verified ${fmtDate(g.lastVerifiedAt)}` : 'never verified'}
+            </Typography>
+            {/* Derived from the stored dates for display only. The stored status
+                and verification fields are never recomputed or overwritten. */}
+            {flags.map((f) => (
+              <Typography key={f.label} sx={{ fontSize: 11, fontWeight: 700, color: f.colour }}>
+                {f.label}
+              </Typography>
+            ))}
+          </Box>
+        );
+      },
+    },
+    {
+      key: 'dataSource', header: 'SOURCE', width: '1fr', filterSelect: true,
+      sortValue: (g) => g.dataSource || 'Unknown',
+      render: (g) => (
+        <Box sx={{ minWidth: 0 }}>
+          {g.websiteUrl ? (
+            <Link
+              href={g.websiteUrl}
+              target="_blank"
+              rel="noopener"
+              onClick={(e) => e.stopPropagation()}
+              sx={{ fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 0.4 }}
+            >
+              Official page <OpenInNew sx={{ fontSize: 12 }} />
+            </Link>
+          ) : (
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: t.error }}>No source URL</Typography>
+          )}
+          <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>{g.dataSource}</Typography>
+        </Box>
+      ),
+    },
+  ], [t, formatCurrency, getStatusColor]);
+
   return (
-    <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)', maxWidth: '100%' }}>
-      <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-        <Table size="small" sx={{ minWidth: 1150 }}>
-          <TableHead>
-            <TableRow sx={{ borderBottom: '2px solid rgba(212, 175, 55, 0.2)' }}>
-              <TableCell sx={{ ...grantHeadCell, position: 'sticky', left: 0, zIndex: 3, bgcolor: '#0a0a0a' }}>Grant</TableCell>
-              <TableCell sx={grantHeadCell}>Territory</TableCell>
-              <TableCell sx={grantHeadCell}>Type · Recurrence</TableCell>
-              <TableCell sx={grantHeadCell}>Formats / Genres</TableCell>
-              <TableCell sx={grantHeadCell}>Amount</TableCell>
-              <TableCell sx={grantHeadCell}>Deadline</TableCell>
-              <TableCell sx={grantHeadCell}>Status · Verification</TableCell>
-              <TableCell sx={grantHeadCell}>Source</TableCell>
-              <TableCell sx={grantHeadCell}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {grants.map((grant) => {
-              const flags = stalenessFlags(grant);
-              const formats = grant.eligible_formats || [];
-              const genres = grant.genre_tags || [];
-              const genresShown = genres.length > 4 ? genres.slice(0, 4) : genres;
-              return (
-                <TableRow key={grant.id} sx={{ '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.05)' } }}>
-                  <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: '#0a0a0a', minWidth: 200, maxWidth: 260 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#fff' }}>{grant.title}</Typography>
-                    <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block' }}>{grant.fundingBody}</Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.4, flexWrap: 'wrap' }}>
-                      {grant.emergingFilmmaker === true && (
-                        <Chip size="small" label="Emerging" sx={{ bgcolor: 'rgba(206,147,216,0.15)', color: '#ce93d8', fontSize: '0.62rem', height: 18 }} />
-                      )}
-                      {grant.productionStage && (
-                        <Chip size="small" label={grant.productionStage} sx={{ bgcolor: '#161616', color: '#a0a0a0', fontSize: '0.62rem', height: 18 }} />
-                      )}
-                      {grant.nationality_required && (
-                        <Chip size="small" label="NATIONALITY" sx={{ bgcolor: 'rgba(255,152,0,0.15)', color: '#ff9800', fontSize: '0.6rem', height: 18, fontWeight: 700 }} />
-                      )}
-                      {grant.co_production_required && (
-                        <Chip size="small" label="CO-PRO REQ" sx={{ bgcolor: 'rgba(79,131,204,0.15)', color: '#4f83cc', fontSize: '0.6rem', height: 18, fontWeight: 700 }} />
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={grant.territory} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }} />
-                    {grant.continent && (
-                      <Typography variant="caption" sx={{ color: '#777', display: 'block', mt: 0.3 }}>{grant.continent}</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" sx={{ color: '#ccc', display: 'block' }}>{grant.grant_type || '—'}</Typography>
-                    <Typography variant="caption" sx={{ color: '#777' }}>{grant.recurrence || ''}</Typography>
-                  </TableCell>
-                  <TableCell sx={{ maxWidth: 190 }}>
-                    <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap' }}>
-                      {formats.map((f) => (
-                        <Chip key={f} size="small" label={f} sx={{ bgcolor: 'rgba(102,187,106,0.12)', color: '#66bb6a', fontSize: '0.62rem', height: 18 }} />
-                      ))}
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap', mt: 0.4 }}>
-                      {genresShown.map((g2) => (
-                        <Chip key={g2} size="small" label={g2} sx={{ bgcolor: '#161616', color: '#888', fontSize: '0.6rem', height: 16 }} />
-                      ))}
-                      {genres.length > genresShown.length && (
-                        <Typography variant="caption" sx={{ color: '#666' }}>+{genres.length - genresShown.length}</Typography>
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 130 }}>
-                    <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>
-                      {grant.maxAmount ? formatCurrency(grant.maxAmount, grant.currency) : '—'}
-                    </Typography>
-                    {grant.amount_usd_approx != null && (
-                      <Typography variant="caption" sx={{ color: '#777', display: 'block' }}>≈ ${grant.amount_usd_approx.toLocaleString()} USD</Typography>
-                    )}
-                    {(grant.budget_min_usd != null || grant.budget_max_usd != null) && (
-                      <Typography variant="caption" sx={{ color: '#777', display: 'block' }}>
-                        budget {grant.budget_min_usd != null ? `$${grant.budget_min_usd.toLocaleString()}` : 'any'} – {grant.budget_max_usd != null ? `$${grant.budget_max_usd.toLocaleString()}` : 'any'}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 120 }}>
-                    <Typography variant="body2" sx={{ color: '#fff' }}>{fmtDate(grant.applicationDeadline) || '—'}</Typography>
-                    {grant.applicationOpens && (
-                      <Typography variant="caption" sx={{ color: '#777', display: 'block' }}>opens {fmtDate(grant.applicationOpens)}</Typography>
-                    )}
-                    {grant.daysUntilDeadline != null && grant.daysUntilDeadline > 0 && (
-                      <Typography variant="caption" sx={{ color: grant.daysUntilDeadline <= 14 ? '#ff9800' : '#a0a0a0' }}>
-                        {grant.daysUntilDeadline ?? '—'} days left (at last verification)
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 165 }}>
-                    {grant.status ? (
-                      <Chip
-                        icon={getStatusIcon(grant.status)}
-                        label={String(grant.status).replace(/[-_]/g, ' ').toUpperCase()}
-                        size="small"
-                        sx={{
-                          bgcolor: `${getStatusColor(grant.status)}20`,
-                          color: getStatusColor(grant.status),
-                          border: `1px solid ${getStatusColor(grant.status)}`,
-                          fontWeight: 600,
-                        }}
-                      />
-                    ) : (
-                      <Chip size="small" label="STATUS UNSET" sx={{ bgcolor: '#161616', color: '#777' }} />
-                    )}
-                    <Typography variant="caption" sx={{ color: '#777', display: 'block', mt: 0.4 }}>
-                      {grant.lastVerifiedAt ? `verified ${fmtDate(grant.lastVerifiedAt)}` : 'no verification date'}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap', mt: 0.3 }}>
-                      {flags.map((f) => (
-                        <Chip key={f.label} size="small" label={f.label}
-                          sx={{ bgcolor: `${f.colour}18`, color: f.colour, fontSize: '0.58rem', height: 16, fontWeight: 700 }} />
-                      ))}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    {grant.websiteUrl ? (
-                      <Link href={grant.websiteUrl} target="_blank" rel="noopener"
-                        sx={{ color: '#D4AF37', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 0.4 }}>
-                        Source <OpenInNew sx={{ fontSize: 13 }} />
-                      </Link>
-                    ) : (
-                      <Typography variant="caption" sx={{ color: '#f44336', fontWeight: 700 }}>NO SOURCE</Typography>
-                    )}
-                    <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>{grant.dataSource}</Typography>
-                  </TableCell>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                    <IconButton size="small" onClick={() => onPreview(grant)}>
-                      <Visibility sx={{ color: '#a0a0a0', fontSize: 18 }} />
-                    </IconButton>
-                    <IconButton size="small" onClick={() => onEdit(grant)}>
-                      <Edit sx={{ color: '#D4AF37', fontSize: 18 }} />
-                    </IconButton>
-                    <IconButton size="small" onClick={() => onToggleVerified(grant.id)}>
-                      {grant.verified
-                        ? <CheckCircle sx={{ color: '#66bb6a', fontSize: 18 }} />
-                        : <CheckCircle sx={{ color: '#444', fontSize: 18 }} />}
-                    </IconButton>
-                    <IconButton size="small" onClick={() => onDelete(grant)}>
-                      <Delete sx={{ color: '#f44336', fontSize: 18 }} />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Paper>
+    <DataTable<Grant>
+      title="Funding programmes"
+      columns={columns}
+      rows={grants}
+      getRowId={(g) => g.id}
+      pageSize={12}
+      itemNoun="grant"
+      minWidth={1560}
+      maxHeight={640}
+      onRowClick={onPreview}
+      emptyIcon={<VolunteerActivismOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+      emptyMessage={emptyMessage}
+      rowActions={(g) => (
+        <>
+          <Tooltip title={g.verified ? 'Mark as unverified' : 'Mark as verified'}>
+            <IconButton
+              size="small"
+              onClick={() => onToggleVerified(g.id)}
+              sx={{ color: g.verified ? t.success : t.textFaint, '&:hover': { color: t.gold } }}
+            >
+              <CheckCircle sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Edit this grant">
+            <IconButton size="small" onClick={() => onEdit(g)} sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}>
+              <Edit sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete this grant">
+            <IconButton size="small" onClick={() => onDelete(g)} sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}>
+              <Delete sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        </>
+      )}
+    />
   );
 }
 
@@ -1408,7 +1260,7 @@ interface GrantFormDialogProps {
   dupeWarned?: boolean;
 }
 
-const formSection = { color: '#D4AF37', fontWeight: 700, mt: 2.5, mb: 1, fontSize: '0.8rem', letterSpacing: 1, textTransform: 'uppercase' } as const;
+const formSection = { color: 'primary.main', fontWeight: 700, mt: 2.5, mb: 1, fontSize: '0.8rem', letterSpacing: 1, textTransform: 'uppercase' } as const;
 
 function GrantFormDialog({
   open,
@@ -1430,9 +1282,9 @@ function GrantFormDialog({
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { bgcolor: '#1a1a1a', border: '1px solid rgba(212, 175, 55, 0.2)' } }}
+      slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } } }}
     >
-      <DialogTitle sx={{ color: '#ffffff', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+      <DialogTitle sx={{ color: 'text.primary', borderBottom: 1, borderColor: 'divider' }}>
         {isEdit ? 'Edit Grant' : 'Add New Grant'}
       </DialogTitle>
       <DialogContent sx={{ pt: 3 }}>
@@ -1466,20 +1318,20 @@ function GrantFormDialog({
           </Grid>
           <Grid size={{ xs: 6, sm: 3 }}>
             <TextField select fullWidth size="small" label="Grant type" value={formData.grant_type} onChange={set('grant_type')}>
-              <MenuItem value="">—</MenuItem>
+              <MenuItem value="">, </MenuItem>
               {['public_fund', 'broadcaster', 'foundation', 'co_production'].map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
           </Grid>
           <Grid size={{ xs: 6, sm: 3 }}>
             <TextField select fullWidth size="small" label="Recurrence" value={formData.recurrence} onChange={set('recurrence')}>
-              <MenuItem value="">—</MenuItem>
+              <MenuItem value="">, </MenuItem>
               <MenuItem value="annual">annual</MenuItem>
               <MenuItem value="rolling">rolling</MenuItem>
             </TextField>
           </Grid>
           <Grid size={{ xs: 6, sm: 3 }}>
             <TextField select fullWidth size="small" label="Production stage" value={formData.productionStage} onChange={set('productionStage')}>
-              <MenuItem value="">— (not stated)</MenuItem>
+              <MenuItem value="">(not stated)</MenuItem>
               {['development', 'production', 'short', 'multi'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
             </TextField>
           </Grid>
@@ -1489,7 +1341,7 @@ function GrantFormDialog({
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField fullWidth size="small" label="Eligible formats (comma-separated)"
-              helperText="feature, short, documentary, tv_series, animation — matcher format gate"
+              helperText="feature, short, documentary, tv_series, animation, matcher format gate"
               value={formData.eligible_formats} onChange={set('eligible_formats')} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -1503,18 +1355,18 @@ function GrantFormDialog({
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
             <FormControlLabel control={<Checkbox checked={!!formData.nationality_required}
-              onChange={(e: any) => setFormData({ ...formData, nationality_required: e.target.checked })} sx={{ color: '#ff9800' }} />}
+              onChange={(e: any) => setFormData({ ...formData, nationality_required: e.target.checked })} sx={{ color: 'warning.main' }} />}
               label="Nationality / residency restriction" />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
             <FormControlLabel control={<Checkbox checked={!!formData.co_production_required}
-              onChange={(e: any) => setFormData({ ...formData, co_production_required: e.target.checked })} sx={{ color: '#4f83cc' }} />}
+              onChange={(e: any) => setFormData({ ...formData, co_production_required: e.target.checked })} sx={{ color: 'info.main' }} />}
               label="Co-production required" />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
             <FormControlLabel control={<Checkbox checked={formData.emergingFilmmaker === true}
               indeterminate={formData.emergingFilmmaker == null}
-              onChange={(e: any) => setFormData({ ...formData, emergingFilmmaker: e.target.checked })} sx={{ color: '#ce93d8' }} />}
+              onChange={(e: any) => setFormData({ ...formData, emergingFilmmaker: e.target.checked })} sx={{ color: 'info.main' }} />}
               label="Emerging-filmmaker focus (indeterminate = not stated)" />
           </Grid>
         </Grid>
@@ -1542,18 +1394,18 @@ function GrantFormDialog({
             <TextField fullWidth size="small" label="Opens (YYYY-MM-DD or rolling)" value={formData.applicationOpens} onChange={set('applicationOpens')} />
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <TextField fullWidth size="small" label="Deadline (YYYY-MM-DD, rolling or tbc…)" value={formData.applicationDeadline} onChange={set('applicationDeadline')} />
+            <TextField fullWidth size="small" label="Deadline (YYYY-MM-DD, rolling or tbc...)" value={formData.applicationDeadline} onChange={set('applicationDeadline')} />
           </Grid>
         </Grid>
 
-        <Typography sx={formSection}>Governance — honest defaults, nothing auto-filled</Typography>
+        <Typography sx={formSection}>Governance, honest defaults, nothing auto-filled</Typography>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
-            <TextField fullWidth size="small" label="Website / source URL * (required — no grant without a source)"
+            <TextField fullWidth size="small" label="Website / source URL * (required, no grant without a source)"
               value={formData.websiteUrl} onChange={set('websiteUrl')} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField select fullWidth size="small" label="Status (explicit — never auto-computed)"
+            <TextField select fullWidth size="small" label="Status (explicit, never auto-computed)"
               helperText="Unset = excluded from reports"
               value={formData.status} onChange={set('status')}>
               <MenuItem value="">Not set</MenuItem>
@@ -1562,8 +1414,8 @@ function GrantFormDialog({
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
             <FormControlLabel control={<Checkbox checked={!!formData.verified}
-              onChange={(e: any) => setFormData({ ...formData, verified: e.target.checked })} sx={{ color: '#66bb6a' }} />}
-              label="Verified (requires date →)" />
+              onChange={(e: any) => setFormData({ ...formData, verified: e.target.checked })} sx={{ color: 'success.main' }} />}
+              label="Verified (requires a verification date)" />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
             <TextField fullWidth size="small" type="date" label="Verification date (explicit)"
@@ -1572,10 +1424,10 @@ function GrantFormDialog({
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212,175,55,0.2)', position: 'sticky', bottom: 0, bgcolor: '#1a1a1a' }}>
-        <Button onClick={onClose} sx={{ color: '#a0a0a0' }}>Cancel</Button>
+      <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider', position: 'sticky', bottom: 0, bgcolor: 'background.paper' }}>
+        <Button onClick={onClose} sx={{ color: 'text.secondary' }}>Cancel</Button>
         <Button variant="contained" onClick={onSave}
-          sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#B8941F' } }}>
+          sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 700, '&:hover': { bgcolor: 'primary.dark' } }}>
           {isEdit ? 'Save Changes' : (dupeWarned ? 'Save Anyway' : 'Add Grant')}
         </Button>
       </DialogActions>
@@ -1598,14 +1450,9 @@ function GrantPreviewDialog({ open, onClose, grant, formatCurrency }: GrantPrevi
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          bgcolor: '#1a1a1a',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
-        },
-      }}
+      slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } } }}
     >
-      <DialogTitle sx={{ color: '#ffffff', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+      <DialogTitle sx={{ color: 'text.primary', borderBottom: 1, borderColor: 'divider' }}>
         Grant Preview (User View)
       </DialogTitle>
       <DialogContent sx={{ pt: 3 }}>
@@ -1613,47 +1460,48 @@ function GrantPreviewDialog({ open, onClose, grant, formatCurrency }: GrantPrevi
         <Paper
           sx={{
             p: 2.5,
-            bgcolor: grant.status === 'closing-soon' ? 'rgba(255, 152, 0, 0.05)' : 'rgba(212, 175, 55, 0.03)',
-            border: grant.status === 'closing-soon' ? '2px solid #ff9800' : '1px solid rgba(212, 175, 55, 0.15)',
+            bgcolor: grant.status === 'closing-soon' ? 'rgba(255, 152, 0, 0.05)' : 'action.hover',
+            border: grant.status === 'closing-soon' ? 2 : 1,
+            borderColor: grant.status === 'closing-soon' ? 'warning.main' : 'divider',
           }}
         >
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600, mb: 1 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
             {grant.title}
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-            <Chip label={grant.territory} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: '#D4AF37' }} />
-            <Chip label={grant.fundingBody} size="small" sx={{ bgcolor: 'rgba(33, 150, 243, 0.2)', color: '#2196F3' }} />
+            <Chip label={grant.territory} size="small" sx={{ bgcolor: 'action.hover', color: 'primary.main' }} />
+            <Chip label={grant.fundingBody} size="small" sx={{ bgcolor: 'rgba(33, 150, 243, 0.2)', color: 'info.main' }} />
             <Chip 
               label={`Max: ${formatCurrency(grant.maxAmount, grant.currency)}`}
               size="small"
-              sx={{ bgcolor: 'rgba(76, 175, 80, 0.2)', color: '#4caf50', fontWeight: 600 }}
+              sx={{ bgcolor: 'rgba(76, 175, 80, 0.2)', color: 'success.main', fontWeight: 600 }}
             />
           </Box>
 
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid size={{ xs: 4 }}>
-              <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block' }}>Opens</Typography>
-              <Typography variant="body2" sx={{ color: '#ffffff' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Opens</Typography>
+              <Typography variant="body2" sx={{ color: 'text.primary' }}>
                 {new Date(grant.applicationOpens).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </Typography>
             </Grid>
             <Grid size={{ xs: 4 }}>
-              <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block' }}>Deadline</Typography>
-              <Typography variant="body2" sx={{ color: grant.status === 'closing-soon' ? '#ff9800' : '#ffffff', fontWeight: grant.status === 'closing-soon' ? 700 : 500 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Deadline</Typography>
+              <Typography variant="body2" sx={{ color: grant.status === 'closing-soon' ? 'warning.main' : 'text.primary', fontWeight: grant.status === 'closing-soon' ? 700 : 500 }}>
                 {new Date(grant.applicationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </Typography>
             </Grid>
             <Grid size={{ xs: 4 }}>
-              <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block' }}>Time Left</Typography>
-              <Typography variant="body2" sx={{ color: (grant.daysUntilDeadline ?? 99) <= 14 ? '#ff9800' : '#4caf50', fontWeight: 600 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>Time Left</Typography>
+              <Typography variant="body2" sx={{ color: (grant.daysUntilDeadline ?? 99) <= 14 ? 'warning.main' : 'success.main', fontWeight: 600 }}>
                 {grant.daysUntilDeadline} days
               </Typography>
             </Grid>
           </Grid>
 
           <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ color: '#a0a0a0', display: 'block', mb: 0.5 }}>Eligibility</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>Eligibility</Typography>
             <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
               {grant.eligibility.slice(0, 3).map((criteria, idx) => (
                 <Chip
@@ -1662,7 +1510,7 @@ function GrantPreviewDialog({ open, onClose, grant, formatCurrency }: GrantPrevi
                   size="small"
                   sx={{
                     bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    color: '#a0a0a0',
+                    color: 'text.secondary',
                     fontSize: '0.7rem',
                   }}
                 />
@@ -1674,21 +1522,21 @@ function GrantPreviewDialog({ open, onClose, grant, formatCurrency }: GrantPrevi
             variant="outlined"
             fullWidth
             sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
+              borderColor: 'primary.main',
+              color: 'primary.main',
               fontWeight: 600,
               '&:hover': {
-                borderColor: '#D4AF37',
-                bgcolor: 'rgba(212, 175, 55, 0.1)',
+                borderColor: 'primary.main',
+                bgcolor: 'action.hover',
               },
             }}
           >
-            Apply Now →
+            Apply now
           </Button>
         </Paper>
       </DialogContent>
-      <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Button onClick={onClose} sx={{ color: '#D4AF37' }}>
+      <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+        <Button onClick={onClose} sx={{ color: 'primary.main' }}>
           Close
         </Button>
       </DialogActions>
@@ -1753,19 +1601,14 @@ function BulkImportDialog({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          bgcolor: '#1a1a1a',
-          border: '1px solid rgba(212, 175, 55, 0.2)',
-        },
-      }}
+      slotProps={{ paper: { sx: { bgcolor: 'background.paper', border: 1, borderColor: 'divider' } } }}
     >
-      <DialogTitle sx={{ color: '#ffffff', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+      <DialogTitle sx={{ color: 'text.primary', borderBottom: 1, borderColor: 'divider' }}>
         Bulk Import Grants
       </DialogTitle>
       <DialogContent sx={{ pt: 3 }}>
-        <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', '& .MuiAlert-icon': { color: '#2196F3' } }}>
-          <Typography variant="body2" sx={{ color: '#2196F3' }}>
+        <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(33, 150, 243, 0.1)', '& .MuiAlert-icon': { color: 'info.main' } }}>
+          <Typography variant="body2" sx={{ color: 'info.main' }}>
             Upload a CSV file with grant data. Download the template below for the correct format.
             Eligibility values should be semicolon separated.
           </Typography>
@@ -1778,11 +1621,11 @@ function BulkImportDialog({
           onClick={handleDownloadTemplate}
           sx={{
             mb: 2,
-            borderColor: '#D4AF37',
-            color: '#D4AF37',
+            borderColor: 'primary.main',
+            color: 'primary.main',
             '&:hover': {
-              borderColor: '#D4AF37',
-              bgcolor: 'rgba(212, 175, 55, 0.1)',
+              borderColor: 'primary.main',
+              bgcolor: 'action.hover',
             },
           }}
         >
@@ -1792,15 +1635,15 @@ function BulkImportDialog({
         <Button
           variant="contained"
           component="label"
-          startIcon={uploading ? <CircularProgress size={16} sx={{ color: '#000' }} /> : <Upload />}
+          startIcon={uploading ? <CircularProgress size={16} sx={{ color: 'primary.contrastText' }} /> : <Upload />}
           fullWidth
           disabled={uploading}
           sx={{
-            bgcolor: '#D4AF37',
-            color: '#000000',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
             fontWeight: 600,
-            '&:hover': { bgcolor: '#D4AF37' },
-            '&:disabled': { bgcolor: 'rgba(212, 175, 55, 0.4)' },
+            '&:hover': { bgcolor: 'primary.main' },
+            '&:disabled': { bgcolor: 'action.hover' },
           }}
         >
           {uploading ? 'Uploading...' : 'Upload CSV File'}
@@ -1827,8 +1670,8 @@ function BulkImportDialog({
           </Alert>
         )}
       </DialogContent>
-      <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Button onClick={handleClose} sx={{ color: '#a0a0a0' }}>
+      <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+        <Button onClick={handleClose} sx={{ color: 'text.secondary' }}>
           {result ? 'Close' : 'Cancel'}
         </Button>
       </DialogActions>

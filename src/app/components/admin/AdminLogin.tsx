@@ -1,205 +1,147 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import {
-  Box,
-  Container,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Alert,
-  InputAdornment,
-  IconButton,
+  Alert, Box, Button, IconButton, InputAdornment, Paper, TextField, Typography,
 } from '@mui/material';
-import { Visibility, VisibilityOff, AdminPanelSettings } from '@mui/icons-material';
+import {
+  LockOutlined, Visibility, VisibilityOff,
+} from '@mui/icons-material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 
 export function AdminLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const { adminLogin, isAdminAuthenticated } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already authenticated
+  // AdminLayout redirects here with the screen the admin was trying to reach,
+  // so send them back there rather than always to the dashboard.
+  const from = (location.state as { from?: { pathname: string } } | null)?.from;
+  const redirectTo = from?.pathname?.startsWith('/admin') ? from.pathname : '/admin/overview';
+
   useEffect(() => {
-    if (isAdminAuthenticated) {
-      navigate('/admin/overview');
-    }
-  }, [isAdminAuthenticated, navigate]);
+    if (isAdminAuthenticated) navigate(redirectTo, { replace: true });
+  }, [isAdminAuthenticated, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const success = await adminLogin(email, password);
-      
-      if (success) {
-        navigate('/admin/overview');
-      } else {
-        setError('Invalid credentials. Please check your email and password.');
-      }
+      if (success) navigate(redirectTo, { replace: true });
+      // Deliberately does not say which of the two was wrong: naming the field
+      // confirms whether an admin address exists, and admin credentials are the
+      // highest-value target in the system.
+      else setError('Those credentials were not accepted. Check the email and password and try again.');
     } catch {
-      setError('An error occurred. Please try again.');
+      setError('Could not reach the sign-in service. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: '#000000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {loading && <LoadingSpinner overlay message="Signing in..." />}
-      {/* Background gradient */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '10%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '800px',
-          height: '800px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0) 70%)',
-          filter: 'blur(120px)',
-          pointerEvents: 'none',
-        }}
-      />
-
-      <Container maxWidth="sm">
-        <Paper
-          elevation={0}
-          sx={{
-            p: 6,
-            bgcolor: '#0a0a0a',
-            border: '2px solid rgba(212, 175, 55, 0.3)',
-            borderRadius: 3,
-            position: 'relative',
-            zIndex: 1,
-          }}
-        >
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <AdminPanelSettings
-              sx={{
-                fontSize: 64,
-                color: '#D4AF37',
-                mb: 2,
-              }}
-            />
-            <Typography variant="h4" sx={{ color: '#D4AF37', fontWeight: 700, mb: 1 }}>
-              Admin Portal
+    <AuthLayout>
+      <Paper
+        elevation={0}
+        sx={{ p: { xs: 3, sm: 5 }, border: `1px solid ${t.border}`, borderRadius: 3 }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+          <Box
+            sx={{
+              width: 40, height: 40, borderRadius: '10px',
+              bgcolor: t.goldDim, border: `1px solid ${t.gold}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <LockOutlined sx={{ fontSize: 21, color: t.gold }} />
+          </Box>
+          <Box>
+            <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.22em', color: t.gold }}>
+              ADMIN CONSOLE
             </Typography>
-            <Typography variant="body1" sx={{ color: '#a0a0a0' }}>
-              Prodculator
+            <Typography sx={{ fontSize: 22, fontWeight: 800, color: t.textPrimary, lineHeight: 1.2 }}>
+              Sign in
             </Typography>
           </Box>
+        </Box>
 
-          {error && (
-            <Alert
-              severity="error"
-              sx={{
-                mb: 3,
-                bgcolor: 'rgba(244, 67, 54, 0.1)',
-                color: '#f44336',
-                border: '1px solid rgba(244, 67, 54, 0.3)',
-              }}
-            >
-              {error}
-            </Alert>
-          )}
+        <Typography sx={{ color: t.textSecondary, fontSize: 14, mb: 3.5 }}>
+          Staff access only. Customer accounts sign in from the main site.
+        </Typography>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Admin Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              sx={{ mb: 3 }}
-            />
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-            <TextField
-              fullWidth
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              sx={{ mb: 4 }}
-              InputProps={{
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            fullWidth
+            label="Work email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+            autoComplete="email"
+            disabled={loading}
+            sx={{ mb: 3 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            disabled={loading}
+            sx={{ mb: 3.5 }}
+            slotProps={{
+              input: {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowPassword((s) => !s)}
                       edge="end"
-                      sx={{ color: '#a0a0a0' }}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      sx={{ color: t.textSecondary }}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
-              }}
-            />
+              },
+            }}
+          />
 
-            <Button
-              fullWidth
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{
-                bgcolor: '#D4AF37',
-                color: '#000000',
-                fontWeight: 700,
-                py: 1.5,
-                fontSize: '1.1rem',
-                '&:hover': {
-                  bgcolor: '#D4AF37',
-                },
-                '&:disabled': {
-                  bgcolor: '#666',
-                  color: '#a0a0a0',
-                },
-              }}
-            >
-              Sign In
-            </Button>
-          </Box>
-{/* 
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Button
-              onClick={() => navigate('/')}
-              sx={{
-                color: '#a0a0a0',
-                textDecoration: 'underline',
-                '&:hover': {
-                  color: '#D4AF37',
-                  bgcolor: 'transparent',
-                },
-              }}
-            >
-              ← Back to Main Site
-            </Button>
-          </Box> */}
-        </Paper>
-      </Container>
-    </Box>
+          <Button
+            fullWidth
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={loading || !email.trim() || !password}
+            sx={{ py: 1.4, fontSize: '1rem' }}
+          >
+            {loading ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </Box>
+
+        <Typography sx={{ color: t.textFaint, fontSize: 12, mt: 3.5, lineHeight: 1.7 }}>
+          Every action taken in this console is recorded against your account, including
+          the state of anything you change. Sign-in attempts are rate limited.
+        </Typography>
+      </Paper>
+    </AuthLayout>
   );
 }

@@ -1,45 +1,29 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  TextField,
-  IconButton,
-  CircularProgress,
-  Alert,
-  Button,
-  TablePagination,
+  Alert, Box, Button, CircularProgress, IconButton, Snackbar, Tooltip, Typography,
 } from '@mui/material';
 import {
-  Block,
-  CheckCircle,
-  Search,
-  LockOpen,
+  BlockOutlined, LockOpenOutlined, MarkEmailReadOutlined, RefreshOutlined,
 } from '@mui/icons-material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { adminApi } from '@/services/admin.api';
 import type { EmailGatingRecord } from '@/services/admin.types';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
 import { AdminAccessDenied } from './AdminAccessDenied';
 
-function formatDateTime(date: string) {
-  try {
-    return new Date(date).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return date;
-  }
+// The endpoint caps at 500. Fetched in one page so sorting and filtering apply
+// to the whole set: paging server-side while filtering client-side would filter
+// only the page you happen to be on, which reads as data loss.
+const FETCH_LIMIT = 500;
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return 'Unknown';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
 }
 
 export function EmailGatingManager() {
@@ -53,251 +37,169 @@ export function EmailGatingManager() {
       />
     );
   }
-
   return <EmailGatingManagerContent />;
 }
 
 function EmailGatingManagerContent() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [records, setRecords] = useState<EmailGatingRecord[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [loading, setLoading] = useState(true);
-  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const loadRecords = useCallback(
-    async (options?: { signal?: AbortSignal; silent?: boolean }) => {
-      const { signal, silent = false } = options || {};
-      if (!silent) setLoading(true);
-      setErrorMessage(null);
-
-      const { data, error } = await adminApi.getEmailGatingRecords(
-        { limit: rowsPerPage, offset: page * rowsPerPage, search: searchQuery || undefined },
-        signal,
-      );
-
-      if (signal?.aborted) return;
-
-      if (error) {
-        setErrorMessage(error);
-        if (!silent) setLoading(false);
-        return;
-      }
-
-      setRecords(data?.items ?? []);
-      setTotal(data?.total ?? 0);
-      if (!silent) setLoading(false);
-    },
-    [page, rowsPerPage, searchQuery],
-  );
+  const load = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setErrorMessage(null);
+    const { data, error } = await adminApi.getEmailGatingRecords({ limit: FETCH_LIMIT }, signal);
+    if (signal?.aborted) return;
+    if (error) {
+      setErrorMessage(error);
+      setLoading(false);
+      return;
+    }
+    setRecords(data?.items ?? []);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadRecords({ signal: controller.signal });
+    void load(controller.signal);
     return () => controller.abort();
-  }, [loadRecords]);
+  }, [load]);
 
-  const handleToggleBlock = async (record: EmailGatingRecord) => {
-    setActionInProgress(record.id);
+  const toggleBlock = useCallback(async (record: EmailGatingRecord) => {
+    setBusyId(record.id);
     setErrorMessage(null);
     setSuccessMessage(null);
-
-    const action = record.blocked
-      ? adminApi.unblockEmailGatingRecord(record.id)
-      : adminApi.blockEmailGatingRecord(record.id);
-
-    const { data, error } = await action;
-    setActionInProgress(null);
-
+    const { data, error } = record.blocked
+      ? await adminApi.unblockEmailGatingRecord(record.id)
+      : await adminApi.blockEmailGatingRecord(record.id);
+    setBusyId(null);
     if (error) {
       setErrorMessage(error);
       return;
     }
-
     if (data) {
       setRecords((prev) => prev.map((r) => (r.id === data.id ? data : r)));
       setSuccessMessage(`${data.email} ${data.blocked ? 'blocked' : 'unblocked'}.`);
     }
-  };
+  }, []);
 
-  const handleSearch = () => {
-    setPage(0);
-    // loadRecords will fire via useEffect since page/searchQuery changed
-  };
+  const blockedCount = records.filter((r) => r.blocked).length;
+
+  const columns = useMemo<Column<EmailGatingRecord>[]>(() => [
+    {
+      key: 'email',
+      header: 'EMAIL ADDRESS',
+      width: '2.2fr',
+      render: (r) => (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {r.email}
+        </Typography>
+      ),
+    },
+    {
+      key: 'date',
+      header: 'FIRST USED',
+      width: '1.4fr',
+      sortValue: (r) => new Date(r.date).getTime() || 0,
+      render: (r) => <Box sx={{ color: t.textSecondary }}>{formatDateTime(r.date)}</Box>,
+    },
+    {
+      key: 'report_generated',
+      header: 'REPORT',
+      width: '0.8fr',
+      sortValue: (r) => (r.report_generated ? 'Yes' : 'No'),
+      render: (r) => (
+        <Box sx={{ color: r.report_generated ? t.textPrimary : t.textFaint }}>
+          {r.report_generated ? 'Generated' : 'Not yet'}
+        </Box>
+      ),
+    },
+    {
+      key: 'blocked',
+      header: 'STATUS',
+      width: '0.9fr',
+      filterSelect: true,
+      sortValue: (r) => (r.blocked ? 'Blocked' : 'Active'),
+      render: (r) => (
+        // A dot plus a word, matching how the B2C tables show report status.
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: r.blocked ? t.error : t.success, flexShrink: 0 }} />
+          <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: r.blocked ? t.error : t.success }}>
+            {r.blocked ? 'Blocked' : 'Active'}
+          </Typography>
+        </Box>
+      ),
+    },
+  ], [t]);
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4, color: '#D4AF37' }}>
-        Email Gating Management
+      {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
+
+      <Typography sx={{ color: t.textSecondary, fontSize: 13.5, mb: 2, maxWidth: '78ch' }}>
+        One record per email address that has claimed a free report. Blocking an address refuses further free
+        reports from it; it does not affect a paid account using the same address.
       </Typography>
 
-      {errorMessage && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {errorMessage}
-        </Alert>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress sx={{ color: t.gold }} />
+        </Box>
+      ) : (
+        <DataTable<EmailGatingRecord>
+          title="Free report usage"
+          headerAction={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {blockedCount > 0 && (
+                <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>
+                  {blockedCount} blocked
+                </Typography>
+              )}
+              <Button size="small" startIcon={<RefreshOutlined />} onClick={() => void load()}>
+                Refresh
+              </Button>
+            </Box>
+          }
+          columns={columns}
+          rows={records}
+          getRowId={(r) => r.id}
+          pageSize={12}
+          itemNoun="address"
+          itemNounPlural="addresses"
+          minWidth={760}
+          emptyIcon={<MarkEmailReadOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+          emptyMessage="No free reports have been claimed yet. Each address that generates one appears here, so repeat use is visible before it becomes a pattern."
+          rowActions={(r) => (
+            <Tooltip title={r.blocked ? 'Allow free reports again' : 'Block further free reports'}>
+              <IconButton
+                size="small"
+                disabled={busyId === r.id}
+                onClick={() => void toggleBlock(r)}
+                sx={{ color: r.blocked ? t.success : t.textSecondary, '&:hover': { color: r.blocked ? t.success : t.error } }}
+              >
+                {busyId === r.id
+                  ? <CircularProgress size={17} sx={{ color: t.gold }} />
+                  : r.blocked ? <LockOpenOutlined sx={{ fontSize: 19 }} /> : <BlockOutlined sx={{ fontSize: 19 }} />}
+              </IconButton>
+            </Tooltip>
+          )}
+        />
       )}
 
-      {successMessage && (
-        <Alert
-          severity="success"
-          sx={{
-            mb: 3,
-            bgcolor: 'rgba(46, 125, 50, 0.1)',
-            color: '#66bb6a',
-            border: '1px solid rgba(46, 125, 50, 0.3)',
-          }}
-        >
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={4000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" onClose={() => setSuccessMessage(null)}>
           {successMessage}
         </Alert>
-      )}
-
-      <Paper sx={{ p: 3, mb: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#ffffff' }}>
-          Abuse Prevention
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#a0a0a0', mb: 2 }}>
-          Monitor and manage free report usage per email address
-        </Typography>
-
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <TextField
-            fullWidth
-            placeholder="Search by email address..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSearch();
-            }}
-            slotProps={{
-              input: {
-                startAdornment: <Search sx={{ mr: 1, color: '#a0a0a0' }} />,
-              },
-            }}
-          />
-          <Button
-            variant="outlined"
-            onClick={handleSearch}
-            sx={{
-              borderColor: '#D4AF37',
-              color: '#D4AF37',
-              '&:hover': { borderColor: '#D4AF37', bgcolor: 'rgba(212, 175, 55, 0.08)' },
-            }}
-          >
-            Search
-          </Button>
-        </Box>
-      </Paper>
-
-      <Paper sx={{ p: 3, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress sx={{ color: '#D4AF37' }} />
-          </Box>
-        ) : (
-          <>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Email Address</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Date Used</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Report Generated</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Status</TableCell>
-                    <TableCell sx={{ color: '#a0a0a0' }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {records.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} sx={{ textAlign: 'center', color: '#a0a0a0', py: 4 }}>
-                        No records found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    records.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell sx={{ color: '#ffffff' }}>{record.email}</TableCell>
-                        <TableCell sx={{ color: '#a0a0a0' }}>{formatDateTime(record.date)}</TableCell>
-                        <TableCell>
-                          {record.report_generated ? (
-                            <Chip
-                              label="Yes"
-                              size="small"
-                              icon={<CheckCircle />}
-                              sx={{
-                                bgcolor: 'rgba(46, 125, 50, 0.2)',
-                                color: '#66bb6a',
-                                '& .MuiChip-icon': { color: '#66bb6a' },
-                              }}
-                            />
-                          ) : (
-                            <Chip
-                              label="No"
-                              size="small"
-                              sx={{ bgcolor: 'rgba(117, 117, 117, 0.2)', color: '#9e9e9e' }}
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={record.blocked ? 'Blocked' : 'Active'}
-                            size="small"
-                            sx={{
-                              bgcolor: record.blocked ? 'rgba(211, 47, 47, 0.2)' : 'rgba(46, 125, 50, 0.2)',
-                              color: record.blocked ? '#f44336' : '#66bb6a',
-                              fontWeight: 600,
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={() => void handleToggleBlock(record)}
-                            disabled={actionInProgress === record.id}
-                            title={record.blocked ? 'Unblock' : 'Block'}
-                            sx={{
-                              color: record.blocked ? '#66bb6a' : '#f44336',
-                              '&:hover': {
-                                bgcolor: record.blocked
-                                  ? 'rgba(46, 125, 50, 0.15)'
-                                  : 'rgba(211, 47, 47, 0.15)',
-                              },
-                            }}
-                          >
-                            {actionInProgress === record.id ? (
-                              <CircularProgress size={20} sx={{ color: '#D4AF37' }} />
-                            ) : record.blocked ? (
-                              <LockOpen />
-                            ) : (
-                              <Block />
-                            )}
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              onPageChange={(_, newPage) => setPage(newPage)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-              rowsPerPageOptions={[10, 25, 50]}
-              sx={{ color: '#a0a0a0' }}
-            />
-          </>
-        )}
-      </Paper>
+      </Snackbar>
     </Box>
   );
 }

@@ -1205,6 +1205,28 @@ export function ScriptUpload() {
                     You've used your report limit. Upgrade to generate more.
                   </Alert>
                 )}
+                {/* Transparency notice, not a consent mechanism: no checkbox,
+                    and placed above the consent block so core AI processing is
+                    never confused with the optional Production Intelligence tick
+                    box below. The no-training sentence is omitted deliberately,
+                    see the TODO in TermsOfService.tsx section 8.2. */}
+                <Alert
+                  severity="info"
+                  icon={false}
+                  sx={{ mb: 2, bgcolor: 'action.hover', border: 1, borderColor: 'divider' }}
+                >
+                  <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6, display: 'block' }}>
+                    <strong style={{ color: '#D4AF37' }}>Your script is processed only to provide your report.</strong>{' '}
+                    To analyse it we transmit it over an encrypted connection to our AI service providers (Anthropic,
+                    with OpenAI as failover), which process it solely to generate that report. We do not store the
+                    uploaded file itself, and we do not sell your script or disclose it to anyone for their own
+                    purposes. See our{' '}
+                    <Link href="/privacy" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                      Privacy Policy
+                    </Link>
+                    .
+                  </Typography>
+                </Alert>
                 {isAuthenticated && (
                   <FormControlLabel
                     sx={{ mb: 2, alignItems: 'flex-start' }}
@@ -1230,10 +1252,6 @@ export function ScriptUpload() {
                         <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                           Acceptable Use Policy
                         </Link>
-                        . This includes use of anonymised production metadata in aggregate market intelligence reports{' '}
-                        <Link href="/terms#section-6-3" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37', fontSize: '0.7rem' }}>
-                          (see §6.3)
-                        </Link>
                         .
                       </Typography>
                     }
@@ -1253,10 +1271,10 @@ export function ScriptUpload() {
                     label={
                       <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
                         {/* PLACEHOLDER consent copy — replace with solicitor wording when supplied. */}
-                        Optional: I consent to Prodculator including this production's anonymised,
+                        Optional: I consent to Prodculator including this production's pseudonymised,
                         aggregated details (never the script itself) in Business Intelligence market
-                        reports. You can withdraw consent by re-running the report with this box
-                        unticked.
+                        reports. Declining does not affect your report. You can withdraw consent by
+                        re-running the report with this box unticked.
                       </Typography>
                     }
                   />
@@ -1321,10 +1339,6 @@ export function ScriptUpload() {
                 <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                   Acceptable Use Policy
                 </Link>
-                . This includes use of anonymised production metadata in aggregate market intelligence reports{' '}
-                <Link href="/terms#section-6-3" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37', fontSize: '0.7rem' }}>
-                  (see §6.3)
-                </Link>
                 .
               </Typography>
             }
@@ -1335,9 +1349,9 @@ export function ScriptUpload() {
             label={
               <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
                 {/* PLACEHOLDER consent copy — replace with solicitor wording when supplied. */}
-                Optional: I consent to Prodculator including this production's anonymised,
+                Optional: I consent to Prodculator including this production's pseudonymised,
                 aggregated details (never the script itself) in Business Intelligence market
-                reports.
+                reports. Declining does not affect your report.
               </Typography>
             }
           />

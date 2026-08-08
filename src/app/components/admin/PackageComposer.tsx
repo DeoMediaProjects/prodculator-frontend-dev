@@ -3,7 +3,8 @@ import { useSnackbar } from 'notistack';
 import {
   Alert, Box, Button, Card, Checkbox, Chip, CircularProgress, Dialog,
   DialogActions, DialogContent, DialogTitle, Divider,
-  IconButton, LinearProgress, MenuItem, Stack, TextField, Tooltip, Typography,
+  IconButton, LinearProgress, MenuItem, Stack, Step, StepButton, Stepper,
+  TextField, Tooltip, Typography,
 } from '@mui/material';
 import {
   BookmarkAdd, DeleteOutline, PictureAsPdf, Refresh, RestartAlt,
@@ -27,8 +28,8 @@ const STANDARD_PRODUCTS = [
 ];
 
 const PART_LABEL: Record<string, string> = {
-  context: 'Part A — Curated market context',
-  signals: 'Part B — Platform demand signals',
+  context: 'Part A, Curated market context',
+  signals: 'Part B, Platform demand signals',
 };
 
 function isoDate(d: Date): string {
@@ -53,6 +54,23 @@ function statusChip(section: PackagePreviewSection) {
       return { label: 'Unknown section', color: 'default' as const };
   }
 }
+
+const WIZARD_STEPS = ['Client and period', 'Sections', 'Sufficiency', 'Generate'] as const;
+
+/** Why Continue is disabled, so a blocked step explains itself. */
+const BLOCKED_REASONS: Record<number, string> = {
+  0: 'Set a period start and end first.',
+  1: 'Choose at least one section.',
+  2: 'Run the sufficiency preview and get at least one renderable section before generating.',
+  3: '',
+};
+
+const STEP_HINTS: Record<number, string> = {
+  0: 'Choose who the package is for and the period it covers. Exclusivity is scoped to the client, so this decides which sections are even available.',
+  1: 'Pick the sections, or load a saved layout. Curated market context and aggregated platform signals can be mixed freely.',
+  2: 'Check the data supports what you have chosen. This applies the same privacy floors the renderer does, so what it says here is what the PDF will contain.',
+  3: 'Generate and deliver. Only sections marked renderable above will appear.',
+};
 
 export function PackageComposer() {
   const { enqueueSnackbar } = useSnackbar();
@@ -84,6 +102,28 @@ export function PackageComposer() {
   const [templateName, setTemplateName] = useState('');
   const [templateDesc, setTemplateDesc] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Composing a package is a sequence: who and when, then what goes in it,
+  // then whether the data actually supports it, then generate. Presented as one
+  // dense screen it read as a settings panel, and the sufficiency check (the
+  // step that decides whether the PDF is worth sending) was easy to skip.
+  const [step, setStep] = useState(0);
+
+  // What each step needs before the next one opens. The sufficiency step is the
+  // point of the flow, so Generate stays shut until a preview has actually run
+  // and returned at least one renderable section.
+  const stepSatisfied = [
+    Boolean(periodStart && periodEnd),
+    selected.length > 0,
+    Boolean(preview && preview.renderable_sections > 0),
+    true,
+  ];
+  const furthestReachable = stepSatisfied.reduce(
+    (reached, ok, i) => (i <= reached && ok ? i + 1 : reached),
+    0,
+  );
+
+
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -216,7 +256,7 @@ export function PackageComposer() {
         deliver: false,
       });
       enqueueSnackbar(
-        `Package generated (${res.status}). Find it under Clients → Requests to download or send.`,
+        `Package generated (${res.status}). Find it under Clients, then Requests to download or send.`,
         { variant: 'success', autoHideDuration: 8000 },
       );
     } catch (err) {
@@ -233,17 +273,52 @@ export function PackageComposer() {
 
   if (loading) return <LoadingSpinner />;
 
+  const wizardNav = (
+    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 2 }}>
+      <Button disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>
+        Back
+      </Button>
+      <Box sx={{ flex: 1 }} />
+      {step < WIZARD_STEPS.length - 1 && (
+        <Tooltip title={stepSatisfied[step] ? '' : BLOCKED_REASONS[step]}>
+          <span>
+            <Button
+              variant="contained"
+              disabled={!stepSatisfied[step]}
+              onClick={() => {
+                // Entering the sufficiency step runs the check rather than
+                // leaving the admin to notice a refresh button.
+                if (step === 1 && !preview) void runPreview();
+                setStep((s) => s + 1);
+              }}
+            >
+              Continue
+            </Button>
+          </span>
+        </Tooltip>
+      )}
+    </Stack>
+  );
+
   return (
     <Box>
+      <Stepper activeStep={step} sx={{ mb: 3 }}>
+        {WIZARD_STEPS.map((label, i) => (
+          <Step key={label} completed={step > i}>
+            <StepButton onClick={() => setStep(i)} disabled={i > furthestReachable}>
+              {label}
+            </StepButton>
+          </Step>
+        ))}
+      </Stepper>
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Build a bespoke package from curated market context and aggregated platform
-        signals. The sufficiency preview applies the same privacy floors the renderer
-        does, so what it says here is what the PDF will contain.
+        {STEP_HINTS[step]}
       </Typography>
 
       {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
 
-      {/* Period, client, title */}
+      {step === 0 && (
       <Card sx={{ p: 2, mb: 2 }}>
         <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
           <TextField
@@ -269,14 +344,16 @@ export function PackageComposer() {
               <MenuItem value="">Internal / no client</MenuItem>
               {subscriptions.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  {s.product_type} · {s.id.slice(0, 8)}
+                  {s.company_name || s.user_email || `Account ${s.user_id.slice(0, 8)}`}
                 </MenuItem>
               ))}
             </TextField>
           </Tooltip>
         </Stack>
       </Card>
+      )}
 
+      {step >= 1 && (
       <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} alignItems="flex-start">
         {/* Section picker */}
         <Card sx={{ p: 2, flex: '1 1 60%', width: '100%' }}>
@@ -305,7 +382,7 @@ export function PackageComposer() {
 
           {Object.entries(grouped).map(([part, groups]) => (
             <Box key={part} sx={{ mb: 2 }}>
-              <Typography variant="overline" color="primary" sx={{ fontWeight: 700 }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' }}>
                 {PART_LABEL[part] ?? part}
               </Typography>
               <Divider sx={{ mb: 1 }} />
@@ -346,6 +423,7 @@ export function PackageComposer() {
         </Card>
 
         {/* Sufficiency preview */}
+        {step >= 2 && (
         <Card sx={{ p: 2, flex: '1 1 40%', width: '100%', position: { lg: 'sticky' }, top: 16 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Sufficiency preview</Typography>
@@ -415,7 +493,7 @@ export function PackageComposer() {
                   variant="contained" startIcon={generating ? <CircularProgress size={16} /> : <PictureAsPdf />}
                   disabled={!canGenerate} onClick={() => void generate()}
                 >
-                  {generating ? 'Generating…' : 'Generate PDF'}
+                  {generating ? 'Generating...' : 'Generate PDF'}
                 </Button>
                 <Button
                   startIcon={<BookmarkAdd />} disabled={!selected.length}
@@ -425,14 +503,16 @@ export function PackageComposer() {
                 </Button>
               </Stack>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Generating does not email the client. Send it from Clients → Requests.
+                Generating does not email the client. Send it from Clients, then Requests.
               </Typography>
             </>
           )}
         </Card>
+        )}
       </Stack>
+      )}
 
-      {/* Saved templates */}
+      {step === 1 && (
       <Card sx={{ p: 2, mt: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Saved templates</Typography>
         {templates.length === 0 ? (
@@ -460,6 +540,9 @@ export function PackageComposer() {
           </Stack>
         )}
       </Card>
+      )}
+
+      {wizardNav}
 
       <Dialog open={saveOpen} onClose={() => setSaveOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Save composition as template</DialogTitle>
@@ -482,7 +565,7 @@ export function PackageComposer() {
         <DialogActions>
           <Button onClick={() => setSaveOpen(false)}>Cancel</Button>
           <Button variant="contained" disabled={!templateName.trim() || saving} onClick={() => void saveTemplate()}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>

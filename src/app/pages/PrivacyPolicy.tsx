@@ -22,7 +22,7 @@ export function PrivacyPolicy() {
 
           <Typography variant="h4">1. Introduction</Typography>
           <Typography>
-            Prodculator (operated by Deo Media Limited) (\"we\", \"us\", \"our\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Platform, including both individual subscriptions and enterprise (B2B) solutions.
+            Prodculator (operated by Deo Media Limited) (\"we\", \"us\", \"our\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our Platform, including both individual subscriptions and Business Intelligence solutions for organisations.
           </Typography>
           <Typography>
             <strong>Important:</strong> Prodculator is NOT designed for collecting personally identifiable information (PII) or securing highly sensitive personal data. This Platform is intended for professional film production intelligence only.
@@ -31,7 +31,7 @@ export function PrivacyPolicy() {
           <Typography variant="h4">2. Information We Collect</Typography>
           
           <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
-            2.1 Individual Users (B2C)
+            2.1 Individual Users
           </Typography>
           <Typography>
             <strong>Account Information:</strong>
@@ -57,7 +57,7 @@ export function PrivacyPolicy() {
           </ul>
 
           <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
-            2.2 Enterprise Clients (B2B)
+            2.2 Business Intelligence Clients
           </Typography>
           <Typography>
             <strong>Organization Information:</strong>
@@ -99,7 +99,7 @@ export function PrivacyPolicy() {
             <li><strong>Feature Delivery:</strong> Enable Territory Watchlist, Incentive Rate Alerts, Festival Deadline Reminders, Grant Notifications</li>
             <li><strong>Product Improvement:</strong> Analyze usage patterns to improve features (anonymized data only)</li>
             <li><strong>Compliance:</strong> Comply with legal obligations, fraud prevention, and dispute resolution</li>
-            <li><strong>Aggregate Production Intelligence:</strong> Extract anonymized metadata from script uploads (crew size estimates, equipment requirements, production scale indicators) to create aggregate industry trend reports shown in our Production Intelligence Dashboard and shared with enterprise clients. Individual scripts are NEVER identifiable in these reports.</li>
+            <li><strong>Aggregate Production Intelligence (opt in only):</strong> Where, and only where, you have given your consent at the point of upload, we extract pseudonymised metadata from your script (crew size estimates, equipment requirements, production scale indicators) to create aggregate industry trend reports shown in our Production Intelligence Dashboard and shared with enterprise clients. Your script's content, title, character names, dialogue, and plot are never included. This is a secondary, optional use: if you do not consent, no metadata from your script is retained for this purpose, and you can still use the script analysis and report generation service in full. You may withdraw consent, and the metadata previously extracted from that script is deleted.</li>
           </ul>
 
           <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
@@ -122,7 +122,7 @@ export function PrivacyPolicy() {
             <strong>4.2 Access Controls:</strong> Strict role based access controls limit who can view your data internally.
           </Typography>
           <Typography>
-            <strong>4.3 Script Confidentiality:</strong> Uploaded scripts are treated as confidential trade secrets and are never shared with third parties or used for training AI models.
+            <strong>4.3 Script Confidentiality:</strong> Uploaded scripts are treated as confidential trade secrets. Generating your report requires script content to be securely transmitted to our contracted artificial intelligence service provider, which processes it solely to perform the analysis you requested (see section 5.1). Apart from that processing, we do not sell your scripts, disclose them to third parties for those parties' own independent purposes, use them for advertising, or use them to train our own AI models.
           </Typography>
           <Typography>
             <strong>4.4 API Security:</strong> API keys are hashed and encrypted. Enterprise clients receive unique keys with rate limiting and IP whitelisting (optional).
@@ -137,16 +137,61 @@ export function PrivacyPolicy() {
             <li>API logs: Retained for 90 days for security and performance monitoring</li>
           </ul>
           <Typography>
-            <strong>4.6 Production Intelligence Dashboard Anonymized Metadata:</strong> When you upload a script, we automatically extract anonymized metadata (estimated crew size, camera equipment requirements, cast size indicators, production scale) to power our Production Intelligence Dashboard. This dashboard shows aggregate industry trends (e.g., "Average crew size for action films: 85 people") and is shared with enterprise clients. Your specific script content, project title, character names, dialogue, and plot details are NEVER included in this analysis. Only non identifiable production logistics metadata is extracted and aggregated across hundreds of scripts.
+            <strong>4.6 Production Intelligence Dashboard Pseudonymised Metadata (opt in only):</strong> This is an optional, secondary use of your data and it does not happen unless you consent to it. Consent is requested at the point of upload and is off by default. Where you have consented, we extract pseudonymised metadata (estimated crew size, camera equipment requirements, cast size indicators, production scale, budget band, format, genre, and territories under consideration) to power our Production Intelligence Dashboard, which shows aggregate industry trends (e.g., "Average crew size for action films: 85 people") and is shared with enterprise clients. Your specific script content, project title, character names, dialogue, and plot details are never included.
+          </Typography>
+          <Typography>
+            We describe this metadata as pseudonymised rather than anonymised because it is stored against an internal reference for the script, which allows us to update or delete it later. That reference means the record could in principle be linked back to you by us, so we do not claim it is fully anonymous. It is aggregated with data from other productions before any figure is shown to an enterprise client, and privacy floors are applied so that small groups are suppressed rather than displayed.
+          </Typography>
+          <Typography>
+            If you decline, no metadata from your script is retained for this purpose and your report is generated exactly as it otherwise would be: declining has no effect on the script analysis and report generation service, the contents of your report, or your plan. If you withdraw consent, the metadata previously extracted from that script is deleted from the aggregation pool.
           </Typography>
 
           <Typography variant="h4">5. Data Sharing & Third Parties</Typography>
+
+          {/*
+            TODO (legal, before any stronger AI assurance is published): the
+            statements below are limited to what is verifiable from this
+            repository's own code and configuration. The following contractual
+            facts are NOT established anywhere in the repo and must be confirmed
+            against the signed agreements before being asserted here:
+              - whether Anthropic and OpenAI retain submitted prompts, and for how long;
+              - whether either provider uses API inputs for model training;
+              - whether a DPA is in place with either provider;
+              - whether zero data retention is enabled on either account;
+              - each provider's subprocessor status for personal data;
+              - any express confidentiality undertaking.
+            Do not soften or expand this section using the providers' public
+            marketing pages. See the handover note accompanying this change.
+          */}
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
+            5.1 Artificial Intelligence Processing
+          </Typography>
+          <Typography>
+            Generating a report is an AI assisted process, and it cannot be performed without sending your script to an AI provider. When you upload a script, its text is transmitted over an encrypted connection to a third party AI service provider, which analyses it and returns the structured findings we assemble into your report.
+          </Typography>
+          <Typography>
+            Our primary provider is <strong>Anthropic</strong> (the Claude family of models). We also maintain <strong>OpenAI</strong> as an automatic failover: if Anthropic is unavailable at the moment you request a report, the same script content is sent to OpenAI instead so that your report can still be produced. Both providers therefore receive script content in the ordinary course of delivering the service.
+          </Typography>
+          <Typography>
+            These providers act only in connection with delivering this functionality. They are given your script for the sole purpose of producing the analysis you asked for, and we do not authorise them to use it to market to you or to pursue their own unrelated purposes. This processing should not be confused with selling your script, publishing it, or exploiting it for any purpose other than generating your report.
+          </Typography>
+          <Typography>
+            We do not store the uploaded file itself. Script text is extracted in memory to be analysed and is not written to our own file storage; what we retain is the resulting report, and, only if you have consented under section 4.6, the pseudonymised production metadata described there.
+          </Typography>
+          <Typography sx={{ fontStyle: 'italic' }}>
+            We describe above only what we control and can verify. We do not make representations in this policy about our AI providers' internal data retention periods, their model training practices, or the specific contractual protections in place with them. If you are an enterprise customer, a film commission, or a rights holder and you need documented assurances on those points before uploading material, contact us and we will provide the current position in writing.
+          </Typography>
+
+          <Typography sx={{ fontWeight: 700, color: t.gold, mt: 3, mb: 1 }}>
+            5.2 Other Service Providers
+          </Typography>
           <Typography>
             We do NOT sell your personal data. We share data only in the following limited circumstances:
           </Typography>
           <ul>
             <li><strong>Payment Processors:</strong> Stripe (for payment processing)</li>
-            <li><strong>Email Service:</strong> Brevo/AWS SES (for transactional emails and automated B2B report delivery)</li>
+            <li><strong>Email Service:</strong> Brevo/AWS SES (for transactional emails and automated Business Intelligence report delivery)</li>
+            <li><strong>AI Processing:</strong> Anthropic (primary) and OpenAI (failover), which receive uploaded script content solely to generate the report you requested, as described in section 5.1</li>
             <li><strong>Cloud Infrastructure:</strong> AWS/Google Cloud (for hosting and data storage)</li>
             <li><strong>Analytics:</strong> Google Analytics (anonymized usage data only; no PII)</li>
             <li><strong>Legal Requirements:</strong> When required by law, court order, or to protect our rights</li>
@@ -245,7 +290,7 @@ export function PrivacyPolicy() {
             <strong>Version History:</strong>
           </Typography>
           <ul>
-            <li>Version 2.0 (January 24, 2026): Added B2B/enterprise provisions, API data handling, automated report delivery</li>
+            <li>Version 2.0 (January 24, 2026): Added Business Intelligence provisions, API data handling, automated report delivery</li>
             <li>Version 1.0 (Initial): Individual user privacy policy</li>
           </ul>
 
@@ -282,7 +327,7 @@ export function PrivacyPolicy() {
 
           <Box sx={{ mt: 6, pt: 4, borderTop: `1px solid ${t.border}` }}>
             <Typography variant="body2" sx={{ color: t.textSecondary }}>
-              <strong>Version:</strong> 2.0 (B2B Updated)<br />
+              <strong>Version:</strong> 2.0 (Business Intelligence Updated)<br />
               <strong>Effective Date:</strong> January 24, 2026<br />
               <strong>GDPR Compliant:</strong> Yes<br />
               <strong>CCPA Compliant:</strong> Yes<br />

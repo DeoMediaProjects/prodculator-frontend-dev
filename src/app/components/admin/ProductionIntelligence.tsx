@@ -170,13 +170,10 @@ function ProductionIntelligenceContent() {
   const territoryForecasts = manager.getTerritoryDemandForecasts('Q2 2026');
 
   return (
-    <Box sx={{ bgcolor: '#000000', minHeight: '100vh', py: 4 }}>
+    <Box sx={{ bgcolor: 'primary.contrastText', minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1 }}>
-            Production Intelligence Dashboard
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#a0a0a0' }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             Camera equipment, crew size, cast demand, and extras trend analytics
           </Typography>
           <Chip
@@ -184,32 +181,32 @@ function ProductionIntelligenceContent() {
             size="small"
             sx={{
               mt: 1,
-              bgcolor: 'rgba(212, 175, 55, 0.2)',
-              color: '#D4AF37',
+              bgcolor: 'action.hover',
+              color: 'primary.main',
             }}
           />
         </Box>
 
         {/* Filters */}
-        <Paper sx={{ p: 3, mb: 4, bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+        <Paper sx={{ p: 3, mb: 4, bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
-                <InputLabel sx={{ color: '#a0a0a0' }}>Territory</InputLabel>
+                <InputLabel sx={{ color: 'text.secondary' }}>Territory</InputLabel>
                 <Select
                   value={territory}
                   label="Territory"
                   onChange={(e) => setTerritory(e.target.value)}
                   sx={{
-                    color: '#ffffff',
+                    color: 'text.primary',
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(212, 175, 55, 0.2)',
+                      borderColor: 'divider',
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#D4AF37',
+                      borderColor: 'primary.main',
                     },
                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#D4AF37',
+                      borderColor: 'primary.main',
                     },
                   }}
                 >
@@ -231,12 +228,12 @@ function ProductionIntelligenceContent() {
                 onChange={(e) => setStartDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 sx={{
-                  '& .MuiInputLabel-root': { color: '#a0a0a0' },
+                  '& .MuiInputLabel-root': { color: 'text.secondary' },
                   '& .MuiOutlinedInput-root': {
-                    color: '#ffffff',
-                    '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                    '&:hover fieldset': { borderColor: '#D4AF37' },
-                    '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
+                    color: 'text.primary',
+                    '& fieldset': { borderColor: 'divider' },
+                    '&:hover fieldset': { borderColor: 'primary.main' },
+                    '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                   },
                 }}
               />
@@ -250,12 +247,12 @@ function ProductionIntelligenceContent() {
                 onChange={(e) => setEndDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 sx={{
-                  '& .MuiInputLabel-root': { color: '#a0a0a0' },
+                  '& .MuiInputLabel-root': { color: 'text.secondary' },
                   '& .MuiOutlinedInput-root': {
-                    color: '#ffffff',
-                    '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.2)' },
-                    '&:hover fieldset': { borderColor: '#D4AF37' },
-                    '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
+                    color: 'text.primary',
+                    '& fieldset': { borderColor: 'divider' },
+                    '&:hover fieldset': { borderColor: 'primary.main' },
+                    '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                   },
                 }}
               />
@@ -277,9 +274,9 @@ function ProductionIntelligenceContent() {
 
         {loading && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-            <CircularProgress size={20} sx={{ color: '#D4AF37' }} />
-            <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
-              Loading production signals...
+            <CircularProgress size={20} sx={{ color: 'primary.main' }} />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Loading production signals, ...
             </Typography>
           </Box>
         )}
@@ -287,24 +284,24 @@ function ProductionIntelligenceContent() {
         {/* Summary Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, md: 3 }}>
-            <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+            <Card sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Videocam sx={{ color: '#D4AF37', mr: 1 }} />
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                  <Videocam sx={{ color: 'primary.main', mr: 1 }} />
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Camera Data
                   </Typography>
                 </Box>
-                <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1 }}>
+                <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700, mb: 1 }}>
                   {summaryStats.cameraDataCompleteness.toFixed(1)}%
                 </Typography>
                 <LinearProgress
                   variant="determinate"
                   value={summaryStats.cameraDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
-                      bgcolor: '#D4AF37',
+                      bgcolor: 'primary.main',
                     },
                   }}
                 />
@@ -313,24 +310,24 @@ function ProductionIntelligenceContent() {
           </Grid>
 
           <Grid size={{ xs: 12, md: 3 }}>
-            <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+            <Card sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <People sx={{ color: '#D4AF37', mr: 1 }} />
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                  <People sx={{ color: 'primary.main', mr: 1 }} />
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Crew Data
                   </Typography>
                 </Box>
-                <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1 }}>
+                <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700, mb: 1 }}>
                   {summaryStats.crewDataCompleteness.toFixed(1)}%
                 </Typography>
                 <LinearProgress
                   variant="determinate"
                   value={summaryStats.crewDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
-                      bgcolor: '#D4AF37',
+                      bgcolor: 'primary.main',
                     },
                   }}
                 />
@@ -339,24 +336,24 @@ function ProductionIntelligenceContent() {
           </Grid>
 
           <Grid size={{ xs: 12, md: 3 }}>
-            <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+            <Card sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <TheaterComedy sx={{ color: '#D4AF37', mr: 1 }} />
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                  <TheaterComedy sx={{ color: 'primary.main', mr: 1 }} />
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Cast Data
                   </Typography>
                 </Box>
-                <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1 }}>
+                <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700, mb: 1 }}>
                   {summaryStats.castDataCompleteness.toFixed(1)}%
                 </Typography>
                 <LinearProgress
                   variant="determinate"
                   value={summaryStats.castDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
-                      bgcolor: '#D4AF37',
+                      bgcolor: 'primary.main',
                     },
                   }}
                 />
@@ -365,24 +362,24 @@ function ProductionIntelligenceContent() {
           </Grid>
 
           <Grid size={{ xs: 12, md: 3 }}>
-            <Card sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+            <Card sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <GroupWork sx={{ color: '#D4AF37', mr: 1 }} />
-                  <Typography variant="body2" sx={{ color: '#a0a0a0' }}>
+                  <GroupWork sx={{ color: 'primary.main', mr: 1 }} />
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Extras Data
                   </Typography>
                 </Box>
-                <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 1 }}>
+                <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700, mb: 1 }}>
                   {summaryStats.extrasDataCompleteness.toFixed(1)}%
                 </Typography>
                 <LinearProgress
                   variant="determinate"
                   value={summaryStats.extrasDataCompleteness}
                   sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'action.hover',
                     '& .MuiLinearProgress-bar': {
-                      bgcolor: '#D4AF37',
+                      bgcolor: 'primary.main',
                     },
                   }}
                 />
@@ -392,20 +389,20 @@ function ProductionIntelligenceContent() {
         </Grid>
 
         {/* Tabbed Content */}
-        <Paper sx={{ bgcolor: '#0a0a0a', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+        <Paper sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
           <Tabs
             value={activeTab}
             onChange={(_, newValue) => setActiveTab(newValue)}
             sx={{
-              borderBottom: '1px solid rgba(212, 175, 55, 0.2)',
+              borderBottom: 1, borderColor: 'divider',
               '& .MuiTab-root': {
-                color: '#a0a0a0',
+                color: 'text.secondary',
                 '&.Mui-selected': {
-                  color: '#D4AF37',
+                  color: 'primary.main',
                 },
               },
               '& .MuiTabs-indicator': {
-                bgcolor: '#D4AF37',
+                bgcolor: 'primary.main',
               },
             }}
           >
@@ -419,32 +416,32 @@ function ProductionIntelligenceContent() {
           {/* Camera Equipment Tab */}
           <TabPanel value={activeTab} index={0}>
             <Box sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: '#ffffff', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', mb: 2 }}>
                 Camera Equipment Demand Trends
               </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Equipment</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Demand Count</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>% of Total</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Top Territories</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Equipment</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Demand Count</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>% of Total</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Top Territories</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {cameraEquipmentTrends.map((trend) => (
                       <TableRow key={trend.equipment}>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.displayName}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.demandCount}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.percentageOfTotal.toFixed(1)}%
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.topTerritories.map(t => t.territory).join(', ')}
                         </TableCell>
                       </TableRow>
@@ -458,41 +455,41 @@ function ProductionIntelligenceContent() {
           {/* Crew Size Tab */}
           <TabPanel value={activeTab} index={1}>
             <Box sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: '#ffffff', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', mb: 2 }}>
                 Crew Size Distribution Trends
               </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Crew Size</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Production Count</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>% of Total</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Visual</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Crew Size</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Production Count</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>% of Total</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Visual</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {crewSizeTrends.map((trend) => (
                       <TableRow key={trend.sizeRange}>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.displayName}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.count}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.percentageOfTotal.toFixed(1)}%
                         </TableCell>
-                        <TableCell sx={{ borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ borderColor: 'divider' }}>
                           <LinearProgress
                             variant="determinate"
                             value={trend.percentageOfTotal}
                             sx={{
                               height: 8,
                               borderRadius: 4,
-                              bgcolor: 'rgba(212, 175, 55, 0.1)',
+                              bgcolor: 'action.hover',
                               '& .MuiLinearProgress-bar': {
-                                bgcolor: '#D4AF37',
+                                bgcolor: 'primary.main',
                               },
                             }}
                           />
@@ -508,43 +505,43 @@ function ProductionIntelligenceContent() {
           {/* Cast Demand Tab */}
           <TabPanel value={activeTab} index={2}>
             <Box sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: '#ffffff', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', mb: 2 }}>
                 Cast Demand Analytics
               </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Category</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Production Count</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>% of Total</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Top Territories</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Category</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Production Count</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>% of Total</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Top Territories</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {castDemandTrends.map((trend, index) => (
                       <TableRow key={`${trend.category}-${index}`}>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             {trend.displayName}
                             <Chip
                               label={trend.category}
                               size="small"
                               sx={{
-                                bgcolor: 'rgba(212, 175, 55, 0.2)',
-                                color: '#D4AF37',
+                                bgcolor: 'action.hover',
+                                color: 'primary.main',
                                 textTransform: 'capitalize',
                               }}
                             />
                           </Box>
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.count}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.percentageOfTotal.toFixed(1)}%
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {trend.territories.map(t => t.territory).join(', ')}
                         </TableCell>
                       </TableRow>
@@ -558,47 +555,47 @@ function ProductionIntelligenceContent() {
           {/* Production Scale Tab */}
           <TabPanel value={activeTab} index={3}>
             <Box sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: '#ffffff', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', mb: 2 }}>
                 Production Scale Distribution
               </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Budget Range</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Count</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Avg Crew</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Avg Cast</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Avg Extras</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Territories</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Budget Range</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Count</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Avg Crew</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Avg Cast</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Avg Extras</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Territories</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {scaleDistribution.map((dist) => (
                       <TableRow key={dist.budgetRange}>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           <Chip
                             label={dist.budgetRange}
                             sx={{
-                              bgcolor: 'rgba(212, 175, 55, 0.2)',
-                              color: '#D4AF37',
+                              bgcolor: 'action.hover',
+                              color: 'primary.main',
                               textTransform: 'capitalize',
                             }}
                           />
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {dist.count}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {dist.avgCrewSize}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {dist.avgCastSize}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {dist.avgExtras}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {dist.territories.join(', ')}
                         </TableCell>
                       </TableRow>
@@ -612,50 +609,50 @@ function ProductionIntelligenceContent() {
           {/* Territory Forecasts Tab */}
           <TabPanel value={activeTab} index={4}>
             <Box sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ color: '#ffffff', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'text.primary', mb: 2 }}>
                 Territory Demand Forecasts (Q2 2026)
               </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Territory</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Projected Productions</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Avg Crew Size</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Avg Cast Size</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Avg Extras</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Total Headcount</TableCell>
-                      <TableCell sx={{ color: '#a0a0a0', borderColor: 'rgba(212, 175, 55, 0.1)' }}>Top Cameras</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Territory</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Projected Productions</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Avg Crew Size</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Avg Cast Size</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Avg Extras</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Total Headcount</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', borderColor: 'divider' }}>Top Cameras</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {territoryForecasts.map((forecast) => (
                       <TableRow key={forecast.territory}>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           <Chip
                             label={forecast.territory}
                             sx={{
-                              bgcolor: 'rgba(212, 175, 55, 0.2)',
-                              color: '#D4AF37',
+                              bgcolor: 'action.hover',
+                              color: 'primary.main',
                             }}
                           />
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {forecast.totalProductions}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {forecast.avgCrewSize}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {forecast.avgCastSize}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {forecast.avgExtras}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider' }}>
                           {forecast.totalHeadcount}
                         </TableCell>
-                        <TableCell sx={{ color: '#ffffff', borderColor: 'rgba(212, 175, 55, 0.1)', fontSize: '0.875rem' }}>
+                        <TableCell sx={{ color: 'text.primary', borderColor: 'divider', fontSize: '0.875rem' }}>
                           {forecast.topCameras.slice(0, 2).join(', ')}
                         </TableCell>
                       </TableRow>
@@ -668,8 +665,8 @@ function ProductionIntelligenceContent() {
         </Paper>
 
         {/* Data Source Footer */}
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(212, 175, 55, 0.05)', borderRadius: 1, border: '1px solid rgba(212, 175, 55, 0.1)' }}>
-          <Typography variant="caption" sx={{ color: '#a0a0a0' }}>
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1, border: 1, borderColor: 'divider' }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             <strong>Data Source:</strong> Aggregated from anonymized script upload metadata. 
             All data is indicative and based on historical industry patterns. 
             Last updated: {summaryStats.lastUpdated}

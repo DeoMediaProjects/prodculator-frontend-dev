@@ -23,11 +23,21 @@ const CSRF_HEADER_NAME = 'X-CSRF-Token';
  */
 export class ApiError extends Error {
   readonly status?: number;
+  /**
+   * The raw `detail` payload, when the API sent a structured one rather than a
+   * string. Some endpoints need the caller to branch on *why* a call failed and
+   * not just tell the user: an invite claim distinguishes expired from revoked
+   * from already-used, and an entitlement refusal lists the withheld sections
+   * and their reversion dates. `message` still carries readable text in every
+   * case, so a caller that does not care can keep ignoring this.
+   */
+  readonly detail?: unknown;
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, detail?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.detail = detail;
   }
 }
 
@@ -159,6 +169,17 @@ function extractErrorDetail(payload: unknown, fallback: string): string {
     }
 
     if (typeof asObject.detail === 'string' && asObject.detail.trim()) return asObject.detail;
+
+    // Structured detail: `{ message, reason, ... }`. Endpoints use this shape
+    // when the caller has to act on the reason as well as show the text (an
+    // invite that is expired vs. revoked, an entitlement refusal that lists the
+    // withheld sections). Without this the readable message was dropped and the
+    // user saw the generic fallback instead.
+    if (asObject.detail && typeof asObject.detail === 'object' && !Array.isArray(asObject.detail)) {
+      const nested = (asObject.detail as { message?: unknown }).message;
+      if (typeof nested === 'string' && nested.trim()) return nested;
+    }
+
     if (typeof asObject.message === 'string' && asObject.message.trim()) return asObject.message;
 
     // Last resort — don't dump raw JSON at the user.
@@ -283,7 +304,10 @@ axiosClient.interceptors.response.use(
       error.response?.data,
       error.message || `Request failed (${error.response?.status || 'unknown'})`
     );
-    return Promise.reject(new ApiError(detail, error.response?.status));
+    // The raw detail rides along so a caller can branch on `reason` without
+    // re-parsing the message text it is shown.
+    const rawDetail = (error.response?.data as { detail?: unknown } | undefined)?.detail;
+    return Promise.reject(new ApiError(detail, error.response?.status, rawDetail));
   }
 );
 

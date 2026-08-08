@@ -1,33 +1,39 @@
 import { useState } from 'react';
-import { Box, Tab, Tabs, Typography } from '@mui/material';
+import { Box } from '@mui/material';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { PackageComposer } from './PackageComposer';
 import { SignalPoolPanel } from './SignalPoolPanel';
+
+type View = 'compose' | 'pool';
 
 /** Admin workspace for assembling Business Intelligence packages and governing
  *  the signal pool they draw from (SOW 4.4 / 4.5).
  *
+ *  The title and purpose line come from the shell's top bar, so nothing is
+ *  repeated here. Composing a package is a four-step wizard inside
+ *  PackageComposer: dense-single-screen made it too easy to generate a PDF
+ *  without running the sufficiency check that decides whether it is worth
+ *  sending at all.
+ *
  *  Client-facing naming is "Business Intelligence"; the b2b_ prefix stays
  *  internal to code and tables. */
 export function BusinessIntelligenceStudio() {
-  const [tab, setTab] = useState(0);
+  const [view, setView] = useState<View>('compose');
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Business Intelligence Studio
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Compose bespoke packages, check sufficiency before anything is generated,
-        and govern the signal pool.
-      </Typography>
+      <Box sx={{ mb: 2 }}>
+        <SegmentedToggle
+          value={view}
+          onChange={(v) => setView(v as View)}
+          options={[
+            { value: 'compose', label: 'Compose a package' },
+            { value: 'pool', label: 'Signal pool' },
+          ]}
+        />
+      </Box>
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab label="Package composer" />
-        <Tab label="Signal pool" />
-      </Tabs>
-
-      {tab === 0 && <PackageComposer />}
-      {tab === 1 && <SignalPoolPanel />}
+      {view === 'compose' ? <PackageComposer /> : <SignalPoolPanel />}
     </Box>
   );
 }
