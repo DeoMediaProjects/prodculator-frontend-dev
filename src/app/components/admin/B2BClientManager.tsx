@@ -57,6 +57,13 @@ const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', col
 
 type View = 'subscriptions' | 'requests' | 'invites';
 
+/** Stored slug to sentence case: "past_due" reads "Past due". Used for both the
+ *  cell and its filter option, so a dropdown choice reads the way the row does. */
+function sentence(value: string): string {
+  const spaced = value.replace(/[_-]+/g, ' ').trim();
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
+}
+
 function money(cents: number, code: string) {
   return new Intl.NumberFormat(code.toLowerCase() === 'gbp' ? 'en-GB' : 'en-US', {
     style: 'currency',
@@ -250,7 +257,7 @@ export function B2BClientManager() {
       ),
     },
     {
-      key: 'product_type', header: 'PRODUCT', width: '1.4fr',
+      key: 'product_type', header: 'PRODUCT', width: '1.4fr', filterSelect: true,
       sortValue: (s) => PRODUCT_LABELS[s.product_type] || s.product_type,
       render: (s) => (
         <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -259,15 +266,16 @@ export function B2BClientManager() {
       ),
     },
     {
-      key: 'status', header: 'STATUS', width: '1fr',
+      key: 'status', header: 'STATUS', width: '1fr', filterSelect: true,
+      sortValue: (s) => sentence(s.status),
       render: (s) => {
         const live = ['active', 'trialing'].includes(s.status);
         const colour = live ? t.success : s.status === 'past_due' ? t.warning : t.textFaint;
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colour, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: 13, fontWeight: 600, color: colour, textTransform: 'capitalize' }}>
-              {s.status.replace(/_/g, ' ')}
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: colour }}>
+              {sentence(s.status)}
             </Typography>
           </Box>
         );
@@ -289,10 +297,11 @@ export function B2BClientManager() {
       )),
     },
     {
-      key: 'delivery_frequency', header: 'CADENCE', width: '0.9fr',
+      key: 'delivery_frequency', header: 'CADENCE', width: '0.9fr', filterSelect: true,
+      sortValue: (s) => sentence(s.delivery_frequency),
       render: (s) => (
-        <Typography sx={{ fontSize: 13.5, color: t.textSecondary, textTransform: 'capitalize' }}>
-          {s.delivery_frequency}
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary }}>
+          {sentence(s.delivery_frequency)}
         </Typography>
       ),
     },
@@ -327,10 +336,11 @@ export function B2BClientManager() {
       ),
     },
     {
-      key: 'source', header: 'SOURCE', width: '0.9fr',
+      key: 'source', header: 'SOURCE', width: '0.9fr', filterSelect: true,
+      sortValue: (s) => sentence(s.source),
       render: (s) => (
-        <Typography sx={{ fontSize: 13, color: t.textSecondary, textTransform: 'capitalize' }}>
-          {s.source.replace(/_/g, ' ')}
+        <Typography sx={{ fontSize: 13, color: t.textSecondary }}>
+          {sentence(s.source)}
         </Typography>
       ),
     },
@@ -354,7 +364,7 @@ export function B2BClientManager() {
       ),
     },
     {
-      key: 'product_type', header: 'PRODUCT', width: '1.4fr',
+      key: 'product_type', header: 'PRODUCT', width: '1.4fr', filterSelect: true,
       sortValue: (r) => PRODUCT_LABELS[r.product_type] || r.product_type,
       render: (r) => (
         <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -372,7 +382,8 @@ export function B2BClientManager() {
       ),
     },
     {
-      key: 'status', header: 'STATUS', width: '1fr',
+      key: 'status', header: 'STATUS', width: '1fr', filterSelect: true,
+      sortValue: (r) => sentence(r.status),
       render: (r) => {
         const colour = r.status === 'completed' ? t.success
           : r.status === 'failed' ? t.error : t.warning;
@@ -380,8 +391,8 @@ export function B2BClientManager() {
           <Box sx={{ minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colour, flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 600, color: colour, textTransform: 'capitalize' }}>
-                {r.status.replace(/_/g, ' ')}
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: colour }}>
+                {sentence(r.status)}
               </Typography>
             </Box>
             {r.error_message && (

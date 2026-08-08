@@ -134,7 +134,7 @@ export function B2BInvitesPanel({
       ),
     },
     {
-      key: 'product_type', header: 'PRODUCT', width: '1.4fr',
+      key: 'product_type', header: 'PRODUCT', width: '1.4fr', filterSelect: true,
       sortValue: (i) => productLabels[i.product_type] ?? i.product_type,
       render: (i) => (
         <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -143,7 +143,7 @@ export function B2BInvitesPanel({
       ),
     },
     {
-      key: 'status', header: 'STATUS', width: '1.2fr',
+      key: 'status', header: 'STATUS', width: '1.2fr', filterSelect: true,
       sortValue: (i) => STATUS_STYLES[i.status].label,
       render: (i) => {
         const style = STATUS_STYLES[i.status];

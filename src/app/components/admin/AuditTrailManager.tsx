@@ -348,7 +348,7 @@ function AuditTrailManagerContent() {
       ),
     },
     {
-      key: 'succeeded', header: 'OUTCOME', width: '1.1fr',
+      key: 'succeeded', header: 'OUTCOME', width: '1.1fr', filterSelect: true,
       // Filters and sorts on the words shown, so typing "denied" finds the
       // denied attempts rather than requiring the admin to know it means 403.
       sortValue: (r) => describeOutcome(r.status_code ?? null, r.succeeded).label,

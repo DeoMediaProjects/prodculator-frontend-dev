@@ -122,6 +122,7 @@ function EmailGatingManagerContent() {
       key: 'blocked',
       header: 'STATUS',
       width: '0.9fr',
+      filterSelect: true,
       sortValue: (r) => (r.blocked ? 'Blocked' : 'Active'),
       render: (r) => (
         // A dot plus a word, matching how the B2C tables show report status.

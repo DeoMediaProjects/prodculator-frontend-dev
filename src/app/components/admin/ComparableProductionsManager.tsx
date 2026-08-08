@@ -191,7 +191,10 @@ function ComparableProductionsManagerContent() {
       ),
     },
     {
-      key: 'source', header: 'SOURCE', width: '0.9fr',
+      key: 'source', header: 'SOURCE', width: '0.9fr', filterSelect: true,
+      // Explicit, so a row with no recorded source is selectable as "Manual"
+      // rather than dropping out of the filter's option list entirely.
+      sortValue: (r) => r.source || 'Manual',
       render: (r) => <Box sx={{ color: t.textSecondary, fontSize: 13.5 }}>{r.source || 'Manual'}</Box>,
     },
     {

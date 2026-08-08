@@ -114,6 +114,16 @@ export function createAppTheme(mode: ThemeMode): Theme {
         defaultProps: { elevation: 0 },
         styleOverrides: { root: { backgroundImage: 'none', backgroundColor: t.cardBg } },
       },
+      // Status chips carry meaning through colour, so they read as labels rather
+      // than as tappable pills. A full pill radius made them look interactive and
+      // pushed the text against the curve; square-ish corners keep the label
+      // legible at the small sizes these are used at.
+      MuiChip: {
+        styleOverrides: {
+          root: { borderRadius: 6 },
+          label: { paddingLeft: 8, paddingRight: 8 },
+        },
+      },
       MuiCard: {
         defaultProps: { elevation: 0 },
         styleOverrides: {

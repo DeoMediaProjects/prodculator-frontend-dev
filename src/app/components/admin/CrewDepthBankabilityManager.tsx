@@ -190,12 +190,12 @@ function CrewDepthContent() {
 
   const bankabilityColumns = useMemo<Column<TerritoryProfileData>[]>(() => [
     {
-      key: 'territory', header: 'TERRITORY', width: '1.3fr',
+      key: 'territory', header: 'TERRITORY', width: '1.3fr', clamp: 3,
       sortValue: (p) => p.territory || '',
       render: territoryCell,
     },
     {
-      key: 'cert', header: 'CERTIFICATION', width: '1fr',
+      key: 'cert', header: 'CERTIFICATION', width: '1.05fr',
       sortValue: (p) => weeksSort(p.certWeeksMin, p.certWeeksMax),
       render: (p) => (
         <Typography sx={{ fontSize: 13.5, color: p.certWeeksMax == null ? t.textFaint : t.textSecondary, whiteSpace: 'nowrap' }}>
@@ -204,7 +204,7 @@ function CrewDepthContent() {
       ),
     },
     {
-      key: 'payment', header: 'PAYMENT', width: '1fr',
+      key: 'payment', header: 'PAYMENT', width: '1.05fr',
       sortValue: (p) => weeksSort(p.paymentWeeksMin, p.paymentWeeksMax),
       render: (p) => (
         <Typography sx={{ fontSize: 13.5, color: p.paymentWeeksMax == null ? t.textFaint : t.textSecondary, whiteSpace: 'nowrap' }}>
@@ -232,7 +232,7 @@ function CrewDepthContent() {
       },
     },
     {
-      key: 'rating', header: 'RATING', width: '1.3fr',
+      key: 'rating', header: 'RATING', width: '1.35fr', clamp: 3, filterSelect: true,
       sortValue: (p) => deriveRatingBand(p).label,
       render: (p) => {
         const band = deriveRatingBand(p);
@@ -247,7 +247,7 @@ function CrewDepthContent() {
       },
     },
     {
-      key: 'source', header: 'SOURCE', width: '1fr',
+      key: 'source', header: 'SOURCE', width: '1.15fr', filterSelect: true,
       sortValue: (p) => sourceChip(p.bankabilitySourceQuality).label,
       render: (p) => {
         const source = sourceChip(p.bankabilitySourceQuality);
@@ -259,16 +259,13 @@ function CrewDepthContent() {
       },
     },
     {
-      key: 'narrative', header: 'REPORT NARRATIVE', width: '1.8fr',
+      key: 'narrative', header: 'REPORT NARRATIVE', width: '2.4fr', clamp: 3,
       sortValue: (p) => p.bankabilityAiRule || '',
       render: (p) => (p.bankabilityAiRule ? (
-        // The full text is long and only matters when checking wording, so the
-        // cell clamps and the tooltip carries the rest.
+        // Wraps over three lines, with the full text on hover. This is the copy
+        // that reaches a customer report, so an admin has to be able to read it.
         <Tooltip title={p.bankabilityAiRule}>
-          <Typography sx={{
-            fontSize: 12.5, color: t.textSecondary, lineHeight: 1.45,
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
+          <Typography sx={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.45, cursor: 'help' }}>
             {p.bankabilityAiRule}
           </Typography>
         </Tooltip>
@@ -285,7 +282,7 @@ function CrewDepthContent() {
       render: territoryCell,
     },
     {
-      key: 'crewDepthTier', header: 'CREW DEPTH', width: '1.2fr',
+      key: 'crewDepthTier', header: 'CREW DEPTH', width: '1.3fr', filterSelect: true,
       sortValue: (p) => p.crewDepthTier || 'Not curated',
       render: (p) => (p.crewDepthTier ? (
         <Chip size="small" label={p.crewDepthTier} sx={{ bgcolor: t.goldDim, color: t.gold, fontWeight: 600, fontSize: '0.7rem' }} />
@@ -303,14 +300,11 @@ function CrewDepthContent() {
       ),
     },
     {
-      key: 'crewDepthNotes', header: 'CREW EVIDENCE', width: '1.7fr',
+      key: 'crewDepthNotes', header: 'CREW EVIDENCE', width: '2fr', clamp: 3,
       sortValue: (p) => p.crewDepthNotes || '',
       render: (p) => (p.crewDepthNotes ? (
         <Tooltip title={p.crewDepthNotes}>
-          <Typography sx={{
-            fontSize: 12.5, color: t.textSecondary, lineHeight: 1.45,
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
+          <Typography sx={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.45, cursor: 'help' }}>
             {p.crewDepthNotes}
           </Typography>
         </Tooltip>
@@ -319,7 +313,7 @@ function CrewDepthContent() {
       )),
     },
     {
-      key: 'infrastructureTier', header: 'INFRASTRUCTURE', width: '1.2fr',
+      key: 'infrastructureTier', header: 'INFRASTRUCTURE', width: '1.4fr', filterSelect: true,
       sortValue: (p) => p.infrastructureTier || 'Not curated',
       render: (p) => (p.infrastructureTier ? (
         <Chip size="small" label={p.infrastructureTier} sx={{ bgcolor: 'rgba(79,131,204,0.15)', color: 'info.main', fontWeight: 600, fontSize: '0.7rem' }} />
@@ -337,14 +331,11 @@ function CrewDepthContent() {
       ),
     },
     {
-      key: 'infrastructureNotes', header: 'INFRASTRUCTURE NOTES', width: '1.7fr',
+      key: 'infrastructureNotes', header: 'INFRASTRUCTURE NOTES', width: '2fr', clamp: 3,
       sortValue: (p) => p.infrastructureNotes || '',
       render: (p) => (p.infrastructureNotes ? (
         <Tooltip title={p.infrastructureNotes}>
-          <Typography sx={{
-            fontSize: 12.5, color: t.textSecondary, lineHeight: 1.45,
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
+          <Typography sx={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.45, cursor: 'help' }}>
             {p.infrastructureNotes}
           </Typography>
         </Tooltip>
@@ -440,7 +431,7 @@ function CrewDepthContent() {
         pageSize={15}
         itemNoun="territory"
         itemNounPlural="territories"
-        minWidth={bankability ? 1120 : 1180}
+        minWidth={bankability ? 1320 : 1360}
         maxHeight={620}
         emptyIcon={<PublicOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
         emptyMessage="No territory profiles have been loaded."

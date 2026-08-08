@@ -128,7 +128,7 @@ export function SignalPoolPanel() {
       ),
     },
     {
-      key: 'eligible', header: 'IN AGGREGATES', width: '1.5fr',
+      key: 'eligible', header: 'IN AGGREGATES', width: '1.5fr', filterSelect: true,
       sortValue: (r) => (r.eligible ? 'Included' : 'Excluded'),
       render: (r) => {
         if (r.eligible) {
@@ -152,7 +152,7 @@ export function SignalPoolPanel() {
       },
     },
     {
-      key: 'is_internal', header: 'INTERNAL', width: '0.9fr',
+      key: 'is_internal', header: 'INTERNAL', width: '0.9fr', filterSelect: true,
       sortValue: (r) => (r.is_internal ? 'Yes' : 'No'),
       render: (r) => (
         <Tooltip title={r.is_internal

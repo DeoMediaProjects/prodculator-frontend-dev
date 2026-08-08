@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Box, Typography, InputBase, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, InputBase, IconButton, Tooltip, Select, MenuItem } from '@mui/material';
 import {
   ArrowUpward, ArrowDownward, FilterListOutlined, Close, InboxOutlined,
   ChevronLeft, ChevronRight,
@@ -17,6 +17,14 @@ export interface Column<T> {
   align?: 'left' | 'right';
   sortable?: boolean;   // default true
   filterable?: boolean; // default true
+  /** Offer the values actually present as a dropdown instead of a text box, and
+   *  match them exactly. Right for a closed set such as a status: typing "open"
+   *  into a contains-filter also matches "opening soon", and nobody should have
+   *  to guess which statuses exist. */
+  filterSelect?: boolean;
+  /** Let the cell wrap to `clamp` lines instead of ellipsising on one. Use for
+   *  prose columns, where the first forty characters of a sentence say nothing. */
+  clamp?: number;
 }
 
 interface Props<T> {
@@ -77,7 +85,11 @@ export function DataTable<T>({
         active.every(([key, q]) => {
           const col = columns.find((c) => c.key === key);
           if (!col) return true;
-          return String(valueOf(row, col)).toLowerCase().includes(q.trim().toLowerCase());
+          const value = String(valueOf(row, col));
+          // A chosen option means that value and no other: "open" must not also
+          // return "opening soon".
+          if (col.filterSelect) return value === q;
+          return value.toLowerCase().includes(q.trim().toLowerCase());
         }),
       );
     }
@@ -114,9 +126,27 @@ export function DataTable<T>({
     return processed.slice(start, start + pageSize);
   }, [processed, safePage, pageSize]);
 
+  const selectOptions = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const col of columns) {
+      if (!col.filterSelect) continue;
+      // Derived from every row, not the filtered set, so choosing one option
+      // does not empty the dropdown that produced it.
+      const seen = new Set<string>();
+      for (const row of rows) {
+        const value = String(valueOf(row, col));
+        if (value) seen.add(value);
+      }
+      out[col.key] = [...seen].sort((a, b) => a.localeCompare(b));
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, columns]);
+
   const hasActions = Boolean(rowActions);
   const template = [...columns.map((c) => c.width || '1fr'), ...(hasActions ? ['0.9fr'] : [])].join(' ');
   const anyFilterable = columns.some((c) => c.filterable !== false);
+  const anyClamped = columns.some((c) => c.clamp);
   const activeFilterCount = Object.values(filters).filter((v) => v.trim()).length;
   // No rows at all (not just filtered to zero) — the filter/sort chrome implies
   // functionality that doesn't apply yet, so show a plain empty state instead.
@@ -129,11 +159,21 @@ export function DataTable<T>({
   // its own left edge, which is how two headers came to read as one word.
   const gridSx = { display: 'grid', gridTemplateColumns: template, columnGap: 2.5 } as const;
 
-  const cellSx = (align?: 'left' | 'right') => ({
+  const cellSx = (col: Column<T>) => ({
     // minWidth: 0 lets the grid item shrink to its track so nowrap text ellipsizes
     // instead of overflowing into the neighbouring column.
-    minWidth: 0, fontSize: 14, color: t.textPrimary, textAlign: align || 'left',
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    minWidth: 0, fontSize: 14, color: t.textPrimary, textAlign: col.align || 'left',
+    overflow: 'hidden',
+    ...(col.clamp
+      // A line clamp needs normal wrapping to have anything to break, so a
+      // clamped column must not inherit the nowrap the other columns rely on.
+      ? {
+        whiteSpace: 'normal',
+        display: '-webkit-box',
+        WebkitLineClamp: col.clamp,
+        WebkitBoxOrient: 'vertical',
+      }
+      : { textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
   });
 
   return (
@@ -209,14 +249,39 @@ export function DataTable<T>({
             <Box sx={{ ...gridSx, px: 2.5, py: 1, borderBottom: `1px solid ${t.borderSoft}`, position: 'sticky', top: 41, zIndex: 1, bgcolor: t.cardBg }}>
               {columns.map((col) => (
                 <Box key={col.key} sx={{ minWidth: 0 }}>
-                  {col.filterable !== false ? (
+                  {col.filterable === false ? null : col.filterSelect ? (
+                    <Select
+                      value={filters[col.key] || ''}
+                      onChange={(e) => setFilters((f) => ({ ...f, [col.key]: e.target.value }))}
+                      displayEmpty
+                      variant="standard"
+                      disableUnderline
+                      renderValue={(v) => (
+                        <Typography sx={{ fontSize: 12.5, color: v ? t.textPrimary : t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {v || 'Any'}
+                        </Typography>
+                      )}
+                      sx={{
+                        width: '100%', fontSize: 12.5, color: t.textPrimary,
+                        bgcolor: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px',
+                        '& .MuiSelect-select': { px: 1, py: 0.35, minHeight: 0 },
+                      }}
+                    >
+                      <MenuItem value="">
+                        <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>Any</Typography>
+                      </MenuItem>
+                      {(selectOptions[col.key] ?? []).map((option) => (
+                        <MenuItem key={option} value={option} sx={{ fontSize: 12.5 }}>{option}</MenuItem>
+                      ))}
+                    </Select>
+                  ) : (
                     <InputBase
                       value={filters[col.key] || ''}
                       onChange={(e) => setFilters((f) => ({ ...f, [col.key]: e.target.value }))}
                       placeholder="Filter"
                       sx={{ width: '100%', fontSize: 12.5, color: t.textPrimary, bgcolor: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', px: 1, py: 0.25, '& input::placeholder': { color: t.textFaint, opacity: 1 } }}
                     />
-                  ) : null}
+                  )}
                 </Box>
               ))}
               {hasActions && <Box />}
@@ -240,10 +305,10 @@ export function DataTable<T>({
                 tabIndex={onRowClick ? 0 : undefined}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter') onRowClick(row); } : undefined}
-                sx={{ ...gridSx, alignItems: 'center', px: 2.5, py: 1.75, borderBottom: `1px solid ${t.borderSoft}`, cursor: onRowClick ? 'pointer' : 'default', '&:hover': { bgcolor: onRowClick ? t.goldDim : 'transparent' } }}
+                sx={{ ...gridSx, alignItems: anyClamped ? 'start' : 'center', px: 2.5, py: 1.75, borderBottom: `1px solid ${t.borderSoft}`, cursor: onRowClick ? 'pointer' : 'default', '&:hover': { bgcolor: onRowClick ? t.goldDim : 'transparent' } }}
               >
                 {columns.map((col) => (
-                  <Box key={col.key} sx={cellSx(col.align)}>
+                  <Box key={col.key} sx={cellSx(col)}>
                     {col.render ? col.render(row) : String(valueOf(row, col))}
                   </Box>
                 ))}

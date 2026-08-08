@@ -127,7 +127,7 @@ function PDFReportsManagerContent() {
       ),
     },
     {
-      key: 'downloaded', header: 'DOWNLOADED', width: '0.9fr',
+      key: 'downloaded', header: 'DOWNLOADED', width: '0.9fr', filterSelect: true,
       sortValue: (r) => (r.downloaded ? 'Yes' : 'No'),
       render: (r) => (
         // Not downloaded is the state worth noticing: the customer paid and may

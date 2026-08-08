@@ -224,7 +224,7 @@ export function ScriptAIOverview() {
       ),
     },
     {
-      key: 'plan', header: 'PLAN', width: '1fr',
+      key: 'plan', header: 'PLAN', width: '1fr', filterSelect: true,
       render: (u) => (
         <Chip
           label={u.plan}
@@ -306,7 +306,7 @@ export function ScriptAIOverview() {
       ),
     },
     {
-      key: 'status', header: 'STATUS', width: '0.9fr',
+      key: 'status', header: 'STATUS', width: '0.9fr', filterSelect: true,
       render: (u) => {
         const colour = u.status === 'Active' ? t.success
           : u.status === 'Past Due' ? t.warning : t.textFaint;

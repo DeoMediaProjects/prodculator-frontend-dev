@@ -492,8 +492,8 @@ function IncentiveDataManagerContent() {
       )),
     },
     {
-      key: 'mechanismPattern', header: 'MECHANISM', width: '0.8fr',
-      sortValue: (i) => i.mechanismPattern || '',
+      key: 'mechanismPattern', header: 'MECHANISM', width: '0.8fr', filterSelect: true,
+      sortValue: (i) => (i.mechanismPattern ? `Pattern ${i.mechanismPattern}` : 'Unclassified'),
       render: (i) => (
         <Typography sx={{ fontSize: 13, fontWeight: 600, color: i.mechanismPattern ? t.textSecondary : t.textFaint }}>
           {i.mechanismPattern ? `Pattern ${i.mechanismPattern}` : 'Unclassified'}
@@ -501,7 +501,7 @@ function IncentiveDataManagerContent() {
       ),
     },
     {
-      key: 'status', header: 'STATUS', width: '1fr',
+      key: 'status', header: 'STATUS', width: '1fr', filterSelect: true,
       sortValue: (i) => statusChipProps(i.status).label,
       render: (i) => {
         const s = statusChipProps(i.status);
@@ -509,7 +509,7 @@ function IncentiveDataManagerContent() {
       },
     },
     {
-      key: 'verificationStatus', header: 'VERIFICATION', width: '1.1fr',
+      key: 'verificationStatus', header: 'VERIFICATION', width: '1.1fr', filterSelect: true,
       sortValue: (i) => verificationChipProps(i.verificationStatus).label,
       render: (i) => {
         const v = verificationChipProps(i.verificationStatus);

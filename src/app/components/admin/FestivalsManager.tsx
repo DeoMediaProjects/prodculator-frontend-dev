@@ -50,6 +50,13 @@ import { AdminAccessDenied } from './AdminAccessDenied';
 const PANEL_SX = { border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: { xs: 2.5, md: 3 } } as const;
 const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' } as const;
 
+/** Stored slug to sentence case: "past_due" reads "Past due". Used for both the
+ *  cell and its filter option, so a dropdown choice reads the way the row does. */
+function sentence(value: string): string {
+  const spaced = value.replace(/[_-]+/g, ' ').trim();
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
+}
+
 /** Which tier of the circuit an admin is working through. */
 type TierScope = 'all' | 'a-list' | 'tier-2' | 'specialized';
 
@@ -1158,37 +1165,37 @@ function FestivalTable({
       },
     },
     {
-      key: 'currentStatus', header: 'SUBMISSION STATUS', width: '1.2fr',
-      sortValue: (f) => f.currentStatus || '',
+      key: 'currentStatus', header: 'SUBMISSION STATUS', width: '1.2fr', filterSelect: true,
+      sortValue: (f) => sentence(f.currentStatus || ''),
       render: (f) => (
         <Chip
-          label={f.currentStatus.replace(/-/g, ' ')}
+          label={sentence(f.currentStatus)}
           size="small"
           sx={{
             bgcolor: `${getStatusBadgeColor(f.currentStatus)}22`,
             color: getStatusBadgeColor(f.currentStatus),
-            fontWeight: 600, fontSize: '0.7rem', textTransform: 'capitalize',
+            fontWeight: 600, fontSize: '0.7rem',
           }}
         />
       ),
     },
     {
-      key: 'tier', header: 'TIER', width: '1fr',
-      sortValue: (f) => f.tier || '',
+      key: 'tier', header: 'TIER', width: '1fr', filterSelect: true,
+      sortValue: (f) => sentence(f.tier || ''),
       render: (f) => (
         <Chip
-          label={f.tier.replace(/-/g, ' ')}
+          label={sentence(f.tier)}
           size="small"
           sx={{
             bgcolor: `${getTierBadgeColor(f.tier)}22`,
             color: getTierBadgeColor(f.tier),
-            fontWeight: 600, fontSize: '0.7rem', textTransform: 'capitalize',
+            fontWeight: 600, fontSize: '0.7rem',
           }}
         />
       ),
     },
     {
-      key: 'verified', header: 'VERIFIED', width: '0.8fr',
+      key: 'verified', header: 'VERIFIED', width: '0.8fr', filterSelect: true,
       sortValue: (f) => (f.verified ? 'Yes' : 'No'),
       render: (f) => (
         // Unverified is the state worth noticing: the matcher will still offer

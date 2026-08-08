@@ -61,6 +61,39 @@ const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', col
 /** Which slice of the grants an admin is working through. */
 type Scope = 'all' | 'unverified' | 'closing';
 
+/** Stored enum values reach the console as snake_case ("public_fund",
+ *  "tv_series", "co_production"). These are column values, not prose, so they
+ *  are rewritten for display only and the stored value stays the filter key. */
+const TERM_LABELS: Record<string, string> = {
+  public_fund: 'Public fund',
+  private_fund: 'Private fund',
+  co_production: 'Co-production',
+  broadcaster: 'Broadcaster',
+  tax_incentive: 'Tax incentive',
+  tv_series: 'TV series',
+  tv_movie: 'TV movie',
+  short: 'Short',
+  feature: 'Feature',
+  documentary: 'Documentary',
+  animation: 'Animation',
+  rolling: 'Rolling',
+  annual: 'Annual',
+  biannual: 'Twice a year',
+  quarterly: 'Quarterly',
+  one_off: 'One off',
+  opening_soon: 'Opening soon',
+  closing_soon: 'Closing soon',
+  open: 'Open',
+  closed: 'Closed',
+};
+
+function humaniseTerm(value: string): string {
+  const key = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (TERM_LABELS[key]) return TERM_LABELS[key];
+  const spaced = value.replace(/[_-]+/g, ' ').trim();
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
+}
+
 /** True when maxAmount is a plain number rather than a display string such as
  *  "Up to £250,000" or "Tiered rate-based (grid)". */
 function isNumericAmount(amount: string): boolean {
@@ -981,14 +1014,16 @@ function GrantsTable({
 
   const columns = useMemo<Column<Grant>[]>(() => [
     {
-      key: 'title', header: 'GRANT', width: '2fr',
+      key: 'title', header: 'GRANT', width: '2.4fr', clamp: 4,
       sortValue: (g) => g.title || '',
       render: (g) => (
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {/* Wraps rather than ellipsising: two grants from the same body differ
+              only in their suffix, so a clipped title is unidentifiable. */}
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, lineHeight: 1.35 }}>
             {g.title}
           </Typography>
-          <Typography sx={{ fontSize: 11.5, color: t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>
             {g.fundingBody}
           </Typography>
           {/* Only the conditions that disqualify an applicant are surfaced here.
@@ -1003,7 +1038,7 @@ function GrantsTable({
       ),
     },
     {
-      key: 'territory', header: 'TERRITORY', width: '1.1fr',
+      key: 'territory', header: 'TERRITORY', width: '1.1fr', clamp: 3, filterSelect: true,
       sortValue: (g) => g.territory || '',
       render: (g) => (
         <Box sx={{ minWidth: 0 }}>
@@ -1015,38 +1050,43 @@ function GrantsTable({
       ),
     },
     {
-      key: 'grant_type', header: 'TYPE', width: '1.1fr',
-      sortValue: (g) => g.grant_type || '',
+      key: 'grant_type', header: 'TYPE', width: '1.1fr', filterSelect: true,
+      sortValue: (g) => (g.grant_type ? humaniseTerm(g.grant_type) : 'Unclassified'),
       render: (g) => (
         <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ fontSize: 13, color: g.grant_type ? t.textSecondary : t.textFaint }}>
-            {g.grant_type || 'Unclassified'}
+            {g.grant_type ? humaniseTerm(g.grant_type) : 'Unclassified'}
           </Typography>
-          {g.recurrence && <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>{g.recurrence}</Typography>}
+          {g.recurrence && (
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>{humaniseTerm(g.recurrence)}</Typography>
+          )}
         </Box>
       ),
     },
     {
-      key: 'eligibility', header: 'FORMATS AND GENRES', width: '1.6fr',
-      sortValue: (g) => [...(g.eligible_formats || []), ...(g.genre_tags || [])].join(', '),
+      key: 'eligibility', header: 'FORMATS AND GENRES', width: '1.7fr', clamp: 4,
+      sortValue: (g) => (g.eligible_formats || []).map(humaniseTerm).join(', '),
       render: (g) => {
-        const formats = g.eligible_formats || [];
-        const genres = g.genre_tags || [];
+        const formats = (g.eligible_formats || []).map(humaniseTerm);
+        const genres = (g.genre_tags || []).map(humaniseTerm);
         if (!formats.length && !genres.length) {
           return <Typography sx={{ fontSize: 12.5, color: t.textFaint }}>Open to any format</Typography>;
         }
         return (
           <Box sx={{ minWidth: 0 }}>
+            {/* Formats decide eligibility, so they wrap in full. Genres are a
+                long tail that only matters on inspection, hence the tooltip. */}
             {formats.length > 0 && (
-              <Typography sx={{ fontSize: 12.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Typography sx={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.4 }}>
                 {formats.join(', ')}
               </Typography>
             )}
             {genres.length > 0 && (
               <Tooltip title={genres.join(', ')}>
-                <Typography sx={{ fontSize: 11.5, color: t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {genres.slice(0, 4).join(', ')}
-                  {genres.length > 4 ? ` and ${genres.length - 4} more` : ''}
+                <Typography sx={{ fontSize: 11.5, color: t.textFaint, lineHeight: 1.4 }}>
+                  {genres.length > 3
+                    ? `${genres.slice(0, 3).join(', ')} and ${genres.length - 3} more`
+                    : genres.join(', ')}
                 </Typography>
               </Tooltip>
             )}
@@ -1058,7 +1098,7 @@ function GrantsTable({
       // Not right-aligned: maxAmount is a display string as often as a number
       // ("Tiered rate-based (grid)"), and right-aligning prose in a narrow
       // track clipped its start rather than its end.
-      key: 'maxAmount', header: 'AMOUNT', width: '1.5fr',
+      key: 'maxAmount', header: 'AMOUNT', width: '1.6fr', clamp: 4,
       // Sorts on the approximate USD figure so amounts in different currencies
       // are actually comparable; the display value stays in its own currency.
       sortValue: (g) => g.amount_usd_approx ?? -1,
@@ -1068,8 +1108,7 @@ function GrantsTable({
             <Typography sx={{
               fontSize: 14, fontWeight: 600,
               color: g.maxAmount ? t.textPrimary : t.textFaint,
-              fontVariantNumeric: 'tabular-nums',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              fontVariantNumeric: 'tabular-nums', lineHeight: 1.35,
             }}>
               {g.maxAmount ? formatCurrency(g.maxAmount, g.currency) : 'Not stated'}
             </Typography>
@@ -1089,7 +1128,7 @@ function GrantsTable({
       ),
     },
     {
-      key: 'applicationDeadline', header: 'DEADLINE', width: '1.2fr',
+      key: 'applicationDeadline', header: 'DEADLINE', width: '1.2fr', clamp: 3,
       sortValue: (g) => {
         const d = Date.parse(g.applicationDeadline || '');
         // Rolling and unset deadlines sort last: they are never the urgent ones.
@@ -1112,8 +1151,8 @@ function GrantsTable({
       ),
     },
     {
-      key: 'status', header: 'STATUS', width: '1.4fr',
-      sortValue: (g) => String(g.status || 'zzz'),
+      key: 'status', header: 'STATUS', width: '1.4fr', clamp: 4, filterSelect: true,
+      sortValue: (g) => (g.status ? humaniseTerm(String(g.status)) : 'Status unset'),
       render: (g) => {
         const flags = stalenessFlags(g);
         return (
@@ -1121,7 +1160,7 @@ function GrantsTable({
             {g.status ? (
               <Chip
                 size="small"
-                label={String(g.status).replace(/[-_]/g, ' ')}
+                label={humaniseTerm(String(g.status))}
                 sx={{
                   bgcolor: `${getStatusColor(g.status)}22`,
                   color: getStatusColor(g.status),
@@ -1146,8 +1185,8 @@ function GrantsTable({
       },
     },
     {
-      key: 'dataSource', header: 'SOURCE', width: '1fr',
-      sortValue: (g) => g.dataSource || '',
+      key: 'dataSource', header: 'SOURCE', width: '1fr', filterSelect: true,
+      sortValue: (g) => g.dataSource || 'Unknown',
       render: (g) => (
         <Box sx={{ minWidth: 0 }}>
           {g.websiteUrl ? (
@@ -1177,7 +1216,7 @@ function GrantsTable({
       getRowId={(g) => g.id}
       pageSize={12}
       itemNoun="grant"
-      minWidth={1400}
+      minWidth={1560}
       maxHeight={640}
       onRowClick={onPreview}
       emptyIcon={<VolunteerActivismOutlined sx={{ fontSize: 28, color: t.textFaint }} />}

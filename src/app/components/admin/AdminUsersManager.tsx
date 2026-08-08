@@ -229,7 +229,7 @@ function AdminUsersManagerContent() {
     },
     { key: 'email', header: 'EMAIL', width: '1.7fr' },
     {
-      key: 'role', header: 'ROLE', width: '1.1fr',
+      key: 'role', header: 'ROLE', width: '1.1fr', filterSelect: true,
       sortValue: (r) => ROLE_LABELS[r.role] || r.role,
       render: (r) => (
         // Role is the only thing on this row that changes what the account can
