@@ -369,6 +369,9 @@ export interface Subscriber {
 }
 
 export interface SubscriberListResponse extends PaginatedResponse<Subscriber> {
+  /** Rows the API could not render, usually an unexpected NULL in a required
+   *  column. Surfaced so a short list is never mistaken for a complete one. */
+  unreadable?: number;
   counts: {
     active: number;
     past_due: number;
