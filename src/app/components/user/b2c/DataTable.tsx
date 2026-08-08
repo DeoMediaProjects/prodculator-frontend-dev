@@ -45,6 +45,8 @@ interface Props<T> {
   pageSize?: number;
   /** Singular noun for the pagination count ("report" -> "1 of 4 reports"). */
   itemNoun?: string;
+  /** Plural form, when appending an s would be wrong ("entry" -> "entrys"). */
+  itemNounPlural?: string;
 }
 
 type SortDir = 'asc' | 'desc';
@@ -52,7 +54,7 @@ type SortDir = 'asc' | 'desc';
 export function DataTable<T>({
   columns, rows, getRowId, onRowClick, rowActions, actionsHeader = 'ACTIONS',
   maxHeight = 480, emptyMessage = 'Nothing to show.', emptyIcon, minWidth = 720,
-  showHeaderWhenEmpty = false, title, headerAction, pageSize, itemNoun = 'row',
+  showHeaderWhenEmpty = false, title, headerAction, pageSize, itemNoun = 'row', itemNounPlural,
 }: Props<T>) {
   const { mode } = useThemeMode();
   const t = tokens(mode);
@@ -275,7 +277,7 @@ export function DataTable<T>({
             <ChevronLeft sx={{ fontSize: 19 }} />
           </IconButton>
           <Typography sx={{ fontSize: 12.5, color: t.textSecondary, minWidth: 0 }}>
-            {`Showing ${visible.length} of ${processed.length} ${itemNoun}${processed.length === 1 ? '' : 's'}`}
+            {`Showing ${visible.length} of ${processed.length} ${processed.length === 1 ? itemNoun : (itemNounPlural ?? `${itemNoun}s`)}`}
           </Typography>
           <IconButton
             size="small"

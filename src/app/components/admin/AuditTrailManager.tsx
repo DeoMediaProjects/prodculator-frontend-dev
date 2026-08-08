@@ -68,34 +68,99 @@ function formatDate(value: string | null) {
   }
 }
 
-/** Turn `update.incentive` into `Update incentive` for display, leaving the raw
- *  value intact as the filter key. */
+/** Internal resource slugs, as an admin would name them. The keys are the values
+ *  the API records, so they stay usable as filter keys; only the display changes.
+ *  "b2b" in particular is an internal prefix that should never reach a reader. */
+const RESOURCE_LABELS: Record<string, string> = {
+  b2b: 'Business Intelligence',
+  b2b_subscription: 'Business Intelligence subscription',
+  b2b_invite: 'Business Intelligence invite',
+  b2b_request: 'Business Intelligence package',
+  auth: 'Admin sign-in',
+  admin_user: 'Admin user',
+  email_gating: 'Email gating',
+  pdf_report: 'Customer report',
+  data_source: 'Data source',
+  territory_profile: 'Territory profile',
+  comparable: 'Comparable production',
+  incentive: 'Incentive programme',
+  grant: 'Grant',
+  festival: 'Festival',
+};
+
+function resourceLabel(resourceType: string) {
+  const mapped = RESOURCE_LABELS[resourceType];
+  if (mapped) return mapped;
+  const spaced = resourceType.replace(/_/g, ' ');
+  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
+}
+
+/** Turn `update.incentive` into `Update incentive programme` for display, leaving
+ *  the raw value intact as the filter key. */
 function humaniseAction(action: string) {
   const [verb, ...rest] = action.split('.');
-  const resource = rest.join('.').replace(/_/g, ' ');
+  const resourceKey = rest.join('.');
   const readableVerb = verb.replace(/[-_]/g, ' ');
-  return `${readableVerb.charAt(0).toUpperCase()}${readableVerb.slice(1)}${resource ? ` ${resource}` : ''}`;
+  const verbCased = `${readableVerb.charAt(0).toUpperCase()}${readableVerb.slice(1)}`;
+  if (!resourceKey) return verbCased;
+  // Lowercased because it follows a verb: "Generate Business Intelligence" reads
+  // correctly, "Update Incentive programme" does not.
+  const label = resourceLabel(resourceKey);
+  const tail = RESOURCE_LABELS[resourceKey] ? label : label.toLowerCase();
+  return `${verbCased} ${tail}`;
+}
+
+/** What actually happened, in words. Returns the raw code separately so it can
+ *  sit in a tooltip rather than in the column an admin reads. */
+function describeOutcome(statusCode: number | null, succeeded: boolean | null): { label: string; detail: string } {
+  if (succeeded === null) {
+    return {
+      label: 'No response recorded',
+      detail: 'The request was logged but no response was captured, usually because the server restarted mid-request.',
+    };
+  }
+  if (succeeded) {
+    return { label: 'Success', detail: statusCode ? `The change was applied. HTTP ${statusCode}.` : 'The change was applied.' };
+  }
+  const byCode: Record<number, { label: string; detail: string }> = {
+    400: { label: 'Rejected', detail: 'The submitted data was not valid, so nothing changed.' },
+    401: { label: 'Not signed in', detail: 'The session had expired, so nothing changed.' },
+    403: { label: 'Denied', detail: 'This admin does not hold the permission for that action, so nothing changed.' },
+    404: { label: 'Not found', detail: 'The record no longer exists, so nothing changed.' },
+    409: { label: 'Conflict', detail: 'The record already exists or was changed by someone else, so nothing changed.' },
+    422: { label: 'Rejected', detail: 'A required field was missing or malformed, so nothing changed.' },
+    429: { label: 'Rate limited', detail: 'Too many attempts in a short window, so the request was blocked.' },
+  };
+  const known = statusCode != null ? byCode[statusCode] : undefined;
+  if (known) return { label: known.label, detail: `${known.detail} HTTP ${statusCode}.` };
+  if (statusCode != null && statusCode >= 500) {
+    return { label: 'Server error', detail: `The platform failed to complete the action, so it may not have applied. HTTP ${statusCode}.` };
+  }
+  return {
+    label: 'Failed',
+    detail: statusCode ? `The action did not complete. HTTP ${statusCode}.` : 'The action did not complete.',
+  };
 }
 
 function StatusChip({ entry }: { entry: AuditLogEntry }) {
+  const outcome = describeOutcome(entry.status_code ?? null, entry.succeeded);
   if (entry.succeeded === null) {
-    return <Chip size="small" label="No response" sx={{ bgcolor: 'rgba(117,117,117,0.2)', color: 'text.secondary' }} />;
-  }
-  if (entry.succeeded) {
     return (
-      <Chip
-        size="small"
-        label={entry.status_code ?? 'OK'}
-        sx={{ bgcolor: 'rgba(46,125,50,0.2)', color: 'success.main', fontWeight: 600 }}
-      />
+      <Tooltip title={outcome.detail}>
+        <Chip size="small" label={outcome.label} sx={{ bgcolor: 'rgba(117,117,117,0.2)', color: 'text.secondary' }} />
+      </Tooltip>
     );
   }
   return (
-    <Chip
-      size="small"
-      label={entry.status_code ?? 'Failed'}
-      sx={{ bgcolor: 'rgba(211,47,47,0.2)', color: 'error.main', fontWeight: 600 }}
-    />
+    <Tooltip title={outcome.detail}>
+      <Chip
+        size="small"
+        label={outcome.label}
+        sx={entry.succeeded
+          ? { bgcolor: 'rgba(46,125,50,0.2)', color: 'success.main', fontWeight: 600 }
+          : { bgcolor: 'rgba(211,47,47,0.2)', color: 'error.main', fontWeight: 600 }}
+      />
+    </Tooltip>
   );
 }
 
@@ -271,7 +336,9 @@ function AuditTrailManagerContent() {
       sortValue: (r) => `${r.resource_type} ${r.resource_id || ''}`,
       render: (r) => (
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: 13.5, color: t.textSecondary }}>{r.resource_type.replace(/_/g, ' ')}</Typography>
+          <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {resourceLabel(r.resource_type)}
+          </Typography>
           {r.resource_id && (
             <Typography sx={{ fontSize: 11, color: t.textFaint, fontFamily: 'ui-monospace, monospace', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {r.resource_id}
@@ -281,17 +348,25 @@ function AuditTrailManagerContent() {
       ),
     },
     {
-      key: 'succeeded', header: 'OUTCOME', width: '0.9fr',
-      sortValue: (r) => (r.succeeded === null ? 'unknown' : r.succeeded ? 'succeeded' : 'failed'),
+      key: 'succeeded', header: 'OUTCOME', width: '1.1fr',
+      // Filters and sorts on the words shown, so typing "denied" finds the
+      // denied attempts rather than requiring the admin to know it means 403.
+      sortValue: (r) => describeOutcome(r.status_code ?? null, r.succeeded).label,
       render: (r) => {
-        // A denied attempt is the entry most worth spotting, so failure is the
-        // only outcome that carries colour.
-        if (r.succeeded === null) return <Box sx={{ color: t.textFaint, fontSize: 13 }}>No response</Box>;
-        if (r.succeeded) return <Box sx={{ color: t.textSecondary, fontSize: 13 }}>{r.status_code ?? 'OK'}</Box>;
+        const outcome = describeOutcome(r.status_code ?? null, r.succeeded);
+        // A failed or denied attempt is the entry most worth spotting, so
+        // failure is the only outcome that carries colour.
         return (
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: t.error }}>
-            {r.status_code === 403 ? 'Denied' : `Failed ${r.status_code ?? ''}`.trim()}
-          </Typography>
+          <Tooltip title={outcome.detail}>
+            <Typography sx={{
+              fontSize: 13,
+              fontWeight: r.succeeded === false ? 700 : 400,
+              color: r.succeeded === false ? t.error : r.succeeded === null ? t.textFaint : t.textSecondary,
+              cursor: 'help', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {outcome.label}
+            </Typography>
+          </Tooltip>
         );
       },
     },
@@ -393,7 +468,7 @@ function AuditTrailManagerContent() {
           >
             <MenuItem value="">All resources</MenuItem>
             {(facets?.resource_types ?? []).map((resource) => (
-              <MenuItem key={resource} value={resource}>{resource.replace(/_/g, ' ')}</MenuItem>
+              <MenuItem key={resource} value={resource}>{resourceLabel(resource)}</MenuItem>
             ))}
           </TextField>
 
@@ -458,6 +533,7 @@ function AuditTrailManagerContent() {
           onRowClick={(r) => setSelected(r)}
           pageSize={25}
           itemNoun="entry"
+          itemNounPlural="entries"
           minWidth={1020}
           emptyIcon={<HistoryOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
           emptyMessage={

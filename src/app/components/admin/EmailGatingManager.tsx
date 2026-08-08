@@ -168,6 +168,7 @@ function EmailGatingManagerContent() {
           getRowId={(r) => r.id}
           pageSize={12}
           itemNoun="address"
+          itemNounPlural="addresses"
           minWidth={760}
           emptyIcon={<MarkEmailReadOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
           emptyMessage="No free reports have been claimed yet. Each address that generates one appears here, so repeat use is visible before it becomes a pattern."

@@ -439,6 +439,7 @@ function CrewDepthContent() {
         getRowId={(p) => p.id || p.territory}
         pageSize={15}
         itemNoun="territory"
+        itemNounPlural="territories"
         minWidth={bankability ? 1120 : 1180}
         maxHeight={620}
         emptyIcon={<PublicOutlined sx={{ fontSize: 28, color: t.textFaint }} />}

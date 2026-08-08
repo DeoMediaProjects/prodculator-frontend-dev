@@ -301,6 +301,7 @@ function BusinessMetricsContent() {
           getRowId={(r) => r.country_code || r.country}
           pageSize={12}
           itemNoun="country"
+          itemNounPlural="countries"
           minWidth={960}
           maxHeight={560}
           emptyIcon={<PublicOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
