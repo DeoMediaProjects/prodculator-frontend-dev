@@ -344,7 +344,7 @@ export function PackageComposer() {
               <MenuItem value="">Internal / no client</MenuItem>
               {subscriptions.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  {s.product_type} · {s.id.slice(0, 8)}
+                  {s.company_name || s.user_email || `Account ${s.user_id.slice(0, 8)}`}
                 </MenuItem>
               ))}
             </TextField>
@@ -382,7 +382,7 @@ export function PackageComposer() {
 
           {Object.entries(grouped).map(([part, groups]) => (
             <Box key={part} sx={{ mb: 2 }}>
-              <Typography variant="overline" color="primary" sx={{ fontWeight: 700 }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' }}>
                 {PART_LABEL[part] ?? part}
               </Typography>
               <Divider sx={{ mb: 1 }} />

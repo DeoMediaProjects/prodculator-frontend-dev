@@ -180,6 +180,9 @@ export interface B2BSubscription {
   cancel_at_period_end: boolean;
   company_name?: string | null;
   admin_notes?: string | null;
+  /** Resolved from the account on the admin listing, so the console can name the
+   *  client instead of printing a bare UUID. Absent on single-row responses. */
+  user_email?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -120,11 +120,18 @@ export function DataTable<T>({
   // functionality that doesn't apply yet, so show a plain empty state instead.
   const isEmpty = rows.length === 0;
 
+  // One grid definition shared by the header, the filter row and the body, so
+  // the three always line up. The column gap is what separates the tracks:
+  // per-cell right padding cannot do it, because a right-aligned cell's padding
+  // insets its own text but does nothing about the neighbour's text starting at
+  // its own left edge, which is how two headers came to read as one word.
+  const gridSx = { display: 'grid', gridTemplateColumns: template, columnGap: 2.5 } as const;
+
   const cellSx = (align?: 'left' | 'right') => ({
     // minWidth: 0 lets the grid item shrink to its track so nowrap text ellipsizes
     // instead of overflowing into the neighbouring column.
     minWidth: 0, fontSize: 14, color: t.textPrimary, textAlign: align || 'left',
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pr: 1.5,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   });
 
   return (
@@ -177,7 +184,7 @@ export function DataTable<T>({
           {/* Header — hidden when there's nothing to sort or filter yet, unless
               the caller wants the table's shape to stay legible while empty. */}
           {(!isEmpty || showHeaderWhenEmpty) && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: template, px: 2.5, py: 1.5, borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, zIndex: 2, bgcolor: t.cardBg }}>
+            <Box sx={{ ...gridSx, px: 2.5, py: 1.5, borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, zIndex: 2, bgcolor: t.cardBg }}>
               {columns.map((col) => {
                 const sorted = sortKey === col.key;
                 return (
@@ -186,25 +193,25 @@ export function DataTable<T>({
                     onClick={() => toggleSort(col)}
                     sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, justifyContent: col.align === 'right' ? 'flex-end' : 'flex-start', cursor: col.sortable === false ? 'default' : 'pointer', userSelect: 'none' }}
                   >
-                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: sorted ? t.gold : t.textSecondary }}>{col.header}</Typography>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: sorted ? t.gold : t.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{col.header}</Typography>
                     {sorted && (sortDir === 'asc' ? <ArrowUpward sx={{ fontSize: 13, color: t.gold }} /> : <ArrowDownward sx={{ fontSize: 13, color: t.gold }} />)}
                   </Box>
                 );
               })}
-              {hasActions && <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: t.textSecondary }}>{actionsHeader}</Typography>}
+              {hasActions && <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: t.textSecondary, whiteSpace: 'nowrap' }}>{actionsHeader}</Typography>}
             </Box>
           )}
 
           {/* Filter row */}
           {anyFilterable && showFilters && !isEmpty && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: template, px: 2.5, py: 1, borderBottom: `1px solid ${t.borderSoft}`, position: 'sticky', top: 41, zIndex: 1, bgcolor: t.cardBg }}>
+            <Box sx={{ ...gridSx, px: 2.5, py: 1, borderBottom: `1px solid ${t.borderSoft}`, position: 'sticky', top: 41, zIndex: 1, bgcolor: t.cardBg }}>
               {columns.map((col) => (
-                <Box key={col.key} sx={{ pr: 1 }}>
+                <Box key={col.key} sx={{ minWidth: 0 }}>
                   {col.filterable !== false ? (
                     <InputBase
                       value={filters[col.key] || ''}
                       onChange={(e) => setFilters((f) => ({ ...f, [col.key]: e.target.value }))}
-                      placeholder="Filter…"
+                      placeholder="Filter"
                       sx={{ width: '100%', fontSize: 12.5, color: t.textPrimary, bgcolor: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', px: 1, py: 0.25, '& input::placeholder': { color: t.textFaint, opacity: 1 } }}
                     />
                   ) : null}
@@ -231,7 +238,7 @@ export function DataTable<T>({
                 tabIndex={onRowClick ? 0 : undefined}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter') onRowClick(row); } : undefined}
-                sx={{ display: 'grid', gridTemplateColumns: template, alignItems: 'center', px: 2.5, py: 1.75, borderBottom: `1px solid ${t.borderSoft}`, cursor: onRowClick ? 'pointer' : 'default', '&:hover': { bgcolor: onRowClick ? t.goldDim : 'transparent' } }}
+                sx={{ ...gridSx, alignItems: 'center', px: 2.5, py: 1.75, borderBottom: `1px solid ${t.borderSoft}`, cursor: onRowClick ? 'pointer' : 'default', '&:hover': { bgcolor: onRowClick ? t.goldDim : 'transparent' } }}
               >
                 {columns.map((col) => (
                   <Box key={col.key} sx={cellSx(col.align)}>

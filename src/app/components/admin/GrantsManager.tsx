@@ -61,6 +61,13 @@ const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', col
 /** Which slice of the grants an admin is working through. */
 type Scope = 'all' | 'unverified' | 'closing';
 
+/** True when maxAmount is a plain number rather than a display string such as
+ *  "Up to £250,000" or "Tiered rate-based (grid)". */
+function isNumericAmount(amount: string): boolean {
+  const num = parseFloat(amount);
+  return !Number.isNaN(num) && String(num) === String(amount).trim();
+}
+
 // Normalise a raw grant from the API, handles CSV-imported rows where the
 // backend may return eligibility as a semicolon-separated string or null,
 // and status/daysUntilDeadline may be absent if not computed server-side.
@@ -965,7 +972,9 @@ function GrantsTable({
   const fmtDate = (s?: string | null) => {
     if (!s) return null;
     if (s.toLowerCase?.() === 'rolling') return 'Rolling';
-    if (/^tbc/i.test(s)) return s.toUpperCase();
+    // Stored as "tbc_2027" and similar. Uppercasing verbatim printed the
+    // underscore, so the separator is normalised to a space first.
+    if (/^tbc/i.test(s)) return s.replace(/[_-]+/g, ' ').toUpperCase();
     const d = Date.parse(s);
     return Number.isNaN(d) ? s : new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   };
@@ -1046,15 +1055,25 @@ function GrantsTable({
       },
     },
     {
-      key: 'maxAmount', header: 'AMOUNT', width: '1.2fr', align: 'right',
+      // Not right-aligned: maxAmount is a display string as often as a number
+      // ("Tiered rate-based (grid)"), and right-aligning prose in a narrow
+      // track clipped its start rather than its end.
+      key: 'maxAmount', header: 'AMOUNT', width: '1.5fr',
       // Sorts on the approximate USD figure so amounts in different currencies
       // are actually comparable; the display value stays in its own currency.
       sortValue: (g) => g.amount_usd_approx ?? -1,
       render: (g) => (
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 600, color: g.maxAmount ? t.textPrimary : t.textFaint, fontVariantNumeric: 'tabular-nums' }}>
-            {g.maxAmount ? formatCurrency(g.maxAmount, g.currency) : 'Not stated'}
-          </Typography>
+          <Tooltip title={g.maxAmount && !isNumericAmount(g.maxAmount) ? g.maxAmount : ''}>
+            <Typography sx={{
+              fontSize: 14, fontWeight: 600,
+              color: g.maxAmount ? t.textPrimary : t.textFaint,
+              fontVariantNumeric: 'tabular-nums',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {g.maxAmount ? formatCurrency(g.maxAmount, g.currency) : 'Not stated'}
+            </Typography>
+          </Tooltip>
           {g.amount_usd_approx != null && (
             <Typography sx={{ fontSize: 11.5, color: t.textFaint }}>
               about ${g.amount_usd_approx.toLocaleString()} USD

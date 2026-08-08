@@ -1,26 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSnackbar } from 'notistack';
 import {
   Alert,
   Box,
   Button,
-  Card,
-  Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
+  InputAdornment,
   MenuItem,
   Stack,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import {
@@ -30,6 +24,7 @@ import {
   Email,
   Refresh,
   Send,
+  BusinessCenterOutlined,
 } from '@mui/icons-material';
 import {
   adminB2BService,
@@ -40,26 +35,34 @@ import {
   type B2BProductType,
   type B2BSubscription,
 } from '@/services/b2b.service';
-import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { useHeaderActions } from '@/app/components/user/b2c/headerActions';
 import { B2BInvitesPanel } from './B2BInvitesPanel';
 
 const PRODUCT_LABELS: Record<B2BProductType, string> = {
-  camera_equipment: 'Camera & Equipment',
-  production_services: 'Production Services',
-  crew_casting: 'Crew & Casting',
-  production_trend: 'Production Trend',
-  enterprise: 'Enterprise Slate',
+  camera_equipment: 'Camera and equipment',
+  production_services: 'Production services',
+  crew_casting: 'Crew and casting',
+  production_trend: 'Production trend',
+  enterprise: 'Enterprise slate',
 };
 
 const PRODUCT_OPTIONS = Object.entries(PRODUCT_LABELS) as [B2BProductType, string][];
 
-function currency(amount?: number | null, code?: string | null) {
-  if (!amount || !code) return 'Manual';
+/** Shared section surface, matching the rest of the console. */
+const PANEL_SX = { border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: { xs: 2.5, md: 3 } } as const;
+const EYEBROW_SX = { fontSize: 11, fontWeight: 700, letterSpacing: '0.16em', color: 'text.secondary' } as const;
+
+type View = 'subscriptions' | 'requests' | 'invites';
+
+function money(cents: number, code: string) {
   return new Intl.NumberFormat(code.toLowerCase() === 'gbp' ? 'en-GB' : 'en-US', {
     style: 'currency',
     currency: code.toUpperCase(),
     maximumFractionDigits: 0,
-  }).format(amount / 100);
+  }).format(cents / 100);
 }
 
 function metricSummary(request: B2BIntelligenceRequest) {
@@ -67,7 +70,12 @@ function metricSummary(request: B2BIntelligenceRequest) {
   const sourceCount = typeof metrics.source_signal_count === 'number' ? metrics.source_signal_count : null;
   const suppressed = Array.isArray(metrics.suppressed_segments) ? metrics.suppressed_segments.length : 0;
   const insufficient = metrics.insufficient_data === true;
-  return `${sourceCount ?? 'unknown'} signals, ${suppressed} suppressed${insufficient ? ', insufficient overall data' : ''}`;
+  return {
+    sourceCount,
+    suppressed,
+    insufficient,
+    text: `${sourceCount ?? 'unknown'} signals, ${suppressed} suppressed`,
+  };
 }
 
 function blankToNull(value: string | null | undefined) {
@@ -77,7 +85,9 @@ function blankToNull(value: string | null | undefined) {
 
 export function B2BClientManager() {
   const { enqueueSnackbar } = useSnackbar();
-  const [tab, setTab] = useState(0);
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+  const [view, setView] = useState<View>('subscriptions');
   const [subscriptions, setSubscriptions] = useState<B2BSubscription[]>([]);
   const [requests, setRequests] = useState<B2BIntelligenceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,18 +107,33 @@ export function B2BClientManager() {
     admin_notes: '',
   });
 
-  const stats = useMemo(() => {
+  const summary = useMemo(() => {
     const active = subscriptions.filter((item) => ['active', 'trialing'].includes(item.status));
-    const mrr = active.reduce((sum, item) => sum + (item.amount_cents || 0), 0);
+    // Contract values are billed in whichever currency the client agreed, so
+    // they are totalled per currency and never summed into one figure: adding
+    // pence to cents and labelling the result GBP is how the old "Listed MRR"
+    // card produced a number that meant nothing.
+    const byCurrency = new Map<string, number>();
+    let manualCount = 0;
+    for (const item of active) {
+      if (!item.amount_cents) {
+        manualCount += 1;
+        continue;
+      }
+      const code = (item.currency || 'GBP').toUpperCase();
+      byCurrency.set(code, (byCurrency.get(code) || 0) + item.amount_cents);
+    }
     return {
       total: subscriptions.length,
       active: active.length,
       requests: requests.length,
-      mrr,
+      undelivered: requests.filter((r) => r.status === 'completed' && !r.delivered_at).length,
+      byCurrency: [...byCurrency.entries()].sort((a, b) => b[1] - a[1]),
+      manualCount,
     };
   }, [subscriptions, requests]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -119,15 +144,13 @@ export function B2BClientManager() {
       setSubscriptions(subscriptionRows);
       setRequests(requestRows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load B2B clients');
+      setError(err instanceof Error ? err.message : 'Failed to load intelligence clients');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    load();
   }, []);
+
+  useEffect(() => { void load(); }, [load]);
 
   const openEdit = (subscription: B2BSubscription) => {
     setSelected(subscription);
@@ -154,7 +177,7 @@ export function B2BClientManager() {
       };
       if (!payload.next_delivery_at) delete payload.next_delivery_at;
       await adminB2BService.updateSubscription(selected.id, payload);
-      enqueueSnackbar('B2B subscription updated and user notified.', { variant: 'success' });
+      enqueueSnackbar('Subscription updated and the client notified.', { variant: 'success' });
       setEditOpen(false);
       setSelected(null);
       await load();
@@ -174,7 +197,7 @@ export function B2BClientManager() {
         company_name: blankToNull(manualForm.company_name),
         admin_notes: blankToNull(manualForm.admin_notes),
       });
-      enqueueSnackbar('Manual B2B subscription created.', { variant: 'success' });
+      enqueueSnackbar('Manual contract created.', { variant: 'success' });
       setManualOpen(false);
       setManualForm({
         user_email: '',
@@ -187,7 +210,7 @@ export function B2BClientManager() {
       });
       await load();
     } catch (err) {
-      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create manual subscription', { variant: 'error' });
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create the manual contract', { variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -197,8 +220,9 @@ export function B2BClientManager() {
     try {
       const response = await adminB2BService.resendRequest(request.id);
       enqueueSnackbar(`Resent to ${response.recipients.join(', ')}`, { variant: 'success' });
+      await load();
     } catch (err) {
-      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to resend PDF', { variant: 'error' });
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to resend the PDF', { variant: 'error' });
     }
   };
 
@@ -206,153 +230,422 @@ export function B2BClientManager() {
     try {
       await adminB2BService.downloadRequestPdf(request);
     } catch (err) {
-      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to download PDF', { variant: 'error' });
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to download the PDF', { variant: 'error' });
     }
   };
 
-  if (loading) return <LoadingSpinner overlay message="Loading B2B clients..." />;
+  const subscriptionColumns = useMemo<Column<B2BSubscription>[]>(() => [
+    {
+      key: 'user_email', header: 'CLIENT', width: '1.9fr',
+      sortValue: (s) => s.company_name || s.user_email || s.user_id,
+      render: (s) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {s.company_name || s.user_email || 'Unnamed account'}
+          </Typography>
+          <Typography sx={{ fontSize: 11.5, color: t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {s.company_name && s.user_email ? s.user_email : `Account ${s.user_id.slice(0, 8)}`}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      key: 'product_type', header: 'PRODUCT', width: '1.4fr',
+      sortValue: (s) => PRODUCT_LABELS[s.product_type] || s.product_type,
+      render: (s) => (
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {PRODUCT_LABELS[s.product_type] || s.product_type}
+        </Typography>
+      ),
+    },
+    {
+      key: 'status', header: 'STATUS', width: '1fr',
+      render: (s) => {
+        const live = ['active', 'trialing'].includes(s.status);
+        const colour = live ? t.success : s.status === 'past_due' ? t.warning : t.textFaint;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colour, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: colour, textTransform: 'capitalize' }}>
+              {s.status.replace(/_/g, ' ')}
+            </Typography>
+          </Box>
+        );
+      },
+    },
+    {
+      key: 'amount_cents', header: 'CONTRACT VALUE', width: '1.1fr', align: 'right',
+      sortValue: (s) => s.amount_cents ?? -1,
+      render: (s) => (s.amount_cents ? (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+          {money(s.amount_cents, s.currency || 'GBP')}
+        </Typography>
+      ) : (
+        // A manual contract is billed outside Stripe, so no amount exists to
+        // show. This is not a zero.
+        <Tooltip title="Billed outside the platform, so no amount is recorded here.">
+          <Typography sx={{ fontSize: 13, color: t.textFaint }}>Billed offline</Typography>
+        </Tooltip>
+      )),
+    },
+    {
+      key: 'delivery_frequency', header: 'CADENCE', width: '0.9fr',
+      render: (s) => (
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary, textTransform: 'capitalize' }}>
+          {s.delivery_frequency}
+        </Typography>
+      ),
+    },
+    {
+      key: 'next_delivery_at', header: 'NEXT DELIVERY', width: '1.3fr',
+      // Unscheduled sorts last: a live subscription with no next delivery is
+      // the row worth chasing, and it reads better at the bottom than mixed in.
+      sortValue: (s) => (s.next_delivery_at ? Date.parse(s.next_delivery_at) || Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER),
+      render: (s) => {
+        if (!s.next_delivery_at) {
+          const live = ['active', 'trialing'].includes(s.status);
+          return (
+            <Typography sx={{ fontSize: 13, fontWeight: live ? 600 : 400, color: live ? t.warning : t.textFaint }}>
+              {live ? 'Not scheduled' : 'None'}
+            </Typography>
+          );
+        }
+        return (
+          <Typography sx={{ fontSize: 13.5, color: t.textSecondary }}>
+            {new Date(s.next_delivery_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </Typography>
+        );
+      },
+    },
+    {
+      key: 'extra_recipient_email', header: 'EXTRA RECIPIENT', width: '1.4fr',
+      sortValue: (s) => s.extra_recipient_email || '',
+      render: (s) => (
+        <Typography sx={{ fontSize: 13, color: s.extra_recipient_email ? t.textSecondary : t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {s.extra_recipient_email || 'None'}
+        </Typography>
+      ),
+    },
+    {
+      key: 'source', header: 'SOURCE', width: '0.9fr',
+      render: (s) => (
+        <Typography sx={{ fontSize: 13, color: t.textSecondary, textTransform: 'capitalize' }}>
+          {s.source.replace(/_/g, ' ')}
+        </Typography>
+      ),
+    },
+  ], [t]);
+
+  const requestColumns = useMemo<Column<B2BIntelligenceRequest>[]>(() => [
+    {
+      key: 'recipient_email', header: 'RECIPIENT', width: '1.8fr',
+      sortValue: (r) => r.recipient_email || r.user_id,
+      render: (r) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {r.recipient_email}
+          </Typography>
+          {r.extra_recipient_email && (
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              copy to {r.extra_recipient_email}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'product_type', header: 'PRODUCT', width: '1.4fr',
+      sortValue: (r) => PRODUCT_LABELS[r.product_type] || r.product_type,
+      render: (r) => (
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {PRODUCT_LABELS[r.product_type] || r.product_type}
+        </Typography>
+      ),
+    },
+    {
+      key: 'period', header: 'PERIOD', width: '1.4fr',
+      sortValue: (r) => Date.parse(r.period_start) || 0,
+      render: (r) => (
+        <Typography sx={{ fontSize: 13, color: t.textSecondary, whiteSpace: 'nowrap' }}>
+          {r.period_start} to {r.period_end}
+        </Typography>
+      ),
+    },
+    {
+      key: 'status', header: 'STATUS', width: '1fr',
+      render: (r) => {
+        const colour = r.status === 'completed' ? t.success
+          : r.status === 'failed' ? t.error : t.warning;
+        return (
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: colour, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: colour, textTransform: 'capitalize' }}>
+                {r.status.replace(/_/g, ' ')}
+              </Typography>
+            </Box>
+            {r.error_message && (
+              <Tooltip title={r.error_message}>
+                <Typography sx={{ fontSize: 11.5, color: t.error, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.error_message}
+                </Typography>
+              </Tooltip>
+            )}
+          </Box>
+        );
+      },
+    },
+    {
+      key: 'metrics', header: 'SIGNAL BASIS', width: '1.5fr',
+      sortValue: (r) => metricSummary(r).sourceCount ?? -1,
+      render: (r) => {
+        const m = metricSummary(r);
+        return (
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: 13, color: t.textSecondary }}>{m.text}</Typography>
+            {/* The one fact that decides whether the package was worth sending. */}
+            {m.insufficient && (
+              <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: t.warning }}>
+                Insufficient data overall
+              </Typography>
+            )}
+          </Box>
+        );
+      },
+    },
+    {
+      key: 'delivered_at', header: 'DELIVERED', width: '1.2fr',
+      sortValue: (r) => (r.delivered_at ? Date.parse(r.delivered_at) || 0 : 0),
+      render: (r) => {
+        if (r.delivered_at) {
+          return (
+            <Typography sx={{ fontSize: 13.5, color: t.textSecondary }}>
+              {new Date(r.delivered_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </Typography>
+          );
+        }
+        // Built but never sent is the actionable state: the client paid for a
+        // package that is sitting in storage.
+        const built = r.status === 'completed';
+        return (
+          <Typography sx={{ fontSize: 13, fontWeight: built ? 600 : 400, color: built ? t.warning : t.textFaint }}>
+            {built ? 'Built, not sent' : 'Not yet'}
+          </Typography>
+        );
+      },
+    },
+  ], [t]);
+
+  useHeaderActions(
+    <>
+      <Button size="small" startIcon={<Refresh />} onClick={() => void load()} disabled={loading}>
+        Refresh
+      </Button>
+      <Button size="small" variant="contained" startIcon={<Add />} onClick={() => setManualOpen(true)}>
+        Manual contract
+      </Button>
+    </>,
+    [load, loading],
+  );
+
+  if (loading && subscriptions.length === 0 && requests.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} sx={{ mb: 3 }}>
-        <Box>
-          <Typography sx={{ color: 'text.secondary' }}>
-            Manage B2B subscriptions, manual contracts, delivery schedules, recipients, PDFs, and metrics.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button startIcon={<Refresh />} onClick={load}>Refresh</Button>
-          <Button variant="contained" startIcon={<Add />} onClick={() => setManualOpen(true)}>
-            Manual Contract
-          </Button>
-        </Stack>
-      </Stack>
-
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
-        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Total Subscriptions</Typography><Typography variant="h4">{stats.total}</Typography></Card>
-        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Active</Typography><Typography variant="h4">{stats.active}</Typography></Card>
-        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Requests</Typography><Typography variant="h4">{stats.requests}</Typography></Card>
-        <Card sx={{ p: 2, flex: 1 }}><Typography color="text.secondary">Listed MRR</Typography><Typography variant="h4">{currency(stats.mrr, 'gbp')}</Typography></Card>
-      </Stack>
+      {/* Contracted revenue leads, held per currency because the platform bills
+          clients in whichever currency they agreed and never converts. */}
+      <Box sx={{ ...PANEL_SX, mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(250px, 1fr) 2fr' }, gap: { xs: 3, md: 4 }, alignItems: 'start' }}>
+        <Box>
+          <Typography sx={EYEBROW_SX}>CONTRACTED PER MONTH</Typography>
+          {summary.byCurrency.length === 0 ? (
+            <>
+              <Typography sx={{ fontSize: { xs: 30, md: 38 }, fontWeight: 800, color: t.textPrimary, lineHeight: 1.1 }}>
+                None billed here
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: t.textSecondary, mt: 0.5 }}>
+                {summary.manualCount > 0
+                  ? `All ${summary.manualCount} active ${summary.manualCount === 1 ? 'contract is' : 'contracts are'} billed offline.`
+                  : 'No active contracts.'}
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography sx={{ fontSize: { xs: 32, md: 40 }, fontWeight: 800, color: t.textPrimary, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+                {summary.byCurrency.map(([code, cents]) => money(cents, code)).join('  ')}
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: t.textSecondary, mt: 0.5 }}>
+                Across {summary.active} active {summary.active === 1 ? 'contract' : 'contracts'}, shown unconverted.
+                {summary.manualCount > 0 && ` ${summary.manualCount} more billed offline.`}
+              </Typography>
+            </>
+          )}
+        </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+          {([
+            ['Subscriptions', summary.total, `${summary.active} active`],
+            ['Packages built', summary.requests, 'All time'],
+            ['Built, not sent', summary.undelivered, summary.undelivered ? 'Needs sending' : 'All delivered'],
+          ] as [string, number, string][]).map(([label, value, hint]) => (
+            <Box key={label}>
+              <Typography sx={{ fontSize: 22, fontWeight: 700, color: t.textPrimary, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+                {value}
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: t.textSecondary }}>{label}</Typography>
+              <Typography sx={{ fontSize: 11.5, color: t.textFaint, mt: 0.25 }}>{hint}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
 
-      <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
-        <Tab label="Subscriptions" />
-        <Tab label="Requests & Metrics" />
-        <Tab label="Contract Invites" />
-      </Tabs>
+      <Box sx={{ mb: 2 }}>
+        <SegmentedToggle
+          value={view}
+          onChange={(v) => setView(v as View)}
+          options={[
+            { value: 'subscriptions', label: `Subscriptions ${subscriptions.length}` },
+            { value: 'requests', label: `Packages ${requests.length}` },
+            { value: 'invites', label: 'Contract invites' },
+          ]}
+        />
+      </Box>
 
-      {tab === 0 && (
-        <TableContainer sx={{ mt: 3 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell>User</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Source</TableCell>
-                <TableCell>Cadence</TableCell>
-                <TableCell>Extra Recipient</TableCell>
-                <TableCell>Next Delivery</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {subscriptions.length === 0 ? (
-                <TableRow><TableCell colSpan={8}>No B2B subscriptions yet.</TableCell></TableRow>
-              ) : subscriptions.map((subscription) => (
-                <TableRow key={subscription.id}>
-                  <TableCell>{PRODUCT_LABELS[subscription.product_type]}</TableCell>
-                  <TableCell>{subscription.user_id}</TableCell>
-                  <TableCell><Chip size="small" label={subscription.status} /></TableCell>
-                  <TableCell>{subscription.source}</TableCell>
-                  <TableCell>{subscription.delivery_frequency}</TableCell>
-                  <TableCell>{subscription.extra_recipient_email || 'None'}</TableCell>
-                  <TableCell>{subscription.next_delivery_at ? new Date(subscription.next_delivery_at).toLocaleString() : 'Not scheduled'}</TableCell>
-                  <TableCell align="right">
-                    <Button size="small" startIcon={<Edit />} onClick={() => openEdit(subscription)}>Edit</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      {view === 'subscriptions' && (
+        <DataTable<B2BSubscription>
+          title="Intelligence subscriptions"
+          columns={subscriptionColumns}
+          rows={subscriptions}
+          getRowId={(s) => s.id}
+          pageSize={12}
+          itemNoun="subscription"
+          minWidth={1340}
+          maxHeight={620}
+          emptyIcon={<BusinessCenterOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+          emptyMessage="No intelligence subscriptions yet. Issue a contract invite or create a manual contract to start one."
+          rowActions={(s) => (
+            <Tooltip title="Edit cadence, recipients and status">
+              <IconButton size="small" onClick={() => openEdit(s)} sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}>
+                <Edit sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        />
       )}
 
-      {tab === 1 && (
-        <TableContainer sx={{ mt: 3 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell>User</TableCell>
-                <TableCell>Period</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Metrics</TableCell>
-                <TableCell>Delivered</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {requests.length === 0 ? (
-                <TableRow><TableCell colSpan={7}>No B2B intelligence requests yet.</TableCell></TableRow>
-              ) : requests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell>{PRODUCT_LABELS[request.product_type]}</TableCell>
-                  <TableCell>{request.user_id}</TableCell>
-                  <TableCell>{request.period_start} to {request.period_end}</TableCell>
-                  <TableCell><Chip size="small" label={request.status} /></TableCell>
-                  <TableCell>{metricSummary(request)}</TableCell>
-                  <TableCell>{request.delivered_at ? new Date(request.delivered_at).toLocaleString() : 'No'}</TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Button size="small" startIcon={<CloudDownload />} disabled={request.status !== 'completed'} onClick={() => download(request)}>
-                        PDF
-                      </Button>
-                      <Button size="small" startIcon={<Send />} disabled={request.status !== 'completed'} onClick={() => resend(request)}>
-                        Resend
-                      </Button>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      {view === 'requests' && (
+        <DataTable<B2BIntelligenceRequest>
+          title="Generated packages"
+          columns={requestColumns}
+          rows={requests}
+          getRowId={(r) => r.id}
+          pageSize={12}
+          itemNoun="package"
+          minWidth={1340}
+          maxHeight={620}
+          emptyIcon={<BusinessCenterOutlined sx={{ fontSize: 28, color: t.textFaint }} />}
+          emptyMessage="No intelligence packages have been generated yet. Compose one in the studio."
+          rowActions={(r) => (
+            <>
+              <Tooltip title={r.status === 'completed' ? 'Download the PDF' : 'Available once the package has been built'}>
+                <IconButton
+                  size="small"
+                  disabled={r.status !== 'completed'}
+                  onClick={() => void download(r)}
+                  sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}
+                >
+                  <CloudDownload sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title={r.status === 'completed' ? 'Email it to the client again' : 'Available once the package has been built'}>
+                <IconButton
+                  size="small"
+                  disabled={r.status !== 'completed'}
+                  onClick={() => void resend(r)}
+                  sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}
+                >
+                  <Send sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        />
       )}
 
       {/* A claim creates a subscription, so reload the lists when one lands. */}
-      {tab === 2 && <B2BInvitesPanel productLabels={PRODUCT_LABELS} onClaimed={load} />}
+      {view === 'invites' && <B2BInvitesPanel productLabels={PRODUCT_LABELS} onClaimed={load} />}
 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Edit B2B Subscription</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {selected?.company_name || selected?.user_email || 'Edit subscription'}
+          <Typography sx={{ fontSize: 13, color: 'text.secondary', fontWeight: 400 }}>
+            Saving notifies the client that their delivery arrangement changed.
+          </Typography>
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField select label="Status" value={editForm.status || 'active'} onChange={(event) => setEditForm({ ...editForm, status: event.target.value })}>
-              {['active', 'trialing', 'past_due', 'cancelled', 'inactive'].map((status) => <MenuItem key={status} value={status}>{status}</MenuItem>)}
+              {['active', 'trialing', 'past_due', 'cancelled', 'inactive'].map((status) => (
+                <MenuItem key={status} value={status} sx={{ textTransform: 'capitalize' }}>{status.replace(/_/g, ' ')}</MenuItem>
+              ))}
             </TextField>
             <TextField select label="Delivery cadence" value={editForm.delivery_frequency || 'monthly'} onChange={(event) => setEditForm({ ...editForm, delivery_frequency: event.target.value as B2BDeliveryFrequency })}>
               <MenuItem value="monthly">Monthly</MenuItem>
               <MenuItem value="quarterly">Quarterly</MenuItem>
             </TextField>
-            <TextField label="Extra recipient" value={editForm.extra_recipient_email || ''} onChange={(event) => setEditForm({ ...editForm, extra_recipient_email: event.target.value })} InputProps={{ startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} /> }} />
-            <TextField label="Next delivery ISO timestamp" value={editForm.next_delivery_at || ''} onChange={(event) => setEditForm({ ...editForm, next_delivery_at: event.target.value })} />
+            <TextField
+              label="Extra recipient"
+              helperText="Copied on every delivery. Leave blank to send to the account holder only."
+              value={editForm.extra_recipient_email || ''}
+              onChange={(event) => setEditForm({ ...editForm, extra_recipient_email: event.target.value })}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><Email sx={{ fontSize: 18, color: 'text.secondary' }} /></InputAdornment> } }}
+            />
+            <TextField
+              label="Next delivery"
+              helperText="ISO timestamp, for example 2026-09-01T09:00:00Z. Leave unchanged to keep the current schedule."
+              value={editForm.next_delivery_at || ''}
+              onChange={(event) => setEditForm({ ...editForm, next_delivery_at: event.target.value })}
+            />
             <TextField label="Company" value={editForm.company_name || ''} onChange={(event) => setEditForm({ ...editForm, company_name: event.target.value })} />
-            <TextField label="Admin notes" multiline minRows={3} value={editForm.admin_notes || ''} onChange={(event) => setEditForm({ ...editForm, admin_notes: event.target.value })} />
+            <TextField
+              label="Admin notes"
+              helperText="Internal only. Never appears in a delivered package."
+              multiline
+              minRows={3}
+              value={editForm.admin_notes || ''}
+              onChange={(event) => setEditForm({ ...editForm, admin_notes: event.target.value })}
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
-          <Button variant="contained" onClick={saveEdit} disabled={saving}>Save</Button>
+          <Button onClick={() => setEditOpen(false)} disabled={saving} sx={{ color: 'text.secondary' }}>Cancel</Button>
+          <Button variant="contained" onClick={saveEdit} disabled={saving}>
+            {saving ? <CircularProgress size={18} /> : 'Save'}
+          </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={manualOpen} onClose={() => setManualOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Create Manual B2B Contract</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Create a manual contract
+          <Typography sx={{ fontSize: 13, color: 'text.secondary', fontWeight: 400 }}>
+            For a client billed outside the platform. The account must already exist.
+          </Typography>
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label="User email" value={manualForm.user_email} onChange={(event) => setManualForm({ ...manualForm, user_email: event.target.value })} />
+            <TextField
+              label="Client email"
+              helperText="Must match an existing account exactly."
+              value={manualForm.user_email}
+              onChange={(event) => setManualForm({ ...manualForm, user_email: event.target.value })}
+            />
             <TextField select label="Product" value={manualForm.product_type} onChange={(event) => setManualForm({ ...manualForm, product_type: event.target.value as B2BProductType })}>
               {PRODUCT_OPTIONS.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
             </TextField>
@@ -362,12 +655,21 @@ export function B2BClientManager() {
             </TextField>
             <TextField label="Extra recipient" value={manualForm.extra_recipient_email || ''} onChange={(event) => setManualForm({ ...manualForm, extra_recipient_email: event.target.value })} />
             <TextField label="Company" value={manualForm.company_name || ''} onChange={(event) => setManualForm({ ...manualForm, company_name: event.target.value })} />
-            <TextField label="Admin notes" multiline minRows={3} value={manualForm.admin_notes || ''} onChange={(event) => setManualForm({ ...manualForm, admin_notes: event.target.value })} />
+            <TextField
+              label="Admin notes"
+              helperText="Internal only. Never appears in a delivered package."
+              multiline
+              minRows={3}
+              value={manualForm.admin_notes || ''}
+              onChange={(event) => setManualForm({ ...manualForm, admin_notes: event.target.value })}
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setManualOpen(false)} disabled={saving}>Cancel</Button>
-          <Button variant="contained" onClick={createManual} disabled={saving}>Create</Button>
+          <Button onClick={() => setManualOpen(false)} disabled={saving} sx={{ color: 'text.secondary' }}>Cancel</Button>
+          <Button variant="contained" onClick={createManual} disabled={saving || !manualForm.user_email.trim()}>
+            {saving ? <CircularProgress size={18} /> : 'Create'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

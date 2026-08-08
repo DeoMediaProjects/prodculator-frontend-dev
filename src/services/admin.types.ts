@@ -53,6 +53,10 @@ export interface BusinessMetricsDashboard {
   active_subscriptions: number;
   mrr_usd: number;
   arr_usd: number;
+  /** How many active subscriptions were valued at plan list price because no
+   *  amount was recorded on the row. Non-zero means the MRR figure is partly
+   *  imputed and must not be presented as billed. */
+  mrr_estimated_subscriptions?: number;
   mrr_by_currency: CurrencyAmount[];
   monthly_churn_percent: number;
   free_to_paid_percent: number;
@@ -351,6 +355,9 @@ export interface Subscriber {
   reports_this_month: number;
   report_limit: number | null;
   monthly_spend: number;
+  /** True when no amount was billed on the subscription and the plan's list
+   *  price stood in, so the figure must not be presented as billed. */
+  monthly_spend_estimated?: boolean;
   payment_currency: 'USD' | 'GBP';
   join_date: string;
   last_active: string | null;

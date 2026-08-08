@@ -274,12 +274,21 @@ export function ScriptAIOverview() {
       },
     },
     {
-      key: 'monthly_spend', header: 'SPEND', width: '0.85fr', align: 'right',
+      key: 'monthly_spend', header: 'SPEND', width: '0.95fr', align: 'right',
       sortValue: (u) => u.monthly_spend,
       render: (u) => (
-        <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-          {u.payment_currency === 'GBP' ? '£' : '$'}{u.monthly_spend}/mo
-        </Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            {u.payment_currency === 'GBP' ? '£' : '$'}{u.monthly_spend}/mo
+          </Typography>
+          {/* An imputed figure that does not say it was imputed is exactly what
+              hid the NULL-amount bug that showed paying customers at $0/mo. */}
+          {u.monthly_spend_estimated && (
+            <Tooltip title="No amount is recorded on this subscription, so the plan's list price is shown.">
+              <Typography sx={{ fontSize: 11, color: t.warning, whiteSpace: 'nowrap' }}>list price</Typography>
+            </Tooltip>
+          )}
+        </Box>
       ),
     },
     {

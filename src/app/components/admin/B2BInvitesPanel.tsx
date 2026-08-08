@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSnackbar } from 'notistack';
 import {
   Alert,
@@ -13,12 +13,6 @@ import {
   IconButton,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -26,6 +20,7 @@ import {
 import {
   Block,
   ContentCopy,
+  CheckCircleOutline,
   MailOutline,
   PersonAddAlt,
   Refresh,
@@ -39,6 +34,9 @@ import {
   type B2BInviteStatus,
   type B2BProductType,
 } from '@/services/b2b.service';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 
 
 const STATUS_STYLES: Record<B2BInviteStatus, { label: string; bg: string; color: string }> = {
@@ -60,7 +58,7 @@ const EMPTY_FORM: AdminB2BInvitePayload = {
 };
 
 function formatDate(value: string | null) {
-  if (!value) return '-';
+  if (!value) return 'Not set';
   try {
     return new Date(value).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
   } catch {
@@ -90,6 +88,8 @@ export function B2BInvitesPanel({
   onClaimed?: () => void;
 }) {
   const { enqueueSnackbar } = useSnackbar();
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
   const [invites, setInvites] = useState<AdminB2BInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,17 +105,103 @@ export function B2BInvitesPanel({
 
   const productOptions = Object.entries(productLabels) as [B2BProductType, string][];
 
+  const counts = useMemo(() => ({
+    pending: invites.filter((i) => i.status === 'pending').length,
+    accepted: invites.filter((i) => i.status === 'accepted').length,
+    revoked: invites.filter((i) => i.status === 'revoked').length,
+  }), [invites]);
+
+  const scoped = useMemo(
+    () => (statusFilter ? invites.filter((i) => i.status === statusFilter) : invites),
+    [invites, statusFilter],
+  );
+
+  const columns = useMemo<Column<AdminB2BInvite>[]>(() => [
+    {
+      key: 'email', header: 'INVITED', width: '1.9fr',
+      sortValue: (i) => i.email,
+      render: (i) => (
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {i.email}
+          </Typography>
+          {i.company_name && (
+            <Typography sx={{ fontSize: 11.5, color: t.textFaint, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {i.company_name}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      key: 'product_type', header: 'PRODUCT', width: '1.4fr',
+      sortValue: (i) => productLabels[i.product_type] ?? i.product_type,
+      render: (i) => (
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {productLabels[i.product_type] ?? i.product_type}
+        </Typography>
+      ),
+    },
+    {
+      key: 'status', header: 'STATUS', width: '1.2fr',
+      sortValue: (i) => STATUS_STYLES[i.status].label,
+      render: (i) => {
+        const style = STATUS_STYLES[i.status];
+        return <Chip size="small" label={style.label} sx={{ bgcolor: style.bg, color: style.color, fontWeight: 600, fontSize: '0.7rem' }} />;
+      },
+    },
+    {
+      key: 'expires_at', header: 'EXPIRES', width: '1.3fr',
+      sortValue: (i) => Date.parse(i.expires_at || '') || Number.MAX_SAFE_INTEGER,
+      render: (i) => {
+        const remaining = i.status === 'pending' ? daysUntil(i.expires_at) : null;
+        return (
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: 13.5, color: t.textSecondary }}>{formatDate(i.expires_at)}</Typography>
+            {/* Only a live invite has a countdown worth reading: an expiry date on
+                a claimed or revoked invite decides nothing. */}
+            {remaining !== null && remaining >= 0 && (
+              <Typography sx={{ fontSize: 11.5, fontWeight: remaining <= 3 ? 700 : 400, color: remaining <= 3 ? t.warning : t.textFaint }}>
+                {remaining === 0 ? 'expires today' : `${remaining} day${remaining === 1 ? '' : 's'} left`}
+              </Typography>
+            )}
+          </Box>
+        );
+      },
+    },
+    {
+      key: 'sent_count', header: 'TIMES SENT', width: '0.9fr', align: 'right',
+      sortValue: (i) => i.sent_count + 1,
+      render: (i) => (
+        <Typography sx={{ fontSize: 13.5, color: t.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+          {i.sent_count + 1}
+        </Typography>
+      ),
+    },
+    {
+      key: 'accepted_at', header: 'CLAIMED', width: '1.2fr',
+      sortValue: (i) => Date.parse(i.accepted_at || '') || 0,
+      render: (i) => (
+        <Typography sx={{ fontSize: 13.5, color: i.accepted_at ? t.textSecondary : t.textFaint }}>
+          {i.accepted_at ? formatDate(i.accepted_at) : 'Not yet'}
+        </Typography>
+      ),
+    },
+  ], [t, productLabels]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setInvites(await adminB2BService.getInvites(statusFilter ? { status: statusFilter } : {}));
+      // Fetched unscoped: scoping is applied client-side so switching scope is
+      // instant and the tab counts always agree with the rows underneath them.
+      setInvites(await adminB2BService.getInvites({}));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load invites');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -192,39 +278,20 @@ export function B2BInvitesPanel({
 
   return (
     <Box sx={{ mt: 3 }}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        justifyContent="space-between"
-        alignItems={{ xs: 'stretch', sm: 'center' }}
-        spacing={2}
-        sx={{ mb: 2 }}
-      >
-        <Box>
-          <Typography variant="h6" sx={{ color: 'text.primary' }}>Contract invites</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Invite a contracted client before they have an account. The subscription is created when they claim it.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <TextField
-            select
-            size="small"
-            label="Status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as B2BInviteStatus | '')}
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">All</MenuItem>
-            {(Object.keys(STATUS_STYLES) as B2BInviteStatus[]).map((status) => (
-              <MenuItem key={status} value={status}>{STATUS_STYLES[status].label}</MenuItem>
-            ))}
-          </TextField>
-          <Button startIcon={<Refresh />} onClick={() => void load()}>Refresh</Button>
-          <Button variant="contained" startIcon={<PersonAddAlt />} onClick={() => setIssueOpen(true)}>
-            Invite Client
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography sx={{ fontSize: 13.5, color: 'text.secondary', maxWidth: '70ch' }}>
+          Invite a contracted client before they have an account. The subscription is created when they claim it, so
+          nothing needs provisioning by hand.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+          <Button size="small" startIcon={<Refresh />} onClick={() => void load()} disabled={loading}>
+            Refresh
           </Button>
-        </Stack>
-      </Stack>
+          <Button size="small" variant="contained" startIcon={<PersonAddAlt />} onClick={() => setIssueOpen(true)}>
+            Invite client
+          </Button>
+        </Box>
+      </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
@@ -252,99 +319,66 @@ export function B2BInvitesPanel({
         </Alert>
       )}
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Invited</TableCell>
-              <TableCell>Product</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Expires</TableCell>
-              <TableCell>Sends</TableCell>
-              <TableCell>Claimed</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>Loading invites...</TableCell></TableRow>
-            ) : invites.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-                  {statusFilter
-                    ? `No ${STATUS_STYLES[statusFilter].label.toLowerCase()} invites.`
-                    : 'No contract invites yet. Issue one to onboard a client who has not signed up.'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              invites.map((invite) => {
-                const style = STATUS_STYLES[invite.status];
-                const remaining = invite.status === 'pending' ? daysUntil(invite.expires_at) : null;
-                return (
-                  <TableRow key={invite.id} hover>
-                    <TableCell>
-                      <Typography sx={{ color: 'text.primary', fontSize: 14 }}>{invite.email}</Typography>
-                      {invite.company_name && (
-                        <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{invite.company_name}</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>{productLabels[invite.product_type] ?? invite.product_type}</TableCell>
-                    <TableCell>
-                      <Chip size="small" label={style.label} sx={{ bgcolor: style.bg, color: style.color, fontWeight: 600 }} />
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(invite.expires_at)}
-                      {remaining !== null && remaining >= 0 && (
-                        <Typography sx={{ color: remaining <= 3 ? 'warning.main' : 'text.secondary', fontSize: 11 }}>
-                          {remaining === 0 ? 'today' : `${remaining} day${remaining === 1 ? '' : 's'} left`}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>{invite.sent_count + 1}</TableCell>
-                    <TableCell>
-                      {invite.accepted_at ? formatDate(invite.accepted_at) : '-'}
-                    </TableCell>
-                    <TableCell align="right">
-                      {invite.status === 'accepted' ? (
-                        <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>
-                          Subscription created
-                        </Typography>
-                      ) : (
-                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          <Tooltip title="Rotate the token and email it again. The old link stops working.">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={busyId === invite.id || invite.status === 'revoked'}
-                                onClick={() => void resend(invite)}
-                                sx={{ color: 'primary.main' }}
-                              >
-                                <Send fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <Tooltip title="Revoke this invite">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={busyId === invite.id || invite.status === 'revoked'}
-                                onClick={() => setRevokeTarget(invite)}
-                                sx={{ color: 'error.main' }}
-                              >
-                                <Block fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Stack>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Box sx={{ mb: 2 }}>
+        <SegmentedToggle
+          value={statusFilter || 'all'}
+          onChange={(v) => setStatusFilter(v === 'all' ? '' : (v as B2BInviteStatus))}
+          options={[
+            { value: 'all', label: `All ${invites.length}` },
+            { value: 'pending', label: `Awaiting claim ${counts.pending}` },
+            { value: 'accepted', label: `Claimed ${counts.accepted}` },
+            { value: 'revoked', label: `Revoked ${counts.revoked}` },
+          ]}
+        />
+      </Box>
+
+      <DataTable<AdminB2BInvite>
+        key={statusFilter || 'all'}
+        title="Contract invites"
+        columns={columns}
+        rows={scoped}
+        getRowId={(i) => i.id}
+        pageSize={10}
+        itemNoun="invite"
+        minWidth={1060}
+        maxHeight={520}
+        emptyIcon={<MailOutline sx={{ fontSize: 28, color: t.textFaint }} />}
+        emptyMessage={statusFilter
+          ? `No ${STATUS_STYLES[statusFilter].label.toLowerCase()} invites.`
+          : 'No contract invites yet. Issue one to onboard a client who has not signed up.'}
+        rowActions={(invite) => (invite.status === 'accepted' ? (
+          <Tooltip title="Claimed, so the subscription already exists">
+            <CheckCircleOutline sx={{ fontSize: 17, color: t.success }} />
+          </Tooltip>
+        ) : (
+          <>
+            <Tooltip title="Rotate the token and email it again. The old link stops working.">
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={busyId === invite.id || invite.status === 'revoked'}
+                  onClick={() => void resend(invite)}
+                  sx={{ color: t.textSecondary, '&:hover': { color: t.gold } }}
+                >
+                  <Send sx={{ fontSize: 18 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Revoke this invite">
+              <span>
+                <IconButton
+                  size="small"
+                  disabled={busyId === invite.id || invite.status === 'revoked'}
+                  onClick={() => setRevokeTarget(invite)}
+                  sx={{ color: t.textSecondary, '&:hover': { color: t.error } }}
+                >
+                  <Block sx={{ fontSize: 18 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </>
+        ))}
+      />
 
       <Dialog open={issueOpen} onClose={() => setIssueOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Invite a contracted client</DialogTitle>

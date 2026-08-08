@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Box, Tab, Tabs } from '@mui/material';
+import { Box } from '@mui/material';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { PackageComposer } from './PackageComposer';
 import { SignalPoolPanel } from './SignalPoolPanel';
-import { AdminPanel } from './AdminPanel';
+
+type View = 'compose' | 'pool';
 
 /** Admin workspace for assembling Business Intelligence packages and governing
  *  the signal pool they draw from (SOW 4.4 / 4.5).
@@ -16,32 +18,22 @@ import { AdminPanel } from './AdminPanel';
  *  Client-facing naming is "Business Intelligence"; the b2b_ prefix stays
  *  internal to code and tables. */
 export function BusinessIntelligenceStudio() {
-  const [tab, setTab] = useState(0);
+  const [view, setView] = useState<View>('compose');
 
   return (
     <Box>
-      <Tabs
-        value={tab}
-        onChange={(_, v) => setTab(v)}
-        sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
-      >
-        <Tab label="Compose a package" />
-        <Tab label="Signal pool" />
-      </Tabs>
+      <Box sx={{ mb: 2 }}>
+        <SegmentedToggle
+          value={view}
+          onChange={(v) => setView(v as View)}
+          options={[
+            { value: 'compose', label: 'Compose a package' },
+            { value: 'pool', label: 'Signal pool' },
+          ]}
+        />
+      </Box>
 
-      {tab === 0 && (
-        <AdminPanel>
-          <PackageComposer />
-        </AdminPanel>
-      )}
-      {tab === 1 && (
-        <AdminPanel
-          title="Signal pool"
-          description="The consented production signals every intelligence product aggregates. Flagging a row as internal removes it from customer-facing aggregation without deleting it."
-        >
-          <SignalPoolPanel />
-        </AdminPanel>
-      )}
+      {view === 'compose' ? <PackageComposer /> : <SignalPoolPanel />}
     </Box>
   );
 }
