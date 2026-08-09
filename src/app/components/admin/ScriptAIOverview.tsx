@@ -433,6 +433,16 @@ export function ScriptAIOverview() {
 
       {subscribersError && <Alert severity="error" sx={{ mb: 2 }}>{subscribersError}</Alert>}
 
+      {/* A short list must never read as a complete one. The server log names the
+          user_id of every row it could not render. */}
+      {!!subscriberData?.unreadable && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {subscriberData.unreadable} {subscriberData.unreadable === 1 ? 'subscriber' : 'subscribers'} could not be
+          displayed because of unexpected missing data on the account. The rest of this list is complete, and the
+          server log records which accounts were affected.
+        </Alert>
+      )}
+
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 2 }}>
         <SegmentedToggle
           value={status}
