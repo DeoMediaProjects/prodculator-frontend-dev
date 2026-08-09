@@ -186,6 +186,11 @@ interface ScriptMetadata {
   // Business Intelligence consent — explicit opt-in to aggregate this
   // production's anonymised signals. Defaults to false when omitted.
   biConsent?: boolean;
+  /** Set when the production format is one whose incentive eligibility the
+   *  programme data does not record (today: short films), and the producer has
+   *  confirmed they understand the rebate figures assume eligibility. Recorded
+   *  with the request because the report states the same caveat. */
+  formatEligibilityAcknowledged?: boolean;
 }
 
 interface ScriptContextType {
@@ -268,6 +273,9 @@ function buildReportRequestBody(
   if (metadata.email) body.email = metadata.email;
   // Explicit boolean either way — the backend's consent gate treats absence as refusal.
   body.b2b_consent = metadata.biConsent === true;
+  if (metadata.formatEligibilityAcknowledged !== undefined) {
+    body.format_eligibility_acknowledged = metadata.formatEligibilityAcknowledged;
+  }
   return body;
 }
 

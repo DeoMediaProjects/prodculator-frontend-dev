@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
   OutlinedInput, Chip, Checkbox, ListItemText, FormHelperText, FormControlLabel, Link,
-  CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip,
+  CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip, Alert,
 } from '@mui/material';
 import {
   ArrowBack, CloudUpload, CheckCircle, LightModeOutlined, DarkModeOutlined,
@@ -48,6 +48,20 @@ const CURRENCY_BY_COUNTRY: Record<string, string> = {
 
 const GENRE_OPTIONS = ['Drama', 'Thriller', 'Sci Fi', 'Horror', 'Comedy', 'Romance', 'Action', 'Adventure', 'Fantasy', 'Mystery', 'Documentary', 'Biopic', 'Period', 'History', 'Western', 'Animation', 'Musical', 'Music', 'Crime', 'War', 'Sports', 'Family', 'Superhero', 'Coming-of-Age', 'Psychological', 'Disaster', 'Spy', 'Noir'];
 const FORMAT_OPTIONS = ['Feature Film', 'TV Series', 'TV Pilot', 'Limited Series', 'Short', 'Documentary', 'Animated Feature'];
+
+/** Formats whose incentive eligibility the programme data does not record, and
+ *  whose real-world eligibility differs materially from a feature.
+ *
+ *  Mirrors FORMATS_NEEDING_ELIGIBILITY_CHECK in the report helpers. Short-form
+ *  work is frequently excluded from production tax credits and served instead by
+ *  separate grant schemes, so modelling a feature-scale rebate against a short
+ *  overstates what the production can claim. Kept in sync deliberately: the
+ *  producer is asked to confirm here, and the report repeats the caveat. */
+const FORMATS_NEEDING_ELIGIBILITY_CHECK = ['short', 'short film'];
+
+function needsFormatEligibilityCheck(format: string): boolean {
+  return FORMATS_NEEDING_ELIGIBILITY_CHECK.includes(format.trim().toLowerCase());
+}
 const CAMERA_OPTIONS = ['ARRI Alexa 35', 'RED VRAPTOR', 'Sony VENICE 2', 'Film 35mm', 'Blackmagic Cinema', 'Canon C70', 'Sony FX9', 'Panavision', 'IMAX', 'DJI Drone', 'GoPro', 'iPhone', 'Sony Alpha', 'Sony A7S III', 'Canon EOS R5', 'Phantom High Speed', 'Kinefinity Terra', 'Other'];
 const USA_STATES = ['California', 'New York', 'Georgia', 'Louisiana', 'New Mexico', 'Texas', 'North Carolina', 'Massachusetts', 'Illinois', 'Pennsylvania', 'Florida', 'Oregon', 'Washington', 'Nevada', 'Utah', 'Colorado', 'Other'];
 const CANADA_PROVINCES = ['British Columbia', 'Ontario', 'Quebec', 'Alberta', 'Manitoba', 'Nova Scotia', 'Saskatchewan', 'New Brunswick', 'Other'];
@@ -132,6 +146,10 @@ export function AnalysisWizard() {
   const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>([]);
   const [productionPriority, setProductionPriority] = useState('full');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // Confirmation that the producer understands incentive eligibility is not
+  // verified for their format. Required to generate, and reset if they change
+  // format, so a stale tick cannot carry over from a different selection.
+  const [acceptedFormatEligibility, setAcceptedFormatEligibility] = useState(false);
   const [biConsent, setBiConsent] = useState(false);
   const [processing, setProcessing] = useState(false);
   const submittingRef = useRef(false);
@@ -249,11 +267,15 @@ export function AnalysisWizard() {
     cameraEquipment.length > 0 && !!crewSize && !!principalCast && !!supportingCast &&
     primaryLanguages.length > 0 && !!mustFilmIn && !!coProductionInterest &&
     targetAudience.length > 0 && !!audienceSkewChoice;
+  // Eligibility is unverified for this format, so the producer has to confirm
+  // they understand that before a report quotes rebates against it.
+  const formatNeedsCheck = needsFormatEligibilityCheck(format);
+
   const stepValid = [
     !!file && !!title && genres.length > 0 && !!format,
     !!country && !!budgetCurrency && !!budgetAmount && Number(budgetAmount) > 0,
     detailsValid,
-    acceptedTerms,
+    acceptedTerms && (!formatNeedsCheck || acceptedFormatEligibility),
   ];
   const missingForStep = (i: number): string[] => {
     if (i === 0) return [...(!file ? ['script file'] : []), ...(!title ? ['project title'] : []), ...(genres.length === 0 ? ['genre'] : []), ...(!format ? ['format'] : [])];
@@ -264,7 +286,12 @@ export function AnalysisWizard() {
       ...(primaryLanguages.length === 0 ? ['primary language(s)'] : []), ...(!mustFilmIn ? ['must film in'] : []), ...(!coProductionInterest ? ['co-production'] : []),
       ...(targetAudience.length === 0 ? ['target audience'] : []), ...(!audienceSkewChoice ? ['audience skew'] : []),
     ];
-    return [...(!acceptedTerms ? ['terms acceptance'] : [])];
+    return [
+      ...(!acceptedTerms ? ['terms acceptance'] : []),
+      ...(formatNeedsCheck && !acceptedFormatEligibility
+        ? ['confirmation that incentive eligibility is unverified for this format']
+        : []),
+    ];
   };
 
   const handleContinue = () => {
@@ -315,6 +342,9 @@ export function AnalysisWizard() {
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
         ...contractFields(),
         biConsent,
+        // Recorded with the request: the report states the caveat, so it should
+        // also be provable that the producer was asked to confirm it.
+        formatEligibilityAcknowledged: formatNeedsCheck ? acceptedFormatEligibility : undefined,
       };
       const generated = await generateAnalysis(file!, metadata);
       if (!generated.id) throw new Error('Report completed but did not return a report ID.');
@@ -377,53 +407,178 @@ export function AnalysisWizard() {
   // ================= Step content =================
   const renderStep = (): ReactNode => {
     if (step === 0) return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {/* Upload */}
         <Box data-tour="wizard-upload" sx={{ ...card, p: 3 }}>
-          {sectionLabel('Script')}
+          {sectionLabel("Script")}
           <Box
             component="label"
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
             onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => { e.preventDefault(); setDragOver(false); setFileValidated(e.dataTransfer.files?.[0]); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              setFileValidated(e.dataTransfer.files?.[0]);
+            }}
             sx={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5,
-              p: 5, borderRadius: '14px', cursor: 'pointer', textAlign: 'center',
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1.5,
+              p: 5,
+              borderRadius: "14px",
+              cursor: "pointer",
+              textAlign: "center",
               border: `2px dashed ${dragOver ? t.gold : file ? t.gold : t.border}`,
-              bgcolor: dragOver ? t.goldDim : t.inputBg, transition: 'all .15s',
+              bgcolor: dragOver ? t.goldDim : t.inputBg,
+              transition: "all .15s",
             }}
           >
-            <input hidden type="file" accept=".pdf,.docx,.txt" onChange={(e) => setFileValidated(e.target.files?.[0])} />
-            {file ? <CheckCircle sx={{ fontSize: 42, color: t.gold }} /> : <CloudUpload sx={{ fontSize: 42, color: t.textSecondary }} />}
-            <Typography sx={{ color: t.textPrimary, fontWeight: 700 }}>{file ? file.name : 'Drag & drop your script, or click to browse'}</Typography>
-            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>{file ? `${(file.size / 1024 / 1024).toFixed(1)} MB · click to replace` : 'PDF, DOCX or TXT · up to 10MB'}</Typography>
+            <input
+              hidden
+              type="file"
+              accept=".pdf,.docx,.txt"
+              onChange={(e) => setFileValidated(e.target.files?.[0])}
+            />
+            {file ? (
+              <CheckCircle sx={{ fontSize: 42, color: t.gold }} />
+            ) : (
+              <CloudUpload sx={{ fontSize: 42, color: t.textSecondary }} />
+            )}
+            <Typography sx={{ color: t.textPrimary, fontWeight: 700 }}>
+              {file ? file.name : "Drag & drop your script, or click to browse"}
+            </Typography>
+            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+              {file
+                ? `${(file.size / 1024 / 1024).toFixed(1)} MB · click to replace`
+                : "PDF, DOCX or TXT · up to 10MB"}
+            </Typography>
           </Box>
         </Box>
 
         {/* Project */}
-        <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          {sectionLabel('Project')}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
-            <TextField fullWidth required label="Project Title" value={title} onChange={(e) => setTitle(e.target.value)} sx={fieldSx} />
+        <Box
+          sx={{
+            ...card,
+            p: 3,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2.5,
+          }}
+        >
+          {sectionLabel("Project")}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              gap: 2.5,
+            }}
+          >
+            <TextField
+              fullWidth
+              required
+              label="Project Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              sx={fieldSx}
+            />
             <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Format</InputLabel>
-              <Select value={format} label="Format" onChange={(e) => setFormat(e.target.value)} MenuProps={menuProps}>
-                {FORMAT_OPTIONS.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
+              <Select
+                value={format}
+                label="Format"
+                onChange={(e) => {
+                  setFormat(e.target.value);
+                  setAcceptedFormatEligibility(false);
+                }}
+                MenuProps={menuProps}
+              >
+                {FORMAT_OPTIONS.map((f) => (
+                  <MenuItem key={f} value={f}>
+                    {f}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
+            {/* Shown where the choice is made, not only at the end, so it informs
+                the decision instead of arriving as a surprise on the last step. */}
+            {formatNeedsCheck && (
+              <Alert
+                severity="warning"
+                sx={{
+                  // Spans both columns of the parent grid. As a plain child it
+                  // occupied one cell and left the other empty, so a block of
+                  // prose sat in a half-width column beside dead space.
+                  gridColumn: '1 / -1',
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>
+                  Short-film eligibility varies by territory
+                </Typography>
+
+                <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
+                  Some production incentives exclude short films or apply
+                  different requirements based on format, running time,
+                  production spend, distribution plans, or other eligibility
+                  criteria.
+                </Typography>
+
+                <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
+                  Our current programme data does not identify which incentives
+                  specifically accept short films. As a result, the incentive
+                  estimates in your report assume that the selected programmes
+                  accept this format and may therefore overstate the incentives
+                  available.
+                </Typography>
+
+                <Typography sx={{ fontSize: 13, lineHeight: 1.6 }}>
+                  Treat these figures as indicative only and confirm short-film
+                  eligibility with the relevant programme or film commission
+                  before relying on them.
+                </Typography>
+              </Alert>
+            )}
           </Box>
           <Box>
-            <Typography sx={{ color: t.textSecondary, fontSize: 13.5, mb: 1 }}>Genre(s) <Box component="span" sx={{ color: t.textFaint }}>· select all that apply</Box></Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <Typography sx={{ color: t.textSecondary, fontSize: 13.5, mb: 1 }}>
+              Genre(s){" "}
+              <Box component="span" sx={{ color: t.textFaint }}>
+                · select all that apply
+              </Box>
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               {GENRE_OPTIONS.map((g) => {
                 const on = genres.includes(g);
                 return (
                   <Chip
-                    key={g} label={g} onClick={() => setGenres(on ? genres.filter((x) => x !== g) : [...genres, g])}
+                    key={g}
+                    label={g}
+                    onClick={() =>
+                      setGenres(
+                        on ? genres.filter((x) => x !== g) : [...genres, g],
+                      )
+                    }
                     sx={{
-                      cursor: 'pointer', fontWeight: 600, borderRadius: '9px',
-                      bgcolor: on ? t.gold : 'transparent', color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
-                      border: `1px solid ${on ? t.gold : t.border}`, '&:hover': { borderColor: t.gold, bgcolor: on ? t.gold : t.goldDim },
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      borderRadius: "9px",
+                      bgcolor: on ? t.gold : "transparent",
+                      color: on
+                        ? mode === "dark"
+                          ? "#000"
+                          : "#fff"
+                        : t.textSecondary,
+                      border: `1px solid ${on ? t.gold : t.border}`,
+                      "&:hover": {
+                        borderColor: t.gold,
+                        bgcolor: on ? t.gold : t.goldDim,
+                      },
                     }}
                   />
                 );
@@ -747,6 +902,28 @@ export function AnalysisWizard() {
               control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} sx={{ ...cbSx, pt: 0 }} />}
               label={<Typography sx={{ color: t.textSecondary, fontSize: 13 }}>I accept the <Link href="/terms" target="_blank" sx={{ color: t.gold }}>Terms of Service</Link>, <Link href="/privacy" target="_blank" sx={{ color: t.gold }}>Privacy Policy</Link> and Acceptable Use Policy.</Typography>}
             />
+            {/* Required only for the formats whose eligibility is unverified, so
+                the consent screen does not grow a checkbox for producers it does
+                not apply to. */}
+            {formatNeedsCheck && (
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start', m: 0, mb: 1.5 }}
+                control={(
+                  <Checkbox
+                    checked={acceptedFormatEligibility}
+                    onChange={(e) => setAcceptedFormatEligibility(e.target.checked)}
+                    sx={{ ...cbSx, pt: 0 }}
+                  />
+                )}
+                label={(
+                  <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+                    I understand that not all territories offer tax incentives for {format.toLowerCase()} projects, that
+                    the rebate figures in my report are modelled as though each programme accepts one, and that I must
+                    confirm eligibility with each film commission before relying on them.
+                  </Typography>
+                )}
+              />
+            )}
             <FormControlLabel
               sx={{ alignItems: 'flex-start', m: 0 }}
               control={<Checkbox checked={biConsent} onChange={(e) => setBiConsent(e.target.checked)} sx={{ ...cbSx, pt: 0 }} />}
