@@ -499,10 +499,14 @@ export function AnalysisWizard() {
               ? `Select any territories you are considering (${territoriesConsidering.length} chosen).`
               : `Your plan lets you select up to ${maxTerritories} territories (${territoriesConsidering.length}/${maxTerritories} chosen).`}
           </Typography>
-          {allTerritories.some((x) => !x.isSubTerritory && x.hasActiveIncentive === false) && (
-            <Typography sx={{ color: t.textFaint, fontSize: 12, mb: 2 }}>
-              A dashed outline means there is no active incentive to model there today. You can
-              still select it for location, crew or currency reasons.
+          {/* The legend names both marks. One sentence covering both read as if
+              a suspended programme and no programme were the same thing. */}
+          {allTerritories.some((x) => !x.isSubTerritory && x.incentiveStatus !== 'active') && (
+            <Typography sx={{ color: t.textFaint, fontSize: 12, mb: 2, maxWidth: '86ch', lineHeight: 1.6 }}>
+              An <Box component="span" sx={{ color: t.warning, fontWeight: 700 }}>amber outline</Box> means the
+              territory has a tax incentive programme whose bankability cannot be confirmed today, so no rebate is
+              modelled for it. A dashed outline means there is no incentive programme on record at all. Either way you
+              can still select it for location, crew or currency reasons.
             </Typography>
           )}
           {territoryGroups.map((group) => (
@@ -512,12 +516,20 @@ export function AnalysisWizard() {
                 {group.countries.map(({ country: c, regions }) => {
                   const on = territoriesConsidering.includes(c.label);
                   const disabled = !on && atTerritoryLimit;
-                  // Selectable, but say plainly that no rebate can be modelled.
-                  // South Africa's programme is suspended, Nigeria has none, and
-                  // Brazil is pending verification. Their location, crew and
-                  // currency advantages are real, so producers can still declare
-                  // them; we simply will not imply a bankable incentive.
-                  const noIncentive = c.hasActiveIncentive === false;
+                  // Three states, because "no programme at all" and "a
+                  // programme we cannot vouch for" are different facts and a
+                  // single dashed outline said the same thing about both.
+                  // Nigeria has no programme. South Africa's is suspended and
+                  // Brazil's is pending verification, so both hold a real
+                  // incentive record whose bankability is unconfirmed. Every one
+                  // of them stays selectable: their location, crew and currency
+                  // advantages are real, and we simply never imply a bankable
+                  // rebate we cannot stand behind.
+                  const status = c.incentiveStatus
+                    ?? (c.hasActiveIncentive === false ? 'none' : 'active');
+                  const unconfirmed = status === 'unconfirmed';
+                  const noIncentive = status === 'none';
+                  const flagged = unconfirmed || noIncentive;
                   const chip = (
                     <Chip
                       key={c.label}
@@ -528,15 +540,22 @@ export function AnalysisWizard() {
                         fontWeight: 600, borderRadius: '9px',
                         bgcolor: on ? t.gold : 'transparent',
                         color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
-                        border: `1px ${noIncentive && !on ? 'dashed' : 'solid'} ${on ? t.gold : t.border}`,
+                        // Dashed for no programme, solid amber for a programme
+                        // whose bankability is unconfirmed: a different fact
+                        // deserves a different mark, not the same one.
+                        border: `1px ${noIncentive && !on ? 'dashed' : 'solid'} ${
+                          on ? t.gold : unconfirmed ? t.warning : t.border
+                        }`,
                         '&:hover': { borderColor: t.gold },
                       }}
                     />
                   );
-                  return noIncentive ? (
+                  return flagged ? (
                     <Tooltip
                       key={c.label}
-                      title="No active incentive to model right now. Still selectable for location, crew and currency reasons."
+                      title={unconfirmed
+                        ? 'Has a tax incentive programme, but its bankability cannot be confirmed today, so no rebate is modelled for it. Still selectable for location, crew and currency reasons.'
+                        : 'No active incentive to model right now. Still selectable for location, crew and currency reasons.'}
                     >
                       <span style={{ display: 'inline-flex' }}>{chip}</span>
                     </Tooltip>

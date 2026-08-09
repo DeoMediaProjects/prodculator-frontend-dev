@@ -157,7 +157,7 @@ export interface B2BProduct {
   self_service: boolean;
   /** "coming_soon" while pricing is being finalised, "custom_contract" for
    *  bespoke agreements, "listed" once a real price is published. */
-  pricing_status?: 'coming_soon' | 'custom_contract' | 'listed';
+  pricing_status?: 'coming_soon' | 'waitlist' | 'custom_contract' | 'listed';
   stripe_price_configured: Record<string, boolean>;
 }
 

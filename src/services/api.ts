@@ -462,6 +462,17 @@ export async function getTerritories(includeAll = false): Promise<Territory[]> {
       // Older builds omit the flag entirely. Assume covered in that case, so a
       // territory is never wrongly labelled as having no incentive.
       hasActiveIncentive: item.hasActiveIncentive !== false,
+      // Derived from the boolean when the API predates the three-state field, so
+      // an older backend degrades to the previous behaviour rather than showing
+      // every territory as unconfirmed.
+      incentiveStatus:
+        item.incentiveStatus === 'active'
+        || item.incentiveStatus === 'unconfirmed'
+        || item.incentiveStatus === 'none'
+          ? item.incentiveStatus
+          : item.hasActiveIncentive === false
+            ? 'none'
+            : 'active',
     }));
 }
 
