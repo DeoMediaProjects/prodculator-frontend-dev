@@ -78,6 +78,9 @@ interface ScriptAnalysis {
    *  is unverified for the production's format. Absent means every programme has
    *  an answer, so no blanket warning is warranted. */
   formatEligibilityCaveat?: string | null;
+  /** Blanket caveat set by the backend only while some programme fails its own
+   *  thresholds. Separate from the format caveat: different problem, different fix. */
+  programmeAvailabilityCaveat?: string | null;
 
   // Tab 5: Comparable Productions
   comparables: ComparableProduction[];
@@ -137,6 +140,18 @@ interface IncentiveEstimate {
   /** False when the rebate figure rests on an unconfirmed eligibility assumption.
    *  The figure still shows; it is labelled rather than hidden. */
   rebateIsConfirmed?: boolean;
+  /** Whether the production clears this programme's own stated thresholds:
+   *  minimum qualifying spend, budget ceiling, expiry, status. A blunter question
+   *  than format eligibility, and the one that withdraws the figure rather than
+   *  annotating it. `reasons` carries the arithmetic behind each gate. */
+  programmeEligibility?: {
+    verdict: 'available' | 'unavailable' | 'unverifiable';
+    label: string;
+    available: boolean;
+    rebateIsClaimable: boolean;
+    explanation?: string | null;
+    reasons?: Array<{ gate: string; outcome: 'pass' | 'fail' | 'untested'; detail: string }>;
+  } | null;
 }
 
 interface ComparableProduction {
@@ -321,6 +336,7 @@ function normaliseAnalysisData(
     locationRankings: toArray<LocationRanking>(analysisData.locationRankings),
     incentiveEstimates: toArray<IncentiveEstimate>(analysisData.incentiveEstimates),
     formatEligibilityCaveat: analysisData.formatEligibilityCaveat ?? null,
+    programmeAvailabilityCaveat: analysisData.programmeAvailabilityCaveat ?? null,
     comparables: toArray<ComparableProduction>(analysisData.comparables),
     weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
     fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities),
@@ -446,6 +462,7 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
     locationRankings,
     incentiveEstimates,
     formatEligibilityCaveat: reportData.formatEligibilityCaveat ?? null,
+    programmeAvailabilityCaveat: reportData.programmeAvailabilityCaveat ?? null,
     comparables,
     weatherLogistics,
     fundingOpportunities,
