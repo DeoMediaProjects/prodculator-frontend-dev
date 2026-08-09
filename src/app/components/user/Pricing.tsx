@@ -23,6 +23,7 @@ import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { PageHeader } from '@/app/components/common/PageHeader';
 import { SiteFooter } from '@/app/components/common/SiteFooter';
 import {
+  BI_PRICING,
   PLAN_PRICING,
   STRIPE_PRICES,
   createSubscriptionCheckout,
@@ -47,6 +48,10 @@ interface Plan {
   annualGBP?: number;  // per-month price when billed annually (GBP)
   pricePer?: string;   // label after the price, defaults to 'month'
   pricePrefix?: string; // e.g. 'from '
+  /** Quote this plan in GBP whatever the visitor's geo. For products that carry
+   *  no USD price: converting one for display would put a figure on the page
+   *  that nobody can actually be charged. */
+  gbpOnly?: boolean;
   description: string;
   features: string[];
   cta: string;
@@ -316,6 +321,7 @@ export function Pricing() {
 
   const displayPrice = (plan: Plan): string => {
     if (plan.action === 'free') return '0';
+    if (plan.gbpOnly) return String(plan.monthlyGBP);
     if (isGBP) {
       return String(billingCycle === 'annual' && plan.annualGBP != null ? plan.annualGBP : plan.monthlyGBP);
     }
@@ -423,8 +429,13 @@ export function Pricing() {
     },
     {
       name: 'Business Intelligence Solutions',
-      monthlyUSD: 2,
-      monthlyGBP: 1.6,
+      // The floor of the package range, from the one place it is written. The
+      // previous $2 / £1.60 was a placeholder from before the packages were
+      // priced, and understated the real entry point by two orders of magnitude.
+      // See BI_PRICING for the full range.
+      monthlyUSD: BI_PRICING.lowestMonthlyGBP,
+      monthlyGBP: BI_PRICING.lowestMonthlyGBP,
+      gbpOnly: true,
       pricePrefix: 'from ',
       description: 'Production intelligence for studios, vendors & agencies',
       features: [
@@ -572,7 +583,7 @@ export function Pricing() {
                             currency choice matters on a plan that has no price. */}
                         {plan.action === 'free'
                           ? 'Free'
-                          : <>{plan.pricePrefix ?? ''}{symbol}{displayPrice(plan)}</>}
+                          : <>{plan.pricePrefix ?? ''}{plan.gbpOnly ? '£' : symbol}{displayPrice(plan)}</>}
                       </Typography>
                       {plan.action !== 'free' && (
                         <Typography variant="body1" component="span" sx={{ color: t.textSecondary }}>

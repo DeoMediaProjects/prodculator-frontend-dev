@@ -1062,6 +1062,14 @@ export function ReportViewer() {
               {analysis.sectionExplainers?.incentiveEstimates && (
                 <Typography variant="body2" sx={{ color: t.textFaint, mb: 3 }}>{analysis.sectionExplainers.incentiveEstimates}</Typography>
               )}
+              {/* Raised by the backend only while some programme below is still
+                  unverified for this format, so it retires itself as the records
+                  are filled in rather than becoming permanent furniture. */}
+              {analysis.formatEligibilityCaveat && (
+                <Alert severity="warning" sx={{ mb: 3, fontSize: 13, lineHeight: 1.6 }}>
+                  {analysis.formatEligibilityCaveat}
+                </Alert>
+              )}
               {isPreview && (
                 <Grid container spacing={3}>
                   {analysis.incentiveEstimates.map((inc, i) => (
@@ -1118,6 +1126,24 @@ export function ReportViewer() {
                           )}
                         </Box>
                         <Typography variant="body2" sx={{ color: t.textFaint, mb: 2 }}>{inc.program}</Typography>
+                        {/* Format eligibility, from the same object the PDF renders,
+                            so the two surfaces cannot state different things about
+                            the same programme. Only shown when it is not a plain
+                            yes: badging the normal case trains people to ignore it. */}
+                        {inc.formatEligibility && inc.formatEligibility.verdict !== 'eligible' && (
+                          <Chip
+                            label={inc.formatEligibility.label}
+                            size="small"
+                            sx={{
+                              mb: 2, fontWeight: 700, fontSize: '0.68rem',
+                              ...(inc.formatEligibility.verdict === 'ineligible'
+                                ? { bgcolor: 'rgba(244,67,54,0.16)', color: t.error, border: `1px solid ${t.error}` }
+                                : inc.formatEligibility.verdict === 'needs_confirmation'
+                                ? { bgcolor: 'rgba(255,152,0,0.16)', color: t.warning, border: `1px solid ${t.warning}` }
+                                : { bgcolor: 'transparent', color: t.textFaint, border: `1px solid ${t.border}` }),
+                            }}
+                          />
+                        )}
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                           <Typography variant="body2">Rate:</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 600 }}>{inc.rate}</Typography>
@@ -1132,11 +1158,49 @@ export function ReportViewer() {
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                           <Typography variant="body2">Estimated Rebate:</Typography>
-                          <Typography variant="h6" sx={{ color: t.success }}>{inc.estimatedRebate}</Typography>
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="h6" sx={{ color: t.success }}>{inc.estimatedRebate}</Typography>
+                            {/* An unconfirmed figure stays visible but never reads as
+                                an amount the production can count on. */}
+                            {inc.rebateIsConfirmed === false && (
+                              <Typography variant="caption" sx={{ color: t.warning, fontWeight: 700 }}>
+                                eligibility unconfirmed
+                              </Typography>
+                            )}
+                          </Box>
                         </Box>
                         <Divider sx={{ my: 2, borderColor: t.border }} />
                         <Typography variant="subtitle2" sx={{ mb: 1, color: t.gold }}>Requirements:</Typography>
                         <List dense>{Array.isArray(inc.requirements) ? inc.requirements.map((r, ri) => <ListItem key={ri} sx={{ color: t.textSecondary, py: 0.25 }}>• {r}</ListItem>) : null}</List>
+                        {/* Stated on the programme it applies to, rather than as a
+                            blanket warning over the whole report. */}
+                        {inc.formatEligibility
+                          && (inc.formatEligibility.verdict === 'needs_confirmation'
+                            || inc.formatEligibility.verdict === 'ineligible')
+                          && inc.formatEligibility.explanation && (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mt: 2, color: t.textSecondary, fontSize: 13, lineHeight: 1.6,
+                              borderLeft: `2px solid ${t.warning}`, pl: 1.5,
+                            }}
+                          >
+                            <Box component="span" sx={{ fontWeight: 700 }}>Format: </Box>
+                            {inc.formatEligibility.explanation}
+                          </Typography>
+                        )}
+                        {inc.formatEligibility?.verdict === 'unverified' && (
+                          <Typography variant="body2" sx={{ mt: 2, color: t.textFaint, fontSize: 13, lineHeight: 1.6 }}>
+                            Format eligibility for this programme has not been verified.
+                          </Typography>
+                        )}
+                        {inc.formatEligibility?.verdict === 'eligible' && inc.formatEligibility.sourceUrl && (
+                          <Typography variant="caption" sx={{ color: t.textFaint, display: 'block', mt: 2 }}>
+                            Format eligibility confirmed
+                            {inc.formatEligibility.verifiedAt ? ` ${inc.formatEligibility.verifiedAt}` : ''}
+                            {' · '}{inc.formatEligibility.sourceUrl}
+                          </Typography>
+                        )}
                         <Typography variant="caption" sx={{ color: t.textFaint, display: 'block', mt: 1 }}>{inc.disclaimer}</Typography>
                         <Typography variant="caption" sx={{ color: t.textSecondary, display: 'block' }}>Source: {cleanSource(inc.dataSource)} • Updated: {new Date(inc.lastUpdated).toLocaleDateString()}</Typography>
                       </Paper>

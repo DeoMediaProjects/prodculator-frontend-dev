@@ -49,18 +49,22 @@ const CURRENCY_BY_COUNTRY: Record<string, string> = {
 const GENRE_OPTIONS = ['Drama', 'Thriller', 'Sci Fi', 'Horror', 'Comedy', 'Romance', 'Action', 'Adventure', 'Fantasy', 'Mystery', 'Documentary', 'Biopic', 'Period', 'History', 'Western', 'Animation', 'Musical', 'Music', 'Crime', 'War', 'Sports', 'Family', 'Superhero', 'Coming-of-Age', 'Psychological', 'Disaster', 'Spy', 'Noir'];
 const FORMAT_OPTIONS = ['Feature Film', 'TV Series', 'TV Pilot', 'Limited Series', 'Short', 'Documentary', 'Animated Feature'];
 
-/** Formats whose incentive eligibility the programme data does not record, and
- *  whose real-world eligibility differs materially from a feature.
+/** Formats whose real-world incentive eligibility differs materially from a
+ *  feature's, used ONLY as the fallback when the backend does not return
+ *  per-programme eligibility.
  *
- *  Mirrors FORMATS_NEEDING_ELIGIBILITY_CHECK in the report helpers. Short-form
- *  work is frequently excluded from production tax credits and served instead by
- *  separate grant schemes, so modelling a feature-scale rebate against a short
- *  overstates what the production can claim. Kept in sync deliberately: the
- *  producer is asked to confirm here, and the report repeats the caveat. */
-const FORMATS_NEEDING_ELIGIBILITY_CHECK = ['short', 'short film'];
+ *  The warning is normally driven by the programme records (see
+ *  `formatNeedsCheck` below), so it names the actual programmes in question and
+ *  retires itself once they are verified. This list exists so an older backend,
+ *  or a failed territories request, degrades to the previous blanket protection
+ *  rather than to silence. Short-form work is frequently excluded from
+ *  production tax credits and served instead by separate grant schemes, so
+ *  modelling a feature-scale rebate against a short overstates what the
+ *  production can claim. */
+const FORMATS_WITH_DIVERGENT_ELIGIBILITY = ['short', 'short film'];
 
-function needsFormatEligibilityCheck(format: string): boolean {
-  return FORMATS_NEEDING_ELIGIBILITY_CHECK.includes(format.trim().toLowerCase());
+function formatDivergesFromFeature(format: string): boolean {
+  return FORMATS_WITH_DIVERGENT_ELIGIBILITY.includes(format.trim().toLowerCase());
 }
 const CAMERA_OPTIONS = ['ARRI Alexa 35', 'RED VRAPTOR', 'Sony VENICE 2', 'Film 35mm', 'Blackmagic Cinema', 'Canon C70', 'Sony FX9', 'Panavision', 'IMAX', 'DJI Drone', 'GoPro', 'iPhone', 'Sony Alpha', 'Sony A7S III', 'Canon EOS R5', 'Phantom High Speed', 'Kinefinity Terra', 'Other'];
 const USA_STATES = ['California', 'New York', 'Georgia', 'Louisiana', 'New Mexico', 'Texas', 'North Carolina', 'Massachusetts', 'Illinois', 'Pennsylvania', 'Florida', 'Oregon', 'Washington', 'Nevada', 'Utah', 'Colorado', 'Other'];
@@ -105,10 +109,6 @@ export function AnalysisWizard() {
 
   const { generateAnalysis } = useScript();
   const { showError } = useToast();
-  // include_all: the intake picker asks where a production is being
-  // considered, which is not the same question as where a rebate can be
-  // modelled. Territories without an active incentive are flagged, not hidden.
-  const { territories: allTerritories } = useTerritories(true);
   const { isFree, isProducer } = usePlanGate();
   const maxTerritories = isFree ? 3 : !isProducer ? 5 : null;
 
@@ -127,6 +127,14 @@ export function AnalysisWizard() {
   const [budgetAmount, setBudgetAmount] = useState<number | ''>('');
   const [budgetCurrency, setBudgetCurrency] = useState('');
   const [format, setFormat] = useState('');
+
+  // include_all: the intake picker asks where a production is being
+  // considered, which is not the same question as where a rebate can be
+  // modelled. Territories without an active incentive are flagged, not hidden.
+  // The format is passed through so each territory comes back with the best
+  // eligibility verdict its programmes can offer it. That is what makes the
+  // warning below specific and self-retiring instead of permanent.
+  const { territories: allTerritories } = useTerritories(true, format || undefined);
   const [country, setCountry] = useState('');
   const [stateProvince, setStateProvince] = useState('');
   const [cameraEquipment, setCameraEquipment] = useState<string[]>([]);
@@ -267,9 +275,33 @@ export function AnalysisWizard() {
     cameraEquipment.length > 0 && !!crewSize && !!principalCast && !!supportingCast &&
     primaryLanguages.length > 0 && !!mustFilmIn && !!coProductionInterest &&
     targetAudience.length > 0 && !!audienceSkewChoice;
-  // Eligibility is unverified for this format, so the producer has to confirm
-  // they understand that before a report quotes rebates against it.
-  const formatNeedsCheck = needsFormatEligibilityCheck(format);
+  // Which programmes this warning is actually about: the territories the
+  // producer has chosen, or every territory while the choice is still open,
+  // since the report will rank across all of them.
+  const relevantTerritories = useMemo(() => {
+    const chosen = allTerritories.filter((x) => territoriesConsidering.includes(x.label));
+    return chosen.length > 0 ? chosen : allTerritories.filter((x) => !x.isSubTerritory);
+  }, [allTerritories, territoriesConsidering]);
+
+  const unverifiedTerritories = useMemo(
+    () => relevantTerritories.filter(
+      (x) => x.formatEligibility?.status === 'unverified'
+        || x.formatEligibility?.status === 'needs_confirmation',
+    ),
+    [relevantTerritories],
+  );
+
+  // Data-driven: raised only while at least one relevant programme cannot confirm
+  // it accepts this format. Not keyed on the format alone, so it disappears by
+  // itself as the programme records are verified rather than needing a code change.
+  //
+  // The fallback keeps the previous protection when no eligibility data came back
+  // at all (older backend, or the request failed). Absent data is not a clean
+  // bill of health, and silence is the one outcome this must never degrade to.
+  const eligibilityDataAvailable = relevantTerritories.some((x) => x.formatEligibility);
+  const formatNeedsCheck = eligibilityDataAvailable
+    ? unverifiedTerritories.length > 0
+    : formatDivergesFromFeature(format);
 
   const stepValid = [
     !!file && !!title && genres.length > 0 && !!format,
@@ -519,28 +551,44 @@ export function AnalysisWizard() {
                 }}
               >
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>
-                  Short-film eligibility varies by territory
+                  {eligibilityDataAvailable
+                    ? `Eligibility for a ${format.toLowerCase()} is unverified in ${unverifiedTerritories.length === 1 ? '1 territory' : `${unverifiedTerritories.length} territories`}`
+                    : `Eligibility for a ${format.toLowerCase()} varies by programme`}
                 </Typography>
 
                 <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
-                  Some production incentives exclude short films or apply
-                  different requirements based on format, running time,
-                  production spend, distribution plans, or other eligibility
-                  criteria.
+                  Incentive eligibility is set by each programme, not by the
+                  territory, and two programmes in the same country routinely
+                  differ. Requirements commonly turn on format, running time,
+                  production spend or distribution plans.
                 </Typography>
 
-                <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
-                  Our current programme data does not identify which incentives
-                  specifically accept short films. As a result, the incentive
-                  estimates in your report assume that the selected programmes
-                  accept this format and may therefore overstate the incentives
-                  available.
-                </Typography>
+                {/* Naming the territories is the difference between a caveat the
+                    producer can act on and one they learn to scroll past. */}
+                {eligibilityDataAvailable ? (
+                  <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
+                    We have not established whether the programmes in{' '}
+                    <Box component="span" sx={{ fontWeight: 700 }}>
+                      {unverifiedTerritories.slice(0, 6).map((x) => x.label).join(', ')}
+                      {unverifiedTerritories.length > 6
+                        ? ` and ${unverifiedTerritories.length - 6} more`
+                        : ''}
+                    </Box>{' '}
+                    accept this format. Their rebates appear in your report
+                    labelled as unconfirmed, and may overstate what is available.
+                    Programmes we have verified are marked as such.
+                  </Typography>
+                ) : (
+                  <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
+                    We could not load per-programme eligibility for this request,
+                    so treat every incentive estimate in your report as assuming
+                    the programme accepts this format.
+                  </Typography>
+                )}
 
                 <Typography sx={{ fontSize: 13, lineHeight: 1.6 }}>
-                  Treat these figures as indicative only and confirm short-film
-                  eligibility with the relevant programme or film commission
-                  before relying on them.
+                  Confirm eligibility with the programme administrator or film
+                  commission before relying on any figure marked unconfirmed.
                 </Typography>
               </Alert>
             )}
@@ -917,9 +965,10 @@ export function AnalysisWizard() {
                 )}
                 label={(
                   <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
-                    I understand that not all territories offer tax incentives for {format.toLowerCase()} projects, that
-                    the rebate figures in my report are modelled as though each programme accepts one, and that I must
-                    confirm eligibility with each film commission before relying on them.
+                    I understand that eligibility for {format.toLowerCase()} projects is set by each individual
+                    programme, that any rebate marked unconfirmed in my report is modelled as though the programme
+                    accepts this format without that having been established, and that I must confirm eligibility with
+                    the programme or film commission before relying on those figures.
                   </Typography>
                 )}
               />

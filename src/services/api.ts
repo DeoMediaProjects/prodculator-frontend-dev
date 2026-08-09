@@ -439,9 +439,21 @@ export const apiClient = {
  * this, the newer shape silently yields an empty list and the picker loses every
  * territory.
  */
-export async function getTerritories(includeAll = false): Promise<Territory[]> {
+/**
+ * @param productionFormat when given, each territory also carries
+ *   `formatEligibility` for that format. Lets the intake warning be driven by the
+ *   programme records rather than by the format alone.
+ */
+export async function getTerritories(
+  includeAll = false,
+  productionFormat?: string,
+): Promise<Territory[]> {
+  const params = new URLSearchParams();
+  if (includeAll) params.set('include_all', 'true');
+  if (productionFormat) params.set('format', productionFormat);
+  const query = params.toString();
   const raw = await apiClient.get<unknown>(
-    includeAll ? '/api/territories?include_all=true' : '/api/territories',
+    query ? `/api/territories?${query}` : '/api/territories',
   );
   const items = (Array.isArray(raw)
     ? raw
@@ -473,6 +485,10 @@ export async function getTerritories(includeAll = false): Promise<Territory[]> {
           : item.hasActiveIncentive === false
             ? 'none'
             : 'active',
+      // Passed through only when the backend supplied it. Left undefined rather
+      // than defaulted, because guessing here would either invent a confirmation
+      // or raise a warning the data does not support.
+      formatEligibility: item.formatEligibility,
     }));
 }
 

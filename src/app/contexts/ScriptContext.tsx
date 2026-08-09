@@ -74,6 +74,10 @@ interface ScriptAnalysis {
 
   // Tab 3: Tax Incentives
   incentiveEstimates: IncentiveEstimate[];
+  /** Blanket caveat, set by the backend only while some programme in this report
+   *  is unverified for the production's format. Absent means every programme has
+   *  an answer, so no blanket warning is warranted. */
+  formatEligibilityCaveat?: string | null;
 
   // Tab 5: Comparable Productions
   comparables: ComparableProduction[];
@@ -118,6 +122,21 @@ interface IncentiveEstimate {
   dataSource: string;
   lastUpdated: string;
   bankabilityLabel?: 'BANKABLE' | 'VERIFY FIRST' | 'NOT BANKABLE' | null;
+  /** Whether this specific programme accepts the production's format, evaluated
+   *  by the backend. The report and the PDF render the same object, so the two
+   *  cannot disagree about it. Absent on the legacy synthesis path below, where
+   *  no programme record was consulted. */
+  formatEligibility?: {
+    verdict: 'eligible' | 'ineligible' | 'needs_confirmation' | 'unverified';
+    label: string;
+    confirmed: boolean;
+    explanation: string;
+    sourceUrl?: string | null;
+    verifiedAt?: string | null;
+  } | null;
+  /** False when the rebate figure rests on an unconfirmed eligibility assumption.
+   *  The figure still shows; it is labelled rather than hidden. */
+  rebateIsConfirmed?: boolean;
 }
 
 interface ComparableProduction {
@@ -301,6 +320,7 @@ function normaliseAnalysisData(
     sectionExplainers: analysisData.sectionExplainers ?? null,
     locationRankings: toArray<LocationRanking>(analysisData.locationRankings),
     incentiveEstimates: toArray<IncentiveEstimate>(analysisData.incentiveEstimates),
+    formatEligibilityCaveat: analysisData.formatEligibilityCaveat ?? null,
     comparables: toArray<ComparableProduction>(analysisData.comparables),
     weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
     fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities),
@@ -425,6 +445,7 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
     sectionExplainers: reportData.sectionExplainers ?? null,
     locationRankings,
     incentiveEstimates,
+    formatEligibilityCaveat: reportData.formatEligibilityCaveat ?? null,
     comparables,
     weatherLogistics,
     fundingOpportunities,

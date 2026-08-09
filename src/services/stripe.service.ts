@@ -41,6 +41,22 @@ export const PLAN_PRICING = {
   },
 } as const;
 
+/** Business Intelligence packages, priced in GBP only.
+ *
+ *  The catalogue's own prices live in the backend (app/modules/b2b/service.py):
+ *  Crew & Casting £300/mo, Camera & Equipment £600/mo, Production Services
+ *  £750/mo. This constant carries only the floor, for the "from" figure the
+ *  marketing surfaces quote, and exists so that figure is written once. The nav
+ *  menu and the pricing page previously each hardcoded "from $2/mo", a
+ *  placeholder from before the packages were priced.
+ *
+ *  No USD equivalent: these products carry no USD price, and converting one here
+ *  would invent a figure nobody can be charged. */
+export const BI_PRICING = {
+  /** Lowest package price, in GBP per month. Crew & Casting. */
+  lowestMonthlyGBP: 300,
+} as const;
+
 /** Major units → minor units, for the reference `amount` fields below. */
 const minor = (major: number) => Math.round(major * 100);
 

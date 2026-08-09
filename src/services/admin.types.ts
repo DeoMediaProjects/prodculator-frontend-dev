@@ -647,4 +647,19 @@ export interface Territory {
    *   `none`         no programme on record
    *  Absent on older builds, where `hasActiveIncentive` is the only signal. */
   incentiveStatus?: 'active' | 'unconfirmed' | 'none';
+  /** Best format-eligibility verdict this territory's programmes can offer the
+   *  requested production format. Present only when the territories request asked
+   *  about a format, and absent on older backends.
+   *
+   *  `unverified` is not a softer `eligible`: it means nobody has established
+   *  whether any programme here accepts the format, so the intake warning stands.
+   *  It disappears on its own as the programme records are verified. */
+  formatEligibility?: {
+    status: 'eligible' | 'ineligible' | 'needs_confirmation' | 'unverified';
+    label: string;
+    /** Non-supplementary programmes considered. */
+    programmes: number;
+    /** How many of them could not confirm eligibility. */
+    unverified: number;
+  };
 }
