@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router';
 import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { PLAN_PRICING } from '@/services/stripe.service';
+import { BI_PRICING, PLAN_PRICING } from '@/services/stripe.service';
 
 // Maps the backend plan key on the user to the plan name shown in this menu, so
 // a logged-in subscriber sees which plan they're currently on. "Single" is a
@@ -62,10 +62,14 @@ const PLAN_ITEMS: PricingMenuItem[] = [
 ];
 
 // Client-facing surfaces say "Business Intelligence", never "B2B".
+//
+// Quoted in GBP whatever the visitor's geo, because the packages have no USD
+// price. The previous "from $2/mo" was a placeholder from before they were
+// priced and understated the real floor by two orders of magnitude.
 const B2B_ITEM: PricingMenuItem = {
   name: 'Business Intelligence Solutions',
-  priceUSD: 'From $2/mo',
-  priceGBP: 'From £1.60/mo',
+  priceUSD: `From £${BI_PRICING.lowestMonthlyGBP}/mo`,
+  priceGBP: `From £${BI_PRICING.lowestMonthlyGBP}/mo`,
   description: 'Production intelligence for studios, vendors and agencies',
 };
 

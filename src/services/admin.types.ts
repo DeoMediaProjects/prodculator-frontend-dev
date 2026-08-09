@@ -637,6 +637,29 @@ export interface Territory {
   isSubTerritory: boolean;
   /** false when the platform knows the territory but has no active incentive
    *  for it today (suspended, absent, or pending verification). These are
-   *  selectable at intake but excluded from rebate rankings. */
+   *  selectable at intake but excluded from rebate rankings.
+   *  Prefer `incentiveStatus`: this boolean cannot tell a suspended programme
+   *  apart from no programme at all. */
   hasActiveIncentive?: boolean;
+  /** Three-state incentive position, derived from the programme records:
+   *   `active`       a bankable incentive can be modelled
+   *   `unconfirmed`  a programme exists but its bankability is not confirmed
+   *   `none`         no programme on record
+   *  Absent on older builds, where `hasActiveIncentive` is the only signal. */
+  incentiveStatus?: 'active' | 'unconfirmed' | 'none';
+  /** Best format-eligibility verdict this territory's programmes can offer the
+   *  requested production format. Present only when the territories request asked
+   *  about a format, and absent on older backends.
+   *
+   *  `unverified` is not a softer `eligible`: it means nobody has established
+   *  whether any programme here accepts the format, so the intake warning stands.
+   *  It disappears on its own as the programme records are verified. */
+  formatEligibility?: {
+    status: 'eligible' | 'ineligible' | 'needs_confirmation' | 'unverified';
+    label: string;
+    /** Non-supplementary programmes considered. */
+    programmes: number;
+    /** How many of them could not confirm eligibility. */
+    unverified: number;
+  };
 }

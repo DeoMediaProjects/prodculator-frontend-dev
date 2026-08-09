@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
   OutlinedInput, Chip, Checkbox, ListItemText, FormHelperText, FormControlLabel, Link,
-  CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip,
+  CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip, Alert,
 } from '@mui/material';
 import {
   ArrowBack, CloudUpload, CheckCircle, LightModeOutlined, DarkModeOutlined,
@@ -48,6 +48,24 @@ const CURRENCY_BY_COUNTRY: Record<string, string> = {
 
 const GENRE_OPTIONS = ['Drama', 'Thriller', 'Sci Fi', 'Horror', 'Comedy', 'Romance', 'Action', 'Adventure', 'Fantasy', 'Mystery', 'Documentary', 'Biopic', 'Period', 'History', 'Western', 'Animation', 'Musical', 'Music', 'Crime', 'War', 'Sports', 'Family', 'Superhero', 'Coming-of-Age', 'Psychological', 'Disaster', 'Spy', 'Noir'];
 const FORMAT_OPTIONS = ['Feature Film', 'TV Series', 'TV Pilot', 'Limited Series', 'Short', 'Documentary', 'Animated Feature'];
+
+/** Formats whose real-world incentive eligibility differs materially from a
+ *  feature's, used ONLY as the fallback when the backend does not return
+ *  per-programme eligibility.
+ *
+ *  The warning is normally driven by the programme records (see
+ *  `formatNeedsCheck` below), so it names the actual programmes in question and
+ *  retires itself once they are verified. This list exists so an older backend,
+ *  or a failed territories request, degrades to the previous blanket protection
+ *  rather than to silence. Short-form work is frequently excluded from
+ *  production tax credits and served instead by separate grant schemes, so
+ *  modelling a feature-scale rebate against a short overstates what the
+ *  production can claim. */
+const FORMATS_WITH_DIVERGENT_ELIGIBILITY = ['short', 'short film'];
+
+function formatDivergesFromFeature(format: string): boolean {
+  return FORMATS_WITH_DIVERGENT_ELIGIBILITY.includes(format.trim().toLowerCase());
+}
 const CAMERA_OPTIONS = ['ARRI Alexa 35', 'RED VRAPTOR', 'Sony VENICE 2', 'Film 35mm', 'Blackmagic Cinema', 'Canon C70', 'Sony FX9', 'Panavision', 'IMAX', 'DJI Drone', 'GoPro', 'iPhone', 'Sony Alpha', 'Sony A7S III', 'Canon EOS R5', 'Phantom High Speed', 'Kinefinity Terra', 'Other'];
 const USA_STATES = ['California', 'New York', 'Georgia', 'Louisiana', 'New Mexico', 'Texas', 'North Carolina', 'Massachusetts', 'Illinois', 'Pennsylvania', 'Florida', 'Oregon', 'Washington', 'Nevada', 'Utah', 'Colorado', 'Other'];
 const CANADA_PROVINCES = ['British Columbia', 'Ontario', 'Quebec', 'Alberta', 'Manitoba', 'Nova Scotia', 'Saskatchewan', 'New Brunswick', 'Other'];
@@ -91,10 +109,6 @@ export function AnalysisWizard() {
 
   const { generateAnalysis } = useScript();
   const { showError } = useToast();
-  // include_all: the intake picker asks where a production is being
-  // considered, which is not the same question as where a rebate can be
-  // modelled. Territories without an active incentive are flagged, not hidden.
-  const { territories: allTerritories } = useTerritories(true);
   const { isFree, isProducer } = usePlanGate();
   const maxTerritories = isFree ? 3 : !isProducer ? 5 : null;
 
@@ -113,6 +127,14 @@ export function AnalysisWizard() {
   const [budgetAmount, setBudgetAmount] = useState<number | ''>('');
   const [budgetCurrency, setBudgetCurrency] = useState('');
   const [format, setFormat] = useState('');
+
+  // include_all: the intake picker asks where a production is being
+  // considered, which is not the same question as where a rebate can be
+  // modelled. Territories without an active incentive are flagged, not hidden.
+  // The format is passed through so each territory comes back with the best
+  // eligibility verdict its programmes can offer it. That is what makes the
+  // warning below specific and self-retiring instead of permanent.
+  const { territories: allTerritories } = useTerritories(true, format || undefined);
   const [country, setCountry] = useState('');
   const [stateProvince, setStateProvince] = useState('');
   const [cameraEquipment, setCameraEquipment] = useState<string[]>([]);
@@ -132,6 +154,10 @@ export function AnalysisWizard() {
   const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>([]);
   const [productionPriority, setProductionPriority] = useState('full');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // Confirmation that the producer understands incentive eligibility is not
+  // verified for their format. Required to generate, and reset if they change
+  // format, so a stale tick cannot carry over from a different selection.
+  const [acceptedFormatEligibility, setAcceptedFormatEligibility] = useState(false);
   const [biConsent, setBiConsent] = useState(false);
   const [processing, setProcessing] = useState(false);
   const submittingRef = useRef(false);
@@ -249,11 +275,39 @@ export function AnalysisWizard() {
     cameraEquipment.length > 0 && !!crewSize && !!principalCast && !!supportingCast &&
     primaryLanguages.length > 0 && !!mustFilmIn && !!coProductionInterest &&
     targetAudience.length > 0 && !!audienceSkewChoice;
+  // Which programmes this warning is actually about: the territories the
+  // producer has chosen, or every territory while the choice is still open,
+  // since the report will rank across all of them.
+  const relevantTerritories = useMemo(() => {
+    const chosen = allTerritories.filter((x) => territoriesConsidering.includes(x.label));
+    return chosen.length > 0 ? chosen : allTerritories.filter((x) => !x.isSubTerritory);
+  }, [allTerritories, territoriesConsidering]);
+
+  const unverifiedTerritories = useMemo(
+    () => relevantTerritories.filter(
+      (x) => x.formatEligibility?.status === 'unverified'
+        || x.formatEligibility?.status === 'needs_confirmation',
+    ),
+    [relevantTerritories],
+  );
+
+  // Data-driven: raised only while at least one relevant programme cannot confirm
+  // it accepts this format. Not keyed on the format alone, so it disappears by
+  // itself as the programme records are verified rather than needing a code change.
+  //
+  // The fallback keeps the previous protection when no eligibility data came back
+  // at all (older backend, or the request failed). Absent data is not a clean
+  // bill of health, and silence is the one outcome this must never degrade to.
+  const eligibilityDataAvailable = relevantTerritories.some((x) => x.formatEligibility);
+  const formatNeedsCheck = eligibilityDataAvailable
+    ? unverifiedTerritories.length > 0
+    : formatDivergesFromFeature(format);
+
   const stepValid = [
     !!file && !!title && genres.length > 0 && !!format,
     !!country && !!budgetCurrency && !!budgetAmount && Number(budgetAmount) > 0,
     detailsValid,
-    acceptedTerms,
+    acceptedTerms && (!formatNeedsCheck || acceptedFormatEligibility),
   ];
   const missingForStep = (i: number): string[] => {
     if (i === 0) return [...(!file ? ['script file'] : []), ...(!title ? ['project title'] : []), ...(genres.length === 0 ? ['genre'] : []), ...(!format ? ['format'] : [])];
@@ -264,7 +318,12 @@ export function AnalysisWizard() {
       ...(primaryLanguages.length === 0 ? ['primary language(s)'] : []), ...(!mustFilmIn ? ['must film in'] : []), ...(!coProductionInterest ? ['co-production'] : []),
       ...(targetAudience.length === 0 ? ['target audience'] : []), ...(!audienceSkewChoice ? ['audience skew'] : []),
     ];
-    return [...(!acceptedTerms ? ['terms acceptance'] : [])];
+    return [
+      ...(!acceptedTerms ? ['terms acceptance'] : []),
+      ...(formatNeedsCheck && !acceptedFormatEligibility
+        ? ['confirmation that incentive eligibility is unverified for this format']
+        : []),
+    ];
   };
 
   const handleContinue = () => {
@@ -315,6 +374,9 @@ export function AnalysisWizard() {
         supportingCast: supportingCast ? Number(supportingCast) : undefined,
         ...contractFields(),
         biConsent,
+        // Recorded with the request: the report states the caveat, so it should
+        // also be provable that the producer was asked to confirm it.
+        formatEligibilityAcknowledged: formatNeedsCheck ? acceptedFormatEligibility : undefined,
       };
       const generated = await generateAnalysis(file!, metadata);
       if (!generated.id) throw new Error('Report completed but did not return a report ID.');
@@ -377,53 +439,194 @@ export function AnalysisWizard() {
   // ================= Step content =================
   const renderStep = (): ReactNode => {
     if (step === 0) return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {/* Upload */}
         <Box data-tour="wizard-upload" sx={{ ...card, p: 3 }}>
-          {sectionLabel('Script')}
+          {sectionLabel("Script")}
           <Box
             component="label"
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
             onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => { e.preventDefault(); setDragOver(false); setFileValidated(e.dataTransfer.files?.[0]); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              setFileValidated(e.dataTransfer.files?.[0]);
+            }}
             sx={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5,
-              p: 5, borderRadius: '14px', cursor: 'pointer', textAlign: 'center',
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1.5,
+              p: 5,
+              borderRadius: "14px",
+              cursor: "pointer",
+              textAlign: "center",
               border: `2px dashed ${dragOver ? t.gold : file ? t.gold : t.border}`,
-              bgcolor: dragOver ? t.goldDim : t.inputBg, transition: 'all .15s',
+              bgcolor: dragOver ? t.goldDim : t.inputBg,
+              transition: "all .15s",
             }}
           >
-            <input hidden type="file" accept=".pdf,.docx,.txt" onChange={(e) => setFileValidated(e.target.files?.[0])} />
-            {file ? <CheckCircle sx={{ fontSize: 42, color: t.gold }} /> : <CloudUpload sx={{ fontSize: 42, color: t.textSecondary }} />}
-            <Typography sx={{ color: t.textPrimary, fontWeight: 700 }}>{file ? file.name : 'Drag & drop your script, or click to browse'}</Typography>
-            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>{file ? `${(file.size / 1024 / 1024).toFixed(1)} MB · click to replace` : 'PDF, DOCX or TXT · up to 10MB'}</Typography>
+            <input
+              hidden
+              type="file"
+              accept=".pdf,.docx,.txt"
+              onChange={(e) => setFileValidated(e.target.files?.[0])}
+            />
+            {file ? (
+              <CheckCircle sx={{ fontSize: 42, color: t.gold }} />
+            ) : (
+              <CloudUpload sx={{ fontSize: 42, color: t.textSecondary }} />
+            )}
+            <Typography sx={{ color: t.textPrimary, fontWeight: 700 }}>
+              {file ? file.name : "Drag & drop your script, or click to browse"}
+            </Typography>
+            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+              {file
+                ? `${(file.size / 1024 / 1024).toFixed(1)} MB · click to replace`
+                : "PDF, DOCX or TXT · up to 10MB"}
+            </Typography>
           </Box>
         </Box>
 
         {/* Project */}
-        <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          {sectionLabel('Project')}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
-            <TextField fullWidth required label="Project Title" value={title} onChange={(e) => setTitle(e.target.value)} sx={fieldSx} />
+        <Box
+          sx={{
+            ...card,
+            p: 3,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2.5,
+          }}
+        >
+          {sectionLabel("Project")}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              gap: 2.5,
+            }}
+          >
+            <TextField
+              fullWidth
+              required
+              label="Project Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              sx={fieldSx}
+            />
             <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Format</InputLabel>
-              <Select value={format} label="Format" onChange={(e) => setFormat(e.target.value)} MenuProps={menuProps}>
-                {FORMAT_OPTIONS.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
+              <Select
+                value={format}
+                label="Format"
+                onChange={(e) => {
+                  setFormat(e.target.value);
+                  setAcceptedFormatEligibility(false);
+                }}
+                MenuProps={menuProps}
+              >
+                {FORMAT_OPTIONS.map((f) => (
+                  <MenuItem key={f} value={f}>
+                    {f}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
+            {/* Shown where the choice is made, not only at the end, so it informs
+                the decision instead of arriving as a surprise on the last step. */}
+            {formatNeedsCheck && (
+              <Alert
+                severity="warning"
+                sx={{
+                  // Spans both columns of the parent grid. As a plain child it
+                  // occupied one cell and left the other empty, so a block of
+                  // prose sat in a half-width column beside dead space.
+                  gridColumn: '1 / -1',
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>
+                  {eligibilityDataAvailable
+                    ? `Eligibility for a ${format.toLowerCase()} is unverified in ${unverifiedTerritories.length === 1 ? '1 territory' : `${unverifiedTerritories.length} territories`}`
+                    : `Eligibility for a ${format.toLowerCase()} varies by programme`}
+                </Typography>
+
+                <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
+                  Incentive eligibility is set by each programme, not by the
+                  territory, and two programmes in the same country routinely
+                  differ. Requirements commonly turn on format, running time,
+                  production spend or distribution plans.
+                </Typography>
+
+                {/* Naming the territories is the difference between a caveat the
+                    producer can act on and one they learn to scroll past. */}
+                {eligibilityDataAvailable ? (
+                  <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
+                    We have not established whether the programmes in{' '}
+                    <Box component="span" sx={{ fontWeight: 700 }}>
+                      {unverifiedTerritories.slice(0, 6).map((x) => x.label).join(', ')}
+                      {unverifiedTerritories.length > 6
+                        ? ` and ${unverifiedTerritories.length - 6} more`
+                        : ''}
+                    </Box>{' '}
+                    accept this format. Their rebates appear in your report
+                    labelled as unconfirmed, and may overstate what is available.
+                    Programmes we have verified are marked as such.
+                  </Typography>
+                ) : (
+                  <Typography sx={{ fontSize: 13, lineHeight: 1.6, mb: 1 }}>
+                    We could not load per-programme eligibility for this request,
+                    so treat every incentive estimate in your report as assuming
+                    the programme accepts this format.
+                  </Typography>
+                )}
+
+                <Typography sx={{ fontSize: 13, lineHeight: 1.6 }}>
+                  Confirm eligibility with the programme administrator or film
+                  commission before relying on any figure marked unconfirmed.
+                </Typography>
+              </Alert>
+            )}
           </Box>
           <Box>
-            <Typography sx={{ color: t.textSecondary, fontSize: 13.5, mb: 1 }}>Genre(s) <Box component="span" sx={{ color: t.textFaint }}>· select all that apply</Box></Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <Typography sx={{ color: t.textSecondary, fontSize: 13.5, mb: 1 }}>
+              Genre(s){" "}
+              <Box component="span" sx={{ color: t.textFaint }}>
+                · select all that apply
+              </Box>
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               {GENRE_OPTIONS.map((g) => {
                 const on = genres.includes(g);
                 return (
                   <Chip
-                    key={g} label={g} onClick={() => setGenres(on ? genres.filter((x) => x !== g) : [...genres, g])}
+                    key={g}
+                    label={g}
+                    onClick={() =>
+                      setGenres(
+                        on ? genres.filter((x) => x !== g) : [...genres, g],
+                      )
+                    }
                     sx={{
-                      cursor: 'pointer', fontWeight: 600, borderRadius: '9px',
-                      bgcolor: on ? t.gold : 'transparent', color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
-                      border: `1px solid ${on ? t.gold : t.border}`, '&:hover': { borderColor: t.gold, bgcolor: on ? t.gold : t.goldDim },
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      borderRadius: "9px",
+                      bgcolor: on ? t.gold : "transparent",
+                      color: on
+                        ? mode === "dark"
+                          ? "#000"
+                          : "#fff"
+                        : t.textSecondary,
+                      border: `1px solid ${on ? t.gold : t.border}`,
+                      "&:hover": {
+                        borderColor: t.gold,
+                        bgcolor: on ? t.gold : t.goldDim,
+                      },
                     }}
                   />
                 );
@@ -499,10 +702,14 @@ export function AnalysisWizard() {
               ? `Select any territories you are considering (${territoriesConsidering.length} chosen).`
               : `Your plan lets you select up to ${maxTerritories} territories (${territoriesConsidering.length}/${maxTerritories} chosen).`}
           </Typography>
-          {allTerritories.some((x) => !x.isSubTerritory && x.hasActiveIncentive === false) && (
-            <Typography sx={{ color: t.textFaint, fontSize: 12, mb: 2 }}>
-              A dashed outline means there is no active incentive to model there today. You can
-              still select it for location, crew or currency reasons.
+          {/* The legend names both marks. One sentence covering both read as if
+              a suspended programme and no programme were the same thing. */}
+          {allTerritories.some((x) => !x.isSubTerritory && x.incentiveStatus !== 'active') && (
+            <Typography sx={{ color: t.textFaint, fontSize: 12, mb: 2, maxWidth: '86ch', lineHeight: 1.6 }}>
+              An <Box component="span" sx={{ color: t.warning, fontWeight: 700 }}>amber outline</Box> means the
+              territory has a tax incentive programme whose bankability cannot be confirmed today, so no rebate is
+              modelled for it. A dashed outline means there is no incentive programme on record at all. Either way you
+              can still select it for location, crew or currency reasons.
             </Typography>
           )}
           {territoryGroups.map((group) => (
@@ -512,12 +719,20 @@ export function AnalysisWizard() {
                 {group.countries.map(({ country: c, regions }) => {
                   const on = territoriesConsidering.includes(c.label);
                   const disabled = !on && atTerritoryLimit;
-                  // Selectable, but say plainly that no rebate can be modelled.
-                  // South Africa's programme is suspended, Nigeria has none, and
-                  // Brazil is pending verification. Their location, crew and
-                  // currency advantages are real, so producers can still declare
-                  // them; we simply will not imply a bankable incentive.
-                  const noIncentive = c.hasActiveIncentive === false;
+                  // Three states, because "no programme at all" and "a
+                  // programme we cannot vouch for" are different facts and a
+                  // single dashed outline said the same thing about both.
+                  // Nigeria has no programme. South Africa's is suspended and
+                  // Brazil's is pending verification, so both hold a real
+                  // incentive record whose bankability is unconfirmed. Every one
+                  // of them stays selectable: their location, crew and currency
+                  // advantages are real, and we simply never imply a bankable
+                  // rebate we cannot stand behind.
+                  const status = c.incentiveStatus
+                    ?? (c.hasActiveIncentive === false ? 'none' : 'active');
+                  const unconfirmed = status === 'unconfirmed';
+                  const noIncentive = status === 'none';
+                  const flagged = unconfirmed || noIncentive;
                   const chip = (
                     <Chip
                       key={c.label}
@@ -528,15 +743,22 @@ export function AnalysisWizard() {
                         fontWeight: 600, borderRadius: '9px',
                         bgcolor: on ? t.gold : 'transparent',
                         color: on ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
-                        border: `1px ${noIncentive && !on ? 'dashed' : 'solid'} ${on ? t.gold : t.border}`,
+                        // Dashed for no programme, solid amber for a programme
+                        // whose bankability is unconfirmed: a different fact
+                        // deserves a different mark, not the same one.
+                        border: `1px ${noIncentive && !on ? 'dashed' : 'solid'} ${
+                          on ? t.gold : unconfirmed ? t.warning : t.border
+                        }`,
                         '&:hover': { borderColor: t.gold },
                       }}
                     />
                   );
-                  return noIncentive ? (
+                  return flagged ? (
                     <Tooltip
                       key={c.label}
-                      title="No active incentive to model right now. Still selectable for location, crew and currency reasons."
+                      title={unconfirmed
+                        ? 'Has a tax incentive programme, but its bankability cannot be confirmed today, so no rebate is modelled for it. Still selectable for location, crew and currency reasons.'
+                        : 'No active incentive to model right now. Still selectable for location, crew and currency reasons.'}
                     >
                       <span style={{ display: 'inline-flex' }}>{chip}</span>
                     </Tooltip>
@@ -728,6 +950,29 @@ export function AnalysisWizard() {
               control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} sx={{ ...cbSx, pt: 0 }} />}
               label={<Typography sx={{ color: t.textSecondary, fontSize: 13 }}>I accept the <Link href="/terms" target="_blank" sx={{ color: t.gold }}>Terms of Service</Link>, <Link href="/privacy" target="_blank" sx={{ color: t.gold }}>Privacy Policy</Link> and Acceptable Use Policy.</Typography>}
             />
+            {/* Required only for the formats whose eligibility is unverified, so
+                the consent screen does not grow a checkbox for producers it does
+                not apply to. */}
+            {formatNeedsCheck && (
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start', m: 0, mb: 1.5 }}
+                control={(
+                  <Checkbox
+                    checked={acceptedFormatEligibility}
+                    onChange={(e) => setAcceptedFormatEligibility(e.target.checked)}
+                    sx={{ ...cbSx, pt: 0 }}
+                  />
+                )}
+                label={(
+                  <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+                    I understand that eligibility for {format.toLowerCase()} projects is set by each individual
+                    programme, that any rebate marked unconfirmed in my report is modelled as though the programme
+                    accepts this format without that having been established, and that I must confirm eligibility with
+                    the programme or film commission before relying on those figures.
+                  </Typography>
+                )}
+              />
+            )}
             <FormControlLabel
               sx={{ alignItems: 'flex-start', m: 0 }}
               control={<Checkbox checked={biConsent} onChange={(e) => setBiConsent(e.target.checked)} sx={{ ...cbSx, pt: 0 }} />}

@@ -43,7 +43,7 @@ export function TermsOfService() {
             <strong>3.2 Not Real Time:</strong> Data is NOT real time and should not be relied upon as the sole basis for financial, legal, or production decisions. Users must independently verify all data with official government sources, legal counsel, tax advisors, and industry professionals.
           </Typography>
           <Typography>
-            <strong>3.3 No Guarantee:</strong> We do not guarantee the accuracy, completeness, or timeliness of any data. Tax incentive rates, production costs, and location availability are subject to change without notice by external authorities.
+            <strong>3.3 No Guarantee:</strong> We do not guarantee the accuracy, completeness, or timeliness of any data. Tax incentive rates, production costs, and location availability are subject to change without notice by external authorities. Some territories have a history of delayed incentive payments or administrative processing challenges, and this can change in either direction over time; you should verify current payment timelines directly with the relevant territory's film commission or tax authority before relying on any incentive figure. Where our data records such a risk, the report labels the programme's bankability so the figure is not presented as dependable finance. Inclusion of a territory in our database is not an endorsement or a recommendation to film there, and you must conduct your own due diligence on any territory you are considering.
           </Typography>
           <Typography>
             <strong>3.4 User Responsibility:</strong> Users are solely responsible for verifying all information before making production, financial, or legal commitments.
@@ -201,53 +201,45 @@ export function TermsOfService() {
             <strong>9.5 Third Party Data Errors:</strong> We rely on third party APIs and government databases for the reference data behind our analysis (incentive rates, festival calendars, grant programmes, exchange rates). We are not liable for errors, omissions, or changes in those third party data sources. This clause concerns the accuracy of reference data only; the separate matter of which providers receive your script content is disclosed in section 8.2.
           </Typography>
 
-          <Typography variant="h4">10. South Africa Payment Issues Warning</Typography>
+          <Typography variant="h4">10. Termination</Typography>
           <Typography>
-            <strong>10.1 Payment Processing Challenges:</strong> Users accessing rebate calculations for South Africa productions are advised that South Africa has a history of delayed incentive payments and administrative challenges. We provide this warning to ensure informed decision making.
+            <strong>10.1 By You:</strong> You may cancel your subscription at any time from your account dashboard. Cancellation takes effect at the end of your current billing period.
           </Typography>
           <Typography>
-            <strong>10.2 No Endorsement:</strong> Inclusion of South Africa in our territory database does not constitute an endorsement or recommendation to film there. Users must conduct independent due diligence.
-          </Typography>
-
-          <Typography variant="h4">11. Termination</Typography>
-          <Typography>
-            <strong>11.1 By You:</strong> You may cancel your subscription at any time from your account dashboard. Cancellation takes effect at the end of your current billing period.
+            <strong>10.2 By Us:</strong> We reserve the right to suspend or terminate accounts that violate these Terms, engage in prohibited uses, or pose security risks.
           </Typography>
           <Typography>
-            <strong>11.2 By Us:</strong> We reserve the right to suspend or terminate accounts that violate these Terms, engage in prohibited uses, or pose security risks.
-          </Typography>
-          <Typography>
-            <strong>11.3 Effect of Termination:</strong> Upon termination, you lose access to the Platform and all associated data. We may delete your account data after 30 days. Deletion after that period is discretionary rather than automatic, so if you require your data to be erased you should make an erasure request using the contact route in our Privacy Policy, and we will action it.
+            <strong>10.3 Effect of Termination:</strong> Upon termination, you lose access to the Platform and all associated data. We may delete your account data after 30 days. Deletion after that period is discretionary rather than automatic, so if you require your data to be erased you should make an erasure request using the contact route in our Privacy Policy, and we will action it.
           </Typography>
 
-          <Typography variant="h4">12. Modifications to Terms</Typography>
+          <Typography variant="h4">11. Modifications to Terms</Typography>
           <Typography>
             We reserve the right to modify these Terms at any time. Material changes will be communicated via email or in app notification at least 30 days before taking effect. Continued use of the Platform after changes constitutes acceptance.
           </Typography>
 
-          <Typography variant="h4">13. Governing Law & Dispute Resolution</Typography>
+          <Typography variant="h4">12. Governing Law & Dispute Resolution</Typography>
           <Typography>
-            <strong>13.1 Governing Law:</strong> These Terms are governed by the laws of England and Wales (for GBP customers) or California, USA (for USD customers), without regard to conflict of law principles.
+            <strong>12.1 Governing Law:</strong> These Terms are governed by the laws of England and Wales (for GBP customers) or California, USA (for USD customers), without regard to conflict of law principles.
           </Typography>
           <Typography>
-            <strong>13.2 Dispute Resolution:</strong> Any disputes shall first be subject to good faith negotiation. If unresolved, disputes shall be resolved through binding arbitration in accordance with the rules of the London Court of International Arbitration (for GBP customers) or JAMS (for USD customers).
+            <strong>12.2 Dispute Resolution:</strong> Any disputes shall first be subject to good faith negotiation. If unresolved, disputes shall be resolved through binding arbitration in accordance with the rules of the London Court of International Arbitration (for GBP customers) or JAMS (for USD customers).
           </Typography>
           <Typography>
-            <strong>13.3 Class Action Waiver:</strong> You agree to resolve disputes individually and waive any right to participate in class actions or collective proceedings.
-          </Typography>
-
-          <Typography variant="h4">14. Enterprise Specific Provisions</Typography>
-          <Typography>
-            <strong>14.1 Government Procurement:</strong> Film commissions and government agencies may be subject to additional procurement regulations. Custom addendums can be provided upon request.
-          </Typography>
-          <Typography>
-            <strong>14.2 Data Processing Agreements:</strong> Enterprise clients may request Data Processing Agreements (DPAs) for GDPR compliance, provided at no additional cost.
-          </Typography>
-          <Typography>
-            <strong>14.3 Export Compliance:</strong> Enterprise clients using our API or data exports agree to comply with all applicable export control laws and regulations.
+            <strong>12.3 Class Action Waiver:</strong> You agree to resolve disputes individually and waive any right to participate in class actions or collective proceedings.
           </Typography>
 
-          <Typography variant="h4">15. Contact Information</Typography>
+          <Typography variant="h4">13. Enterprise Specific Provisions</Typography>
+          <Typography>
+            <strong>13.1 Government Procurement:</strong> Film commissions and government agencies may be subject to additional procurement regulations. Custom addendums can be provided upon request.
+          </Typography>
+          <Typography>
+            <strong>13.2 Data Processing Agreements:</strong> Enterprise clients may request Data Processing Agreements (DPAs) for GDPR compliance, provided at no additional cost.
+          </Typography>
+          <Typography>
+            <strong>13.3 Export Compliance:</strong> Enterprise clients using our API or data exports agree to comply with all applicable export control laws and regulations.
+          </Typography>
+
+          <Typography variant="h4">14. Contact Information</Typography>
           <Typography>
             For questions about these Terms or to request enterprise contracts, contact us at:
           </Typography>
@@ -257,12 +249,12 @@ export function TermsOfService() {
             <strong>Support:</strong> support@prodculator.com
           </Typography>
 
-          <Typography variant="h4">16. Severability</Typography>
+          <Typography variant="h4">15. Severability</Typography>
           <Typography>
             If any provision of these Terms is found to be unenforceable or invalid, that provision will be limited or eliminated to the minimum extent necessary, and the remaining provisions will remain in full force and effect.
           </Typography>
 
-          <Typography variant="h4">17. Entire Agreement</Typography>
+          <Typography variant="h4">16. Entire Agreement</Typography>
           <Typography>
             These Terms, together with our Privacy Policy and any enterprise contracts, constitute the entire agreement between you and Prodculator regarding use of the Platform.
           </Typography>

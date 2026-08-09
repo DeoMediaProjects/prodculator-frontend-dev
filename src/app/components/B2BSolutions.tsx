@@ -337,6 +337,12 @@ function priceAmount(product: B2BProduct, currency: B2BCurrency): string | null 
 
 function money(product: B2BProduct, currency: B2BCurrency) {
   if (product.pricing_status === 'coming_soon') return 'Coming soon';
+  // Priced but not purchasable. Shown as a "from" figure because these are entry
+  // prices for the standard cadence, and checkout is not open yet.
+  if (product.pricing_status === 'waitlist') {
+    const amount = priceAmount(product, currency);
+    return amount ? `from ${amount}/month` : 'Pricing on request';
+  }
   if (!product.self_service) return 'Custom contract';
   const amount = priceAmount(product, currency);
   return amount ? `${amount}/month` : 'Contact us';
@@ -582,7 +588,9 @@ export function B2BSolutions() {
                         {active && <Chip size="small" label="Active" sx={{ bgcolor: t.success, color: '#fff' }} />}
                         {product.pricing_status === 'coming_soon'
                           ? <Chip size="small" label="Coming soon" sx={{ bgcolor: t.goldDim, color: t.gold, fontWeight: 700 }} />
-                          : !product.self_service && <Chip size="small" label="Manual contract" sx={{ bgcolor: t.borderSoft, color: t.textSecondary }} />}
+                          : product.pricing_status === 'waitlist'
+                            ? <Chip size="small" label="Waitlist" sx={{ bgcolor: t.goldDim, color: t.gold, fontWeight: 700 }} />
+                            : !product.self_service && <Chip size="small" label="Manual contract" sx={{ bgcolor: t.borderSoft, color: t.textSecondary }} />}
                       </Stack>
                       <Tooltip title="Preview a sample report">
                         <IconButton size="small" onClick={() => setPreviewProduct(product)} sx={{ color: t.gold, bgcolor: t.goldDim, '&:hover': { bgcolor: alpha(t.gold, 0.24) } }}>
@@ -611,6 +619,27 @@ export function B2BSolutions() {
                             <Typography sx={{ color: t.gold, fontSize: 22, fontWeight: 900 }}>Coming soon</Typography>
                             <Typography sx={{ color: t.textFaint, fontSize: 12.5 }}>Pricing announced shortly</Typography>
                           </Box>
+                        ) : product.pricing_status === 'waitlist' ? (
+                          // A published price with checkout closed. "from" is
+                          // load-bearing: it is an entry price, not a quote.
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Box sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
+                              {amount && (
+                                <Typography component="span" sx={{ color: t.textFaint, fontSize: 15, fontWeight: 700 }}>
+                                  from
+                                </Typography>
+                              )}
+                              <Typography component="span" sx={{ color: t.textPrimary, fontSize: 30, fontWeight: 900, lineHeight: 1 }}>
+                                {amount ?? 'Pricing on request'}
+                              </Typography>
+                              {amount && (
+                                <Typography component="span" sx={{ color: t.textFaint, fontSize: 15, fontWeight: 600 }}>
+                                  /month
+                                </Typography>
+                              )}
+                            </Box>
+                            <Typography sx={{ color: t.textFaint, fontSize: 12.5 }}>Not yet open for purchase</Typography>
+                          </Box>
                         ) : !product.self_service ? (
                           <Typography sx={{ color: t.textPrimary, fontSize: 24, fontWeight: 900 }}>Custom contract</Typography>
                         ) : amount ? (
@@ -637,7 +666,9 @@ export function B2BSolutions() {
                           ? 'Generate PDF'
                           : product.pricing_status === 'coming_soon'
                             ? 'Talk to us about early access'
-                            : product.self_service ? 'Subscribe' : 'Contact Sales'}
+                            : product.pricing_status === 'waitlist'
+                              ? 'Join the waitlist'
+                              : product.self_service ? 'Subscribe' : 'Contact Sales'}
                       </Button>
                     </Box>
                   </Card>
