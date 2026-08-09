@@ -1065,6 +1065,14 @@ export function ReportViewer() {
               {/* Raised by the backend only while some programme below is still
                   unverified for this format, so it retires itself as the records
                   are filled in rather than becoming permanent furniture. */}
+              {/* Availability first: it is the one that withdraws figures. Kept
+                  separate from the format caveat because "does not take shorts" and
+                  "your budget is below the floor" need different actions. */}
+              {analysis.programmeAvailabilityCaveat && (
+                <Alert severity="error" sx={{ mb: 2, fontSize: 13, lineHeight: 1.6 }}>
+                  {analysis.programmeAvailabilityCaveat}
+                </Alert>
+              )}
               {analysis.formatEligibilityCaveat && (
                 <Alert severity="warning" sx={{ mb: 3, fontSize: 13, lineHeight: 1.6 }}>
                   {analysis.formatEligibilityCaveat}
@@ -1130,6 +1138,18 @@ export function ReportViewer() {
                             so the two surfaces cannot state different things about
                             the same programme. Only shown when it is not a plain
                             yes: badging the normal case trains people to ignore it. */}
+                        {inc.programmeEligibility?.available === false && (
+                          <Chip
+                            label={inc.programmeEligibility.label}
+                            size="small"
+                            sx={{
+                              mb: 2, mr: 1, fontWeight: 700, fontSize: '0.68rem',
+                              ...(inc.programmeEligibility.verdict === 'unavailable'
+                                ? { bgcolor: 'rgba(244,67,54,0.16)', color: t.error, border: `1px solid ${t.error}` }
+                                : { bgcolor: 'rgba(255,152,0,0.16)', color: t.warning, border: `1px solid ${t.warning}` }),
+                            }}
+                          />
+                        )}
                         {inc.formatEligibility && inc.formatEligibility.verdict !== 'eligible' && (
                           <Chip
                             label={inc.formatEligibility.label}
@@ -1159,7 +1179,22 @@ export function ReportViewer() {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                           <Typography variant="body2">Estimated Rebate:</Typography>
                           <Box sx={{ textAlign: 'right' }}>
-                            <Typography variant="h6" sx={{ color: t.success }}>{inc.estimatedRebate}</Typography>
+                            {/* A figure this production cannot claim is worse than no
+                                figure: it gets copied into a budget document and the
+                                caveat does not travel with it. */}
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                color: inc.programmeEligibility?.available === false
+                                  ? t.textFaint
+                                  : t.success,
+                                fontSize: inc.programmeEligibility?.available === false
+                                  ? '0.95rem'
+                                  : undefined,
+                              }}
+                            >
+                              {inc.estimatedRebate}
+                            </Typography>
                             {/* An unconfirmed figure stays visible but never reads as
                                 an amount the production can count on. */}
                             {inc.rebateIsConfirmed === false && (
@@ -1174,6 +1209,19 @@ export function ReportViewer() {
                         <List dense>{Array.isArray(inc.requirements) ? inc.requirements.map((r, ri) => <ListItem key={ri} sx={{ color: t.textSecondary, py: 0.25 }}>• {r}</ListItem>) : null}</List>
                         {/* Stated on the programme it applies to, rather than as a
                             blanket warning over the whole report. */}
+                        {inc.programmeEligibility?.available === false
+                          && inc.programmeEligibility.explanation && (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mt: 2, color: t.textSecondary, fontSize: 13, lineHeight: 1.6,
+                              borderLeft: `2px solid ${t.error}`, pl: 1.5,
+                            }}
+                          >
+                            <Box component="span" sx={{ fontWeight: 700 }}>Availability: </Box>
+                            {inc.programmeEligibility.explanation}
+                          </Typography>
+                        )}
                         {inc.formatEligibility
                           && (inc.formatEligibility.verdict === 'needs_confirmation'
                             || inc.formatEligibility.verdict === 'ineligible')
