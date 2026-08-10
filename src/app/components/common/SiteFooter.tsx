@@ -4,6 +4,7 @@ import { Instagram, Facebook, LinkedIn, Twitter } from '@mui/icons-material';
 import footerLogo from '@/assets/prodculator-logo-white.png';
 import grantifyMark from '@/assets/grantify-mark-white.png';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
+import { useCookieConsent } from '@/app/cookies/CookieConsentProvider';
 
 const PRODUCT_LINKS = [
   { label: 'Upload Script', to: '/upload' },
@@ -21,6 +22,7 @@ const COMPANY_LINKS = [
 const LEGAL_LINKS = [
   { label: 'Terms of Service', to: '/terms' },
   { label: 'Privacy Policy', to: '/privacy' },
+  { label: 'Cookie Policy', to: '/cookies' },
   { label: 'Acceptable Use', to: '/acceptable-use' },
 ];
 
@@ -41,6 +43,7 @@ const GRANTIFY_URL =
  * other top-level page that should end in the same brand/legal footer. */
 export function SiteFooter() {
   const navigate = useNavigate();
+  const { reopen: reopenCookieChoices } = useCookieConsent();
   const { mode } = useThemeMode();
   const t = tokens(mode);
 
@@ -124,6 +127,9 @@ export function SiteFooter() {
               {LEGAL_LINKS.map((l) => (
                 <Box key={l.to} onClick={() => navigate(l.to)} sx={linkSx}>{l.label}</Box>
               ))}
+              {/* Withdrawing consent has to be as easy as giving it, which means it
+                  belongs on every page rather than only inside the policy. */}
+              <Box onClick={reopenCookieChoices} sx={linkSx}>Cookie preferences</Box>
             </Box>
           </Box>
 

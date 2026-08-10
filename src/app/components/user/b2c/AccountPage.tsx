@@ -19,6 +19,7 @@ import { DataTable } from './DataTable';
 import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
 import { authService } from '@/services/auth.service';
 import { PROFILE_KEY, PROFILE_UPDATED_EVENT, AVATAR_KEY } from './Sidebar';
+import { functionalStorage } from '@/app/cookies/consent';
 
 const ACCOUNT_DELETE_REASONS = [
   'No longer need the service',
@@ -85,17 +86,17 @@ export function AccountPage() {
   const [invoicesLoading, setInvoicesLoading] = useState(true);
 
   const [notifs, setNotifs] = useState<{ reportReady: boolean; deadlines: boolean; product: boolean }>(() => {
-    try { const s = localStorage.getItem(NOTIF_KEY); if (s) return JSON.parse(s); } catch { /* */ }
+    try { const s = functionalStorage.get(NOTIF_KEY); if (s) return JSON.parse(s); } catch { /* malformed */ }
     return { reportReady: true, deadlines: true, product: false };
   });
-  useEffect(() => { try { localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs)); } catch { /* */ } }, [notifs]);
+  useEffect(() => { functionalStorage.set(NOTIF_KEY, JSON.stringify(notifs)); }, [notifs]);
 
   useEffect(() => { if (derivedName && !fullName) setFullName(derivedName); }, [derivedName]); // eslint-disable-line
 
   // Restore any locally-saved profile (name/country/avatar) on mount.
   useEffect(() => {
     try {
-      const s = localStorage.getItem(PROFILE_KEY);
+      const s = functionalStorage.get(PROFILE_KEY);
       if (s) {
         const p = JSON.parse(s);
         if (p.fullName) setFullName(p.fullName);
@@ -105,7 +106,7 @@ export function AccountPage() {
           else { setCountry('Other'); setCountryOther(p.country); }
         }
       }
-      const a = localStorage.getItem(AVATAR_KEY);
+      const a = functionalStorage.get(AVATAR_KEY);
       if (a) setAvatar(a);
     } catch { /* */ }
   }, []);
@@ -130,7 +131,7 @@ export function AccountPage() {
   const handleSave = () => {
     setSaving(true);
     // No profile-update endpoint exists yet; persist locally and confirm.
-    try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ fullName, country: effectiveCountry })); } catch { /* */ }
+    functionalStorage.set(PROFILE_KEY, JSON.stringify({ fullName, country: effectiveCountry }));
     window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
     setTimeout(() => { setSaving(false); enqueueSnackbar('Profile changes saved.', { variant: 'success' }); }, 350);
   };
@@ -143,7 +144,7 @@ export function AccountPage() {
     reader.onload = () => {
       const url = String(reader.result);
       setAvatar(url);
-      try { localStorage.setItem(AVATAR_KEY, url); } catch { /* */ }
+      functionalStorage.set(AVATAR_KEY, url);
       window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
       enqueueSnackbar('Profile photo updated.', { variant: 'success' });
     };

@@ -8,6 +8,8 @@ import { lazy, Suspense } from 'react';
 
 // Contexts (eager — always mounted)
 import { AuthProvider } from '../app/contexts/AuthContext';
+import { CookieConsentProvider } from '@/app/cookies/CookieConsentProvider';
+import { CookieBanner } from '@/app/components/common/CookieBanner';
 import { ScriptProvider } from '../app/contexts/ScriptContext';
 
 // Route-protection wrapper — tiny, kept eager so it can wrap lazy children.
@@ -41,6 +43,7 @@ const SharedReportViewer = lazy(() => import('../app/components/user/SharedRepor
 const FAQ = lazy(() => import('../app/pages/FAQ').then(m => ({ default: m.FAQ })));
 const TermsOfService = lazy(() => import('../app/pages/TermsOfService').then(m => ({ default: m.TermsOfService })));
 const PrivacyPolicy = lazy(() => import('../app/pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const CookiePolicy = lazy(() => import('../app/pages/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
 const AcceptableUse = lazy(() => import('../app/pages/AcceptableUse').then(m => ({ default: m.AcceptableUse })));
 const Contact = lazy(() => import('../app/pages/Contact').then(m => ({ default: m.Contact })));
 
@@ -101,7 +104,12 @@ function AppContent() {
         >
           <AuthProvider>
             <ScriptProvider>
+              <CookieConsentProvider>
               <BrowserRouter>
+                {/* Inside the router: the banner links to the policy page, and it is
+                    outside <Routes> so it persists across navigation rather than
+                    reappearing per page. */}
+                <CookieBanner />
                 <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Public Routes */}
@@ -131,6 +139,9 @@ function AppContent() {
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/cookies" element={<CookiePolicy />} />
+                  {/* Older links and some email footers point at /cookie-policy. */}
+                  <Route path="/cookie-policy" element={<CookiePolicy />} />
                   <Route path="/acceptable-use" element={<AcceptableUse />} />
                   <Route path="/contact" element={<Contact />} />
                   {/* Public: the invited client may not have an account yet. Must
@@ -183,6 +194,7 @@ function AppContent() {
                 </Routes>
                 </Suspense>
               </BrowserRouter>
+              </CookieConsentProvider>
             </ScriptProvider>
           </AuthProvider>
         </SnackbarProvider>

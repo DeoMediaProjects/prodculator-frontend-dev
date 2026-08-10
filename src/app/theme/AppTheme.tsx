@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ThemeProvider, CssBaseline, createTheme, responsiveFontSizes, type Theme } from '@mui/material';
+import { functionalStorage } from '@/app/cookies/consent';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -167,12 +168,11 @@ export function useThemeMode(): ThemeModeContextValue {
 }
 
 function readInitialMode(): ThemeMode {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark') return stored;
-  } catch {
-    /* localStorage unavailable */
-  }
+  // Reads nothing until preference storage is allowed, so a visitor who refused
+  // gets the default theme rather than one restored from storage we were told not
+  // to keep.
+  const stored = functionalStorage.get(STORAGE_KEY);
+  if (stored === 'light' || stored === 'dark') return stored;
   return 'dark';
 }
 
@@ -181,11 +181,9 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
 
   const setMode = (m: ThemeMode) => {
     setModeState(m);
-    try {
-      localStorage.setItem(STORAGE_KEY, m);
-    } catch {
-      /* ignore */
-    }
+    // The choice still applies for this visit; it is simply not persisted when
+    // preference storage was refused.
+    functionalStorage.set(STORAGE_KEY, m);
   };
   const toggle = () => setMode(mode === 'dark' ? 'light' : 'dark');
 
