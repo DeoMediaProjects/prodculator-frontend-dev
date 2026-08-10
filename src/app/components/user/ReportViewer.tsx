@@ -244,6 +244,16 @@ export function ReportViewer() {
     if (status === 503) {
       return 'PDF generation is temporarily unavailable. Please try again shortly.';
     }
+    if (status === undefined) {
+      // No HTTP response at all: the request never completed. The usual cause is
+      // not the server but something in the browser cancelling it — a download
+      // manager or extension that intercepts PDF responses and fetches the file
+      // itself, which is why the error can appear while the PDF still arrives.
+      // Claiming it failed outright would contradict what the user just saw.
+      return `The ${action} request was interrupted before it finished. If the PDF `
+        + 'did not arrive, check whether a download manager or browser extension is '
+        + 'intercepting it, then try again.';
+    }
     return `Could not ${action} the PDF. Please try again.`;
   };
 
