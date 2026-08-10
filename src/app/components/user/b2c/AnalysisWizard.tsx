@@ -278,6 +278,18 @@ export function AnalysisWizard() {
   // Which programmes this warning is actually about: the territories the
   // producer has chosen, or every territory while the choice is still open,
   // since the report will rank across all of them.
+  // Deselecting a territory that was named as the committed one would otherwise
+  // leave the wizard submitting a territory the analysis is not considering.
+  useEffect(() => {
+    if (
+      mustFilmIn
+      && mustFilmIn !== 'Undecided'
+      && !territoriesConsidering.includes(mustFilmIn)
+    ) {
+      setMustFilmIn('');
+    }
+  }, [territoriesConsidering, mustFilmIn]);
+
   const relevantTerritories = useMemo(() => {
     const chosen = allTerritories.filter((x) => territoriesConsidering.includes(x.label));
     return chosen.length > 0 ? chosen : allTerritories.filter((x) => !x.isSubTerritory);
@@ -298,10 +310,16 @@ export function AnalysisWizard() {
   // The fallback keeps the previous protection when no eligibility data came back
   // at all (older backend, or the request failed). Absent data is not a clean
   // bill of health, and silence is the one outcome this must never degrade to.
+  //
+  // Scoped to formats whose eligibility materially diverges from what these
+  // programmes are written for. The data-driven part is retained inside that
+  // scope, so the warning still disappears once the short-form eligibility
+  // research is populated. Without the scope it fired on every format including
+  // features, where "no one has recorded that this programme accepts features" is
+  // true of every programme and tells the producer nothing.
   const eligibilityDataAvailable = relevantTerritories.some((x) => x.formatEligibility);
-  const formatNeedsCheck = eligibilityDataAvailable
-    ? unverifiedTerritories.length > 0
-    : formatDivergesFromFeature(format);
+  const formatNeedsCheck = formatDivergesFromFeature(format)
+    && (eligibilityDataAvailable ? unverifiedTerritories.length > 0 : true);
 
   const stepValid = [
     !!file && !!title && genres.length > 0 && !!format,
@@ -826,7 +844,34 @@ export function AnalysisWizard() {
           {sectionLabel('Creative context')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
             <TextField fullWidth required label="Primary Language(s)" placeholder="e.g. English, French" helperText="Separate with commas, up to 5" value={languagesInput} onChange={(e) => setLanguagesInput(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth required label="Must Film In" placeholder="A locked territory, or your main base" value={mustFilmIn} onChange={(e) => setMustFilmIn(e.target.value)} sx={fieldSx} />
+            {/* Chosen from the territories already selected, not typed. Free text
+                meant a producer could name a territory the analysis had never been
+                asked to consider, and the answer silently went nowhere. */}
+            <TextField
+              select
+              fullWidth
+              required
+              label="Must Film In"
+              value={mustFilmIn}
+              onChange={(e) => setMustFilmIn(e.target.value)}
+              sx={fieldSx}
+              helperText={
+                territoriesConsidering.length === 0
+                  ? 'Select your territories in the previous step first.'
+                  : 'The territory this production is committed to. It leads the ranking in your report.'
+              }
+            >
+              {territoriesConsidering.length === 0 ? (
+                <MenuItem value="" disabled>No territories selected yet</MenuItem>
+              ) : (
+                [
+                  <MenuItem key="__undecided" value="Undecided">Not decided yet</MenuItem>,
+                  ...territoriesConsidering.map((tname) => (
+                    <MenuItem key={tname} value={tname}>{tname}</MenuItem>
+                  )),
+                ]
+              )}
+            </TextField>
             <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Open to Official Co-Production?</InputLabel>
               <Select value={coProductionInterest} label="Open to Official Co-Production?" onChange={(e) => setCoProductionInterest(e.target.value)} MenuProps={menuProps}>
