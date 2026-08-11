@@ -13,6 +13,7 @@
 
 // Callers pass the signed-in user's email: it is unique per account and already
 // on the auth context, so scoping needs no change to the auth payload.
+import { functionalStorage } from '@/app/cookies/consent';
 
 /** Storage key for *base*, scoped to a specific user. */
 export function tourKey(base: string, userKey: string | null | undefined): string {
@@ -22,11 +23,7 @@ export function tourKey(base: string, userKey: string | null | undefined): strin
 /** Record that this user has seen the tour. No-op when the user isn't known. */
 export function markTourSeen(base: string, userKey: string | null | undefined): void {
   if (!userKey) return;
-  try {
-    localStorage.setItem(tourKey(base, userKey), '1');
-  } catch {
-    /* storage unavailable — ignore */
-  }
+  functionalStorage.set(tourKey(base, userKey), '1');
 }
 
 /**
@@ -38,9 +35,8 @@ export function markTourSeen(base: string, userKey: string | null | undefined): 
  */
 export function hasSeenTour(base: string, userKey: string | null | undefined): boolean {
   if (!userKey) return true;
-  try {
-    return !!localStorage.getItem(tourKey(base, userKey));
-  } catch {
-    return true;
-  }
+  // Without preference storage there is no record either way. Returning true keeps
+  // the previous "don't prompt when we can't tell" behaviour, so refusing consent
+  // does not turn every visit into a walkthrough.
+  return !!functionalStorage.get(tourKey(base, userKey));
 }

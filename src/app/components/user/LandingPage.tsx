@@ -1,7 +1,6 @@
 import { Box, Container, Typography, Button } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
-import { CloudUpload, Assignment, LightModeOutlined, DarkModeOutlined } from '@mui/icons-material';
+import { CloudUpload, LockOutlined, LightModeOutlined, DarkModeOutlined } from '@mui/icons-material';
 import footerLogo from '@/assets/prodculator-logo-white.png';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
@@ -10,6 +9,8 @@ import { MobileNavDrawer } from '@/app/components/common/MobileNavDrawer';
 import { PricingNavMenu } from '@/app/components/common/PricingNavMenu';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { SiteFooter } from '@/app/components/common/SiteFooter';
+import { IncentivePreview } from '@/app/components/user/landing/IncentivePreview';
+import { LandingSections } from '@/app/components/user/landing/LandingSections';
 import { AccountMenu } from '@/app/components/common/AccountMenu';
 
 export function LandingPage() {
@@ -18,33 +19,39 @@ export function LandingPage() {
   const { mode, toggle } = useThemeMode();
   const t = tokens(mode);
 
+  // No overflow:hidden on the root below. It used to clip a decorative gold blur
+  // that has since been removed, and it was quietly breaking the sticky header: an
+  // ancestor with a hidden overflow becomes the scrollport a sticky child is
+  // measured against, so the header's `top: var(--promo-h)` was being offset from a
+  // box that already began below the promotion banner. The banner's height was
+  // applied twice, which is the gap that appeared beneath it.
+  //
+  // minHeight also stops one banner-height short of the viewport, so a banner
+  // cannot push the hero down and create a scrollbar on a page that otherwise fits.
   return (
-    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh', position: 'relative', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        bgcolor: t.pageBg,
+        minHeight: 'calc(100dvh - var(--promo-h, 0px))',
+        position: 'relative',
+      }}
+    >
       <IntroAnimation />
-
-      {/* Atmospheric gradient effect */}
-      <Box
-        sx={{
-          position: 'absolute',
-          right: '-20%',
-          top: '20%',
-          width: '600px',
-          height: '600px',
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${alpha(t.gold, 0.15)} 0%, ${alpha(t.gold, 0)} 70%)`,
-          filter: 'blur(80px)',
-          pointerEvents: 'none',
-        }}
-      />
 
       {/* Header */}
       <Box
         sx={{
           bgcolor: t.pageBg,
           borderBottom: `1px solid ${t.border}`,
-          py: 3,
+          // Matches PageHeader. At py:3 the header's own top padding read as a gap
+          // below the promotion banner, since both surfaces are the same black and
+          // nothing marks where one ends and the other begins.
+          py: 2,
           position: 'sticky',
-          top: 0,
+          // Sits below the promotion banner when one is showing. The banner
+          // publishes its measured height, so this stays correct when the
+          // text wraps and 0 when there is no banner at all.
+          top: 'var(--promo-h, 0px)',
           zIndex: (theme) => theme.zIndex.appBar,
         }}
       >
@@ -119,7 +126,7 @@ export function LandingPage() {
         sx={{
           position: 'relative',
           zIndex: 1,
-          minHeight: 'calc(100dvh - 80px)',
+
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -127,93 +134,145 @@ export function LandingPage() {
         }}
       >
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', maxWidth: '900px', mx: 'auto' }}>
-            <Typography
-              sx={{
-                fontSize: { xs: '2.5rem', md: '3.5rem', lg: '4rem' },
-                fontWeight: 700,
-                lineHeight: 1.2,
-                mb: 4,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              <Box component="span" sx={{ color: t.gold }}>Turn your</Box>
-              {' '}
-              <Box component="span" sx={{ color: t.textPrimary }}>script</Box>
-              {' '}
-              <Box component="span" sx={{ color: t.gold }}>into</Box>
-              <br />
-              <Box component="span" sx={{ color: t.textPrimary }}>Production intelligence</Box>
-              <br />
-              <Box component="span" sx={{ color: t.gold, fontSize: '1.5rem' }}>with our Scripteligence tool</Box>
-            </Typography>
-
-            <Box sx={{ mb: 6 }}>
-              <Typography sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' }, fontWeight: 700, color: t.textPrimary, mb: 1 }}>
-                Upload your script.
-              </Typography>
-              <Typography sx={{ fontSize: { xs: '1.1rem', md: '1.25rem' }, fontWeight: 700, color: t.gold, mb: 3 }}>
-                Discover where it makes the most financial sense to shoot.
-              </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              // Copy leads on every width. On mobile the headline and CTA come
+              // first and the preview follows, which is the order the argument
+              // needs: claim, then evidence.
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '0.95fr 1.05fr' },
+              gap: { xs: 6, md: 7, lg: 9 },
+              alignItems: 'center',
+              py: { xs: 6, md: 8 },
+            }}
+          >
+            <Box>
+              {/* The one eyebrow on this page. It names the category for a visitor
+                  who has never heard of it, which is a job worth doing once — not
+                  a label repeated above every section below. */}
               <Typography
                 sx={{
-                  fontSize: { xs: '0.95rem', md: '1rem' },
-                  color: t.gold,
-                  lineHeight: 1.6,
-                  maxWidth: '800px',
-                  mx: 'auto',
-                  px: { xs: 2, md: 0 },
+                  color: t.goldText,
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  mb: 2.5,
                 }}
               >
-                Prodculator analyses your screenplay to generate location recommendations, incentive estimates, and production insights, all delivered in one clear report.
+                Production incentive intelligence
+              </Typography>
+
+              <Typography
+                component="h1"
+                sx={{
+                  fontSize: { xs: '2.5rem', sm: '3rem', md: '3.25rem', lg: '3.75rem' },
+                  fontWeight: 700,
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.035em',
+                  color: t.textPrimary,
+                  textWrap: 'balance',
+                  mb: 3,
+                }}
+              >
+                Where should this film shoot?
+              </Typography>
+
+              <Typography
+                sx={{
+                  color: t.textSecondary,
+                  fontSize: { xs: '1.0625rem', md: '1.125rem' },
+                  lineHeight: 1.7,
+                  // Held to a scannable measure rather than the column width.
+                  maxWidth: 545,
+                  textWrap: 'pretty',
+                  mb: 4,
+                }}
+              >
+                Upload your screenplay and compare your production across{' '}
+                <Box component="span" sx={{ color: t.textPrimary, fontWeight: 600 }}>
+                  49 tax-incentive programmes
+                </Box>
+                . See where your project qualifies, what the incentive could be worth,
+                and which location gives you the strongest production economics.
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => navigate('/upload')}
+                  startIcon={<CloudUpload />}
+                  sx={{ px: 3.5, py: 1.6, fontSize: '1rem' }}
+                >
+                  Upload screenplay
+                </Button>
+                {/* Deliberately not a second button. One action is the point. */}
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={() => navigate('/sample')}
+                  sx={{
+                    background: 'none',
+                    border: 0,
+                    p: 0,
+                    font: 'inherit',
+                    cursor: 'pointer',
+                    color: t.textSecondary,
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    transition: 'color 160ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    '&:hover': { color: t.textPrimary },
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                  }}
+                >
+                  See a sample report
+                  <Box component="span" aria-hidden>&rarr;</Box>
+                </Box>
+              </Box>
+
+              <Typography
+                sx={{
+                  color: t.textFaint,
+                  fontSize: 13,
+                  mt: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <LockOutlined sx={{ fontSize: 14 }} aria-hidden />
+                Private analysis · One report free · No card required
+              </Typography>
+
+              <Typography sx={{ color: t.textFaint, fontSize: 13.5, mt: 2.5 }}>
+                Not ready to upload?{' '}
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={() => navigate('/what-if')}
+                  sx={{
+                    background: 'none', border: 0, p: 0, font: 'inherit', cursor: 'pointer',
+                    color: t.textSecondary, fontWeight: 600, textDecoration: 'underline',
+                    textUnderlineOffset: '3px',
+                    '&:hover': { color: t.textPrimary },
+                  }}
+                >
+                  Try the What If Calculator &rarr;
+                </Box>
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center', px: { xs: 2, md: 0 } }}>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate('/upload')}
-                startIcon={<CloudUpload />}
-                sx={{ px: 4, py: 1.5, fontSize: { xs: '0.9rem', md: '1rem' } }}
-              >
-                Upload Script
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={() => navigate('/sample')}
-                startIcon={<Assignment />}
-                sx={{ px: 4, py: 1.5, fontSize: { xs: '0.9rem', md: '1rem' } }}
-              >
-                See Sample Report
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={() => navigate('/what-if')}
-                sx={{
-                  px: 4,
-                  py: 1.5,
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  animation: 'ctaGlow 2s ease-in-out infinite',
-                  '@keyframes ctaGlow': {
-                    '0%, 100%': { boxShadow: `0 0 6px 1px ${alpha(t.gold, 0.2)}` },
-                    '50%': { boxShadow: `0 0 22px 8px ${alpha(t.gold, 0.65)}` },
-                  },
-                  '&:hover': {
-                    animation: 'none',
-                    boxShadow: `0 0 26px 10px ${alpha(t.gold, 0.7)}`,
-                  },
-                }}
-              >
-                Try What If Calculator
-              </Button>
-            </Box>
-
+            <IncentivePreview />
           </Box>
         </Container>
       </Box>
+
+      <LandingSections />
 
       <SiteFooter />
     </Box>

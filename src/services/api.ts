@@ -531,6 +531,23 @@ export interface RevenueScenario {
   ancillary?: string;
 }
 
+/**
+ * Draft a logline and synopsis from the analysis the report already holds.
+ *
+ * Returns a draft for the producer to edit; nothing is saved by this call. The
+ * backend refuses with 422 when the report carries too little story analysis to
+ * restate, rather than inventing something.
+ */
+export async function draftProjectDetailsCopy(
+  reportId: string,
+): Promise<{ logline: string; synopsis: string }> {
+  return apiClient.post<{ logline: string; synopsis: string }>(
+    `/api/reports/${reportId}/project-details/draft`,
+    undefined,
+    { auth: true },
+  );
+}
+
 export async function updateProjectDetails(
   reportId: string,
   projectDetails: ProjectDetails,

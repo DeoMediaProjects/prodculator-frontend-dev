@@ -244,6 +244,16 @@ export function ReportViewer() {
     if (status === 503) {
       return 'PDF generation is temporarily unavailable. Please try again shortly.';
     }
+    if (status === undefined) {
+      // No HTTP response at all: the request never completed. The usual cause is
+      // not the server but something in the browser cancelling it — a download
+      // manager or extension that intercepts PDF responses and fetches the file
+      // itself, which is why the error can appear while the PDF still arrives.
+      // Claiming it failed outright would contradict what the user just saw.
+      return `The ${action} request was interrupted before it finished. If the PDF `
+        + 'did not arrive, check whether a download manager or browser extension is '
+        + 'intercepting it, then try again.';
+    }
     return `Could not ${action} the PDF. Please try again.`;
   };
 
@@ -1068,6 +1078,17 @@ export function ReportViewer() {
               {/* Availability first: it is the one that withdraws figures. Kept
                   separate from the format caveat because "does not take shorts" and
                   "your budget is below the floor" need different actions. */}
+              {/* Placed with the figures it concerns. A disclaimer at the top or
+                  bottom of a report does not travel with a number a producer copies
+                  out of the middle of it. */}
+              {analysis.shortFormatIncentiveNotice && (
+                <Alert severity="warning" sx={{ mb: 2, fontSize: 13, lineHeight: 1.6 }}>
+                  <Box component="span" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                    Short-film incentive eligibility
+                  </Box>
+                  {analysis.shortFormatIncentiveNotice}
+                </Alert>
+              )}
               {analysis.programmeAvailabilityCaveat && (
                 <Alert severity="error" sx={{ mb: 2, fontSize: 13, lineHeight: 1.6 }}>
                   {analysis.programmeAvailabilityCaveat}
@@ -1177,7 +1198,9 @@ export function ReportViewer() {
                           <Typography variant="body2" sx={{ color: t.textSecondary }}>{inc.qualifyingSpend}</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2">Estimated Rebate:</Typography>
+                          <Typography variant="body2">
+                            {inc.incentiveIsConfirmed === false ? 'Confirmed Incentive:' : 'Estimated Rebate:'}
+                          </Typography>
                           <Box sx={{ textAlign: 'right' }}>
                             {/* A figure this production cannot claim is worse than no
                                 figure: it gets copied into a budget document and the
@@ -1186,6 +1209,7 @@ export function ReportViewer() {
                               variant="h6"
                               sx={{
                                 color: inc.programmeEligibility?.available === false
+                                  || inc.incentiveIsConfirmed === false
                                   ? t.textFaint
                                   : t.success,
                                 fontSize: inc.programmeEligibility?.available === false
@@ -1193,17 +1217,41 @@ export function ReportViewer() {
                                   : undefined,
                               }}
                             >
-                              {inc.estimatedRebate}
+                              {inc.incentiveIsConfirmed === false ? '—' : inc.estimatedRebate}
                             </Typography>
                             {/* An unconfirmed figure stays visible but never reads as
                                 an amount the production can count on. */}
-                            {inc.rebateIsConfirmed === false && (
+                            {inc.rebateIsConfirmed === false && inc.incentiveIsConfirmed !== false && (
                               <Typography variant="caption" sx={{ color: t.warning, fontWeight: 700 }}>
                                 eligibility unconfirmed
                               </Typography>
                             )}
                           </Box>
                         </Box>
+                        {/* Deliberately a different shape from the confirmed row
+                            above: dashed, its own heading, its own colour. An
+                            asterisk beside a number is not a distinction anyone
+                            carries into a budget spreadsheet. */}
+                        {inc.incentiveIsConfirmed === false && inc.potentialIncentive && (
+                          <Box
+                            sx={{
+                              mt: 1.5, p: 1.5, borderRadius: 1.5,
+                              border: `1px dashed ${t.warning}`,
+                              bgcolor: 'rgba(255,152,0,0.06)',
+                            }}
+                          >
+                            <Typography sx={{ color: t.warning, fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                              Potential incentive · eligibility unverified
+                            </Typography>
+                            <Typography variant="h6" sx={{ color: t.warning, mt: 0.25 }}>
+                              {inc.potentialIncentive}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: t.textSecondary, display: 'block', mt: 0.5, lineHeight: 1.5 }}>
+                              Illustrative calculation only. Not included in confirmed
+                              savings or in the net production cost.
+                            </Typography>
+                          </Box>
+                        )}
                         <Divider sx={{ my: 2, borderColor: t.border }} />
                         <Typography variant="subtitle2" sx={{ mb: 1, color: t.gold }}>Requirements:</Typography>
                         <List dense>{Array.isArray(inc.requirements) ? inc.requirements.map((r, ri) => <ListItem key={ri} sx={{ color: t.textSecondary, py: 0.25 }}>• {r}</ListItem>) : null}</List>

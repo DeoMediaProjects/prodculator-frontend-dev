@@ -8,7 +8,9 @@ import {
   Typography,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
-import { ProjectDetails, RevenueScenario, updateProjectDetails } from '../../../services/api';
+import { ProjectDetails, RevenueScenario, updateProjectDetails, draftProjectDetailsCopy, ApiError } from '../../../services/api';
+import { AutoAwesome } from '@mui/icons-material';
+import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 
 interface Props {
   reportId: string;
@@ -32,22 +34,30 @@ const REVENUE_STREAMS: { key: keyof RevenueScenario; label: string }[] = [
   { key: 'ancillary', label: 'Ancillary' },
 ];
 
-const fieldSx = {
+/** Theme-aware field styling.
+ *
+ * These were hardcoded to white text on a transparent field with #666 labels,
+ * written when this panel only ever appeared on a dark background. In light mode
+ * the text was white on white and simply could not be read; in dark mode #666
+ * labels sat barely above the background. Nothing here should be a literal colour:
+ * the token set already answers both themes. */
+const makeFieldSx = (t: ReturnType<typeof tokens>) => ({
   '& .MuiOutlinedInput-root': {
-    color: '#fff',
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-    '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
+    color: t.textPrimary,
+    '& fieldset': { borderColor: t.border },
+    '&:hover fieldset': { borderColor: t.textFaint },
+    '&.Mui-focused fieldset': { borderColor: t.gold },
   },
-  '& .MuiInputLabel-root': { color: '#666' },
-  '& .MuiInputLabel-root.Mui-focused': { color: '#D4AF37' },
-};
+  '& .MuiInputLabel-root': { color: t.textSecondary },
+  '& .MuiInputLabel-root.Mui-focused': { color: t.gold },
+  '& .MuiInputBase-input::placeholder': { color: t.textFaint, opacity: 1 },
+});
 
-function sectionLabel(text: string) {
+function sectionLabel(text: string, gold: string) {
   return (
     <Typography
       variant="overline"
-      sx={{ fontSize: '0.65rem', color: '#D4AF37', letterSpacing: '0.1em', display: 'block', mb: 1.5, mt: 2.5 }}
+      sx={{ fontSize: '0.65rem', color: gold, letterSpacing: '0.1em', display: 'block', mb: 1.5, mt: 2.5 }}
     >
       {text}
     </Typography>
@@ -55,6 +65,44 @@ function sectionLabel(text: string) {
 }
 
 export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: Props) {
+  const { mode } = useThemeMode();
+  const t = tokens(mode);
+  const fieldSx = makeFieldSx(t);
+  const [drafting, setDrafting] = useState(false);
+
+  /** Fill the two prose fields from the analysis this report already holds.
+   *
+   * Only fills what is empty. Overwriting words a producer has already written is
+   * the one thing an assistant like this must never do, and "it replaced my
+   * logline" is not recoverable from inside a form. */
+  const draftCopy = async () => {
+    if (drafting) return;
+    setDrafting(true);
+    try {
+      const draft = await draftProjectDetailsCopy(reportId);
+      const filled: string[] = [];
+      if (draft.logline && !(form.logline ?? '').trim()) {
+        setField('logline', draft.logline);
+        filled.push('logline');
+      }
+      if (draft.synopsis && !(form.synopsis ?? '').trim()) {
+        setField('synopsis', draft.synopsis);
+        filled.push('synopsis');
+      }
+      if (filled.length === 0) {
+        enqueueSnackbar('Clear a field first — drafting never overwrites your own words.', { variant: 'info' });
+      } else {
+        enqueueSnackbar(`Drafted your ${filled.join(' and ')}. Edit before saving.`, { variant: 'success' });
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error instanceof ApiError ? error.message : 'Could not draft from this report.',
+        { variant: 'error' },
+      );
+    } finally {
+      setDrafting(false);
+    }
+  };
   const { enqueueSnackbar } = useSnackbar();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -113,7 +161,7 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
 
   return (
     <Box>
-      {sectionLabel('Creative Team')}
+      {sectionLabel('Creative Team', t.gold)}
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField fullWidth size="small" label="Director Name" value={form.director_name ?? ''} onChange={(e) => setField('director_name', e.target.value)} sx={fieldSx} />
@@ -129,7 +177,23 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
         </Grid>
       </Grid>
 
-      {sectionLabel('Script')}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+        {sectionLabel('Script', t.gold)}
+        <Button
+          size="small"
+          onClick={draftCopy}
+          disabled={drafting}
+          startIcon={drafting ? <CircularProgress size={14} color="inherit" /> : <AutoAwesome sx={{ fontSize: 16 }} />}
+          sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600, color: t.gold, mt: 1.5 }}
+        >
+          {drafting ? 'Drafting...' : 'Draft with AI'}
+        </Button>
+      </Box>
+      <Typography sx={{ color: t.textFaint, fontSize: '0.72rem', mb: 1.5, lineHeight: 1.5 }}>
+        Drafts a logline and synopsis from this report's own story analysis, for you
+        to edit. It only fills fields you have left empty, and never invents plot the
+        analysis does not describe.
+      </Typography>
       <Grid container spacing={2}>
         <Grid size={12}>
           <TextField fullWidth size="small" label="Logline" placeholder="One sentence describing the story" value={form.logline ?? ''} onChange={(e) => setField('logline', e.target.value)} sx={fieldSx} />
@@ -139,7 +203,7 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
         </Grid>
       </Grid>
 
-      {sectionLabel('Finance Overview')}
+      {sectionLabel('Finance Overview', t.gold)}
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 4 }}>
           <TextField fullWidth size="small" label="Equity Sought" placeholder="e.g. £2,500,000" value={form.equity_sought ?? ''} onChange={(e) => setField('equity_sought', e.target.value)} sx={fieldSx} />
@@ -158,18 +222,18 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
         </Grid>
       </Grid>
 
-      {sectionLabel('Revenue Model, Three Scenarios')}
+      {sectionLabel('Revenue Model, Three Scenarios', t.gold)}
       <Box sx={{ overflowX: 'auto' }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr 1fr', gap: 1, minWidth: 480 }}>
           <Box />
           {(['Low', 'Base', 'High'] as const).map((scenario) => (
-            <Typography key={scenario} variant="overline" sx={{ fontSize: '0.62rem', textAlign: 'center', color: '#D4AF37', letterSpacing: '0.1em' }}>
+            <Typography key={scenario} variant="overline" sx={{ fontSize: '0.62rem', textAlign: 'center', color: t.gold, letterSpacing: '0.1em' }}>
               {scenario}
             </Typography>
           ))}
           {REVENUE_STREAMS.map(({ key, label }) => (
             <React.Fragment key={key}>
-              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#a0a0a0', alignSelf: 'center' }}>
+              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: t.textSecondary, alignSelf: 'center' }}>
                 {label}
               </Typography>
               {(['low', 'base', 'high'] as const).map((scenario) => (
@@ -177,7 +241,7 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
                   key={scenario}
                   size="small"
                   placeholder="£0"
-                  slotProps={{ input: { style: { fontSize: '0.78rem', textAlign: 'right', color: '#fff' } } }}
+                  slotProps={{ input: { style: { fontSize: '0.78rem', textAlign: 'right', color: t.textPrimary } } }}
                   value={revenueModel[scenario][key] ?? ''}
                   onChange={(e) => setScenarioField(scenario, key, e.target.value)}
                   sx={fieldSx}
@@ -188,7 +252,7 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
         </Box>
       </Box>
 
-      {sectionLabel('Recoupment Waterfall')}
+      {sectionLabel('Recoupment Waterfall', t.gold)}
       <Grid container spacing={2}>
         {[
           { key: 'distribution_fee_pct', label: 'Distribution Fee', placeholder: 'e.g. 25%' },
@@ -220,7 +284,7 @@ export default function ProjectDetailsPanel({ reportId, initialData, onSaved }: 
           onClick={handleSave}
           disabled={isSaving}
           startIcon={isSaving ? <CircularProgress size={14} color="inherit" /> : undefined}
-          sx={{ bgcolor: '#D4AF37', color: '#000', '&:hover': { bgcolor: '#c9a227' }, textTransform: 'none', fontSize: '0.85rem', fontWeight: 600, px: 3 }}
+          sx={{ bgcolor: t.gold, color: mode === 'dark' ? '#000' : '#fff', '&:hover': { bgcolor: t.goldDim }, textTransform: 'none', fontSize: '0.85rem', fontWeight: 600, px: 3 }}
         >
           {isSaving ? 'Saving…' : 'Save Details'}
         </Button>

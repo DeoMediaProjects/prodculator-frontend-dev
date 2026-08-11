@@ -45,7 +45,11 @@ export async function downloadReportPDF(reportId: string, filename?: string): Pr
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Revoked on a delay, not on the next line. click() only *starts* the download;
+  // revoking the object URL synchronously can pull the data out from under a
+  // download that has not finished reading it, which truncates or cancels it in
+  // some browsers. The view path already defers for this reason.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /**

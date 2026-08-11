@@ -13,6 +13,7 @@ import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth, type AdminPermissions } from '@/app/contexts/AuthContext';
 import { LoadingSpinner } from '@/app/components/common/LoadingSpinner';
 import brandLogo from '@/assets/prodculator-logo-white.png';
+import { functionalStorage } from '@/app/cookies/consent';
 
 // Matches the B2C shell so the two consoles feel like one product.
 export const ADMIN_SIDEBAR_W = 258;
@@ -22,11 +23,11 @@ const COLLAPSE_KEY = 'prodculator-admin-sidebar-collapsed';
 
 export function useAdminSidebarCollapsed() {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
+    return functionalStorage.get(COLLAPSE_KEY) === '1';
   });
   const toggle = () => setCollapsed((c) => {
     const next = !c;
-    try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* private mode */ }
+    functionalStorage.set(COLLAPSE_KEY, next ? '1' : '0');
     return next;
   });
   return { collapsed, toggle };
