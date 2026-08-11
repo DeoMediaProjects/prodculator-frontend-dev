@@ -10,6 +10,7 @@ import { lazy, Suspense } from 'react';
 import { AuthProvider } from '../app/contexts/AuthContext';
 import { CookieConsentProvider } from '@/app/cookies/CookieConsentProvider';
 import { CookieBanner } from '@/app/components/common/CookieBanner';
+import { PromotionBanner } from '@/app/components/common/PromotionBanner';
 import { ScriptProvider } from '../app/contexts/ScriptContext';
 
 // Route-protection wrapper — tiny, kept eager so it can wrap lazy children.
@@ -109,6 +110,10 @@ function AppContent() {
                 {/* Inside the router: the banner links to the policy page, and it is
                     outside <Routes> so it persists across navigation rather than
                     reappearing per page. */}
+                {/* Above the routes so it sticks to the top of every page, and
+                    outside <Routes> so it survives navigation. Renders nothing
+                    unless a coupon the checkout will actually apply is configured. */}
+                <PromotionBanner />
                 <CookieBanner />
                 <Suspense fallback={<PageLoader />}>
                 <Routes>

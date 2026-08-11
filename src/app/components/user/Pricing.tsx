@@ -20,6 +20,7 @@ import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
+import { usePromotion, discountedPrice } from '@/app/hooks/usePromotion';
 import { PageHeader } from '@/app/components/common/PageHeader';
 import { SiteFooter } from '@/app/components/common/SiteFooter';
 import {
@@ -319,6 +320,18 @@ export function Pricing() {
     }
   };
 
+  const promotion = usePromotion();
+
+  /** The list price as a number, for striking through when a promotion applies. */
+  const listPriceValue = (plan: Plan): number | null => {
+    if (plan.action === 'free') return null;
+    if (plan.gbpOnly) return plan.monthlyGBP;
+    if (isGBP) {
+      return billingCycle === 'annual' && plan.annualGBP != null ? plan.annualGBP : plan.monthlyGBP;
+    }
+    return billingCycle === 'annual' && plan.annualUSD != null ? plan.annualUSD : plan.monthlyUSD;
+  };
+
   const displayPrice = (plan: Plan): string => {
     if (plan.action === 'free') return '0';
     if (plan.gbpOnly) return String(plan.monthlyGBP);
@@ -378,6 +391,7 @@ export function Pricing() {
         'What If Calculator',
         'Territory Comparison',
       ],
+      badge: 'BEST FOR PRODUCERS',
       cta: 'Start Professional',
       ctaSubtext: 'Cancel anytime',
       action: 'subscribe',
@@ -581,9 +595,35 @@ export function Pricing() {
                       <Typography variant="h3" component="span" sx={{ fontWeight: 700, color: t.gold }}>
                         {/* "Free" reads better than "$0", and avoids implying a
                             currency choice matters on a plan that has no price. */}
-                        {plan.action === 'free'
-                          ? 'Free'
-                          : <>{plan.pricePrefix ?? ''}{plan.gbpOnly ? '£' : symbol}{displayPrice(plan)}</>}
+                        {(() => {
+                          if (plan.action === 'free') return 'Free';
+                          const sym = plan.gbpOnly ? '£' : symbol;
+                          const list = listPriceValue(plan);
+                          // gbpOnly plans are the Business Intelligence packages,
+                          // which the subscription coupon does not cover.
+                          const promo = plan.gbpOnly ? null
+                            : (list != null ? discountedPrice(list, promotion) : null);
+                          if (promo == null || list == null || promo >= list) {
+                            return <>{plan.pricePrefix ?? ''}{sym}{displayPrice(plan)}</>;
+                          }
+                          return (
+                            <>
+                              {plan.pricePrefix ?? ''}{sym}{promo}
+                              {/* The list price is kept visible and struck through so
+                                  the saving is checkable rather than asserted. */}
+                              <Box
+                                component="span"
+                                sx={{
+                                  ml: 1.25, fontSize: '0.5em', fontWeight: 600,
+                                  color: t.textFaint, textDecoration: 'line-through',
+                                  verticalAlign: 'middle',
+                                }}
+                              >
+                                {sym}{list}
+                              </Box>
+                            </>
+                          );
+                        })()}
                       </Typography>
                       {plan.action !== 'free' && (
                         <Typography variant="body1" component="span" sx={{ color: t.textSecondary }}>
