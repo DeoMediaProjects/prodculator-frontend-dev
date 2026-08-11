@@ -239,3 +239,38 @@ export function formatPrice(amount: number, currency: string): string {
   const formattedAmount = (amount / 100).toFixed(2);
   return `${symbol}${formattedAmount}`;
 }
+
+// ── Invoice-billed subscriptions ─────────────────────────────────────────────
+// Admin-only: starts a subscription Stripe bills by invoice (net terms) rather
+// than by card. The backend enforces the permission — this is just the call.
+
+export interface InvoiceSubscriptionPayload {
+  user_email: string;
+  plan_type: string;
+  currency: string;
+  billing_cycle: string;
+  days_until_due: number;
+}
+
+export interface InvoiceSubscriptionResult {
+  subscription_id: string;
+  customer_id: string;
+  status?: string | null;
+  invoice_id?: string | null;
+  hosted_invoice_url?: string | null;
+}
+
+export async function startInvoiceBilledSubscription(
+  payload: InvoiceSubscriptionPayload,
+): Promise<{ data: InvoiceSubscriptionResult | null; error?: string }> {
+  try {
+    const data = await apiClient.post<InvoiceSubscriptionResult>(
+      '/api/payments/invoice-subscription',
+      payload,
+      { auth: true },
+    );
+    return { data };
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error.message : 'Failed to start invoice billing' };
+  }
+}
