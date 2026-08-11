@@ -402,9 +402,9 @@ export function Pricing() {
         'Territory Comparison',
       ],
       badge: 'BEST VALUE',
-      // The card carries the emphasis: it is the plan being pushed and the only
-      // one the launch coupon covers, so the filled treatment sits here rather
-      // than on a plan with neither.
+      // The card carries the emphasis: it is the plan being pushed, so the filled
+      // treatment sits here rather than on Producer, which no longer claims to be
+      // the best value.
       highlight: true,
       cta: 'Start Professional',
       ctaSubtext: 'Cancel anytime',

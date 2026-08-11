@@ -7,8 +7,8 @@ import { discountedPrice, formatPrice, type Promotion } from '../usePromotion';
  * exists only to describe that coupon — never to create the impression of one.
  */
 
-// The launch offer covers Professional and nothing else.
-const COVERED = ['professional'];
+// The launch offer covers the three subscription plans and nothing else.
+const COVERED = ['professional', 'producer', 'studio'];
 
 const promo = (percentOff: number, plans = COVERED): Promotion => ({
   active: true, percentOff, label: `${percentOff}% off`, plans,
@@ -16,32 +16,31 @@ const promo = (percentOff: number, plans = COVERED): Promotion => ({
 const none: Promotion = { active: false, percentOff: 0, label: '', plans: [] };
 
 describe('discountedPrice', () => {
-  it('applies the advertised percentage to the covered plan', () => {
-    // The exact figures Stripe charges for the 40% launch offer: $61 and £49
-    // Professional. Rounding either to a whole unit would quote a price nobody
-    // is billed.
-    expect(discountedPrice(61, promo(40), 'professional')).toBe(36.6);
-    expect(discountedPrice(49, promo(40), 'professional')).toBe(29.4);
+  it('applies the advertised percentage to the covered plans', () => {
+    // The exact amounts Stripe charges under the 45% launch coupon. Rounding any
+    // of them to a whole unit would quote a price nobody is billed.
+    expect(discountedPrice(61, promo(45), 'professional')).toBe(33.55);
+    expect(discountedPrice(149, promo(45), 'producer')).toBe(81.95);
+    expect(discountedPrice(299, promo(45), 'studio')).toBe(164.45);
   });
 
   it('shows no saving on a plan the coupon does not cover', () => {
-    // Producer and Studio are outside the launch offer, and the one-off report and
-    // the BI packages were never in it. Striking any of their prices through would
-    // advertise a discount the checkout does not give.
-    expect(discountedPrice(149, promo(40), 'producer')).toBeNull();
-    expect(discountedPrice(299, promo(40), 'studio')).toBeNull();
-    expect(discountedPrice(40, promo(40), 'single')).toBeNull();
-    expect(discountedPrice(40, promo(40), 'credit')).toBeNull();
+    // The one-off report and the Business Intelligence packages sit outside the
+    // coupon. Striking their prices through would advertise a saving the checkout
+    // does not give.
+    expect(discountedPrice(40, promo(45), 'single')).toBeNull();
+    expect(discountedPrice(40, promo(45), 'credit')).toBeNull();
+    expect(discountedPrice(300, promo(45), 'b2b')).toBeNull();
   });
 
   it('shows no saving when the caller cannot name the plan', () => {
     // The Single Report card has no plan key, because a one-off purchase is not a
     // plan. While an absent key skipped the scope check, that card was struck
-    // through at the subscription discount and quoted $24 — but the credit
+    // through at the subscription discount and quoted $22 — but the credit
     // checkout sends no coupon, so Stripe charged the full $40. An unnameable
     // plan is not a covered plan.
-    expect(discountedPrice(40, promo(40))).toBeNull();
-    expect(discountedPrice(40, promo(40), undefined)).toBeNull();
+    expect(discountedPrice(40, promo(45))).toBeNull();
+    expect(discountedPrice(40, promo(45), undefined)).toBeNull();
   });
 
   it('returns null when no promotion is running, so the list price stands alone', () => {
@@ -49,12 +48,12 @@ describe('discountedPrice', () => {
   });
 
   it('returns null for a free plan rather than a discount of nothing', () => {
-    expect(discountedPrice(0, promo(40), 'professional')).toBeNull();
+    expect(discountedPrice(0, promo(45), 'professional')).toBeNull();
   });
 
   it('never produces a discounted price at or above the list price', () => {
-    for (const list of [40, 61, 149, 299]) {
-      const cut = discountedPrice(list, promo(40), 'professional');
+    for (const list of [61, 149, 299]) {
+      const cut = discountedPrice(list, promo(45), 'professional');
       expect(cut).not.toBeNull();
       expect(cut as number).toBeLessThan(list);
       expect(cut as number).toBeGreaterThan(0);
@@ -72,8 +71,8 @@ describe('discountedPrice', () => {
 
 describe('formatPrice', () => {
   it('keeps both cents when a price has them', () => {
+    expect(formatPrice(33.55)).toBe('33.55');
     expect(formatPrice(36.6)).toBe('36.60');
-    expect(formatPrice(29.4)).toBe('29.40');
   });
 
   it('leaves a whole price whole rather than padding it', () => {

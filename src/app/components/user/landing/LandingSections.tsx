@@ -21,10 +21,11 @@ import { DiscountSticker } from '@/app/components/common/DiscountSticker';
  *    traffic with UTMs" aside, which is campaign advice and is not on the page.
  *
  * 2. Every price is derived from PLAN_PRICING and the live promotion endpoint
- *    rather than typed in. The mockup hardcodes $36.60 / $89.40 / $179.40, which
- *    are a 40% cut of the list prices — correct only while a coupon of exactly
- *    that size exists and covers exactly those plans. Written into the page they
- *    would keep advertising a discount the checkout had stopped applying.
+ *    rather than typed in. The mockup hardcodes $36.60 / $89.40 / $179.40, a 40%
+ *    cut of the list prices — and the live coupon is 45%, so those figures were
+ *    already wrong in the file they were written into. That is the failure mode:
+ *    a price typed onto a page keeps being quoted after the coupon behind it has
+ *    moved, and the customer is charged something else.
  */
 
 // ── Shared shells ────────────────────────────────────────────────────────────
@@ -517,7 +518,11 @@ function OfferSection() {
           >
             MVP LAUNCH · FOUNDING PRODUCER
           </Box>
-          <SectionH2>{promotion.percentOff}% off Professional.</SectionH2>
+          {/* Plan-agnostic on purpose: the coupon covers Professional, Producer and
+              Studio, and naming one of them in the headline would understate it.
+              Which plans are covered is the label's job, and the label comes from
+              the same response the checkout honours. */}
+          <SectionH2>{promotion.percentOff}% off at launch.</SectionH2>
           {/* The label is the server's own wording for the coupon and may or may not
               end in a full stop, so it gets its own line rather than being spliced
               into a sentence written here. */}
