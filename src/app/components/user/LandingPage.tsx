@@ -28,7 +28,10 @@ export function LandingPage() {
         sx={{
           bgcolor: t.pageBg,
           borderBottom: `1px solid ${t.border}`,
-          py: 3,
+          // Matches PageHeader. At py:3 the header's own top padding read as a gap
+          // below the promotion banner, since both surfaces are the same black and
+          // nothing marks where one ends and the other begins.
+          py: 2,
           position: 'sticky',
           // Sits below the promotion banner when one is showing. The banner
           // publishes its measured height, so this stays correct when the
