@@ -309,11 +309,24 @@ export function AccountPage() {
               ) },
             ]}
             rowActions={(inv) => (
-              <IconButton size="small" disabled={!inv.invoice_pdf && !inv.hosted_invoice_url} onClick={() => { const u = inv.invoice_pdf || inv.hosted_invoice_url; if (u) window.open(u, '_blank'); }} sx={{ color: t.gold }}>
-                <FileDownloadOutlined fontSize="small" />
-              </IconButton>
+              // An open invoice needs paying, not downloading — send those to the
+              // Stripe hosted invoice page. Paid invoices keep the PDF download.
+              inv.status === 'open' && inv.hosted_invoice_url ? (
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => window.open(inv.hosted_invoice_url as string, '_blank')}
+                  sx={{ bgcolor: t.gold, color: '#000', fontWeight: 700, fontSize: 12, px: 1.5, '&:hover': { bgcolor: t.gold } }}
+                >
+                  Pay now
+                </Button>
+              ) : (
+                <IconButton size="small" disabled={!inv.invoice_pdf && !inv.hosted_invoice_url} onClick={() => { const u = inv.invoice_pdf || inv.hosted_invoice_url; if (u) window.open(u, '_blank'); }} sx={{ color: t.gold }}>
+                  <FileDownloadOutlined fontSize="small" />
+                </IconButton>
+              )
             )}
-            actionsHeader="DOWNLOAD"
+            actionsHeader=""
           />
         )}
       </Box>
