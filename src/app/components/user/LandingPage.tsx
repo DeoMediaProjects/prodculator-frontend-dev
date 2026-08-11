@@ -19,8 +19,23 @@ export function LandingPage() {
   const { mode, toggle } = useThemeMode();
   const t = tokens(mode);
 
+  // No overflow:hidden on the root below. It used to clip a decorative gold blur
+  // that has since been removed, and it was quietly breaking the sticky header: an
+  // ancestor with a hidden overflow becomes the scrollport a sticky child is
+  // measured against, so the header's `top: var(--promo-h)` was being offset from a
+  // box that already began below the promotion banner. The banner's height was
+  // applied twice, which is the gap that appeared beneath it.
+  //
+  // minHeight also stops one banner-height short of the viewport, so a banner
+  // cannot push the hero down and create a scrollbar on a page that otherwise fits.
   return (
-    <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh', position: 'relative', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        bgcolor: t.pageBg,
+        minHeight: 'calc(100dvh - var(--promo-h, 0px))',
+        position: 'relative',
+      }}
+    >
       <IntroAnimation />
 
       {/* Header */}
