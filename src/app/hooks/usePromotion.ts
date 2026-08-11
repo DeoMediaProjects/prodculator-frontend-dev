@@ -53,15 +53,27 @@ export function usePromotion(): Promotion {
 }
 
 /**
- * List price with the promotion applied, rounded to whole units like the rest of
- * the pricing surfaces. Returns null when there is no promotion to apply, so a
- * caller renders the list price alone rather than a discount of zero.
+ * List price with the promotion applied, to the cent.
  *
- * `planKey` is checked against the coupon's own scope. A Stripe coupon covers
- * specific products, and the one-off report sits outside this one — showing it a
- * struck-through price would advertise a saving the checkout would not give, which
- * is the exact divergence this whole path is built to prevent. Omit `planKey` only
- * for a plan known to be in scope.
+ * Deliberately NOT rounded to whole units. Stripe applies the percentage to the
+ * price in minor units and charges the exact result: 40% off $61 is $36.60, and a
+ * page that rounded that to $37 would be quoting a price nobody is charged — the
+ * same divergence, only smaller, that this file exists to prevent. Whole-unit
+ * rounding was fine while it was only ever describing an approximate saving; it
+ * stopped being fine once the figure sits beside a struck-through list price and
+ * reads as the amount you will pay.
+ *
+ * Returns null when there is no promotion to apply, so a caller renders the list
+ * price alone rather than a discount of zero.
+ *
+ * `planKey` is required, and is checked against the coupon's own scope as
+ * configured on the server. It used to be optional, and an absent key skipped the
+ * scope check entirely — which is how the one-off Single Report came to advertise
+ * a saving. That card carries no plan key because it is not a plan, so it fell
+ * through the guard and was struck through at the subscription discount, while
+ * `create_credit_checkout_session` on the server sends no coupon at all and Stripe
+ * charged the full price. A caller that cannot say which plan it is holding cannot
+ * know the coupon covers it, so the absent case now means no discount.
  */
 export function discountedPrice(
   listPrice: number,
@@ -69,8 +81,17 @@ export function discountedPrice(
   planKey?: string,
 ): number | null {
   if (!promotion.active || !listPrice) return null;
-  if (planKey && promotion.plans.length && !promotion.plans.includes(planKey.toLowerCase())) {
+  if (!planKey) return null;
+  if (promotion.plans.length && !promotion.plans.includes(planKey.toLowerCase())) {
     return null;
   }
-  return Math.round(listPrice * (1 - promotion.percentOff / 100));
+  return Math.round(listPrice * (1 - promotion.percentOff / 100) * 100) / 100;
+}
+
+/**
+ * A price as the pricing surfaces render it: whole units stay whole, and a figure
+ * with cents keeps both of them ($36.60, never $36.6).
+ */
+export function formatPrice(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }

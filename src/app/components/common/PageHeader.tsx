@@ -29,10 +29,7 @@ export function PageHeader({ actions }: PageHeaderProps) {
     <Box
       sx={{
         position: 'sticky',
-        // Sits below the promotion banner when one is showing. The banner
-        // publishes its measured height, so this stays correct when the
-        // text wraps and 0 when there is no banner at all.
-        top: 'var(--promo-h, 0px)',
+        top: 0,
         zIndex: (theme) => theme.zIndex.appBar,
         bgcolor: t.pageBg,
         borderBottom: `1px solid ${t.border}`,

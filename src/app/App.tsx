@@ -10,7 +10,6 @@ import { lazy, Suspense } from 'react';
 import { AuthProvider } from '../app/contexts/AuthContext';
 import { CookieConsentProvider } from '@/app/cookies/CookieConsentProvider';
 import { CookieBanner } from '@/app/components/common/CookieBanner';
-import { PromotionBanner } from '@/app/components/common/PromotionBanner';
 import { ScriptProvider } from '../app/contexts/ScriptContext';
 
 // Route-protection wrapper — tiny, kept eager so it can wrap lazy children.
@@ -110,10 +109,11 @@ function AppContent() {
                 {/* Inside the router: the banner links to the policy page, and it is
                     outside <Routes> so it persists across navigation rather than
                     reappearing per page. */}
-                {/* Above the routes so it sticks to the top of every page, and
-                    outside <Routes> so it survives navigation. Renders nothing
-                    unless a coupon the checkout will actually apply is configured. */}
-                <PromotionBanner />
+                {/* No site-wide promotion banner. The launch offer is carried by the
+                    homepage offer band and the discount sticker on the plan it
+                    actually covers, both of which read the same /payments/promotion
+                    response the checkout applies — so removing the strip changed
+                    where the offer is announced, not whether it is honest. */}
                 <CookieBanner />
                 <Suspense fallback={<PageLoader />}>
                 <Routes>

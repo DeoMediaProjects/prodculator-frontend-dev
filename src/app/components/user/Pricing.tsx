@@ -20,8 +20,9 @@ import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
-import { usePromotion, discountedPrice } from '@/app/hooks/usePromotion';
+import { usePromotion, discountedPrice, formatPrice } from '@/app/hooks/usePromotion';
 import { PageHeader } from '@/app/components/common/PageHeader';
+import { DiscountSticker } from '@/app/components/common/DiscountSticker';
 import { SiteFooter } from '@/app/components/common/SiteFooter';
 import {
   BI_PRICING,
@@ -39,7 +40,11 @@ import { AuthRequiredDialog } from '@/app/components/common/AuthRequiredDialog';
 type BillingCycle = 'monthly' | 'annual';
 type PlanType = 'free' | 'professional' | 'producer' | 'studio';
 type PlanAction = 'free' | 'single' | 'subscribe' | 'b2b';
-type Audience = 'individual' | 'organization';
+/** The two sides of the pricing toggle, and the two entries in the nav dropdown.
+ *  Producer sits on the individual side: it is a working producer's plan, not a
+ *  company one. The business side is the two products a company actually buys —
+ *  Studio and Business Intelligence. */
+type Audience = 'individual' | 'business';
 
 interface Plan {
   name: string;
@@ -106,13 +111,13 @@ export function Pricing() {
   const pendingPlan = subscriptionData?.pending_plan ?? null;
   const hasActiveSubscription = !!subscriptionData?.subscription;
 
-  // Producer and Studio are organization plans, so a customer on one would land
-  // on the "For individuals" tab and not see the plan they are actually paying
-  // for. Open on their own side of the toggle instead. Runs once per resolved
-  // plan rather than on every render, so it never fights a manual toggle.
+  // A Studio customer would otherwise land on the "For individuals" tab and not
+  // see the plan they are actually paying for. Open on their own side of the
+  // toggle instead. Runs once per resolved plan rather than on every render, so
+  // it never fights a manual toggle.
   useEffect(() => {
-    if (currentPlan === 'producer' || currentPlan === 'studio') {
-      setAudience('organization');
+    if (currentPlan === 'studio') {
+      setAudience('business');
     }
   }, [currentPlan]);
 
@@ -140,16 +145,21 @@ export function Pricing() {
   // had chosen so the card they clicked still shows the same price. Deliberately
   // does NOT auto-start checkout — redirecting straight to a payment page on
   // load would be a surprise; they click again, now signed in.
+  //
+  // `audience` arrives from the two entries in the Pricing nav dropdown, which is
+  // the only way that menu can land a visitor on the side they picked.
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const cycle = searchParams.get('cycle');
     const cur = searchParams.get('currency');
-    if (!cycle && !cur) return;
+    const aud = searchParams.get('audience');
+    if (!cycle && !cur && !aud) return;
     if (cycle === 'monthly' || cycle === 'annual') setBillingCycle(cycle);
     if (cur === 'usd' || cur === 'gbp') setCurrency(cur);
+    if (aud === 'individual' || aud === 'business') setAudience(aud);
     // Clear the params so a refresh doesn't keep re-applying them.
     const next = new URLSearchParams(searchParams);
-    ['plan', 'cycle', 'currency'].forEach((k) => next.delete(k));
+    ['plan', 'cycle', 'currency', 'audience'].forEach((k) => next.delete(k));
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -391,7 +401,11 @@ export function Pricing() {
         'What If Calculator',
         'Territory Comparison',
       ],
-      badge: 'BEST FOR PRODUCERS',
+      badge: 'BEST VALUE',
+      // The card carries the emphasis: it is the plan being pushed and the only
+      // one the launch coupon covers, so the filled treatment sits here rather
+      // than on a plan with neither.
+      highlight: true,
       cta: 'Start Professional',
       ctaSubtext: 'Cancel anytime',
       action: 'subscribe',
@@ -405,8 +419,7 @@ export function Pricing() {
       annualUSD: PLAN_PRICING.producer.annualUSD,
       annualGBP: PLAN_PRICING.producer.annualGBP,
       description: 'Scale your productions',
-      badge: 'BEST VALUE',
-      highlight: true,
+      badge: 'BEST FOR PRODUCERS',
       features: [
         '3 scripts per month',
         'Up to 5 territories per script',
@@ -417,7 +430,7 @@ export function Pricing() {
       ctaSubtext: 'Cancel anytime',
       action: 'subscribe',
       planType: 'producer',
-      audience: 'organization',
+      audience: 'individual',
     },
     {
       name: 'Studio',
@@ -439,7 +452,7 @@ export function Pricing() {
       ctaSubtext: 'Cancel anytime',
       action: 'subscribe',
       planType: 'studio',
-      audience: 'organization',
+      audience: 'business',
     },
     {
       name: 'Business Intelligence Solutions',
@@ -461,7 +474,7 @@ export function Pricing() {
       cta: 'Explore Business Intelligence',
       ctaSubtext: 'Requires an account',
       action: 'b2b',
-      audience: 'organization',
+      audience: 'business',
     },
   ];
 
@@ -491,7 +504,7 @@ export function Pricing() {
             onChange={(v) => setAudience(v as Audience)}
             options={[
               { value: 'individual', label: 'For individuals' },
-              { value: 'organization', label: 'For organizations' },
+              { value: 'business', label: 'For Businesses' },
             ]}
           />
         </Box>
@@ -540,6 +553,11 @@ export function Pricing() {
             return (
               <Grid size={{ xs: 12, sm: 6, md: cardMd }} key={plan.name}>
                 <Box sx={{ position: 'relative', height: '100%' }}>
+                  {/* Renders only on a plan the Stripe coupon is scoped to, so the
+                      sticker cannot promise a saving the checkout will not give. */}
+                  {plan.planType && plan.action === 'subscribe' && (
+                    <DiscountSticker planType={plan.planType} />
+                  )}
                   {plan.badge && (
                     <Box
                       sx={{
@@ -612,7 +630,7 @@ export function Pricing() {
                           }
                           return (
                             <>
-                              {plan.pricePrefix ?? ''}{sym}{promo}
+                              {plan.pricePrefix ?? ''}{sym}{formatPrice(promo)}
                               {/* The list price is kept visible and struck through so
                                   the saving is checkable rather than asserted. */}
                               <Box
