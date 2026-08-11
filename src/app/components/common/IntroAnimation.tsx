@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import logo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
+import { functionalStorage } from '@/app/cookies/consent';
 
 const GOLD = '#D4AF37';
 const SESSION_KEY = 'prodculator_intro_played';
@@ -27,12 +28,12 @@ const stroke = (delay: number) => ({
 export function IntroAnimation() {
   const reduceMotion = useReducedMotion();
   const [visible, setVisible] = useState(
-    () => typeof window !== 'undefined' && window.sessionStorage.getItem(SESSION_KEY) !== '1',
+    () => typeof window !== 'undefined' && functionalStorage.getSession(SESSION_KEY) !== '1',
   );
 
   useEffect(() => {
     if (!visible) return;
-    window.sessionStorage.setItem(SESSION_KEY, '1');
+    functionalStorage.setSession(SESSION_KEY, '1');
     const lifetime = reduceMotion ? 1000 : 3100;
     const timer = window.setTimeout(() => setVisible(false), lifetime);
     return () => window.clearTimeout(timer);

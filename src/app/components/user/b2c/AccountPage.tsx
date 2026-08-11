@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, TextField, MenuItem, Avatar, Checkbox, IconButton, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, Alert, InputAdornment,
 } from '@mui/material';
 import {
   ReceiptLongOutlined, FileDownloadOutlined, LogoutOutlined, DeleteOutline, CreditCardOutlined,
   PersonOutlineOutlined, ShieldOutlined, WorkspacePremiumOutlined, MailOutlineOutlined,
-  ArrowForward,
+  ArrowForward, Visibility, VisibilityOff,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
@@ -16,7 +17,9 @@ import { getCustomerPortalUrl } from '@/services/stripe.service';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { DataTable } from './DataTable';
 import { ConfirmDialog } from '@/app/components/common/ConfirmDialog';
+import { authService } from '@/services/auth.service';
 import { PROFILE_KEY, PROFILE_UPDATED_EVENT, AVATAR_KEY } from './Sidebar';
+import { functionalStorage } from '@/app/cookies/consent';
 
 const ACCOUNT_DELETE_REASONS = [
   'No longer need the service',
@@ -83,17 +86,17 @@ export function AccountPage() {
   const [invoicesLoading, setInvoicesLoading] = useState(true);
 
   const [notifs, setNotifs] = useState<{ reportReady: boolean; deadlines: boolean; product: boolean }>(() => {
-    try { const s = localStorage.getItem(NOTIF_KEY); if (s) return JSON.parse(s); } catch { /* */ }
+    try { const s = functionalStorage.get(NOTIF_KEY); if (s) return JSON.parse(s); } catch { /* malformed */ }
     return { reportReady: true, deadlines: true, product: false };
   });
-  useEffect(() => { try { localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs)); } catch { /* */ } }, [notifs]);
+  useEffect(() => { functionalStorage.set(NOTIF_KEY, JSON.stringify(notifs)); }, [notifs]);
 
   useEffect(() => { if (derivedName && !fullName) setFullName(derivedName); }, [derivedName]); // eslint-disable-line
 
   // Restore any locally-saved profile (name/country/avatar) on mount.
   useEffect(() => {
     try {
-      const s = localStorage.getItem(PROFILE_KEY);
+      const s = functionalStorage.get(PROFILE_KEY);
       if (s) {
         const p = JSON.parse(s);
         if (p.fullName) setFullName(p.fullName);
@@ -103,7 +106,7 @@ export function AccountPage() {
           else { setCountry('Other'); setCountryOther(p.country); }
         }
       }
-      const a = localStorage.getItem(AVATAR_KEY);
+      const a = functionalStorage.get(AVATAR_KEY);
       if (a) setAvatar(a);
     } catch { /* */ }
   }, []);
@@ -128,7 +131,7 @@ export function AccountPage() {
   const handleSave = () => {
     setSaving(true);
     // No profile-update endpoint exists yet; persist locally and confirm.
-    try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ fullName, country: effectiveCountry })); } catch { /* */ }
+    functionalStorage.set(PROFILE_KEY, JSON.stringify({ fullName, country: effectiveCountry }));
     window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
     setTimeout(() => { setSaving(false); enqueueSnackbar('Profile changes saved.', { variant: 'success' }); }, 350);
   };
@@ -141,7 +144,7 @@ export function AccountPage() {
     reader.onload = () => {
       const url = String(reader.result);
       setAvatar(url);
-      try { localStorage.setItem(AVATAR_KEY, url); } catch { /* */ }
+      functionalStorage.set(AVATAR_KEY, url);
       window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
       enqueueSnackbar('Profile photo updated.', { variant: 'success' });
     };
@@ -156,6 +159,47 @@ export function AccountPage() {
     } catch { enqueueSnackbar('Unable to open billing portal.', { variant: 'error' }); }
   };
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // Changing the password used to navigate to /reset-password, the page that
+  // consumes a token from a reset email. Arriving there without one, a signed-in
+  // user filled in the whole form and was told the link had expired. The change is
+  // done here instead, against the endpoint built for it.
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState('');
+  const [pwNext, setPwNext] = useState('');
+  const [pwConfirm, setPwConfirm] = useState('');
+  const [pwShow, setPwShow] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState('');
+
+  const pwTooShort = pwNext.length > 0 && pwNext.length < 8;
+  const pwMismatch = pwConfirm.length > 0 && pwNext !== pwConfirm;
+  const pwUnchanged = pwNext.length > 0 && pwNext === pwCurrent;
+  const pwValid =
+    pwCurrent.length > 0 && pwNext.length >= 8 && pwNext === pwConfirm && !pwUnchanged;
+
+  const closePasswordDialog = () => {
+    setPwOpen(false);
+    // Cleared on close so a password never lingers in component state behind a
+    // dialog the user believes they have dismissed.
+    setPwCurrent(''); setPwNext(''); setPwConfirm('');
+    setPwShow(false); setPwError('');
+  };
+
+  const submitPasswordChange = async () => {
+    if (!pwValid || pwSaving) return;
+    setPwSaving(true);
+    setPwError('');
+    const { error } = await authService.updatePassword(pwCurrent, pwNext);
+    setPwSaving(false);
+    if (error) {
+      // Shown in the dialog rather than as a toast: the user has to correct a field
+      // that is still on screen.
+      setPwError(error);
+      return;
+    }
+    closePasswordDialog();
+    enqueueSnackbar('Password updated', { variant: 'success' });
+  };
   const [deleting, setDeleting] = useState(false);
   const confirmDeleteAccount = (reason?: string) => {
     setDeleting(true);
@@ -223,7 +267,7 @@ export function AccountPage() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography sx={{ color: t.textPrimary, fontWeight: 600 }}>Password</Typography>
-              <Button variant="outlined" onClick={() => navigate('/reset-password')}>Change</Button>
+              <Button variant="outlined" onClick={() => setPwOpen(true)}>Change</Button>
             </Box>
             <Button fullWidth variant="outlined" startIcon={<LogoutOutlined />} onClick={() => { userLogout(); navigate('/'); }} sx={{ justifyContent: 'flex-start' }}>Sign out</Button>
             <Button fullWidth variant="outlined" startIcon={<DeleteOutline />} onClick={() => setDeleteOpen(true)} sx={{ justifyContent: 'flex-start', color: t.error, borderColor: t.error, '&:hover': { borderColor: t.error, bgcolor: 'rgba(229,104,109,0.08)' } }}>Request account deletion</Button>
@@ -354,6 +398,92 @@ export function AccountPage() {
           </Box>
         ))}
       </Box>
+
+      <Dialog
+        open={pwOpen}
+        onClose={pwSaving ? undefined : closePasswordDialog}
+        fullWidth
+        maxWidth="xs"
+        slotProps={{ paper: { sx: { bgcolor: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 2 } } }}
+      >
+        <DialogTitle sx={{ color: t.textPrimary, fontWeight: 700 }}>Change password</DialogTitle>
+        <DialogContent>
+          <Box
+            component="form"
+            onSubmit={(e) => { e.preventDefault(); void submitPasswordChange(); }}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 0.5 }}
+          >
+            {pwError && <Alert severity="error" sx={{ fontSize: 13 }}>{pwError}</Alert>}
+            <Typography sx={{ color: t.textSecondary, fontSize: 13, lineHeight: 1.6 }}>
+              Confirming your current password keeps someone who finds an open session
+              from locking you out of your own account.
+            </Typography>
+            <TextField
+              label="Current password"
+              type={pwShow ? 'text' : 'password'}
+              value={pwCurrent}
+              onChange={(e) => setPwCurrent(e.target.value)}
+              autoComplete="current-password"
+              autoFocus
+              fullWidth
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setPwShow((v) => !v)} edge="end" size="small"
+                        aria-label={pwShow ? 'Hide passwords' : 'Show passwords'}>
+                        {pwShow ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <TextField
+              label="New password"
+              type={pwShow ? 'text' : 'password'}
+              value={pwNext}
+              onChange={(e) => setPwNext(e.target.value)}
+              autoComplete="new-password"
+              fullWidth
+              error={pwTooShort || pwUnchanged}
+              helperText={
+                pwUnchanged
+                  ? 'Choose a password different from your current one.'
+                  : pwTooShort
+                    ? 'At least 8 characters.'
+                    : ' '
+              }
+            />
+            <TextField
+              label="Confirm new password"
+              type={pwShow ? 'text' : 'password'}
+              value={pwConfirm}
+              onChange={(e) => setPwConfirm(e.target.value)}
+              autoComplete="new-password"
+              fullWidth
+              error={pwMismatch}
+              helperText={pwMismatch ? 'Passwords do not match.' : ' '}
+            />
+            {/* Submits the form on Enter, which is how a three-field password dialog
+                is expected to behave. */}
+            <button type="submit" hidden aria-hidden />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={closePasswordDialog} disabled={pwSaving} sx={{ color: t.textSecondary }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void submitPasswordChange()}
+            disabled={!pwValid || pwSaving}
+            startIcon={pwSaving ? <CircularProgress size={16} color="inherit" /> : undefined}
+          >
+            {pwSaving ? 'Saving...' : 'Update password'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ConfirmDialog
         open={deleteOpen}

@@ -11,6 +11,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 // Transparent mark. The hashed asset is a solid white plate, which showed as a
 // white box on the cream sidebar in light mode (and a black box in dark).
 import brandLogo from '@/assets/prodculator-logo-white.png';
+import { functionalStorage } from '@/app/cookies/consent';
 
 export const SIDEBAR_W = 248;
 export const SIDEBAR_COLLAPSED_W = 78;
@@ -23,7 +24,7 @@ export const AVATAR_KEY = 'prodculator-avatar';
 
 function readSavedName(): string {
   try {
-    const s = localStorage.getItem(PROFILE_KEY);
+    const s = functionalStorage.get(PROFILE_KEY);
     if (s) {
       const p = JSON.parse(s);
       if (p.fullName) return String(p.fullName).trim();
@@ -34,7 +35,7 @@ function readSavedName(): string {
 
 function readSavedAvatar(): string {
   try {
-    return localStorage.getItem(AVATAR_KEY) || '';
+    return functionalStorage.get(AVATAR_KEY) || '';
   } catch {
     return '';
   }
@@ -76,11 +77,11 @@ export function useSavedProfile() {
 const COLLAPSE_KEY = 'prodculator-sidebar-collapsed';
 export function useSidebarCollapsed() {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
+    return functionalStorage.get(COLLAPSE_KEY) === '1';
   });
   const toggle = () => setCollapsed((c) => {
     const next = !c;
-    try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* */ }
+    functionalStorage.set(COLLAPSE_KEY, next ? '1' : '0');
     return next;
   });
   return { collapsed, toggle };

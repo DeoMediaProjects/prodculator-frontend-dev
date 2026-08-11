@@ -8,6 +8,7 @@ import {
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { apiClient } from '@/services/api';
+import { functionalStorage } from '@/app/cookies/consent';
 
 // Notifications are DERIVED from real account state (report status, plan usage) —
 // never fabricated — so what the bell shows always matches the data.
@@ -31,11 +32,11 @@ const DISMISS_KEY = 'prodculator-notifs-dismissed';
 const PLAN_PERIOD_LIMIT: Record<string, number> = { free: 1, professional: 10, producer: 30, studio: Infinity };
 
 function loadSet(key: string): Set<string> {
-  try { const s = localStorage.getItem(key); if (s) return new Set(JSON.parse(s) as string[]); } catch { /* */ }
+  try { const s = functionalStorage.get(key); if (s) return new Set(JSON.parse(s) as string[]); } catch { /* malformed */ }
   return new Set();
 }
 function saveSet(key: string, ids: Set<string>) {
-  try { localStorage.setItem(key, JSON.stringify([...ids])); } catch { /* */ }
+  functionalStorage.set(key, JSON.stringify([...ids]));
 }
 function ago(ts: number): string {
   const s = Math.max(0, (Date.now() - ts) / 1000);

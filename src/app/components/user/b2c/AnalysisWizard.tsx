@@ -20,6 +20,7 @@ import { NotificationBell } from './NotificationBell';
 import { SegmentedToggle } from './SegmentedToggle';
 import { WizardTour } from './WizardTour';
 import { usePrefersReducedMotion } from './tourStyles';
+import { deriveSchedule, type ScheduleDriver } from './scheduleDerivation';
 
 // Continent grouping for the territory picker — identical mapping to ScriptUpload
 // so the wizard yields the same intake payload the engine already understands.
@@ -172,36 +173,30 @@ export function AnalysisWizard() {
   // user leaves blank is auto-calculated from the other two. We only ever
   // overwrite a field that is empty or that we last auto-filled ourselves, so
   // a value the user typed is never clobbered.
-  const MS_PER_WEEK = 7 * 86400_000;
   const autoCompletion = useRef('');
   const autoDuration = useRef('');
+  // Which of the two linked fields the user last typed in. Duration and completion
+  // each derive from the other, so without this the effect wrote back into the
+  // field being edited: with a start and a completion date both present, deleting
+  // the only digit in Filming Duration re-derived it on the same keystroke and the
+  // digit reappeared. The rule is that the field being edited is an input, never an
+  // output. The derivation itself lives in scheduleDerivation.ts so it can be
+  // tested without mounting the wizard.
+  const scheduleDriver = useRef<ScheduleDriver>(null);
+
   useEffect(() => {
-    if (!filmingStart) return;
-    const start = new Date(filmingStart);
-    if (Number.isNaN(start.getTime())) return;
-
-    // start + duration -> completion
-    const weeks = Number(filmingDuration);
-    if (filmingDuration && Number.isFinite(weeks) && weeks > 0) {
-      const completion = new Date(start.getTime() + weeks * MS_PER_WEEK).toISOString().slice(0, 10);
-      if (completionDate === '' || completionDate === autoCompletion.current) {
-        if (completion !== completionDate) setCompletionDate(completion);
-        autoCompletion.current = completion;
-        return;
-      }
-    }
-
-    // start + completion -> duration
-    if (completionDate) {
-      const end = new Date(completionDate);
-      if (!Number.isNaN(end.getTime()) && end.getTime() > start.getTime()) {
-        const wks = String(Math.round((end.getTime() - start.getTime()) / MS_PER_WEEK));
-        if (filmingDuration === '' || filmingDuration === autoDuration.current) {
-          if (wks !== filmingDuration) setFilmingDuration(wks);
-          autoDuration.current = wks;
-        }
-      }
-    }
+    const next = deriveSchedule({
+      filmingStart,
+      filmingDuration,
+      completionDate,
+      driver: scheduleDriver.current,
+      autoCompletion: autoCompletion.current,
+      autoDuration: autoDuration.current,
+    });
+    if (next.completionDate !== undefined) setCompletionDate(next.completionDate);
+    if (next.filmingDuration !== undefined) setFilmingDuration(next.filmingDuration);
+    if (next.autoCompletion !== undefined) autoCompletion.current = next.autoCompletion;
+    if (next.autoDuration !== undefined) autoDuration.current = next.autoDuration;
   }, [filmingStart, filmingDuration, completionDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-suggest currency from production country.
@@ -278,6 +273,18 @@ export function AnalysisWizard() {
   // Which programmes this warning is actually about: the territories the
   // producer has chosen, or every territory while the choice is still open,
   // since the report will rank across all of them.
+  // Deselecting a territory that was named as the committed one would otherwise
+  // leave the wizard submitting a territory the analysis is not considering.
+  useEffect(() => {
+    if (
+      mustFilmIn
+      && mustFilmIn !== 'Undecided'
+      && !territoriesConsidering.includes(mustFilmIn)
+    ) {
+      setMustFilmIn('');
+    }
+  }, [territoriesConsidering, mustFilmIn]);
+
   const relevantTerritories = useMemo(() => {
     const chosen = allTerritories.filter((x) => territoriesConsidering.includes(x.label));
     return chosen.length > 0 ? chosen : allTerritories.filter((x) => !x.isSubTerritory);
@@ -298,10 +305,16 @@ export function AnalysisWizard() {
   // The fallback keeps the previous protection when no eligibility data came back
   // at all (older backend, or the request failed). Absent data is not a clean
   // bill of health, and silence is the one outcome this must never degrade to.
+  //
+  // Scoped to formats whose eligibility materially diverges from what these
+  // programmes are written for. The data-driven part is retained inside that
+  // scope, so the warning still disappears once the short-form eligibility
+  // research is populated. Without the scope it fired on every format including
+  // features, where "no one has recorded that this programme accepts features" is
+  // true of every programme and tells the producer nothing.
   const eligibilityDataAvailable = relevantTerritories.some((x) => x.formatEligibility);
-  const formatNeedsCheck = eligibilityDataAvailable
-    ? unverifiedTerritories.length > 0
-    : formatDivergesFromFeature(format);
+  const formatNeedsCheck = formatDivergesFromFeature(format)
+    && (eligibilityDataAvailable ? unverifiedTerritories.length > 0 : true);
 
   const stepValid = [
     !!file && !!title && genres.length > 0 && !!format,
@@ -795,9 +808,54 @@ export function AnalysisWizard() {
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Schedule')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2.5 }}>
-            <TextField fullWidth required type="date" label="Filming Start" slotProps={{ inputLabel: { shrink: true } }} value={filmingStart} onChange={(e) => setFilmingStart(e.target.value)} sx={dateFieldSx} />
-            <TextField fullWidth required type="number" label="Filming Duration (weeks)" value={filmingDuration} onChange={(e) => setFilmingDuration(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth required type="date" label="Expected Completion" slotProps={{ inputLabel: { shrink: true } }} value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} sx={dateFieldSx} />
+            <TextField
+              fullWidth
+              required
+              type="date"
+              label="Filming Start"
+              slotProps={{ inputLabel: { shrink: true } }}
+              value={filmingStart}
+              onChange={(e) => {
+                // Moving the start date is not an edit of either linked field, so
+                // derivation is handed back to the form and whichever of the two is
+                // still auto-owned refreshes from the new start.
+                scheduleDriver.current = null;
+                setFilmingStart(e.target.value);
+              }}
+              sx={dateFieldSx}
+            />
+            <TextField
+              fullWidth
+              required
+              type="number"
+              label="Filming Duration (weeks)"
+              value={filmingDuration}
+              onChange={(e) => {
+                // Marks this field as the one being typed in, so the schedule
+                // effect derives the completion date from it rather than writing
+                // back over it. Without this the field cannot be emptied.
+                scheduleDriver.current = 'duration';
+                setFilmingDuration(e.target.value);
+              }}
+              slotProps={{ htmlInput: { min: 1, step: 1 } }}
+              sx={fieldSx}
+            />
+            <TextField
+              fullWidth
+              required
+              type="date"
+              label="Expected Completion"
+              slotProps={{ inputLabel: { shrink: true } }}
+              value={completionDate}
+              onChange={(e) => {
+                // Same rule as the duration field: editing this one makes it the
+                // input, so the effect derives duration from it instead of
+                // overwriting the date mid-edit.
+                scheduleDriver.current = 'completion';
+                setCompletionDate(e.target.value);
+              }}
+              sx={dateFieldSx}
+            />
           </Box>
         </Box>
 
@@ -826,7 +884,34 @@ export function AnalysisWizard() {
           {sectionLabel('Creative context')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
             <TextField fullWidth required label="Primary Language(s)" placeholder="e.g. English, French" helperText="Separate with commas, up to 5" value={languagesInput} onChange={(e) => setLanguagesInput(e.target.value)} sx={fieldSx} />
-            <TextField fullWidth required label="Must Film In" placeholder="A locked territory, or your main base" value={mustFilmIn} onChange={(e) => setMustFilmIn(e.target.value)} sx={fieldSx} />
+            {/* Chosen from the territories already selected, not typed. Free text
+                meant a producer could name a territory the analysis had never been
+                asked to consider, and the answer silently went nowhere. */}
+            <TextField
+              select
+              fullWidth
+              required
+              label="Must Film In"
+              value={mustFilmIn}
+              onChange={(e) => setMustFilmIn(e.target.value)}
+              sx={fieldSx}
+              helperText={
+                territoriesConsidering.length === 0
+                  ? 'Select your territories in the previous step first.'
+                  : 'The territory this production is committed to. It leads the ranking in your report.'
+              }
+            >
+              {territoriesConsidering.length === 0 ? (
+                <MenuItem value="" disabled>No territories selected yet</MenuItem>
+              ) : (
+                [
+                  <MenuItem key="__undecided" value="Undecided">Not decided yet</MenuItem>,
+                  ...territoriesConsidering.map((tname) => (
+                    <MenuItem key={tname} value={tname}>{tname}</MenuItem>
+                  )),
+                ]
+              )}
+            </TextField>
             <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Open to Official Co-Production?</InputLabel>
               <Select value={coProductionInterest} label="Open to Official Co-Production?" onChange={(e) => setCoProductionInterest(e.target.value)} MenuProps={menuProps}>

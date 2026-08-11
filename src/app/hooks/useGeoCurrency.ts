@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { functionalStorage } from '@/app/cookies/consent';
 
 interface CurrencyInfo {
   symbol: string;
@@ -16,7 +17,7 @@ export function useGeoCurrency(): CurrencyInfo {
   useEffect(() => {
     // Check if we've already detected the country in this session
     try {
-      const cachedCountry = sessionStorage.getItem('user_country');
+      const cachedCountry = functionalStorage.getSession('user_country');
       
       if (cachedCountry) {
         const isUK = cachedCountry === 'GB';
@@ -48,7 +49,7 @@ export function useGeoCurrency(): CurrencyInfo {
         
         // Cache the result (with error handling)
         try {
-          sessionStorage.setItem('user_country', isUK ? 'GB' : 'US');
+          functionalStorage.setSession('user_country', isUK ? 'GB' : 'US');
         } catch (storageError) {
           // Ignore storage errors - just don't cache
           console.warn('Could not cache country preference:', storageError);

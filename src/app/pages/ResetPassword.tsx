@@ -113,7 +113,33 @@ export function ResetPassword() {
             <img src={exampleLogo} alt="Prodculator" style={{ height: '48px', width: 'auto' }} />
           </Box>
 
-          {success ? (
+          {!token && !success ? (
+            /* Reached without a token: an expired bookmark, a truncated email link,
+               or a stale in-app route. Saying so here costs the user one glance;
+               discovering it only on submit costs them the whole form, twice, and
+               reads as though the new password was rejected. */
+            <>
+              <Typography variant="h4" sx={{ color: '#D4AF37', fontWeight: 700, mb: 1 }}>
+                Reset Link Required
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#a0a0a0', mb: 4, lineHeight: 1.7 }}>
+                This page needs the one-time link from a password reset email. If you
+                are signed in, you can change your password from your account settings
+                instead.
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => navigate('/login', { replace: true })}
+                sx={{
+                  bgcolor: '#D4AF37', color: '#000000', fontWeight: 700, py: 1.5,
+                  '&:hover': { bgcolor: '#B8941F' },
+                }}
+              >
+                Go to Login
+              </Button>
+            </>
+          ) : success ? (
             <>
               <Box
                 sx={{

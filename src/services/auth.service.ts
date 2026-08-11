@@ -162,9 +162,23 @@ export class AuthService {
     }
   }
 
-  async updatePassword(newPassword: string): Promise<{ error: string | null }> {
+  /**
+   * Change the signed-in user's password.
+   *
+   * `currentPassword` is required by the API: a valid session proves a session, not
+   * the person holding it, and changing the password is what locks the real owner
+   * out. Google accounts have no password to verify and the API says so explicitly.
+   */
+  async updatePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ error: string | null }> {
     try {
-      await apiClient.post('/api/auth/update-password', { new_password: newPassword }, { auth: true });
+      await apiClient.post(
+        '/api/auth/update-password',
+        { current_password: currentPassword, new_password: newPassword },
+        { auth: true },
+      );
       return { error: null };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Update password failed' };
