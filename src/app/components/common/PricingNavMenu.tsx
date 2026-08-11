@@ -6,6 +6,7 @@ import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { BI_PRICING, PLAN_PRICING } from '@/services/stripe.service';
+import { usePromotion, discountedPrice } from '@/app/hooks/usePromotion';
 
 // Maps the backend plan key on the user to the plan name shown in this menu, so
 // a logged-in subscriber sees which plan they're currently on. "Single" is a
@@ -22,6 +23,12 @@ interface PricingMenuItem {
   priceUSD: string;
   priceGBP: string;
   description: string;
+  /** Plan key, checked against the coupon's scope before any saving is shown.
+   *  Absent on Explorer and the one-off report, which the coupon does not cover. */
+  planType?: string;
+  /** List price per currency, so the menu can strike it through. */
+  listUSD?: number;
+  listGBP?: number;
 }
 
 // Prices are derived from PLAN_PRICING, never written here. This menu had its
@@ -43,18 +50,27 @@ const PLAN_ITEMS: PricingMenuItem[] = [
   },
   {
     name: 'Professional',
+    planType: 'professional',
+    listUSD: PLAN_PRICING.professional.monthlyUSD,
+    listGBP: PLAN_PRICING.professional.monthlyGBP,
     priceUSD: `$${PLAN_PRICING.professional.monthlyUSD}/mo`,
     priceGBP: `£${PLAN_PRICING.professional.monthlyGBP}/mo`,
     description: '1 script a month, up to 3 territories',
   },
   {
     name: 'Producer',
+    planType: 'producer',
+    listUSD: PLAN_PRICING.producer.monthlyUSD,
+    listGBP: PLAN_PRICING.producer.monthlyGBP,
     priceUSD: `$${PLAN_PRICING.producer.monthlyUSD}/mo`,
     priceGBP: `£${PLAN_PRICING.producer.monthlyGBP}/mo`,
     description: '3 scripts a month, up to 5 territories each',
   },
   {
     name: 'Studio',
+    planType: 'studio',
+    listUSD: PLAN_PRICING.studio.monthlyUSD,
+    listGBP: PLAN_PRICING.studio.monthlyGBP,
     priceUSD: `$${PLAN_PRICING.studio.monthlyUSD}/mo`,
     priceGBP: `£${PLAN_PRICING.studio.monthlyGBP}/mo`,
     description: '10 scripts a month, up to 7 territories each',
@@ -80,11 +96,19 @@ export function PricingNavMenu() {
   const t = tokens(mode);
   const { user, isAuthenticated } = useAuth();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const promotion = usePromotion();
   const open = Boolean(anchorEl);
 
   const currentPlanName = isAuthenticated ? PLAN_KEY_TO_NAME[user?.plan || 'free'] : null;
 
   const price = (item: PricingMenuItem) => (isUK ? item.priceGBP : item.priceUSD);
+
+  /** The discounted figure for a plan the coupon covers, or null. */
+  const promoPrice = (item: PricingMenuItem): number | null => {
+    const list = isUK ? item.listGBP : item.listUSD;
+    if (!item.planType || list == null) return null;
+    return discountedPrice(list, promotion, item.planType);
+  };
 
   const goTo = (path: string) => {
     setAnchorEl(null);
@@ -127,9 +151,30 @@ export function PricingNavMenu() {
             </Typography>
           )}
         </Box>
-        <Typography sx={{ color: t.gold, fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-          {price(item)}
-        </Typography>
+        {(() => {
+          const cut = promoPrice(item);
+          const list = isUK ? item.listGBP : item.listUSD;
+          if (cut == null || list == null) {
+            return (
+              <Typography sx={{ color: t.gold, fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                {price(item)}
+              </Typography>
+            );
+          }
+          // The list price stays on screen, struck through, so the saving is
+          // checkable rather than asserted. Shown only for plans the Stripe
+          // coupon actually covers.
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, whiteSpace: 'nowrap' }}>
+              <Typography component="span" sx={{ color: t.textFaint, fontSize: '0.75rem', textDecoration: 'line-through' }}>
+                {isUK ? '£' : '$'}{list}
+              </Typography>
+              <Typography component="span" sx={{ color: t.gold, fontWeight: 700, fontSize: '0.85rem' }}>
+                {isUK ? '£' : '$'}{cut}/mo
+              </Typography>
+            </Box>
+          );
+        })()}
       </Box>
       <Typography sx={{ color: t.textFaint, fontSize: '0.8rem' }}>
         {item.description}
@@ -182,6 +227,16 @@ export function PricingNavMenu() {
           },
         }}
       >
+        {promotion.active && (
+          <Box sx={{ px: 2.5, py: 1.25, bgcolor: t.goldDim, borderBottom: `1px solid ${t.border}` }}>
+            <Typography sx={{ color: t.goldText, fontWeight: 800, fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              {promotion.percentOff}% off
+            </Typography>
+            <Typography sx={{ color: t.textSecondary, fontSize: '0.75rem', mt: 0.25 }}>
+              {promotion.label}
+            </Typography>
+          </Box>
+        )}
         {PLAN_ITEMS.map((item) => renderItem(item, '/pricing'))}
         <Divider sx={{ my: 0.5, borderColor: t.border }} />
         {renderItem(B2B_ITEM, '/b2b')}

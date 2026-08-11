@@ -601,8 +601,12 @@ export function Pricing() {
                           const list = listPriceValue(plan);
                           // gbpOnly plans are the Business Intelligence packages,
                           // which the subscription coupon does not cover.
-                          const promo = plan.gbpOnly ? null
-                            : (list != null ? discountedPrice(list, promotion) : null);
+                          // Keyed on the plan, so only the plans the Stripe coupon
+                          // actually covers show a saving. The one-off report is
+                          // outside its scope and is charged in full.
+                          const promo = plan.gbpOnly || list == null
+                            ? null
+                            : discountedPrice(list, promotion, plan.planType);
                           if (promo == null || list == null || promo >= list) {
                             return <>{plan.pricePrefix ?? ''}{sym}{displayPrice(plan)}</>;
                           }
