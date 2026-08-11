@@ -20,6 +20,10 @@ const TOKENS = {
     gold: '#D4AF37',
     goldBright: '#E9C44C',
     goldDim: 'rgba(212,175,55,0.10)',
+    // Gold used as TEXT rather than as a border, fill or chart colour.
+    // On dark surfaces the brand gold already clears 8.6:1, so it is unchanged.
+    // The light-mode counterpart below is not: see the note there.
+    goldText: '#D4AF37',
     textPrimary: '#FFFFFF',
     textSecondary: '#C7C1B5', // brightened for readability on dark surfaces
     textFaint: '#948E84',     // still clearly legible, not a dim grey
@@ -38,9 +42,16 @@ const TOKENS = {
     gold: '#B8941F',
     goldBright: '#C9A227',
     goldDim: 'rgba(184,148,31,0.12)',
+    // The brand gold reads at 2.5:1 on the light page background, which fails even
+    // the 3:1 large-text floor, let alone 4.5:1 for body. It is fine as a border,
+    // a fill or a chart colour, where contrast rules apply differently, but it was
+    // never readable as text in light mode. This is the same hue taken down the
+    // ramp until it passes on both light surfaces (4.7:1 on the page, 5.4:1 on
+    // cards), so gold can carry meaning in prose without becoming unreadable.
+    goldText: '#806715',
     textPrimary: '#1C1A16',
     textSecondary: '#57534A', // legible, not faint grey
-    textFaint: '#8A857C',
+    textFaint: '#6E695F',   // was #8A857C: 3.2:1 on the page bg, below the 4.5:1 body floor
     success: '#1F9D57',
     warning: '#B7770D',
     error: '#C0392B',

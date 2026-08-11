@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useNavigate } from 'react-router';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
@@ -22,11 +23,35 @@ export function PromotionBanner() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
   const navigate = useNavigate();
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  // Page headers in this app are `position: sticky; top: 0`. So is this banner, so
+  // without an offset the two occupy the same 0 and overlap. Publishing the real
+  // measured height as a CSS variable lets every sticky header sit below it, and
+  // keeps working when the text wraps to two lines on a narrow screen — which a
+  // hardcoded offset would not.
+  useEffect(() => {
+    const el = ref.current;
+    const root = document.documentElement;
+    if (!el) {
+      root.style.setProperty('--promo-h', '0px');
+      return;
+    }
+    const publish = () => root.style.setProperty('--promo-h', `${el.offsetHeight}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.setProperty('--promo-h', '0px');
+    };
+  }, [promotion.active]);
 
   if (!promotion.active) return null;
 
   return (
     <Box
+      ref={ref}
       role="status"
       onClick={() => navigate('/pricing')}
       sx={{
