@@ -16,6 +16,16 @@ import { SiteFooter } from '@/app/components/common/SiteFooter';
 // a paying customer receives, and a PDF is what a producer forwards to a financier.
 // The endpoint is untouched and still serves the live template, so restoring the
 // old behaviour is a one-line change to SAMPLE_SRC.
+// Embedding this depends on two header rules in vercel.json, and the explanation
+// lives here because vercel.json is schema-validated and rejects comment keys:
+//
+//   Chrome renders an embedded PDF inside an internal frame. The blanket
+//   `X-Frame-Options: DENY` on `/(.*)` therefore landed on the PDF itself and the
+//   viewer refused to load it, so this page fell through to its fallback on every
+//   browser, desktop included. PDFs get SAMEORIGIN instead — other sites still
+//   cannot frame the file, our own page can — plus `frame-ancestors 'self'`, and
+//   the site CSP gets `object-src 'self'`. Without those last two the block
+//   returns the day the policy stops being report-only.
 const SAMPLE_PDF = '/the-carrick-line-sample-report.pdf';
 
 export function SampleReport() {

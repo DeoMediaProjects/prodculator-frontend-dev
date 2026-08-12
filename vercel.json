@@ -41,7 +41,6 @@
       ]
     },
     {
-      "//": "The sample report is a PDF we embed in our own page. Chrome renders an embedded PDF inside an internal frame, so the blanket X-Frame-Options: DENY above applied to the PDF itself and the viewer refused to load it — /sample fell through to its no-inline-viewer fallback on every browser, desktop included. SAMEORIGIN keeps other sites from framing the file while letting our own page show it. frame-ancestors 'self' says the same thing to CSP, which would otherwise reimpose the block the day the policy stops being report-only.",
       "source": "/(.*).pdf",
       "headers": [
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
