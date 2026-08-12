@@ -229,8 +229,52 @@ export function AnalysisWizard() {
       .map((cont) => ({ continent: cont as string, countries: byContinent.get(cont)!.sort((a, b) => a.country.label.localeCompare(b.country.label)) }));
   }, [allTerritories]);
 
+  // A country with no incentive of its own is a grouping control: it must stay
+  // selected for its regions to be visible, but it names no programme the
+  // analysis can model. The United States is the case that matters — there is no
+  // federal film incentive, only state ones. Counting it as a chosen territory
+  // spent a slot on nothing and offered it as a filming commitment, and the
+  // report answered by picking a state the producer never asked for.
+  const containerCountries = useMemo(() => {
+    const chosenParents = new Set(
+      allTerritories
+        .filter((x) => x.isSubTerritory && x.parent && territoriesConsidering.includes(x.label))
+        .map((x) => x.parent as string),
+    );
+    return new Set(
+      allTerritories
+        .filter((x) => !x.isSubTerritory && x.hasOwnIncentive === false && chosenParents.has(x.label))
+        .map((x) => x.label),
+    );
+  }, [allTerritories, territoriesConsidering]);
+  // What the producer has actually committed to, which is what the plan limit
+  // and the Must Film In choice are both about.
+  const countedTerritories = useMemo(
+    () => territoriesConsidering.filter((x) => !containerCountries.has(x)),
+    [territoriesConsidering, containerCountries],
+  );
+
+  // The production country belongs here even when it was never ticked as a
+  // territory under consideration. Shooting where the company is based is the
+  // most ordinary commitment a production makes, and the only way to declare it
+  // was to spend a territory slot on it first. Naming it as Must Film In puts it
+  // at the head of the analysis, so it reaches the report the same way any other
+  // choice does. Left out when it is a grouping-only country such as the United
+  // States, which names no incentive of its own.
+  const mustFilmInOptions = useMemo(() => {
+    const options = countedTerritories.map((label) => ({ label, isProductionCountry: false }));
+    if (
+      country
+      && !containerCountries.has(country)
+      && !options.some((o) => o.label === country)
+    ) {
+      options.push({ label: country, isProductionCountry: true });
+    }
+    return options;
+  }, [countedTerritories, containerCountries, country]);
+
   const openToAll = territoriesConsidering.includes('Open to all');
-  const atTerritoryLimit = maxTerritories !== null && territoriesConsidering.length >= maxTerritories;
+  const atTerritoryLimit = maxTerritories !== null && countedTerritories.length >= maxTerritories;
   const toggleTerritory = (label: string) => {
     if (openToAll && label !== 'Open to all') return;
     if (label === 'Open to all') { setTerritoriesConsidering(openToAll ? [] : ['Open to all']); return; }
@@ -279,11 +323,11 @@ export function AnalysisWizard() {
     if (
       mustFilmIn
       && mustFilmIn !== 'Undecided'
-      && !territoriesConsidering.includes(mustFilmIn)
+      && !mustFilmInOptions.some((o) => o.label === mustFilmIn)
     ) {
       setMustFilmIn('');
     }
-  }, [territoriesConsidering, mustFilmIn]);
+  }, [mustFilmInOptions, mustFilmIn]);
 
   const relevantTerritories = useMemo(() => {
     const chosen = allTerritories.filter((x) => territoriesConsidering.includes(x.label));
@@ -712,8 +756,8 @@ export function AnalysisWizard() {
           {sectionLabel('Territories considering')}
           <Typography sx={{ color: t.textSecondary, fontSize: 13, mb: 2 }}>
             {maxTerritories === null
-              ? `Select any territories you are considering (${territoriesConsidering.length} chosen).`
-              : `Your plan lets you select up to ${maxTerritories} territories (${territoriesConsidering.length}/${maxTerritories} chosen).`}
+              ? `Select any territories you are considering (${countedTerritories.length} chosen).`
+              : `Your plan lets you select up to ${maxTerritories} territories (${countedTerritories.length}/${maxTerritories} chosen).`}
           </Typography>
           {/* The legend names both marks. One sentence covering both read as if
               a suspended programme and no programme were the same thing. */}
@@ -895,19 +939,44 @@ export function AnalysisWizard() {
               value={mustFilmIn}
               onChange={(e) => setMustFilmIn(e.target.value)}
               sx={fieldSx}
+              // Every other Select on this page passes menuProps, whose
+              // disableScrollLock is what stops MUI from setting overflow:hidden
+              // on the body when the menu opens. This one did not, so opening it
+              // part-way down the page removed the scrollbar and the whole layout,
+              // sidebar included, jumped.
+              // renderValue so the closed field shows the territory alone. MUI
+              // otherwise renders the chosen MenuItem's children into the input,
+              // which would read "South Africa production country".
+              slotProps={{
+                select: {
+                  MenuProps: menuProps,
+                  renderValue: (v: unknown) =>
+                    v === 'Undecided' ? 'Not decided yet' : String(v ?? ''),
+                },
+              }}
               helperText={
-                territoriesConsidering.length === 0
+                mustFilmInOptions.length === 0
                   ? 'Select your territories in the previous step first.'
                   : 'The territory this production is committed to. It leads the ranking in your report.'
               }
             >
-              {territoriesConsidering.length === 0 ? (
+              {/* Grouping-only countries are left out: committing to "the United
+                  States" says nothing a report can act on once states have been
+                  picked, since the incentive lives at state level. */}
+              {mustFilmInOptions.length === 0 ? (
                 <MenuItem value="" disabled>No territories selected yet</MenuItem>
               ) : (
                 [
                   <MenuItem key="__undecided" value="Undecided">Not decided yet</MenuItem>,
-                  ...territoriesConsidering.map((tname) => (
-                    <MenuItem key={tname} value={tname}>{tname}</MenuItem>
+                  ...mustFilmInOptions.map((o) => (
+                    <MenuItem key={o.label} value={o.label}>
+                      {o.label}
+                      {o.isProductionCountry && (
+                        <Box component="span" sx={{ color: t.textFaint, fontSize: 12, ml: 1 }}>
+                          production country
+                        </Box>
+                      )}
+                    </MenuItem>
                   )),
                 ]
               )}

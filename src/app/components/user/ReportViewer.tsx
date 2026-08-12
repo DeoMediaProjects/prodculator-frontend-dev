@@ -142,6 +142,10 @@ export function ReportViewer() {
   const [copied, setCopied] = useState(false);
   const [isFetchingReport, setIsFetchingReport] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  // Which :reportId the state below actually describes. Navigating between two
+  // reports reuses this component, so on the first render after the URL changes
+  // every piece of state still belongs to the report just left.
+  const [loadedReportId, setLoadedReportId] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
   // userPlan returned by the report endpoint — promoted to "producer" for pay-per-report buyers
   // whose account plan remains "free". Use this as the source of truth for access decisions.
@@ -176,7 +180,11 @@ export function ReportViewer() {
       .then((report) => {
         // Capture the effective plan for this specific report.
         // Pay-per-report buyers have account plan "free" but the API returns "producer" here.
-        if (report.userPlan) setReportUserPlan(report.userPlan);
+        // Reset rather than only-set-when-present: this component is reused
+        // across reports, so a report that omits the field would otherwise
+        // inherit the previously viewed report's plan and unlock sections it
+        // was never paid for.
+        setReportUserPlan(report.userPlan ?? null);
 
         // Capture share token if one exists (only Studio users will see it non-null)
         setShareToken(report.shareToken ?? null);
@@ -185,10 +193,21 @@ export function ReportViewer() {
         setPdfUrl(report.pdf_url || report.pdfUrl || null);
 
         // Capture any previously saved project details
-        if (report.projectDetails) setProjectDetails(report.projectDetails);
+        setProjectDetails(report.projectDetails ?? null);
 
-        // If analysis is already in context (same-session), don't overwrite it
-        if (analysis) return;
+        setLoadedReportId(reportId);
+
+        // Only the report actually asked for may be rendered from context.
+        // The guard here used to be `if (analysis) return`, which kept whatever
+        // was generated or viewed earlier in the session — so opening an older
+        // report from the list showed the newest one's content under the older
+        // one's URL, while its PDF and share links (which read reportId) were
+        // correct. Context is a cache for one report, not for any report.
+        const isSameReport =
+          analysis?.id != null
+          && report?.id != null
+          && String(analysis.id) === String(report.id);
+        if (isSameReport) return;
 
         // Try to use the pre-shaped analysis field first (backend may already return it)
         const analysisData = report.analysis || report.report_data;
@@ -213,10 +232,16 @@ export function ReportViewer() {
           };
           setAnalysis(mapReportToAnalysis(report, metadata));
         } else {
+          // Drop whatever the previous report left behind. Without this the
+          // empty report would render the last one's figures beneath its own
+          // title, which is worse than saying there is nothing to show yet.
+          setAnalysis(null);
           setFetchError('This report is still processing or contains no data yet.');
         }
       })
       .catch(() => {
+        setLoadedReportId(reportId);
+        setAnalysis(null);
         setFetchError('Failed to load report. Please try again.');
       })
       .finally(() => {
@@ -379,7 +404,13 @@ export function ReportViewer() {
     }
   };
 
-  if (isFetchingReport || (!analysis && !fetchError)) {
+  // Effects run after render, so the first render following a click on another
+  // report still holds the previous one's analysis, plan and error. Showing it
+  // for that frame is the whole complaint — an older report opening on the
+  // newest one's figures — so hold the loader until this id's fetch settles.
+  const showingAnotherReport = !!reportId && loadedReportId !== reportId;
+
+  if (showingAnotherReport || isFetchingReport || (!analysis && !fetchError)) {
     return (
       <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box sx={{ textAlign: 'center' }}>
