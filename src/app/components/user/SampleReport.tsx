@@ -42,6 +42,19 @@ export function SampleReport() {
         <Alert
           severity="info"
           icon={<Info />}
+          // On a narrow screen the action sat beside the text and squeezed it into
+          // a four-word column. Letting the row wrap drops the button underneath
+          // instead, which is the only sensible place for it at that width.
+          sx={{
+            flexWrap: { xs: 'wrap', sm: 'nowrap' },
+            '& .MuiAlert-message': { flex: { xs: '1 1 100%', sm: '1 1 auto' }, minWidth: 0 },
+            '& .MuiAlert-action': {
+              ml: { xs: 0, sm: 2 },
+              mr: 0,
+              pt: { xs: 1, sm: 0 },
+              alignItems: 'center',
+            },
+          }}
           action={
             // Not a second copy of the file: the same asset the viewer is reading,
             // offered for download because the point of a report is that it leaves
@@ -85,9 +98,17 @@ export function SampleReport() {
             display: 'block',
           }}
         >
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Typography sx={{ color: t.textSecondary, mb: 2 }}>
-              Your browser cannot display the report inline.
+          {/* Reached on any browser without a built-in PDF viewer, which is most
+              phones. Worded as an alternative rather than a failure, because for
+              those visitors it is the only route and "cannot display" reads as
+              something being broken. */}
+          <Box sx={{ p: { xs: 3, md: 5 }, textAlign: 'center' }}>
+            <Typography sx={{ color: t.textPrimary, fontWeight: 700, fontSize: 18, mb: 1 }}>
+              THE CARRICK LINE
+            </Typography>
+            <Typography sx={{ color: t.textSecondary, mb: 3, maxWidth: '46ch', mx: 'auto', lineHeight: 1.7 }}>
+              A full 16-page PRO report on a fictional screenplay. Open it in your
+              PDF reader to see exactly what a finished analysis looks like.
             </Typography>
             <Button
               component="a"
@@ -95,6 +116,7 @@ export function SampleReport() {
               target="_blank"
               rel="noopener"
               variant="contained"
+              size="large"
               startIcon={<Download sx={{ fontSize: 18 }} />}
             >
               Open the sample report

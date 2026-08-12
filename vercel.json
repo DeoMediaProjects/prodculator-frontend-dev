@@ -36,7 +36,18 @@
         },
         {
           "key": "Content-Security-Policy-Report-Only",
-          "value": "default-src 'self'; script-src 'self' https://js.stripe.com https://apis.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.stripe.com https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://www.google-analytics.com; frame-src https://js.stripe.com https://*.firebaseapp.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' https://js.stripe.com https://apis.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.stripe.com https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://www.google-analytics.com; frame-src 'self' https://js.stripe.com https://*.firebaseapp.com; object-src 'self'; base-uri 'self'; frame-ancestors 'none'"
+        }
+      ]
+    },
+    {
+      "//": "The sample report is a PDF we embed in our own page. Chrome renders an embedded PDF inside an internal frame, so the blanket X-Frame-Options: DENY above applied to the PDF itself and the viewer refused to load it — /sample fell through to its no-inline-viewer fallback on every browser, desktop included. SAMEORIGIN keeps other sites from framing the file while letting our own page show it. frame-ancestors 'self' says the same thing to CSP, which would otherwise reimpose the block the day the policy stops being report-only.",
+      "source": "/(.*).pdf",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; object-src 'self'; frame-ancestors 'self'; base-uri 'self'"
         }
       ]
     }
