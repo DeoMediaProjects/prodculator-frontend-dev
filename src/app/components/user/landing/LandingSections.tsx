@@ -255,7 +255,7 @@ const STEPS: { num: string; title: string; body: string }[] = [
   {
     num: '01 · UPLOAD',
     title: 'Start with the screenplay',
-    body: 'Upload the script so its production requirements — format, scale, schedule shape — can be read rather than guessed at.',
+    body: 'Upload the script so its production requirements, including format, scale and schedule shape, can be read rather than guessed at.',
   },
   {
     num: '02 · COMPARE',
@@ -500,15 +500,11 @@ function OfferSection() {
               Which plans are covered is the label's job, and the label comes from
               the same response the checkout honours. */}
           <SectionH2>{promotion.percentOff}% off at launch.</SectionH2>
-          {/* The label is the server's own wording for the coupon and may or may not
-              end in a full stop, so it gets its own line rather than being spliced
-              into a sentence written here. */}
+          {/* The label is the only prose left in this band, and it is the server's
+              own wording for the coupon rather than anything written here — so the
+              terms on the page and the terms Stripe applies are the same string. */}
           <Typography sx={{ color: t.textPrimary, fontSize: { xs: '1rem', md: '1.0625rem' }, fontWeight: 600, lineHeight: 1.7, maxWidth: 690 }}>
             {promotion.label}
-          </Typography>
-          <Typography sx={{ color: t.textSecondary, fontSize: { xs: '1rem', md: '1.0625rem' }, lineHeight: 1.7, maxWidth: 690, mt: 1 }}>
-            List pricing stays exactly where it is — the launch offer rewards early
-            producers without repositioning Prodculator as a cheap tool.
           </Typography>
           <Button variant="contained" size="large" sx={{ mt: 3, px: 3.5 }} onClick={() => navigate('/pricing')}>
             View Launch Pricing
