@@ -465,7 +465,7 @@ const STRIP_PLANS: StripPlan[] = [
     audience: 'individual',
   },
   {
-    label: 'Best value',
+    label: 'Best for independent producers',
     name: 'Professional',
     usd: PLAN_PRICING.professional.monthlyUSD,
     gbp: PLAN_PRICING.professional.monthlyGBP,
@@ -542,7 +542,11 @@ function PricingStripSection() {
                   '@media (prefers-reduced-motion: reduce)': { transition: 'none', '&:hover': { transform: 'none' } },
                 }}
               >
-                <Typography sx={{ color: t.goldText, fontSize: 11, fontWeight: 900, letterSpacing: '0.09em', textTransform: 'uppercase', minHeight: 30 }}>
+                {/* Two lines' worth of height whether the label needs it or not, so
+                    a wrapping label ("Production companies", "Best for independent
+                    producers") does not push its plan name below the others and
+                    break the row's alignment. */}
+                <Typography sx={{ color: t.goldText, fontSize: 11, fontWeight: 900, letterSpacing: '0.09em', textTransform: 'uppercase', lineHeight: 1.4, minHeight: 31 }}>
                   {plan.label}
                 </Typography>
                 <Typography sx={{ color: t.textPrimary, fontWeight: 700, fontSize: 20, my: 1 }}>

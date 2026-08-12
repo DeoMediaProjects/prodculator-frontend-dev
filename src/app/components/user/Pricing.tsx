@@ -411,10 +411,9 @@ export function Pricing() {
         'What If Calculator',
         'Territory Comparison',
       ],
-      badge: 'BEST VALUE',
+      badge: 'BEST FOR INDEPENDENT PRODUCERS',
       // The card carries the emphasis: it is the plan being pushed, so the filled
-      // treatment sits here rather than on Producer, which no longer claims to be
-      // the best value.
+      // treatment sits here rather than on Producer.
       highlight: true,
       cta: 'Start Professional',
       ctaSubtext: 'Cancel anytime',
