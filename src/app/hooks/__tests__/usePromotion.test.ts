@@ -7,9 +7,9 @@ import { discountedPrice, formatPrice, type Promotion } from '../usePromotion';
  * exists only to describe that coupon — never to create the impression of one.
  */
 
-// The launch offer covers the individual side: both subscription plans and the
-// one-off Single Report. Studio and the BI packages are outside it.
-const COVERED = ['professional', 'producer', 'single'];
+// The launch offer covers every paid product: all three subscription plans and the
+// one-off Single Report. Only the BI packages are outside it.
+const COVERED = ['professional', 'producer', 'studio', 'single'];
 
 const promo = (percentOff: number, plans = COVERED): Promotion => ({
   active: true, percentOff, label: `${percentOff}% off`, plans,
@@ -25,14 +25,14 @@ describe('discountedPrice', () => {
     // The one-off report is discounted too, and create_credit_checkout_session
     // sends the coupon so Stripe charges this figure rather than the list price.
     expect(discountedPrice(40, promo(49), 'single')).toBe(20.4);
+    expect(discountedPrice(299, promo(49), 'studio')).toBe(152.49);
   });
 
   it('shows no saving on a plan the coupon does not cover', () => {
-    // Studio is a business plan and sits outside the individual-plan offer, and
-    // the Business Intelligence packages were never in it. Striking either price
-    // through would advertise a saving the checkout does not give.
-    expect(discountedPrice(299, promo(49), 'studio')).toBeNull();
+    // The Business Intelligence packages were never in the offer. Striking their
+    // price through would advertise a saving the checkout does not give.
     expect(discountedPrice(300, promo(49), 'b2b')).toBeNull();
+    expect(discountedPrice(300, promo(49), 'credit')).toBeNull();
   });
 
   it('shows no saving when the caller cannot name the plan', () => {

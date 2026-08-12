@@ -1,7 +1,6 @@
 import { Box, Container, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
-import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { usePromotion, discountedPrice, formatPrice } from '@/app/hooks/usePromotion';
 import { PLAN_PRICING } from '@/services/stripe.service';
 import { DiscountSticker } from '@/app/components/common/DiscountSticker';
@@ -10,7 +9,7 @@ import { IncentivePreview } from '@/app/components/user/landing/IncentivePreview
 /**
  * Everything below the hero, following the supplied paid-traffic layout:
  * production framing → how it works → coverage vs production → the agreement gate
- * → the launch offer → plans → close.
+ * → plans → close.
  *
  * Two departures from the supplied HTML, both deliberate:
  *
@@ -332,103 +331,6 @@ function AgreementSection() {
   );
 }
 
-// ── 5. The launch offer ──────────────────────────────────────────────────────
-
-/**
- * Renders only while a coupon exists that covers Professional. Both the percentage
- * and the wording of the term come from the promotion endpoint, so when the coupon
- * ends the band disappears with it instead of advertising a price nobody is charged.
- */
-function OfferSection() {
-  const navigate = useNavigate();
-  const { mode } = useThemeMode();
-  const t = tokens(mode);
-  const { isUK } = useGeoCurrency();
-  const promotion = usePromotion();
-
-  const symbol = isUK ? '£' : '$';
-  const list = isUK ? PLAN_PRICING.professional.monthlyGBP : PLAN_PRICING.professional.monthlyUSD;
-  const cut = discountedPrice(list, promotion, 'professional');
-
-  if (cut == null) return null;
-
-  return (
-    <Section>
-      <Box
-        sx={{
-          border: `1px solid ${t.gold}`,
-          borderRadius: 6,
-          p: { xs: 3.5, md: 5 },
-          background:
-            mode === 'dark'
-              ? 'linear-gradient(135deg, #171208, #0D0D0D)'
-              : `linear-gradient(135deg, ${t.goldDim}, transparent)`,
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr auto' },
-          gap: { xs: 3.5, md: 4 },
-          alignItems: 'center',
-        }}
-      >
-        <Box>
-          <Box
-            component="span"
-            sx={{
-              display: 'inline-flex',
-              bgcolor: t.gold,
-              color: mode === 'dark' ? '#0A0A0A' : '#fff',
-              borderRadius: 999,
-              px: 1.5,
-              py: 0.75,
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: '0.06em',
-            }}
-          >
-            MVP LAUNCH · FOUNDING PRODUCER
-          </Box>
-          {/* Plan-agnostic on purpose: the coupon covers Professional, Producer and
-              Studio, and naming one of them in the headline would understate it.
-              Which plans are covered is the label's job, and the label comes from
-              the same response the checkout honours. */}
-          <SectionH2>{promotion.percentOff}% off at launch.</SectionH2>
-          {/* The label is the only prose left in this band, and it is the server's
-              own wording for the coupon rather than anything written here — so the
-              terms on the page and the terms Stripe applies are the same string. */}
-          <Typography sx={{ color: t.textPrimary, fontSize: { xs: '1rem', md: '1.0625rem' }, fontWeight: 600, lineHeight: 1.7, maxWidth: 690 }}>
-            {promotion.label}
-          </Typography>
-          <Button variant="contained" size="large" sx={{ mt: 3, px: 3.5 }} onClick={() => navigate('/pricing')}>
-            View Launch Pricing
-          </Button>
-        </Box>
-
-        <Box sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-          <Typography sx={{ color: t.textFaint, fontSize: 18, textDecoration: 'line-through' }}>
-            {symbol}{list} / month
-          </Typography>
-          <Typography
-            sx={{
-              color: t.goldText,
-              fontWeight: 900,
-              fontSize: { xs: 44, md: 52 },
-              lineHeight: 1.1,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {symbol}{formatPrice(cut)}
-            <Box component="span" sx={{ color: t.textSecondary, fontSize: 16, fontWeight: 600, ml: 0.75 }}>
-              / month
-            </Box>
-          </Typography>
-          <Typography sx={{ color: t.textFaint, fontSize: 14, mt: 0.5 }}>
-            Professional · applied at checkout
-          </Typography>
-        </Box>
-      </Box>
-    </Section>
-  );
-}
-
 // ── 6. Plans ─────────────────────────────────────────────────────────────────
 
 interface StripPlan {
@@ -499,10 +401,13 @@ function PricingStripSection() {
   const navigate = useNavigate();
   const { mode } = useThemeMode();
   const t = tokens(mode);
-  const { isUK } = useGeoCurrency();
   const promotion = usePromotion();
 
-  const symbol = isUK ? '£' : '$';
+  // Sterling, for everyone, and not by geo-detection: this is a UK company billing
+  // in GBP, and those are the prices set deliberately rather than converted. The
+  // strip has no currency toggle of its own — a visitor who wants dollars gets the
+  // toggle on /pricing, which every card here links to.
+  const symbol = '£';
 
   return (
     <Section alt id="pricing">
@@ -523,7 +428,7 @@ function PricingStripSection() {
         }}
       >
         {STRIP_PLANS.map((plan) => {
-          const list = isUK ? plan.gbp : plan.usd;
+          const list = plan.gbp;
           const cut = list != null && plan.planType ? discountedPrice(list, promotion, plan.planType) : null;
           return (
             <Box key={plan.name} sx={{ position: 'relative', display: 'flex' }}>
@@ -642,7 +547,6 @@ export function LandingSections() {
       <HowItWorksSection />
       <CompareSection />
       <AgreementSection />
-      <OfferSection />
       <PricingStripSection />
       <ClosingSection />
     </>

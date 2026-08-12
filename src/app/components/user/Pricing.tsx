@@ -16,7 +16,6 @@ import {
 } from '@mui/material';
 import { Check } from '@mui/icons-material';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { useCurrentSubscription } from '@/app/hooks/useCurrentSubscription';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
@@ -100,7 +99,6 @@ function classifyDirection(currentPlan: string, targetPlan: PlanType): ChangeDir
 export function Pricing() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isUK } = useGeoCurrency();
   const { mode } = useThemeMode();
   const t = tokens(mode);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -108,7 +106,12 @@ export function Pricing() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [audience, setAudience] = useState<Audience>('individual');
   // Seed from geo-detection; user can override with the toggle
-  const [currency, setCurrency] = useState<Currency>(isUK ? 'gbp' : 'usd');
+  // Sterling by default for everyone, not by geo-detection. This is a UK company
+  // billing in GBP, and the prices in that currency are the ones set deliberately
+  // rather than converted. A visitor who wants dollars has the toggle beside the
+  // cards; geo-detection would instead show two different visitors two different
+  // headline prices for the same product, with no way to tell which they got.
+  const [currency, setCurrency] = useState<Currency>('gbp');
   const { enqueueSnackbar } = useSnackbar();
 
   const {
