@@ -223,9 +223,6 @@ function ReportWindow() {
 }
 
 function ProductionSection() {
-  const { mode } = useThemeMode();
-  const t = tokens(mode);
-
   return (
     <Section>
       <Box
@@ -236,34 +233,14 @@ function ProductionSection() {
           alignItems: 'center',
         }}
       >
+        {/* Heading only. The body paragraph and the source-and-verification aside
+            that used to sit under it were removed at the client's direction; the
+            report preview beside it now carries the section on its own. */}
         <Box>
           <Kicker>The question after coverage</Kicker>
           <SectionH2>
             You&apos;ve analysed the screenplay. <Gold>Now analyse the production.</Gold>
           </SectionH2>
-          <Typography sx={{ color: t.textSecondary, fontSize: { xs: '1rem', md: '1.125rem' }, lineHeight: 1.7, textWrap: 'pretty' }}>
-            Coverage tells you whether the script works. It does not tell you where to
-            shoot it, which incentive your format actually qualifies for, or what the
-            production costs once that incentive is honest about itself. Those answers
-            move a budget by six figures, and nobody hands them to you.
-          </Typography>
-          <Box
-            sx={{
-              mt: 3,
-              borderLeft: `3px solid ${t.gold}`,
-              borderRadius: '0 10px 10px 0',
-              bgcolor: mode === 'dark' ? '#111' : t.cardBg,
-              px: 2,
-              py: 1.75,
-            }}
-          >
-            <Typography sx={{ color: t.textSecondary, fontSize: 14.5, lineHeight: 1.65 }}>
-              Every figure is read from a programme record with its own source and
-              verification date. Where a record cannot answer a question about your
-              project, the report names the requirement that is unresolved rather than
-              estimating around it.
-            </Typography>
-          </Box>
         </Box>
 
         <ReportWindow />
