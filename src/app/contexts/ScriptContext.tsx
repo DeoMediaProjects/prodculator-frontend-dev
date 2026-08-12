@@ -93,6 +93,10 @@ interface ScriptAnalysis {
 
   // Tab 7: Funding & Festivals
   fundingOpportunities: FundingOpportunity[];
+  /** Matched festivals, passed through from the report. */
+  festivalRecommendations?: any[];
+  /** Distributors, ranked partly on the festivals above. */
+  distributorRecommendations?: any[];
 
   // Metadata
   scriptTitle: string;
@@ -351,6 +355,12 @@ function normaliseAnalysisData(
     programmeAvailabilityCaveat: analysisData.programmeAvailabilityCaveat ?? null,
     shortFormatIncentiveNotice: analysisData.shortFormatIncentiveNotice ?? null,
     comparables: toArray<ComparableProduction>(analysisData.comparables),
+    // The report viewer reads these directly. They were never carried through this
+    // mapper, so the Festivals & Distributors tab could only ever render its empty
+    // state — even when the backend had matched five festivals and the PDF printed
+    // them. A missing key here is indistinguishable from no matches downstream.
+    festivalRecommendations: toArray<any>(analysisData.festivalRecommendations),
+    distributorRecommendations: toArray<any>(analysisData.distributorRecommendations),
     weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
     fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities),
     scriptTitle: analysisData.scriptTitle || metadata.title,
@@ -477,6 +487,8 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
     formatEligibilityCaveat: reportData.formatEligibilityCaveat ?? null,
     programmeAvailabilityCaveat: reportData.programmeAvailabilityCaveat ?? null,
     shortFormatIncentiveNotice: reportData.shortFormatIncentiveNotice ?? null,
+    festivalRecommendations: toArray<any>(reportData.festivalRecommendations),
+    distributorRecommendations: toArray<any>(reportData.distributorRecommendations),
     comparables,
     weatherLogistics,
     fundingOpportunities,

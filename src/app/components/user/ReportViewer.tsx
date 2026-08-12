@@ -1353,6 +1353,11 @@ export function ReportViewer() {
                   {analysis.financialAnalysis?.budgetScenarios && analysis.financialAnalysis.budgetScenarios.length > 0 ? (
                     <Grid container spacing={3}>
                       {analysis.financialAnalysis.budgetScenarios.map((scenario, i) => {
+                        // A territory whose rebate cannot be computed still gets a
+                        // card, stating why. Omitting it is how a producer who chose
+                        // three territories saw two here with nothing explaining the
+                        // third's absence.
+                        const noFigures = (scenario as { noFinancialsReason?: string }).noFinancialsReason;
                         const hasV3Fields = scenario.totalBudget || scenario.qualifyingSpend || scenario.netRebate;
                         return (
                           <Grid size={{ xs: 12 }} key={i}>
@@ -1364,7 +1369,11 @@ export function ReportViewer() {
                                 )}
                               </Box>
 
-                              {hasV3Fields ? (
+                              {noFigures ? (
+                                <Typography variant="body2" sx={{ color: t.textSecondary, lineHeight: 1.7 }}>
+                                  {noFigures}
+                                </Typography>
+                              ) : hasV3Fields ? (
                                 /* 6-step calculation breakdown */
                                 <Box>
                                   {[
@@ -1465,7 +1474,27 @@ export function ReportViewer() {
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                            <Typography variant="h6" sx={{ color: t.gold }}>{fest.name}</Typography>
+                            {/* The backend has always supplied sourceUrl and this
+                                view dropped it, so every festival was a name the
+                                reader had to go and search for themselves. */}
+                            {fest.sourceUrl ? (
+                              <Typography
+                                variant="h6"
+                                component="a"
+                                href={fest.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{
+                                  color: t.gold,
+                                  textDecoration: 'none',
+                                  '&:hover': { textDecoration: 'underline' },
+                                }}
+                              >
+                                {fest.name}
+                              </Typography>
+                            ) : (
+                              <Typography variant="h6" sx={{ color: t.gold }}>{fest.name}</Typography>
+                            )}
                             {fest.tier && (
                               <Chip label={fest.tier} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.2)', color: t.gold, fontWeight: 600 }} />
                             )}
