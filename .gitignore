@@ -28,3 +28,7 @@ pnpm-debug.log*
 .cache/
 .parcel-cache/
 
+
+# Local .env backups. These carry live secrets and are not ignored by the
+# bare ".env" rule above, so name them explicitly.
+.env.bak*
