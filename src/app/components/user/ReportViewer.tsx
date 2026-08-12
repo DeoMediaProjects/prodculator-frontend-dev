@@ -1353,6 +1353,11 @@ export function ReportViewer() {
                   {analysis.financialAnalysis?.budgetScenarios && analysis.financialAnalysis.budgetScenarios.length > 0 ? (
                     <Grid container spacing={3}>
                       {analysis.financialAnalysis.budgetScenarios.map((scenario, i) => {
+                        // A territory whose rebate cannot be computed still gets a
+                        // card, stating why. Omitting it is how a producer who chose
+                        // three territories saw two here with nothing explaining the
+                        // third's absence.
+                        const noFigures = (scenario as { noFinancialsReason?: string }).noFinancialsReason;
                         const hasV3Fields = scenario.totalBudget || scenario.qualifyingSpend || scenario.netRebate;
                         return (
                           <Grid size={{ xs: 12 }} key={i}>
@@ -1364,7 +1369,11 @@ export function ReportViewer() {
                                 )}
                               </Box>
 
-                              {hasV3Fields ? (
+                              {noFigures ? (
+                                <Typography variant="body2" sx={{ color: t.textSecondary, lineHeight: 1.7 }}>
+                                  {noFigures}
+                                </Typography>
+                              ) : hasV3Fields ? (
                                 /* 6-step calculation breakdown */
                                 <Box>
                                   {[
