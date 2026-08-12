@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router';
+import { SegmentedToggle } from '@/app/components/user/b2c/SegmentedToggle';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { usePromotion, discountedPrice, formatPrice } from '@/app/hooks/usePromotion';
 import { PLAN_PRICING } from '@/services/stripe.service';
@@ -333,6 +335,8 @@ function AgreementSection() {
 
 // ── 6. Plans ─────────────────────────────────────────────────────────────────
 
+type StripCurrency = 'gbp' | 'usd';
+
 interface StripPlan {
   label: string;
   name: string;
@@ -403,20 +407,36 @@ function PricingStripSection() {
   const t = tokens(mode);
   const promotion = usePromotion();
 
-  // Sterling, for everyone, and not by geo-detection: this is a UK company billing
-  // in GBP, and those are the prices set deliberately rather than converted. The
-  // strip has no currency toggle of its own — a visitor who wants dollars gets the
-  // toggle on /pricing, which every card here links to.
-  const symbol = '£';
+  // Sterling first, for everyone, and not seeded from geo-detection: this is a UK
+  // company billing in GBP, and those are the prices set deliberately rather than
+  // converted. Geo-detection would show two visitors two different headline prices
+  // for the same product with no way to tell which they had been given.
+  const [currency, setCurrency] = useState<StripCurrency>('gbp');
+  const symbol = currency === 'gbp' ? '£' : '$';
 
   return (
     <Section alt id="pricing">
-      <Box sx={{ maxWidth: 760, mb: { xs: 4, md: 5 } }}>
+      <Box sx={{ maxWidth: 760, mb: { xs: 3, md: 4 } }}>
         <Kicker>Pricing</Kicker>
         <SectionH2>Pick the plan that fits the slate.</SectionH2>
         <Typography sx={{ color: t.textSecondary, fontSize: '1.0625rem' }}>
           One free report to try it. No card required.
         </Typography>
+      </Box>
+
+      {/* The same control as /pricing, so a visitor who wants dollars does not have
+          to leave the page to get them. The choice travels with them on the card
+          links below, which is why /pricing reads ?currency. */}
+      <Box sx={{ mb: { xs: 3.5, md: 4.5 } }}>
+        <SegmentedToggle
+          radius={12}
+          value={currency}
+          onChange={(v) => setCurrency(v as StripCurrency)}
+          options={[
+            { value: 'gbp', label: '£ GBP' },
+            { value: 'usd', label: '$ USD' },
+          ]}
+        />
       </Box>
 
       <Box
@@ -428,7 +448,7 @@ function PricingStripSection() {
         }}
       >
         {STRIP_PLANS.map((plan) => {
-          const list = plan.gbp;
+          const list = currency === 'gbp' ? plan.gbp : plan.usd;
           const cut = list != null && plan.planType ? discountedPrice(list, promotion, plan.planType) : null;
           return (
             <Box key={plan.name} sx={{ position: 'relative', display: 'flex' }}>
@@ -484,7 +504,9 @@ function PricingStripSection() {
                   variant={plan.featured ? 'contained' : 'outlined'}
                   fullWidth
                   sx={{ mt: 2 }}
-                  onClick={() => navigate(`/pricing?audience=${plan.audience}`)}
+                  // Carries the currency too, so a visitor who switched to dollars
+                  // here is not shown sterling again the moment they click through.
+                  onClick={() => navigate(`/pricing?audience=${plan.audience}&currency=${currency}`)}
                 >
                   {plan.featured ? 'Choose Professional' : 'View plan'}
                 </Button>
