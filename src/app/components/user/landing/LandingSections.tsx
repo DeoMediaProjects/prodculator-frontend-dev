@@ -5,6 +5,7 @@ import { useGeoCurrency } from '@/app/hooks/useGeoCurrency';
 import { usePromotion, discountedPrice, formatPrice } from '@/app/hooks/usePromotion';
 import { PLAN_PRICING } from '@/services/stripe.service';
 import { DiscountSticker } from '@/app/components/common/DiscountSticker';
+import { IncentivePreview } from '@/app/components/user/landing/IncentivePreview';
 
 /**
  * Everything below the hero, following the supplied paid-traffic layout:
@@ -108,120 +109,6 @@ function Gold({ children }: { children: React.ReactNode }) {
 
 // ── 1. Production framing, with a report preview ─────────────────────────────
 
-const TERRITORY_ROWS: { name: string; score: number }[] = [
-  { name: 'United Kingdom', score: 86 },
-  { name: 'Canada', score: 78 },
-  { name: 'Ireland', score: 72 },
-  { name: 'Australia', score: 66 },
-];
-
-/**
- * A report shown as a document rather than as another dark panel.
- *
- * Fixed light colours in both themes on purpose: this is the PDF a producer takes
- * into a meeting, and it is paper in both. The figures are an example of the output
- * format and the caption says so — the product's whole claim is that a number it
- * shows you is one you can check, so a demo score presented as a real ranking of
- * these territories would undercut the thing being sold.
- */
-function ReportWindow() {
-  const { mode } = useThemeMode();
-  const t = tokens(mode);
-
-  return (
-    <Box
-      component="figure"
-      aria-label="Example of a Prodculator territory comparison"
-      sx={{
-        m: 0,
-        bgcolor: mode === 'dark' ? '#101010' : t.cardBgAlt,
-        border: `1px solid ${t.border}`,
-        borderRadius: 4,
-        p: 1.75,
-        boxShadow: mode === 'dark' ? '0 28px 80px rgba(0,0,0,.5)' : '0 18px 48px rgba(0,0,0,.14)',
-      }}
-    >
-      <Box sx={{ borderRadius: 3, overflow: 'hidden', bgcolor: '#F1F0EB' }}>
-        <Box
-          sx={{
-            height: 42,
-            bgcolor: '#151515',
-            color: '#fff',
-            px: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: 12,
-          }}
-        >
-          <Box component="span" sx={{ letterSpacing: '0.02em' }}>
-            PRODCULATOR · Territory Comparison
-          </Box>
-          <Box component="span" sx={{ color: '#D4AF37', fontWeight: 700 }}>
-            Example
-          </Box>
-        </Box>
-
-        <Box sx={{ p: { xs: 2.5, sm: 3 }, color: '#111' }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 20, mb: 2.25, color: '#111' }}>
-            Territory Comparison
-          </Typography>
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.25 }}>
-            {[
-              { label: 'Territories', value: '6' },
-              { label: 'Top match', value: '86' },
-              { label: 'Scenarios', value: '4' },
-            ].map((s) => (
-              <Box key={s.label} sx={{ border: '1px solid #D9D6CD', borderRadius: 2, px: 1.5, py: 1.25 }}>
-                <Typography sx={{ color: '#6A6A65', fontSize: 12 }}>{s.label}</Typography>
-                <Typography sx={{ fontWeight: 700, fontSize: 24, color: '#111', fontVariantNumeric: 'tabular-nums' }}>
-                  {s.value}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-
-          <Box sx={{ mt: 2.75 }}>
-            {TERRITORY_ROWS.map((row) => (
-              <Box
-                key={row.name}
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: '110px 1fr 34px',
-                  gap: 1.25,
-                  alignItems: 'center',
-                  my: 1.75,
-                  fontSize: 13,
-                }}
-              >
-                <Box component="span" sx={{ color: '#111' }}>{row.name}</Box>
-                <Box sx={{ height: 9, bgcolor: '#DDD8CB', borderRadius: 999, overflow: 'hidden' }}>
-                  <Box sx={{ height: '100%', width: `${row.score}%`, bgcolor: '#D4AF37' }} />
-                </Box>
-                <Box
-                  component="span"
-                  sx={{ fontWeight: 700, color: '#111', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {row.score}
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      </Box>
-
-      <Typography
-        component="figcaption"
-        sx={{ color: t.textFaint, fontSize: 12, lineHeight: 1.6, mt: 1.5, px: 0.5 }}
-      >
-        Illustrative of report output. The scores are an example of the format, not a
-        ranking of these territories.
-      </Typography>
-    </Box>
-  );
-}
-
 function ProductionSection() {
   return (
     <Section>
@@ -235,7 +122,7 @@ function ProductionSection() {
       >
         {/* Heading only. The body paragraph and the source-and-verification aside
             that used to sit under it were removed at the client's direction; the
-            report preview beside it now carries the section on its own. */}
+            preview beside it now carries the section on its own. */}
         <Box>
           <Kicker>The question after coverage</Kicker>
           <SectionH2>
@@ -243,7 +130,11 @@ function ProductionSection() {
           </SectionH2>
         </Box>
 
-        <ReportWindow />
+        {/* The incentive analysis, not the territory bar chart that briefly stood
+            here. It shows the product's grammar rather than a ranking: a figure it
+            will not confirm, and a programme the budget does not reach, beside the
+            one number that survived every check. */}
+        <IncentivePreview />
       </Box>
     </Section>
   );
