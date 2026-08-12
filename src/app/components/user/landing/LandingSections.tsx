@@ -571,6 +571,9 @@ const STRIP_PLANS: StripPlan[] = [
     usd: PLAN_PRICING.singleReport.monthlyUSD,
     gbp: PLAN_PRICING.singleReport.monthlyGBP,
     per: 'one-off',
+    // Not a subscription plan, but inside the launch offer. See the note on
+    // SINGLE_REPORT_PROMO_KEY in the payments service.
+    planType: 'single',
     features: ['Full 13 section report', 'All available territories'],
     audience: 'individual',
   },

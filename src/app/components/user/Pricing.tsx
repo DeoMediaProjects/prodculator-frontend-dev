@@ -66,8 +66,16 @@ interface Plan {
   highlight?: boolean;
   action: PlanAction;
   planType?: PlanType;  // required when action === 'subscribe'
+  /** Key checked against the coupon's scope. Separate from `planType` because the
+   *  one-off Single Report is inside the launch offer but is not a subscription
+   *  plan, so it has no place in PlanType or the upgrade/downgrade hierarchy.
+   *  Falls back to `planType` for the plans that are both. */
+  promoKey?: string;
   audience: Audience | 'both';
 }
+
+/** The plan key used for coupon-scope checks on a given card. */
+const promoKeyOf = (plan: Plan): string | undefined => plan.promoKey ?? plan.planType;
 
 type Currency = 'usd' | 'gbp';
 
@@ -384,6 +392,8 @@ export function Pricing() {
       cta: 'Buy a Single Report',
       ctaSubtext: 'One-time · never expires',
       action: 'single',
+      // Inside the launch offer, and the credit checkout sends the coupon to match.
+      promoKey: 'single',
       audience: 'individual',
     },
     {
@@ -555,8 +565,8 @@ export function Pricing() {
                 <Box sx={{ position: 'relative', height: '100%' }}>
                   {/* Renders only on a plan the Stripe coupon is scoped to, so the
                       sticker cannot promise a saving the checkout will not give. */}
-                  {plan.planType && plan.action === 'subscribe' && (
-                    <DiscountSticker planType={plan.planType} />
+                  {promoKeyOf(plan) && !plan.gbpOnly && plan.action !== 'free' && (
+                    <DiscountSticker planType={promoKeyOf(plan)!} />
                   )}
                   {plan.badge && (
                     <Box
@@ -618,13 +628,14 @@ export function Pricing() {
                           const sym = plan.gbpOnly ? '£' : symbol;
                           const list = listPriceValue(plan);
                           // gbpOnly plans are the Business Intelligence packages,
-                          // which the subscription coupon does not cover.
-                          // Keyed on the plan, so only the plans the Stripe coupon
-                          // actually covers show a saving. The one-off report is
-                          // outside its scope and is charged in full.
+                          // which the coupon does not cover. Keyed on the plan, so
+                          // only the plans the Stripe coupon actually covers show a
+                          // saving — and the key is promoKeyOf, not planType, so the
+                          // one-off report is checked by its own name rather than
+                          // falling through the scope test on an absent key.
                           const promo = plan.gbpOnly || list == null
                             ? null
-                            : discountedPrice(list, promotion, plan.planType);
+                            : discountedPrice(list, promotion, promoKeyOf(plan));
                           if (promo == null || list == null || promo >= list) {
                             return <>{plan.pricePrefix ?? ''}{sym}{displayPrice(plan)}</>;
                           }
