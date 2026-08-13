@@ -146,7 +146,9 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
   const locationRankings: LocationRanking[] = territoryAnalysis.map((territory: any) => ({
     name: territory.territory || 'Unknown Territory',
     country: territory.country || 'Unknown',
-    score: clampScore(Number(territory.overallScore || 0)),
+    // `Number(x || 0)` reported an unscored territory as a hard 0, which reads as
+    // "we scored it and it came last" rather than "we could not score it".
+    score: territory.overallScore == null ? null : clampScore(Number(territory.overallScore)),
     // Read, never derived. Each of these used to be invented here when the
     // legacy payload did not carry it: costEfficiency defaulted to 60,
     // currencyAdvantage was the constant 65, crewDepth and infrastructure were
@@ -196,7 +198,13 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
       rate: inc.rate || 'N/A',
       cap: inc.cap || 'N/A',
       qualifyingSpend: 'Minimum local spend varies by territory',
-      estimatedRebate: formatCurrency(Number(inc.potentialRebateUSD || 0)),
+      // An incentive figure, and the platform's version of the PDF bug: a rebate
+      // nobody could compute was rendered as a confident zero-value amount. The
+      // wording matches the PDF's convention for the same state.
+      estimatedRebate:
+        inc.potentialRebateUSD == null
+          ? 'not available to this production'
+          : formatCurrency(Number(inc.potentialRebateUSD)),
       requirements: toArray<string>(territory.pros).length
         ? toArray<string>(territory.pros)
         : ['Subject to local eligibility and compliance criteria.'],

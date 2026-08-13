@@ -159,7 +159,12 @@ export function SharedReportViewer() {
                       />
                     )}
                   </Box>
-                  <Chip label={`${loc.score}/100`} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, fontSize: '1rem' }} />
+                  {/* Guarded like ReportViewer: an unscored territory now arrives as
+                      null rather than a coerced 0, and this would otherwise print
+                      "null/100". Absent is better than a score we did not compute. */}
+                  {loc.score != null && (
+                    <Chip label={`${loc.score}/100`} sx={{ bgcolor: '#D4AF37', color: '#000', fontWeight: 700, fontSize: '1rem' }} />
+                  )}
                 </Box>
                 <Divider sx={{ my: 1.5, borderColor: '#222' }} />
                 <List dense sx={{ p: 0 }}>

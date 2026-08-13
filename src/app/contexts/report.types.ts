@@ -95,7 +95,12 @@ export interface ScriptAnalysis {
 export interface LocationRanking {
   name: string;
   country: string;
-  score: number;
+  // Nullable for the same reason as the dimension scores below: the mapper used to
+  // coerce a missing overall score to 0 with `Number(x || 0)`, so an unscored
+  // territory and one that genuinely scored zero were the same number on the page.
+  // ReportViewer already guarded this with `loc.score != null` — the guard could
+  // simply never fire, because the null never survived the mapper.
+  score: number | null;
   // Nullable because the backend genuinely does not score every dimension for
   // every territory: no sourced cost data, or an incentive whose eligibility is
   // unresolved, are reported as null rather than guessed. `null` is "not
