@@ -4,6 +4,7 @@ import { CloudUpload, Info, Download } from '@mui/icons-material';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { PageHeader } from '@/app/components/common/PageHeader';
 import { SiteFooter } from '@/app/components/common/SiteFooter';
+import { PdfViewer } from '@/app/components/common/PdfViewer';
 
 // The published sample: a real PRO report on a fictional screenplay, served as a
 // static PDF from /public.
@@ -16,16 +17,16 @@ import { SiteFooter } from '@/app/components/common/SiteFooter';
 // a paying customer receives, and a PDF is what a producer forwards to a financier.
 // The endpoint is untouched and still serves the live template, so restoring the
 // old behaviour is a one-line change to SAMPLE_SRC.
-// Embedding this depends on two header rules in vercel.json, and the explanation
-// lives here because vercel.json is schema-validated and rejects comment keys:
+// Rendered by PdfViewer (pdf.js drawing to canvas), not by an <object> or <iframe>.
 //
-//   Chrome renders an embedded PDF inside an internal frame. The blanket
-//   `X-Frame-Options: DENY` on `/(.*)` therefore landed on the PDF itself and the
-//   viewer refused to load it, so this page fell through to its fallback on every
-//   browser, desktop included. PDFs get SAMEORIGIN instead — other sites still
-//   cannot frame the file, our own page can — plus `frame-ancestors 'self'`, and
-//   the site CSP gets `object-src 'self'`. Without those last two the block
-//   returns the day the policy stops being report-only.
+// Both of those were tried and both showed a placeholder instead of the report.
+// Handing a PDF to the browser means depending on a viewer plugin: no mobile
+// browser has one, and on desktop the embed is additionally subject to
+// `X-Frame-Options` and `object-src` on the PDF's own response, because Chrome
+// renders an embedded PDF inside an internal frame. The header rules in vercel.json
+// that fixed the second problem are still right and worth keeping — but they could
+// not fix the first, and this page is the one that has to prove the product's
+// output. Drawing the pages ourselves depends on none of it.
 const SAMPLE_PDF = '/the-carrick-line-sample-report.pdf';
 
 export function SampleReport() {
@@ -88,51 +89,11 @@ export function SampleReport() {
         </Alert>
       </Container>
 
-      {/* The browser's own PDF viewer. An <object> rather than a bare <iframe> so
-          there is somewhere to put a fallback: iOS Safari and some in-app browsers
-          decline to render an embedded PDF at all, and would otherwise show a blank
-          panel with no way forward. */}
-      <Container maxWidth="lg" sx={{ py: 3 }}>
-        <Box
-          component="object"
-          data={SAMPLE_PDF}
-          type="application/pdf"
-          aria-label="Sample production analysis report: The Carrick Line"
-          sx={{
-            width: '100%',
-            height: { xs: 'calc(100dvh - 220px)', md: 'calc(100dvh - 160px)' },
-            minHeight: 480,
-            border: `1px solid ${t.border}`,
-            borderRadius: 2,
-            bgcolor: t.cardBg,
-            display: 'block',
-          }}
-        >
-          {/* Reached on any browser without a built-in PDF viewer, which is most
-              phones. Worded as an alternative rather than a failure, because for
-              those visitors it is the only route and "cannot display" reads as
-              something being broken. */}
-          <Box sx={{ p: { xs: 3, md: 5 }, textAlign: 'center' }}>
-            <Typography sx={{ color: t.textPrimary, fontWeight: 700, fontSize: 18, mb: 1 }}>
-              THE CARRICK LINE
-            </Typography>
-            <Typography sx={{ color: t.textSecondary, mb: 3, maxWidth: '46ch', mx: 'auto', lineHeight: 1.7 }}>
-              A full 16-page PRO report on a fictional screenplay. Open it in your
-              PDF reader to see exactly what a finished analysis looks like.
-            </Typography>
-            <Button
-              component="a"
-              href={SAMPLE_PDF}
-              target="_blank"
-              rel="noopener"
-              variant="contained"
-              size="large"
-              startIcon={<Download sx={{ fontSize: 18 }} />}
-            >
-              Open the sample report
-            </Button>
-          </Box>
-        </Box>
+      {/* Drawn by pdf.js, not handed to the browser's viewer — see the note on
+          SAMPLE_PDF. The report is simply on the page, on every device, with no
+          button standing between the visitor and it. */}
+      <Container maxWidth="md" sx={{ py: 3 }}>
+        <PdfViewer src={SAMPLE_PDF} label="Sample production analysis report: The Carrick Line" />
       </Container>
 
       <SiteFooter />
