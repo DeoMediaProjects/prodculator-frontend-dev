@@ -1015,7 +1015,16 @@ export function ReportViewer() {
                       ...(loc.incentiveReliability != null ? [{ label: 'Incentive Reliability', value: loc.incentiveReliability }] : []),
                     ].map((metric) => {
                       const tooltipKey = DIMENSION_TOOLTIP_KEYS[metric.label as keyof typeof DIMENSION_TOOLTIP_KEYS];
-                      const metricValue = Number(metric.value ?? 0);
+                      // `Number(value ?? 0)` printed 0/100 with an empty bar for a
+                      // dimension the backend deliberately left unscored, which is a
+                      // different fact from a scored zero and reads as the worst
+                      // possible result rather than as "no basis to score this". The
+                      // PDF template has always branched on `is none` here; the
+                      // platform did not, which is where "badge shows 0 while the
+                      // weighted total implies ~50" came from — the weighted score
+                      // treats an unscored dimension as a neutral 50.
+                      const isScored = metric.value !== null && metric.value !== undefined;
+                      const metricValue = isScored ? Number(metric.value) : 0;
                       return (
                         <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
                           <Typography variant="caption" sx={{ color: t.textFaint, display: 'flex', alignItems: 'center' }}>
@@ -1023,14 +1032,16 @@ export function ReportViewer() {
                             {'tier' in metric && metric.tier ? ` (${metric.tier})` : ''}
                             <InfoTip text={TOOLTIP_TEXTS[tooltipKey]} placement="top" />
                           </Typography>
-                          <LinearProgress variant="determinate" value={metricValue} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: t.cardBgAlt, '& .MuiLinearProgress-bar': { bgcolor: metricValue >= 80 ? t.success : metricValue >= 60 ? '#2196f3' : metricValue >= 40 ? t.gold : t.warning } }} />
+                          <LinearProgress variant="determinate" value={metricValue} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: t.cardBgAlt, opacity: isScored ? 1 : 0.35, '& .MuiLinearProgress-bar': { bgcolor: !isScored ? t.textFaint : metricValue >= 80 ? t.success : metricValue >= 60 ? '#2196f3' : metricValue >= 40 ? t.gold : t.warning } }} />
                           {isPreview ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.4 }}>
                               <Lock sx={{ fontSize: '0.7rem', color: t.gold }} />
                               <Typography variant="caption" sx={{ color: t.gold, fontSize: '0.7rem' }}>Upgrade</Typography>
                             </Box>
                           ) : (
-                            <Typography variant="caption" sx={{ color: t.textFaint, fontSize: '0.7rem' }}>{metricValue}/100</Typography>
+                            <Typography variant="caption" sx={{ color: t.textFaint, fontSize: '0.7rem' }}>
+                              {isScored ? `${metricValue}/100` : 'Not scored'}
+                            </Typography>
                           )}
                         </Grid>
                       );
@@ -1707,24 +1718,31 @@ export function ReportViewer() {
                         <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6" sx={{ color: t.gold }}>{weather.territory}</Typography>
-                            <Chip
-                              label={`Risk: ${weather.weatherRisk}`}
-                              size="small"
-                              sx={{
-                                bgcolor: weather.weatherRisk === 'Low' ? 'rgba(76, 175, 80, 0.2)' : weather.weatherRisk === 'Medium' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(244, 67, 54, 0.2)',
-                                color: weather.weatherRisk === 'Low' ? t.success : weather.weatherRisk === 'Medium' ? t.gold : t.error,
-                                fontWeight: 600,
-                              }}
-                            />
+                            {/* Absent when no weather record is held. Rendering it
+                                anyway printed "Risk: null" in red, which reads as
+                                high risk rather than as no data. */}
+                            {weather.weatherRisk && (
+                              <Chip
+                                label={`Risk: ${weather.weatherRisk}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: weather.weatherRisk === 'Low' ? 'rgba(76, 175, 80, 0.2)' : weather.weatherRisk === 'Medium' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(244, 67, 54, 0.2)',
+                                  color: weather.weatherRisk === 'Low' ? t.success : weather.weatherRisk === 'Medium' ? t.gold : t.error,
+                                  fontWeight: 600,
+                                }}
+                              />
+                            )}
                           </Box>
-                          <Box sx={{ mb: 2 }}>
-                            <Typography variant="subtitle2" sx={{ color: t.gold, mb: 0.5 }}>Best Months:</Typography>
-                            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                              {weather.bestMonths.map((m, mi) => (
-                                <Chip key={mi} label={m} size="small" sx={{ bgcolor: t.cardBgAlt, color: t.textSecondary }} />
-                              ))}
+                          {weather.bestMonths.length > 0 && (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="subtitle2" sx={{ color: t.gold, mb: 0.5 }}>Best Months:</Typography>
+                              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                {weather.bestMonths.map((m, mi) => (
+                                  <Chip key={mi} label={m} size="small" sx={{ bgcolor: t.cardBgAlt, color: t.textSecondary }} />
+                                ))}
+                              </Box>
                             </Box>
-                          </Box>
+                          )}
                           {weather.avgTempRange && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                               <Typography variant="body2" sx={{ color: t.textSecondary }}>Temp Range:</Typography>
@@ -1738,8 +1756,12 @@ export function ReportViewer() {
                             </Box>
                           )}
                           <Divider sx={{ my: 1.5, borderColor: t.border }} />
-                          <Typography variant="body2" sx={{ color: t.textSecondary, mb: 0.5 }}>{weather.infrastructure}</Typography>
-                          <Typography variant="body2" sx={{ color: t.textFaint }}>{weather.travelVisa}</Typography>
+                          {weather.infrastructure && (
+                            <Typography variant="body2" sx={{ color: t.textSecondary, mb: 0.5 }}>{weather.infrastructure}</Typography>
+                          )}
+                          {weather.travelVisa && (
+                            <Typography variant="body2" sx={{ color: t.textFaint }}>{weather.travelVisa}</Typography>
+                          )}
                           {weather.seasonalConsiderations && (
                             <Typography variant="body2" sx={{ color: t.textFaint, mt: 0.5, fontStyle: 'italic' }}>{weather.seasonalConsiderations}</Typography>
                           )}
