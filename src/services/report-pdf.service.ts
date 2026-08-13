@@ -131,6 +131,16 @@ export async function generateReportPDF(analysis: ScriptAnalysis): Promise<void>
 /**
  * Generate HTML content for PDF printing
  */
+/** A dimension score for display: "72%", or "Not scored" when unscored.
+ *
+ *  Interpolating the raw value printed "null%" once the mapper stopped
+ *  substituting a default for a dimension the backend never scored. The backend
+ *  PDF template makes the same distinction with its `is none` branch.
+ */
+function dim(value: number | null | undefined): string {
+  return value === null || value === undefined ? 'Not scored' : `${value}%`;
+}
+
 function generatePDFHTML(analysis: ScriptAnalysis): string {
   const today = new Date(analysis.generatedAt).toLocaleDateString('en-GB', { 
     year: 'numeric', 
@@ -451,9 +461,9 @@ function generatePDFHTML(analysis: ScriptAnalysis): string {
         <div class="territory-header">${index + 1}. ${location.name}, ${location.country}</div>
         <div class="territory-score">Overall Score: ${location.score}/100</div>
         <div class="territory-metrics">
-          Cost Efficiency: ${location.costEfficiency}% | 
-          Crew Depth: ${location.crewDepth}% | 
-          Incentives: ${location.incentiveStrength}%
+          Cost Efficiency: ${dim(location.costEfficiency)} |
+          Crew Depth: ${dim(location.crewDepth)} |
+          Incentives: ${dim(location.incentiveStrength)}
         </div>
         <h3>Key Intelligence:</h3>
         <ul class="reasoning-list">

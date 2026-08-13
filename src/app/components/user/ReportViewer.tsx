@@ -142,6 +142,10 @@ export function ReportViewer() {
   const [copied, setCopied] = useState(false);
   const [isFetchingReport, setIsFetchingReport] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  // Which :reportId the state below actually describes. Navigating between two
+  // reports reuses this component, so on the first render after the URL changes
+  // every piece of state still belongs to the report just left.
+  const [loadedReportId, setLoadedReportId] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
   // userPlan returned by the report endpoint — promoted to "producer" for pay-per-report buyers
   // whose account plan remains "free". Use this as the source of truth for access decisions.
@@ -176,7 +180,11 @@ export function ReportViewer() {
       .then((report) => {
         // Capture the effective plan for this specific report.
         // Pay-per-report buyers have account plan "free" but the API returns "producer" here.
-        if (report.userPlan) setReportUserPlan(report.userPlan);
+        // Reset rather than only-set-when-present: this component is reused
+        // across reports, so a report that omits the field would otherwise
+        // inherit the previously viewed report's plan and unlock sections it
+        // was never paid for.
+        setReportUserPlan(report.userPlan ?? null);
 
         // Capture share token if one exists (only Studio users will see it non-null)
         setShareToken(report.shareToken ?? null);
@@ -185,10 +193,21 @@ export function ReportViewer() {
         setPdfUrl(report.pdf_url || report.pdfUrl || null);
 
         // Capture any previously saved project details
-        if (report.projectDetails) setProjectDetails(report.projectDetails);
+        setProjectDetails(report.projectDetails ?? null);
 
-        // If analysis is already in context (same-session), don't overwrite it
-        if (analysis) return;
+        setLoadedReportId(reportId);
+
+        // Only the report actually asked for may be rendered from context.
+        // The guard here used to be `if (analysis) return`, which kept whatever
+        // was generated or viewed earlier in the session — so opening an older
+        // report from the list showed the newest one's content under the older
+        // one's URL, while its PDF and share links (which read reportId) were
+        // correct. Context is a cache for one report, not for any report.
+        const isSameReport =
+          analysis?.id != null
+          && report?.id != null
+          && String(analysis.id) === String(report.id);
+        if (isSameReport) return;
 
         // Try to use the pre-shaped analysis field first (backend may already return it)
         const analysisData = report.analysis || report.report_data;
@@ -213,10 +232,16 @@ export function ReportViewer() {
           };
           setAnalysis(mapReportToAnalysis(report, metadata));
         } else {
+          // Drop whatever the previous report left behind. Without this the
+          // empty report would render the last one's figures beneath its own
+          // title, which is worse than saying there is nothing to show yet.
+          setAnalysis(null);
           setFetchError('This report is still processing or contains no data yet.');
         }
       })
       .catch(() => {
+        setLoadedReportId(reportId);
+        setAnalysis(null);
         setFetchError('Failed to load report. Please try again.');
       })
       .finally(() => {
@@ -379,7 +404,13 @@ export function ReportViewer() {
     }
   };
 
-  if (isFetchingReport || (!analysis && !fetchError)) {
+  // Effects run after render, so the first render following a click on another
+  // report still holds the previous one's analysis, plan and error. Showing it
+  // for that frame is the whole complaint — an older report opening on the
+  // newest one's figures — so hold the loader until this id's fetch settles.
+  const showingAnotherReport = !!reportId && loadedReportId !== reportId;
+
+  if (showingAnotherReport || isFetchingReport || (!analysis && !fetchError)) {
     return (
       <Box sx={{ bgcolor: t.pageBg, minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box sx={{ textAlign: 'center' }}>
@@ -984,7 +1015,16 @@ export function ReportViewer() {
                       ...(loc.incentiveReliability != null ? [{ label: 'Incentive Reliability', value: loc.incentiveReliability }] : []),
                     ].map((metric) => {
                       const tooltipKey = DIMENSION_TOOLTIP_KEYS[metric.label as keyof typeof DIMENSION_TOOLTIP_KEYS];
-                      const metricValue = Number(metric.value ?? 0);
+                      // `Number(value ?? 0)` printed 0/100 with an empty bar for a
+                      // dimension the backend deliberately left unscored, which is a
+                      // different fact from a scored zero and reads as the worst
+                      // possible result rather than as "no basis to score this". The
+                      // PDF template has always branched on `is none` here; the
+                      // platform did not, which is where "badge shows 0 while the
+                      // weighted total implies ~50" came from — the weighted score
+                      // treats an unscored dimension as a neutral 50.
+                      const isScored = metric.value !== null && metric.value !== undefined;
+                      const metricValue = isScored ? Number(metric.value) : 0;
                       return (
                         <Grid size={{ xs: 6, sm: 4, md: 2 }} key={metric.label}>
                           <Typography variant="caption" sx={{ color: t.textFaint, display: 'flex', alignItems: 'center' }}>
@@ -992,14 +1032,16 @@ export function ReportViewer() {
                             {'tier' in metric && metric.tier ? ` (${metric.tier})` : ''}
                             <InfoTip text={TOOLTIP_TEXTS[tooltipKey]} placement="top" />
                           </Typography>
-                          <LinearProgress variant="determinate" value={metricValue} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: t.cardBgAlt, '& .MuiLinearProgress-bar': { bgcolor: metricValue >= 80 ? t.success : metricValue >= 60 ? '#2196f3' : metricValue >= 40 ? t.gold : t.warning } }} />
+                          <LinearProgress variant="determinate" value={metricValue} sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: t.cardBgAlt, opacity: isScored ? 1 : 0.35, '& .MuiLinearProgress-bar': { bgcolor: !isScored ? t.textFaint : metricValue >= 80 ? t.success : metricValue >= 60 ? '#2196f3' : metricValue >= 40 ? t.gold : t.warning } }} />
                           {isPreview ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.4 }}>
                               <Lock sx={{ fontSize: '0.7rem', color: t.gold }} />
                               <Typography variant="caption" sx={{ color: t.gold, fontSize: '0.7rem' }}>Upgrade</Typography>
                             </Box>
                           ) : (
-                            <Typography variant="caption" sx={{ color: t.textFaint, fontSize: '0.7rem' }}>{metricValue}/100</Typography>
+                            <Typography variant="caption" sx={{ color: t.textFaint, fontSize: '0.7rem' }}>
+                              {isScored ? `${metricValue}/100` : 'Not scored'}
+                            </Typography>
                           )}
                         </Grid>
                       );
@@ -1676,24 +1718,31 @@ export function ReportViewer() {
                         <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6" sx={{ color: t.gold }}>{weather.territory}</Typography>
-                            <Chip
-                              label={`Risk: ${weather.weatherRisk}`}
-                              size="small"
-                              sx={{
-                                bgcolor: weather.weatherRisk === 'Low' ? 'rgba(76, 175, 80, 0.2)' : weather.weatherRisk === 'Medium' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(244, 67, 54, 0.2)',
-                                color: weather.weatherRisk === 'Low' ? t.success : weather.weatherRisk === 'Medium' ? t.gold : t.error,
-                                fontWeight: 600,
-                              }}
-                            />
+                            {/* Absent when no weather record is held. Rendering it
+                                anyway printed "Risk: null" in red, which reads as
+                                high risk rather than as no data. */}
+                            {weather.weatherRisk && (
+                              <Chip
+                                label={`Risk: ${weather.weatherRisk}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: weather.weatherRisk === 'Low' ? 'rgba(76, 175, 80, 0.2)' : weather.weatherRisk === 'Medium' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(244, 67, 54, 0.2)',
+                                  color: weather.weatherRisk === 'Low' ? t.success : weather.weatherRisk === 'Medium' ? t.gold : t.error,
+                                  fontWeight: 600,
+                                }}
+                              />
+                            )}
                           </Box>
-                          <Box sx={{ mb: 2 }}>
-                            <Typography variant="subtitle2" sx={{ color: t.gold, mb: 0.5 }}>Best Months:</Typography>
-                            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                              {weather.bestMonths.map((m, mi) => (
-                                <Chip key={mi} label={m} size="small" sx={{ bgcolor: t.cardBgAlt, color: t.textSecondary }} />
-                              ))}
+                          {weather.bestMonths.length > 0 && (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="subtitle2" sx={{ color: t.gold, mb: 0.5 }}>Best Months:</Typography>
+                              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                {weather.bestMonths.map((m, mi) => (
+                                  <Chip key={mi} label={m} size="small" sx={{ bgcolor: t.cardBgAlt, color: t.textSecondary }} />
+                                ))}
+                              </Box>
                             </Box>
-                          </Box>
+                          )}
                           {weather.avgTempRange && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                               <Typography variant="body2" sx={{ color: t.textSecondary }}>Temp Range:</Typography>
@@ -1707,8 +1756,12 @@ export function ReportViewer() {
                             </Box>
                           )}
                           <Divider sx={{ my: 1.5, borderColor: t.border }} />
-                          <Typography variant="body2" sx={{ color: t.textSecondary, mb: 0.5 }}>{weather.infrastructure}</Typography>
-                          <Typography variant="body2" sx={{ color: t.textFaint }}>{weather.travelVisa}</Typography>
+                          {weather.infrastructure && (
+                            <Typography variant="body2" sx={{ color: t.textSecondary, mb: 0.5 }}>{weather.infrastructure}</Typography>
+                          )}
+                          {weather.travelVisa && (
+                            <Typography variant="body2" sx={{ color: t.textFaint }}>{weather.travelVisa}</Typography>
+                          )}
                           {weather.seasonalConsiderations && (
                             <Typography variant="body2" sx={{ color: t.textFaint, mt: 0.5, fontStyle: 'italic' }}>{weather.seasonalConsiderations}</Typography>
                           )}

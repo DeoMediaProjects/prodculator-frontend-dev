@@ -485,6 +485,9 @@ export async function getTerritories(
           : item.hasActiveIncentive === false
             ? 'none'
             : 'active',
+      // Older builds omit this too. Assume the territory stands on its own
+      // there, so nothing is quietly demoted to a grouping control.
+      hasOwnIncentive: item.hasOwnIncentive !== false,
       // Passed through only when the backend supplied it. Left undefined rather
       // than defaulted, because guessing here would either invent a confirmation
       // or raise a warning the data does not support.
