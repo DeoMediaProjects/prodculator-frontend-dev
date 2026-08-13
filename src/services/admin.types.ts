@@ -647,6 +647,12 @@ export interface Territory {
    *   `none`         no programme on record
    *  Absent on older builds, where `hasActiveIncentive` is the only signal. */
   incentiveStatus?: 'active' | 'unconfirmed' | 'none';
+  /** Whether the territory holds a programme record in its own name. False on a
+   *  country listed only because its regions do — the United States has no
+   *  federal film incentive, so selecting it commits to nothing on its own and
+   *  it acts as a grouping control for its states.
+   *  Absent on older backends; treat as true there. */
+  hasOwnIncentive?: boolean;
   /** Best format-eligibility verdict this territory's programmes can offer the
    *  requested production format. Present only when the territories request asked
    *  about a format, and absent on older backends.

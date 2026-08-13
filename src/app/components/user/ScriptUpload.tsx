@@ -317,8 +317,29 @@ export function ScriptUpload() {
       }));
   }, [allTerritories]);
 
+  // A country with no incentive of its own only exists here to reveal its
+  // regions — the United States has no federal film incentive, only state ones.
+  // Once a state is chosen the country names nothing the analysis can model, so
+  // it must not spend one of the plan's territory slots.
+  const containerCountries = useMemo(() => {
+    const chosenParents = new Set(
+      allTerritories
+        .filter((t) => t.isSubTerritory && t.parent && territoriesConsidering.includes(t.label))
+        .map((t) => t.parent as string),
+    );
+    return new Set(
+      allTerritories
+        .filter((t) => !t.isSubTerritory && t.hasOwnIncentive === false && chosenParents.has(t.label))
+        .map((t) => t.label),
+    );
+  }, [allTerritories, territoriesConsidering]);
+  const countedTerritories = useMemo(
+    () => territoriesConsidering.filter((t) => !containerCountries.has(t)),
+    [territoriesConsidering, containerCountries],
+  );
+
   const openToAll = territoriesConsidering.includes('Open to all');
-  const atTerritoryLimit = maxTerritories !== null && territoriesConsidering.length >= maxTerritories;
+  const atTerritoryLimit = maxTerritories !== null && countedTerritories.length >= maxTerritories;
   const toggleTerritory = (label: string) => {
     if (openToAll && label !== 'Open to all') return; // locked while "Open to all"
     if (label === 'Open to all') {
@@ -764,8 +785,8 @@ export function ScriptUpload() {
                           <InfoTip text={TOOLTIP_TEXTS.territoriesConsidering} />
                         </Typography>
                         {maxTerritories !== null && !territoriesConsidering.includes('Open to all') && (
-                          <Typography variant="caption" sx={{ color: territoriesConsidering.length >= maxTerritories ? '#D4AF37' : '#666' }}>
-                            {territoriesConsidering.length}/{maxTerritories} selected
+                          <Typography variant="caption" sx={{ color: countedTerritories.length >= maxTerritories ? '#D4AF37' : '#666' }}>
+                            {countedTerritories.length}/{maxTerritories} selected
                           </Typography>
                         )}
                       </Box>
