@@ -12,9 +12,9 @@ import { discountedPrice, formatPrice, type Promotion } from '../usePromotion';
 const COVERED = ['professional', 'producer', 'studio', 'single'];
 
 const promo = (percentOff: number, plans = COVERED): Promotion => ({
-  active: true, percentOff, label: `${percentOff}% off`, plans,
+  active: true, percentOff, durationMonths: 6, label: `${percentOff}% off`, plans,
 });
-const none: Promotion = { active: false, percentOff: 0, label: '', plans: [] };
+const none: Promotion = { active: false, percentOff: 0, durationMonths: 0, label: '', plans: [] };
 
 describe('discountedPrice', () => {
   it('applies the advertised percentage to the covered plans', () => {

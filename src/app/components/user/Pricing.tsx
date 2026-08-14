@@ -668,30 +668,61 @@ export function Pricing() {
                     </Box>
 
                     {/* Annual billing note (subscription plans only) */}
-                    {billingCycle === 'annual' && (plan.annualGBP != null || plan.annualUSD != null) && (
-                      <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>
-                        {(() => {
-                          const sym = isGBP ? '£' : '$';
-                          const perMonth = isGBP ? plan.annualGBP : plan.annualUSD;
-                          if (perMonth == null) return 'Billed annually';
-                          const listTotal = perMonth * 12;
-                          // The headline above is the discounted per-month figure, so
-                          // quoting the list annual total beside it put two numbers on
-                          // one card that could not both be true: £19.89/month next to
-                          // "Billed £468/year" is £229 of arithmetic the reader is left
-                          // to discover for themselves.
-                          const cut = discountedPrice(perMonth, promotion, promoKeyOf(plan));
-                          if (cut == null) return `Billed ${sym}${listTotal}/year`;
-                          const cutTotal = Math.round(listTotal * (1 - promotion.percentOff / 100) * 100) / 100;
-                          // Named as the first year specifically. The coupon is a
-                          // repeating one, and on a yearly price it discounts the
-                          // invoices falling inside its window — which is the first
-                          // annual invoice and no other. Saying "billed X/year" alone
-                          // would promise that rate forever.
-                          return `Billed ${sym}${formatPrice(cutTotal)} for the first year, then ${sym}${listTotal}/year`;
-                        })()}
-                      </Typography>
-                    )}
+                    {/* How long this card's discount lasts, and what is charged after
+                        it. A launch price with no term stated reads as the standing
+                        price — a monthly card showing "£24.99" implies £24.99 forever
+                        when the seventh invoice is £49. The term comes from the
+                        coupon's own duration_in_months via the API, never from a
+                        number written here, so it cannot outlive the coupon. */}
+                    {(() => {
+                      const sym = isGBP ? '£' : '$';
+                      const annual = billingCycle === 'annual';
+                      const perMonth = annual
+                        ? (isGBP ? plan.annualGBP : plan.annualUSD)
+                        : listPriceValue(plan);
+                      if (annual && perMonth == null) {
+                        return <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>Billed annually</Typography>;
+                      }
+                      if (perMonth == null || plan.action === 'free') return null;
+
+                      const cut = plan.gbpOnly ? null : discountedPrice(perMonth, promotion, promoKeyOf(plan));
+                      const months = promotion.durationMonths;
+
+                      // Undiscounted: the annual card still owes the reader its yearly
+                      // total; a monthly card at list price needs no extra line.
+                      if (cut == null) {
+                        return annual
+                          ? <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>{`Billed ${sym}${perMonth * 12}/year`}</Typography>
+                          : null;
+                      }
+
+                      if (annual) {
+                        const listTotal = perMonth * 12;
+                        const cutTotal = Math.round(listTotal * (1 - promotion.percentOff / 100) * 100) / 100;
+                        // One invoice covers the whole year, and it falls inside the
+                        // coupon's window, so the discount lands on the first year and
+                        // no other. "Billed X/year" alone would promise it forever.
+                        return (
+                          <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>
+                            {`Billed ${sym}${formatPrice(cutTotal)} for the first year, then ${sym}${listTotal}/year`}
+                          </Typography>
+                        );
+                      }
+
+                      // Monthly: one discounted invoice per month for the coupon's term.
+                      if (!months) {
+                        return (
+                          <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>
+                            {`Then ${sym}${formatPrice(perMonth)}/month`}
+                          </Typography>
+                        );
+                      }
+                      return (
+                        <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>
+                          {`For your first ${months} months, then ${sym}${formatPrice(perMonth)}/month`}
+                        </Typography>
+                      );
+                    })()}
 
                     <Typography variant="body2" sx={{ mb: 3, color: t.textSecondary }}>
                       {plan.description}

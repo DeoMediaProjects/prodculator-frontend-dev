@@ -4,13 +4,16 @@ import { apiClient } from '@/services/api';
 export interface Promotion {
   active: boolean;
   percentOff: number;
+  /** How many months the coupon repeats for, from the server. 0 means unset, and
+   *  the surfaces then say nothing about the term rather than inventing one. */
+  durationMonths: number;
   label: string;
   /** Plan keys the Stripe coupon is scoped to. A plan outside this list is charged
    *  in full, so it must not be shown a saving. */
   plans: string[];
 }
 
-const NO_PROMOTION: Promotion = { active: false, percentOff: 0, label: '', plans: [] };
+const NO_PROMOTION: Promotion = { active: false, percentOff: 0, durationMonths: 0, label: '', plans: [] };
 
 /**
  * The promotion the checkout will actually apply.
@@ -38,6 +41,7 @@ export function usePromotion(): Promotion {
           setPromotion({
             active: true,
             percentOff: percent,
+            durationMonths: Math.max(0, Number(data?.durationMonths) || 0),
             label: data.label || '',
             plans: Array.isArray(data.plans) ? data.plans.map(String) : [],
           });
