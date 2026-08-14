@@ -670,11 +670,26 @@ export function Pricing() {
                     {/* Annual billing note (subscription plans only) */}
                     {billingCycle === 'annual' && (plan.annualGBP != null || plan.annualUSD != null) && (
                       <Typography variant="body2" sx={{ color: t.success, mb: 1 }}>
-                        {isGBP && plan.annualGBP != null
-                          ? `Billed £${plan.annualGBP * 12}/year`
-                          : plan.annualUSD != null
-                          ? `Billed $${plan.annualUSD * 12}/year`
-                          : 'Billed annually'}
+                        {(() => {
+                          const sym = isGBP ? '£' : '$';
+                          const perMonth = isGBP ? plan.annualGBP : plan.annualUSD;
+                          if (perMonth == null) return 'Billed annually';
+                          const listTotal = perMonth * 12;
+                          // The headline above is the discounted per-month figure, so
+                          // quoting the list annual total beside it put two numbers on
+                          // one card that could not both be true: £19.89/month next to
+                          // "Billed £468/year" is £229 of arithmetic the reader is left
+                          // to discover for themselves.
+                          const cut = discountedPrice(perMonth, promotion, promoKeyOf(plan));
+                          if (cut == null) return `Billed ${sym}${listTotal}/year`;
+                          const cutTotal = Math.round(listTotal * (1 - promotion.percentOff / 100) * 100) / 100;
+                          // Named as the first year specifically. The coupon is a
+                          // repeating one, and on a yearly price it discounts the
+                          // invoices falling inside its window — which is the first
+                          // annual invoice and no other. Saying "billed X/year" alone
+                          // would promise that rate forever.
+                          return `Billed ${sym}${formatPrice(cutTotal)} for the first year, then ${sym}${listTotal}/year`;
+                        })()}
                       </Typography>
                     )}
 
