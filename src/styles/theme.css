@@ -185,3 +185,29 @@
     line-height: 1.5;
   }
 }
+
+/**
+ * Native <input type="date"> calendar-picker icon in dark mode.
+ *
+ * The browser renders ::-webkit-calendar-picker-indicator as a dark glyph, which
+ * is invisible against our dark input backgrounds — it looked like there was no
+ * picker at all and forced manual typing. Theme mode is applied as
+ * data-theme="dark" on <html> (see AppTheme.tsx), so a single rule here fixes
+ * every date field across the app rather than each component styling it
+ * individually. color-scheme also themes the picker popup itself.
+ */
+[data-theme='dark'] input[type='date'],
+[data-theme='dark'] input[type='datetime-local'],
+[data-theme='dark'] input[type='month'],
+[data-theme='dark'] input[type='time'] {
+  color-scheme: dark;
+}
+
+[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='datetime-local']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='month']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='time']::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.8);
+  cursor: pointer;
+  opacity: 1;
+}
