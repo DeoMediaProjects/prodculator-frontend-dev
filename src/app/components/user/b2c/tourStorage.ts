@@ -13,7 +13,7 @@
 
 // Callers pass the signed-in user's email: it is unique per account and already
 // on the auth context, so scoping needs no change to the auth payload.
-import { functionalStorage } from '@/app/cookies/consent';
+import { functionalAllowed, functionalStorage } from '@/app/cookies/consent';
 
 /** Storage key for *base*, scoped to a specific user. */
 export function tourKey(base: string, userKey: string | null | undefined): string {
@@ -35,8 +35,14 @@ export function markTourSeen(base: string, userKey: string | null | undefined): 
  */
 export function hasSeenTour(base: string, userKey: string | null | undefined): boolean {
   if (!userKey) return true;
-  // Without preference storage there is no record either way. Returning true keeps
-  // the previous "don't prompt when we can't tell" behaviour, so refusing consent
-  // does not turn every visit into a walkthrough.
+  // Without preference storage we can neither record a dismissal nor read one
+  // back, so a "seen" flag can never stick. Reading the missing flag as "not
+  // seen" is what made the prompt reappear on every login for anyone who did not
+  // grant functional-cookie consent — dismissing it wrote nothing, so the next
+  // visit looked like a first visit again. Reporting "seen" here keeps the tour
+  // quiet in that state (it stays available on demand from the "?" button),
+  // which matches this module's stated intent: refusing consent must not turn
+  // every visit into a walkthrough.
+  if (!functionalAllowed()) return true;
   return !!functionalStorage.get(tourKey(base, userKey));
 }
