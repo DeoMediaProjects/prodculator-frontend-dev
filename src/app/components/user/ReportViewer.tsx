@@ -73,6 +73,7 @@ import { useSnackbar } from 'notistack';
 // inverted the wrong way round, so it read as a box floating on the header.
 import logoMark from '@/assets/prodculator-logo-white.png';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
+import { isExplorerSectionLocked, type GatedSection } from '@/app/hooks/explorerSections';
 import { InfoTip, TOOLTIP_TEXTS } from '@/app/components/common/InfoTip';
 import ProjectDetailsPanel from './ProjectDetailsPanel';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
@@ -164,6 +165,12 @@ export function ReportViewer() {
   // account but purchased a full report — the API promotes their effective plan to "producer".
   const effectiveIsFree = reportUserPlan !== null ? reportUserPlan === 'free' : isFree;
   const isPreview = effectiveIsFree || location.pathname.includes('preview');
+
+  // Explorer (free) carries 8 of the 13 sections; five stay paid. The list and
+  // the rule live in ./explorerSections so they can be tested and kept in step
+  // with the server's _EXPLORER_SECTIONS.
+  const isSectionLocked = (section: GatedSection) =>
+    isExplorerSectionLocked(section, isPreview);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -440,12 +447,15 @@ export function ReportViewer() {
   const tabs = [
     { label: 'Script Summary', icon: <Info /> },
     { label: 'Location Rankings', icon: <Public /> },
-    { label: 'Tax Incentives', icon: <AttachMoney /> },
-    { label: 'Financial Analysis', icon: <BarChart />, locked: isPreview },
-    { label: 'Festivals & Distributors', icon: <TrendingUp />, locked: isPreview },
-    { label: 'Comparables', icon: <Movie />, locked: isPreview },
-    { label: 'Weather & Logistics', icon: <WbSunny />, locked: isPreview },
-    { label: 'Funding & Festivals', icon: <TrendingUp />, locked: isPreview },
+    { label: 'Tax Incentives', icon: <AttachMoney />, locked: isSectionLocked('taxIncentives') },
+    { label: 'Financial Analysis', icon: <BarChart />, locked: isSectionLocked('financialAnalysis') },
+    // Distributors are an Explorer section, festivals are not, so this tab is
+    // reachable and the festival half is gated inside it.
+    { label: 'Festivals & Distributors', icon: <TrendingUp /> },
+    { label: 'Comparables', icon: <Movie /> },
+    { label: 'Weather & Logistics', icon: <WbSunny /> },
+    // Same split: funding is an Explorer section, festivals are not.
+    { label: 'Funding & Festivals', icon: <TrendingUp /> },
   ];
 
   const previewUrgentCount = Number(
@@ -1482,9 +1492,12 @@ export function ReportViewer() {
 
             {/* Tab 5: Crew & Cost */}
             <TabPanel value={tabValue} index={4}>
-              {isPreview ? (
+              {/* Festivals stay paid; distributors are an Explorer section. The two
+                  used to share one isPreview gate, so opening distributors up meant
+                  opening festivals too. Gated separately now. */}
+              {isSectionLocked('festivals') ? (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Festival & Distributor Strategy</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Where Your Film Could Be Seen</Typography>
                   <Grid container spacing={3}>
                     {[0, 1, 2, 3].map((i) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
@@ -1501,7 +1514,7 @@ export function ReportViewer() {
                   </Grid>
                   <Box sx={{ textAlign: 'center', mt: 3 }}>
                     <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: t.gold, color: onGold, fontWeight: 600, px: 5, '&:hover': { bgcolor: t.goldBright } }}>
-                      Unlock Festival & Distributor Strategy
+                      Unlock Where Your Film Could Be Seen
                     </Button>
                   </Box>
                 </>
@@ -1565,16 +1578,23 @@ export function ReportViewer() {
                       </Grid>
                     )}
                   </Grid>
+                </>
+              )}
+
 
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Who Could Buy Your Film</Typography>
                   <Typography variant="body2" sx={{ color: t.textSecondary, mb: 3 }}>
-                    Distributors are ranked partly on whether they actively scout the festivals recommended above.
+                    {isSectionLocked('festivals')
+                      ? 'Distributors are ranked partly on whether they actively scout the festivals matched to this production.'
+                      : 'Distributors are ranked partly on whether they actively scout the festivals recommended above.'}
                   </Typography>
                   <Grid container spacing={3}>
                     {((analysis as any).distributorRecommendations || []).map((dist: any, i: number) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
-                          {dist.scoutsRecommendedFestivals?.length > 0 && (
+                          {/* Names a festival from the paid Festival Recommendations
+                              section, so it is withheld while that section is locked. */}
+                          {!isSectionLocked('festivals') && dist.scoutsRecommendedFestivals?.length > 0 && (
                             <Typography variant="caption" sx={{ color: t.gold, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', mb: 1 }}>
                               ⟶ Scouts {dist.scoutsRecommendedFestivals[0]}
                             </Typography>
@@ -1602,43 +1622,9 @@ export function ReportViewer() {
                       </Grid>
                     ))}
                   </Grid>
-                </>
-              )}
             </TabPanel>
 
             <TabPanel value={tabValue} index={5}>
-              {isPreview ? (
-                <>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Comparable Productions</Typography>
-                  <TableContainer component={Paper} sx={{ bgcolor: t.cardBgAlt }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          {['Title', 'Genre', 'Budget', 'Location', 'Year', 'Source'].map((col) => (
-                            <TableCell key={col} sx={{ color: t.gold, fontWeight: 600 }}>{col}</TableCell>
-                          ))}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {[70, 55, 80, 60].map((w, i) => (
-                          <TableRow key={i}>
-                            {[w, 50, 55, 60, 30, 45].map((cw, j) => (
-                              <TableCell key={j} sx={{ borderBottom: `1px solid ${t.border}` }}>
-                                <Box sx={{ height: 12, width: cw, bgcolor: skeleton, borderRadius: 1 }} />
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                  <Box sx={{ textAlign: 'center', mt: 3 }}>
-                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: t.gold, color: onGold, fontWeight: 600, px: 5, '&:hover': { bgcolor: t.goldBright } }}>
-                      Unlock Comparable Productions
-                    </Button>
-                  </Box>
-                </>
-              ) : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Comparable Productions</Typography>
                   <TableContainer component={Paper} sx={{ bgcolor: t.cardBgAlt }}>
@@ -1647,7 +1633,11 @@ export function ReportViewer() {
                         <TableRow>
                           <TableCell sx={{ color: t.gold, fontWeight: 600 }}>Title</TableCell>
                           <TableCell sx={{ color: t.gold, fontWeight: 600 }}>Genre</TableCell>
-                          <TableCell sx={{ color: t.gold, fontWeight: 600 }}>Budget</TableCell>
+                          {/* Budget is the paid column: the API strips budgetRange
+                              for Explorer, so rendering it would give an empty cell. */}
+                          {!isPreview && (
+                            <TableCell sx={{ color: t.gold, fontWeight: 600 }}>Budget</TableCell>
+                          )}
                           <TableCell sx={{ color: t.gold, fontWeight: 600 }}>Location</TableCell>
                           <TableCell sx={{ color: t.gold, fontWeight: 600 }}>Year</TableCell>
                           <TableCell sx={{ color: t.gold, fontWeight: 600 }}>Source</TableCell>
@@ -1658,7 +1648,9 @@ export function ReportViewer() {
                           <TableRow key={i}>
                             <TableCell sx={{ color: t.textPrimary, fontWeight: 500 }}>{comp.title}</TableCell>
                             <TableCell sx={{ color: t.textSecondary }}>{comp.genre}</TableCell>
-                            <TableCell sx={{ color: t.textSecondary }}>{comp.budgetRange}</TableCell>
+                            {!isPreview && (
+                              <TableCell sx={{ color: t.textSecondary }}>{comp.budgetRange}</TableCell>
+                            )}
                             <TableCell sx={{ color: t.textSecondary }}>{comp.location}</TableCell>
                             <TableCell sx={{ color: t.textSecondary }}>{comp.year}</TableCell>
                             <TableCell sx={{ color: t.textSecondary }}>{cleanSource(comp.source)}</TableCell>
@@ -1668,48 +1660,10 @@ export function ReportViewer() {
                     </Table>
                   </TableContainer>
                 </>
-              )}
             </TabPanel>
 
             {/* Tab 7: Weather & Logistics */}
             <TabPanel value={tabValue} index={6}>
-              {isPreview ? (
-                <>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Weather & Logistics</Typography>
-                  <Grid container spacing={3}>
-                    {analysis.locationRankings.map((loc, i) => (
-                      <Grid size={{ xs: 12, md: 6 }} key={i}>
-                        <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" sx={{ color: t.gold }}>{loc.name}</Typography>
-                            <Box sx={{ height: 24, width: 80, bgcolor: skeleton, borderRadius: 1 }} />
-                          </Box>
-                          <Typography variant="subtitle2" sx={{ color: t.gold, mb: 0.5 }}>Best Months:</Typography>
-                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 2 }}>
-                            {[44, 44, 44].map((w, j) => (
-                              <Box key={j} sx={{ height: 22, width: w, bgcolor: skeleton, borderRadius: 1 }} />
-                            ))}
-                          </Box>
-                          {['Temp Range:', 'Daylight:'].map((label) => (
-                            <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                              <Typography variant="body2" sx={{ color: t.textSecondary }}>{label}</Typography>
-                              <LockedBadge />
-                            </Box>
-                          ))}
-                          <Divider sx={{ my: 1.5, borderColor: t.border }} />
-                          <Box sx={{ height: 12, width: '85%', bgcolor: skeleton, borderRadius: 1, mb: 1 }} />
-                          <Box sx={{ height: 12, width: '70%', bgcolor: skeleton, borderRadius: 1 }} />
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
-                  <Box sx={{ textAlign: 'center', mt: 3 }}>
-                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: t.gold, color: onGold, fontWeight: 600, px: 5, '&:hover': { bgcolor: t.goldBright } }}>
-                      Unlock Weather & Logistics
-                    </Button>
-                  </Box>
-                </>
-              ) : (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Weather & Logistics</Typography>
                   <Grid container spacing={3}>
@@ -1770,51 +1724,18 @@ export function ReportViewer() {
                     ))}
                   </Grid>
                 </>
-              )}
             </TabPanel>
 
             {/* Tab 8: Funding & Festivals */}
             <TabPanel value={tabValue} index={7}>
-              {isPreview ? (
                 <>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Funding & Festival Opportunities</Typography>
-                  <Grid container spacing={3}>
-                    {[
-                      { type: 'Fund', color: t.success, bg: 'rgba(76,175,80,0.2)' },
-                      { type: 'Festival', color: '#2196f3', bg: 'rgba(33,150,243,0.2)' },
-                      { type: 'Fund', color: t.success, bg: 'rgba(76,175,80,0.2)' },
-                      { type: 'Festival', color: '#2196f3', bg: 'rgba(33,150,243,0.2)' },
-                    ].map((item, i) => (
-                      <Grid size={{ xs: 12, md: 6 }} key={i}>
-                        <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Box sx={{ height: 14, width: '55%', bgcolor: skeleton, borderRadius: 1 }} />
-                            <Chip label={item.type} size="small" sx={{ bgcolor: item.bg, color: item.color, fontWeight: 600 }} />
-                          </Box>
-                          <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
-                            {[55, 48].map((w, j) => (
-                              <Box key={j} sx={{ height: 20, width: w, bgcolor: 'rgba(212,175,55,0.08)', borderRadius: 1 }} />
-                            ))}
-                          </Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="body2" sx={{ color: t.textSecondary }}>Deadline:</Typography>
-                            <LockedBadge />
-                          </Box>
-                          <Box sx={{ height: 12, width: '90%', bgcolor: skeleton, borderRadius: 1, mb: 0.5 }} />
-                          <Box sx={{ height: 12, width: '70%', bgcolor: skeleton, borderRadius: 1 }} />
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
-                  <Box sx={{ textAlign: 'center', mt: 3 }}>
-                    <Button variant="contained" onClick={() => navigate('/pricing')} sx={{ bgcolor: t.gold, color: onGold, fontWeight: 600, px: 5, '&:hover': { bgcolor: t.goldBright } }}>
-                      Unlock Funding & Festival Intelligence
-                    </Button>
-                  </Box>
-                </>
-              ) : (
-                <>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>Funding & Festival Opportunities</Typography>
+                  {/* The API drops festival-typed entries for Explorer, so the
+                      heading must not promise festivals it will not show. */}
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
+                    {isSectionLocked('festivals')
+                      ? 'Grant & Funding Opportunities'
+                      : 'Funding & Festival Opportunities'}
+                  </Typography>
                   <Grid container spacing={3}>
                     {Array.isArray(analysis.fundingOpportunities) ? analysis.fundingOpportunities.map((opp, i) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
@@ -1854,7 +1775,6 @@ export function ReportViewer() {
                     )) : null}
                   </Grid>
                 </>
-              )}
             </TabPanel>
           </Box>
         </Paper>
