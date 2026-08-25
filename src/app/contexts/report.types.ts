@@ -203,6 +203,31 @@ export interface FundingOpportunity {
   tier?: string;
 }
 
+/** One producer-supplied statutory cost base, with its provenance.
+ *
+ *  `amount` is nullable on purpose. Null means the producer has not told us;
+ *  zero means they have told us it is nil. Those produce different calculation
+ *  statuses, so collapsing them would defeat the rule the rebuild turns on. */
+export interface ScenarioCalculationInputPayload {
+  input_key: string;
+  amount: number | null;
+  currency?: string;
+  input_status: 'known' | 'planning_assumption' | 'unknown';
+  input_source?: 'user_entered' | 'imported_budget' | 'verified_cost_report';
+}
+
+export interface TerritoryScenarioInput {
+  territory: string;
+  scenario_spend: number | null;
+  scenario_currency?: string;
+  scenario_spend_source: 'user_entered' | 'imported_budget' | 'unknown';
+  /** Co-production only. The backend rejects these in comparison mode, where a
+   *  territory is an alternative rather than a partner. */
+  participation_percent?: number;
+  partner_status?: 'candidate' | 'confirmed';
+  calculation_inputs: ScenarioCalculationInputPayload[];
+}
+
 export interface ScriptMetadata {
   title: string;
   genre: string[];
@@ -216,6 +241,20 @@ export interface ScriptMetadata {
   locationStrategy?: string;
   productionPriority: string;
   territoriesConsidering?: string[];
+  /** How the selected territories relate to one another.
+   *
+   *  Not cosmetic. It decides whether the spends below are alternatives to be
+   *  ranked or allocations inside one production to be reconciled, and the
+   *  backend rejects co-production-only fields in a comparison mode. */
+  productionStructureMode?: 'comparison' | 'coproduction' | 'undecided';
+  territoryScenarios?: TerritoryScenarioInput[];
+  /** Co-production only: spend earning nothing in any partner territory. */
+  unallocatedSpend?: number;
+  coProductionRoute?: string;
+  supranationalSupportInterest?:
+    | 'show_opportunity'
+    | 'not_considering'
+    | 'application_planned';
   filmingStart?: string;
   filmingDuration?: string;
   cameraEquipment?: string[];

@@ -561,3 +561,58 @@ export async function updateProjectDetails(
     { auth: true },
   );
 }
+
+// ── Scenario questions (Incentive Engine v2) ─────────────────────────────────
+
+export interface ScenarioQuestion {
+  inputKey: string;
+  label: string;
+  helpText: string;
+  inputType: string;
+  requiredForExact: boolean;
+  /** Every programme in this scenario that uses the answer. */
+  usedBy: string[];
+}
+
+export interface ScenarioProgramme {
+  programmeId: string | null;
+  name: string;
+  engine: string | null;
+  calculationVerification: string | null;
+}
+
+export interface ScenarioQuestionSet {
+  jurisdiction: string;
+  territoryId: string;
+  subdivisionId: string | null;
+  questions: ScenarioQuestion[];
+  programmes: ScenarioProgramme[];
+  /** Programmes that cannot produce a figure whatever is entered, with why. */
+  nonCalculating: { programmeId: string | null; name: string; reason: string }[];
+}
+
+export interface ScenarioQuestionsResponse {
+  mode: string;
+  limit: number | null;
+  scenarios: ScenarioQuestionSet[];
+}
+
+/**
+ * Which statutory cost figures to ask for, per selected jurisdiction.
+ *
+ * The wizard renders whatever comes back. It holds no rule about which question
+ * belongs to which territory, because that is programme data and changing it
+ * must not need a deployment.
+ */
+export async function getScenarioQuestions(
+  territories: string[],
+  mode: string,
+): Promise<ScenarioQuestionsResponse> {
+  const params = new URLSearchParams({
+    territories: territories.join(','),
+    mode,
+  });
+  return apiClient.get<ScenarioQuestionsResponse>(
+    `/api/scenarios/questions?${params.toString()}`,
+  );
+}
