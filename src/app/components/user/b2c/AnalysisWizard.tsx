@@ -23,6 +23,7 @@ import { SegmentedToggle } from './SegmentedToggle';
 import { WizardTour } from './WizardTour';
 import { usePrefersReducedMotion } from './tourStyles';
 import { deriveSchedule, type ScheduleDriver } from './scheduleDerivation';
+import { regionOptionsFor, mustFilmInOptionsFor } from './locationOptions';
 
 // Continent grouping for the territory picker — identical mapping to ScriptUpload
 // so the wizard yields the same intake payload the engine already understands.
@@ -70,9 +71,6 @@ function formatDivergesFromFeature(format: string): boolean {
   return FORMATS_WITH_DIVERGENT_ELIGIBILITY.includes(format.trim().toLowerCase());
 }
 const CAMERA_OPTIONS = ['ARRI Alexa 35', 'RED VRAPTOR', 'Sony VENICE 2', 'Film 35mm', 'Blackmagic Cinema', 'Canon C70', 'Sony FX9', 'Panavision', 'IMAX', 'DJI Drone', 'GoPro', 'iPhone', 'Sony Alpha', 'Sony A7S III', 'Canon EOS R5', 'Phantom High Speed', 'Kinefinity Terra', 'Other'];
-const USA_STATES = ['California', 'New York', 'Georgia', 'Louisiana', 'New Mexico', 'Texas', 'North Carolina', 'Massachusetts', 'Illinois', 'Pennsylvania', 'Florida', 'Oregon', 'Washington', 'Nevada', 'Utah', 'Colorado', 'Other'];
-const CANADA_PROVINCES = ['British Columbia', 'Ontario', 'Quebec', 'Alberta', 'Manitoba', 'Nova Scotia', 'Saskatchewan', 'New Brunswick', 'Other'];
-const AUSTRALIA_STATES = ['New South Wales', 'Victoria', 'Queensland', 'South Australia', 'Western Australia', 'Tasmania', 'Other'];
 const CURRENCY_OPTIONS = [
   { value: 'GBP', label: '£ GBP' }, { value: 'USD', label: '$ USD' }, { value: 'EUR', label: '€ EUR' },
   { value: 'ZAR', label: 'R ZAR' }, { value: 'CAD', label: '$ CAD' }, { value: 'AUD', label: '$ AUD' },
@@ -280,8 +278,19 @@ export function AnalysisWizard() {
     }
   }, [country]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const stateProvinceOptions = country === 'United States' ? USA_STATES : country === 'Canada' ? CANADA_PROVINCES : country === 'Australia' ? AUSTRALIA_STATES : [];
-  const showStateProvince = ['United States', 'Canada', 'Australia'].includes(country);
+  // Only jurisdictions we hold an incentive record for. The list used to be three
+  // hardcoded arrays that named every state a producer might shoot in, which
+  // offered Texas, Florida and a catch-all "Other" as though each were a modelled
+  // regime. Picking one produced a state the analysis had nothing to say about,
+  // and in a state-level incentive country that is the whole answer.
+  const stateProvinceOptions = useMemo(
+    () => regionOptionsFor(allTerritories, country),
+    [allTerritories, country],
+  );
+  // Driven by the data too, so a country that gains sub-territories reveals the
+  // field without a code change, and one whose regions are all removed stops
+  // showing an empty dropdown.
+  const showStateProvince = stateProvinceOptions.length > 0;
   const countryOptions = useMemo(() => allTerritories.filter((x) => !x.isSubTerritory).map((x) => x.label).sort(), [allTerritories]);
 
   const territoryGroups = useMemo(() => {
@@ -387,17 +396,28 @@ export function AnalysisWizard() {
   // at the head of the analysis, so it reaches the report the same way any other
   // choice does. Left out when it is a grouping-only country such as the United
   // States, which names no incentive of its own.
-  const mustFilmInOptions = useMemo(() => {
-    const options = countedTerritories.map((label) => ({ label, isProductionCountry: false }));
-    if (
-      country
-      && !containerCountries.has(country)
-      && !options.some((o) => o.label === country)
-    ) {
-      options.push({ label: country, isProductionCountry: true });
+  const mustFilmInOptions = useMemo(
+    () => mustFilmInOptionsFor({
+      countedTerritories,
+      country,
+      stateProvince,
+      regionOptions: stateProvinceOptions,
+      containerCountries,
+    }),
+    [
+      countedTerritories, containerCountries, country, stateProvince,
+      stateProvinceOptions,
+    ],
+  );
+
+  // Changing the production country, or a registry change that drops a region,
+  // would otherwise leave a state selected that the new country does not contain.
+  // That reaches the report as a jurisdiction the production is not in.
+  useEffect(() => {
+    if (stateProvince && !stateProvinceOptions.includes(stateProvince)) {
+      setStateProvince('');
     }
-    return options;
-  }, [countedTerritories, containerCountries, country]);
+  }, [stateProvince, stateProvinceOptions]);
 
   const openToAll = territoriesConsidering.includes('Open to all');
   const atTerritoryLimit = maxTerritories !== null && countedTerritories.length >= maxTerritories;
@@ -1381,9 +1401,9 @@ export function AnalysisWizard() {
                   ...mustFilmInOptions.map((o) => (
                     <MenuItem key={o.label} value={o.label}>
                       {o.label}
-                      {o.isProductionCountry && (
+                      {o.originHint && (
                         <Box component="span" sx={{ color: t.textFaint, fontSize: 12, ml: 1 }}>
-                          production country
+                          {o.originHint}
                         </Box>
                       )}
                     </MenuItem>
