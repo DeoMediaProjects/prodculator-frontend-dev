@@ -1120,6 +1120,117 @@ export function ReportViewer() {
 
             {/* Tab 3: Tax Incentives */}
             <TabPanel value={tabValue} index={2}>
+              {/* Placed above the incentive cards because it changes how they
+                  should be read: these are shares of one production, so the
+                  figures below belong to one structure rather than to competing
+                  alternatives. Rendered here rather than as its own tab so the
+                  existing tab indices stay put. */}
+              {analysis.coProductionStructure && !isSectionLocked('taxIncentives') && (
+                <Paper sx={{ p: 3, mb: 4, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}` }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap', mb: 1 }}>
+                    <Box>
+                      <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                        Co-Production Structure
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: t.textFaint, mt: 0.5 }}>
+                        {analysis.coProductionStructure.partnerCount} partner
+                        {analysis.coProductionStructure.partnerCount === 1 ? '' : 's'} in one production
+                        {analysis.coProductionStructure.route ? ` · ${analysis.coProductionStructure.route}` : ''}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={analysis.coProductionStructure.reconciliationLabel}
+                      size="small"
+                      sx={{
+                        fontWeight: 700, fontSize: '0.7rem',
+                        ...(analysis.coProductionStructure.reconciliationStatus === 'reconciled'
+                          ? { bgcolor: 'rgba(76,175,80,0.2)', color: t.success, border: `1px solid ${t.success}` }
+                          : analysis.coProductionStructure.reconciliationStatus === 'over_allocated'
+                          ? { bgcolor: 'rgba(244,67,54,0.2)', color: t.error, border: `1px solid ${t.error}` }
+                          : { bgcolor: 'rgba(255,152,0,0.2)', color: t.warning, border: `1px solid ${t.warning}` }),
+                      }}
+                    />
+                  </Box>
+                  {/* Said plainly, because every other territory table in this
+                      report ranks and a reader arrives expecting this one to. */}
+                  <Typography variant="body2" sx={{ color: t.textSecondary, mb: 2, lineHeight: 1.7 }}>
+                    These partners are not ranked against one another. Each holds a share of the same
+                    production, so the shares are reconciled against the budget rather than ordered.
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: t.textSecondary, mb: 2.5, lineHeight: 1.7 }}>
+                    {analysis.coProductionStructure.reconciliationExplanation}
+                    {analysis.coProductionStructure.reconciliationRemaining
+                      ? ` Difference: ${Math.abs(analysis.coProductionStructure.reconciliationRemaining).toLocaleString('en-US')} ${analysis.coProductionStructure.currency ?? ''}.`
+                      : ''}
+                  </Typography>
+
+                  <Box sx={{ overflowX: 'auto' }}>
+                    <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                      <Box component="thead">
+                        <Box component="tr">
+                          {['Partner', 'Status', 'Allocated spend', 'Share', 'Programme', 'Incentive'].map((h) => (
+                            <Box
+                              component="th" key={h}
+                              sx={{ textAlign: h === 'Allocated spend' || h === 'Share' ? 'right' : 'left', p: 1, borderBottom: `1px solid ${t.border}`, color: t.textFaint, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+                            >
+                              {h}
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+                      <Box component="tbody">
+                        {analysis.coProductionStructure.partners.map((p, i) => (
+                          <Box component="tr" key={p.territory ?? i}>
+                            <Box component="td" sx={{ p: 1, borderBottom: `1px solid ${t.border}`, fontWeight: 600 }}>{p.territory}</Box>
+                            <Box component="td" sx={{ p: 1, borderBottom: `1px solid ${t.border}`, color: t.textSecondary }}>
+                              {p.partnerStatus === 'confirmed' ? 'Confirmed' : 'Candidate'}
+                            </Box>
+                            {/* "Not supplied" rather than a dash: a dash reads as
+                                nil, and nil against a partner is a different
+                                claim entirely. */}
+                            <Box component="td" sx={{ p: 1, borderBottom: `1px solid ${t.border}`, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                              {p.allocatedSpend !== null ? p.allocatedSpend.toLocaleString('en-US') : 'Not supplied'}
+                            </Box>
+                            <Box component="td" sx={{ p: 1, borderBottom: `1px solid ${t.border}`, textAlign: 'right' }}>
+                              {p.participationPercent !== null ? `${p.participationPercent}%` : '—'}
+                            </Box>
+                            <Box component="td" sx={{ p: 1, borderBottom: `1px solid ${t.border}`, color: t.textSecondary }}>
+                              {p.programme ?? 'No programme recorded'}
+                            </Box>
+                            <Box component="td" sx={{ p: 1, borderBottom: `1px solid ${t.border}` }}>
+                              {p.incentive ?? (
+                                <Box component="span" sx={{ color: t.textFaint }}>
+                                  {p.calculationStatusLabel ?? 'Not calculated'}
+                                </Box>
+                              )}
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* The sum is withheld deliberately and the reason is printed.
+                      An omission with no explanation reads as an oversight a
+                      reader might fill in themselves. */}
+                  {analysis.coProductionStructure.combinedIncentiveWithheld && (
+                    <Typography variant="body2" sx={{ mt: 2.5, pl: 1.5, borderLeft: `2px solid ${t.gold}`, color: t.textSecondary, lineHeight: 1.7 }}>
+                      <Box component="span" sx={{ color: t.gold, fontWeight: 700 }}>Combined incentive not stated. </Box>
+                      {analysis.coProductionStructure.combinedIncentiveReason}
+                    </Typography>
+                  )}
+
+                  {analysis.coProductionStructure.structureNotes.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      {analysis.coProductionStructure.structureNotes.map((note, n) => (
+                        <Typography key={n} variant="body2" sx={{ color: t.warning, lineHeight: 1.7 }}>
+                          {note}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              )}
               <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Tax Incentive Estimates</Typography>
               {analysis.sectionExplainers?.incentiveEstimates && (
                 <Typography variant="body2" sx={{ color: t.textFaint, mb: 3 }}>{analysis.sectionExplainers.incentiveEstimates}</Typography>
@@ -1223,6 +1334,22 @@ export function ReportViewer() {
                             }}
                           />
                         )}
+                        {/* The conclusion, ahead of the individual verdicts that
+                            produced it. Shown only when it qualifies the figure: a
+                            "Calculated" chip on every card is decoration, and
+                            decoration is what makes a real status invisible. */}
+                        {inc.calculationStatus && inc.calculationStatus !== 'ESTIMATED' && (
+                          <Chip
+                            label={inc.calculationStatusLabel ?? inc.calculationStatus}
+                            size="small"
+                            sx={{
+                              mb: 2, mr: 1, fontWeight: 700, fontSize: '0.68rem',
+                              ...(inc.calculationCarriesFigure
+                                ? { bgcolor: 'rgba(255,152,0,0.16)', color: t.warning, border: `1px solid ${t.warning}` }
+                                : { bgcolor: 'transparent', color: t.textFaint, border: `1px solid ${t.border}` }),
+                            }}
+                          />
+                        )}
                         {inc.formatEligibility && inc.formatEligibility.verdict !== 'eligible' && (
                           <Chip
                             label={inc.formatEligibility.label}
@@ -1269,7 +1396,9 @@ export function ReportViewer() {
                                   : undefined,
                               }}
                             >
-                              {inc.incentiveIsConfirmed === false ? '—' : inc.estimatedRebate}
+                              {inc.calculationCarriesFigure === false
+                                ? (inc.calculationStatusLabel ?? '—')
+                                : inc.incentiveIsConfirmed === false ? '—' : inc.estimatedRebate}
                             </Typography>
                             {/* An unconfirmed figure stays visible but never reads as
                                 an amount the production can count on. */}
@@ -1280,6 +1409,25 @@ export function ReportViewer() {
                             )}
                           </Box>
                         </Box>
+                        {/* Why there is no figure, and what would produce one. A
+                            producer cannot act on "no figure"; they can act on
+                            which figure is missing. */}
+                        {inc.calculationCarriesFigure === false
+                          && (inc.calculationStatusReasons?.length ?? 0) > 0 && (
+                          <Box sx={{ mt: 1, pl: 1.25, borderLeft: `2px solid ${t.border}` }}>
+                            {inc.calculationStatusReasons!.map((reason, r) => (
+                              <Typography key={r} variant="caption" sx={{ color: t.textFaint, display: 'block', lineHeight: 1.6 }}>
+                                {reason}
+                              </Typography>
+                            ))}
+                          </Box>
+                        )}
+                        {inc.calculationStatusNextStep && (
+                          <Typography variant="caption" sx={{ color: t.textSecondary, display: 'block', mt: 1, lineHeight: 1.6 }}>
+                            <Box component="span" sx={{ color: t.gold, fontWeight: 700 }}>To firm this up: </Box>
+                            {inc.calculationStatusNextStep}
+                          </Typography>
+                        )}
                         {/* Deliberately a different shape from the confirmed row
                             above: dashed, its own heading, its own colour. An
                             asterisk beside a number is not a distinction anyone
