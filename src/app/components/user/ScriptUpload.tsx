@@ -58,6 +58,7 @@ import { databaseService } from '@/services/database.service';
 import { InfoTip, TOOLTIP_TEXTS } from '@/app/components/common/InfoTip';
 import { useToast } from '@/app/hooks/useToast';
 import { useTerritories } from '@/app/hooks/useTerritories';
+import { regionOptionsFor } from './b2c/locationOptions';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 import exampleLogo from '@/assets/2ac5b205356b38916f5ff32008dfa103d8ffc2cb.png';
 
@@ -226,34 +227,25 @@ export function ScriptUpload() {
   ];
 
   // State/Province options based on country
-  const usaStates = [
-    'California', 'New York', 'Georgia', 'Louisiana', 'New Mexico', 'Texas',
-    'North Carolina', 'Massachusetts', 'Illinois', 'Pennsylvania', 'Florida',
-    'Oregon', 'Washington', 'Nevada', 'Utah', 'Colorado', 'Other'
-  ];
+  // Only regions we hold an incentive record for. These were three hardcoded
+  // arrays naming every state a producer might shoot in, plus a catch-all
+  // "Other", which presented Texas and Florida as though each were a modelled
+  // regime. In a country whose incentives are legislated at state level, offering
+  // a state we cannot analyse is the misleading part.
+  const stateProvinceOptions = useMemo(
+    () => regionOptionsFor(allTerritories, country),
+    [allTerritories, country],
+  );
 
-  const canadaProvinces = [
-    'British Columbia', 'Ontario', 'Quebec', 'Alberta', 'Manitoba',
-    'Nova Scotia', 'Saskatchewan', 'New Brunswick', 'Other'
-  ];
+  // Driven by the data, so a country that gains regions reveals the field with no
+  // code change and one with none never shows an empty dropdown.
+  const showStateProvince = stateProvinceOptions.length > 0;
 
-  const australiaStates = [
-    'New South Wales', 'Victoria', 'Queensland', 'South Australia',
-    'Western Australia', 'Tasmania', 'Other'
-  ];
-
-  // Get state/province options based on selected country
-  const getStateProvinceOptions = () => {
-    switch (country) {
-      case 'United States': return usaStates;
-      case 'Canada':        return canadaProvinces;
-      case 'Australia':     return australiaStates;
-      default: return [];
+  useEffect(() => {
+    if (stateProvince && !stateProvinceOptions.includes(stateProvince)) {
+      setStateProvince('');
     }
-  };
-
-  // Show state/province field for countries with regional incentives
-  const showStateProvince = ['United States', 'Canada', 'Australia'].includes(country);
+  }, [stateProvince, stateProvinceOptions]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -768,7 +760,7 @@ export function ScriptUpload() {
                           label="State/Province" 
                           onChange={(e) => setStateProvince(e.target.value)}
                         >
-                          {getStateProvinceOptions().map(s => (
+                          {stateProvinceOptions.map(s => (
                             <MenuItem key={s} value={s}>{s}</MenuItem>
                           ))}
                         </Select>

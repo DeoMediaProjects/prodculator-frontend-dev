@@ -63,6 +63,9 @@ export interface ScriptAnalysis {
 
   // Tab 3: Tax Incentives
   incentiveEstimates: IncentiveEstimate[];
+  /** Present only for a co-production. Absent for a comparison, rather than
+   *  empty: a section that renders with nothing in it reads as a bug. */
+  coProductionStructure?: CoProductionStructure | null;
   /** Blanket caveat, set by the backend only while some programme in this report
    *  is unverified for the production's format. Absent means every programme has
    *  an answer, so no blanket warning is warranted. */
@@ -167,6 +170,75 @@ export interface IncentiveEstimate {
     explanation?: string | null;
     reasons?: Array<{ gate: string; outcome: 'pass' | 'fail' | 'untested'; detail: string }>;
   } | null;
+  /** The single conclusion about this figure, drawn from the verdicts above
+   *  rather than a fourth opinion alongside them. Between bankability, format
+   *  eligibility, programme availability and confirmation, a reader had to work
+   *  out for themselves whether the number could be relied on. */
+  calculationStatus?:
+    | 'ESTIMATED' | 'CONDITIONAL' | 'REQUIRES_COST_BREAKDOWN' | 'NOT_ELIGIBLE'
+    | 'PROGRAMME_UNVERIFIED' | 'BLOCKED' | 'SUSPENDED' | 'NO_PROGRAMME'
+    | null;
+  calculationStatusLabel?: string | null;
+  calculationStatusMeaning?: string | null;
+  /** Why this status, in the producer's terms: one entry per failed gate or
+   *  missing input, so a refusal can be checked rather than taken on trust. */
+  calculationStatusReasons?: string[] | null;
+  /** What would move it off this status. Absent where there is no next step. */
+  calculationStatusNextStep?: string | null;
+  /** Whether this status permits a figure at all. Read this rather than testing
+   *  for the presence of an amount: an illustrative figure and a relied-upon one
+   *  are indistinguishable once rendered. */
+  calculationCarriesFigure?: boolean | null;
+  calculationInRanking?: boolean | null;
+  /** The governance gate, deliberately separate from the status above. A verified
+   *  source means the rate is what the statute says, not that the formula
+   *  applying it has cleared internal review. */
+  calculationVerification?: 'ready' | 'conditional' | 'blocked' | null;
+  calculationVerificationLabel?: string | null;
+  calculationIsApproved?: boolean | null;
+}
+
+export interface CoProductionPartner {
+  territory: string | null;
+  /** Null means the producer has not told us. Never treated as zero, which would
+   *  report a shortfall against the budget that may not exist. */
+  allocatedSpend: number | null;
+  currency: string | null;
+  participationPercent: number | null;
+  partnerStatus: string;
+  programme: string | null;
+  incentive: string | null;
+  calculationStatus: string | null;
+  calculationStatusLabel: string | null;
+}
+
+/** Partners in one production, reconciled rather than ranked.
+ *
+ *  Every other territory list in the report ranks. This one must not: the
+ *  partners are not competing for the production, they each hold a share of it,
+ *  so ordering them best-first would state something false about the structure.
+ *  `partnersAreRanked` is on the object so no surface decides that for itself. */
+export interface CoProductionStructure {
+  mode: string;
+  partners: CoProductionPartner[];
+  partnerCount: number;
+  currency: string | null;
+  budget: number | null;
+  unallocatedSpend: number | null;
+  reconciliationStatus: 'reconciled' | 'under_allocated' | 'over_allocated' | 'not_assessable';
+  reconciliationLabel: string;
+  reconciliationExplanation: string;
+  /** Positive is under-allocated, negative is over-allocated, null when the
+   *  shares cannot be assessed at all. */
+  reconciliationRemaining: number | null;
+  route: string | null;
+  supranationalInterest: string | null;
+  structureNotes: string[];
+  partnersAreRanked: boolean;
+  /** The partner incentives are never summed: cumulation ceilings and public
+   *  support intensity limits bite on the total, and none has been assessed. */
+  combinedIncentiveWithheld: boolean;
+  combinedIncentiveReason: string;
 }
 
 export interface ComparableProduction {
@@ -203,6 +275,31 @@ export interface FundingOpportunity {
   tier?: string;
 }
 
+/** One producer-supplied statutory cost base, with its provenance.
+ *
+ *  `amount` is nullable on purpose. Null means the producer has not told us;
+ *  zero means they have told us it is nil. Those produce different calculation
+ *  statuses, so collapsing them would defeat the rule the rebuild turns on. */
+export interface ScenarioCalculationInputPayload {
+  input_key: string;
+  amount: number | null;
+  currency?: string;
+  input_status: 'known' | 'planning_assumption' | 'unknown';
+  input_source?: 'user_entered' | 'imported_budget' | 'verified_cost_report';
+}
+
+export interface TerritoryScenarioInput {
+  territory: string;
+  scenario_spend: number | null;
+  scenario_currency?: string;
+  scenario_spend_source: 'user_entered' | 'imported_budget' | 'unknown';
+  /** Co-production only. The backend rejects these in comparison mode, where a
+   *  territory is an alternative rather than a partner. */
+  participation_percent?: number;
+  partner_status?: 'candidate' | 'confirmed';
+  calculation_inputs: ScenarioCalculationInputPayload[];
+}
+
 export interface ScriptMetadata {
   title: string;
   genre: string[];
@@ -216,6 +313,20 @@ export interface ScriptMetadata {
   locationStrategy?: string;
   productionPriority: string;
   territoriesConsidering?: string[];
+  /** How the selected territories relate to one another.
+   *
+   *  Not cosmetic. It decides whether the spends below are alternatives to be
+   *  ranked or allocations inside one production to be reconciled, and the
+   *  backend rejects co-production-only fields in a comparison mode. */
+  productionStructureMode?: 'comparison' | 'coproduction' | 'undecided';
+  territoryScenarios?: TerritoryScenarioInput[];
+  /** Co-production only: spend earning nothing in any partner territory. */
+  unallocatedSpend?: number;
+  coProductionRoute?: string;
+  supranationalSupportInterest?:
+    | 'show_opportunity'
+    | 'not_considering'
+    | 'application_planned';
   filmingStart?: string;
   filmingDuration?: string;
   cameraEquipment?: string[];

@@ -74,6 +74,22 @@ export function buildReportRequestBody(
   if (metadata.locationStrategy) body.location_strategy = metadata.locationStrategy;
   if (metadata.stateProvince) body.state_province = metadata.stateProvince;
   if (metadata.territoriesConsidering?.length) body.territories_considering = metadata.territoriesConsidering;
+  // Sent unconditionally once the wizard collects it, because the mode changes
+  // how every scenario spend is read and defaulting it server-side would make a
+  // co-production silently behave as a comparison.
+  if (metadata.productionStructureMode) {
+    body.production_structure_mode = metadata.productionStructureMode;
+  }
+  if (metadata.territoryScenarios?.length) {
+    body.territory_scenarios = metadata.territoryScenarios;
+  }
+  // Co-production only. The backend rejects these outright in comparison mode,
+  // so they are forwarded exactly as the wizard set them rather than defaulted.
+  if (metadata.unallocatedSpend !== undefined) body.unallocated_spend = metadata.unallocatedSpend;
+  if (metadata.coProductionRoute) body.co_production_route = metadata.coProductionRoute;
+  if (metadata.supranationalSupportInterest) {
+    body.supranational_support_interest = metadata.supranationalSupportInterest;
+  }
   if (metadata.filmingStart) body.filming_start_date = metadata.filmingStart;
   if (metadata.filmingDuration) body.filming_duration = Number(metadata.filmingDuration);
   if (metadata.cameraEquipment?.length) body.camera_equipment = metadata.cameraEquipment;

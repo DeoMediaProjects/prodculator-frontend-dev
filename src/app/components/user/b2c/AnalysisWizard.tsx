@@ -3,16 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
   OutlinedInput, Chip, Checkbox, ListItemText, FormHelperText, FormControlLabel, Link,
-  CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip, Alert,
+  CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip, Alert, Collapse,
 } from '@mui/material';
 import {
   ArrowBack, CloudUpload, CheckCircle, LightModeOutlined, DarkModeOutlined,
   Menu as MenuIcon, Check,
 } from '@mui/icons-material';
 import { useScript, ReportTimeoutError, type ScriptMetadata } from '@/app/contexts/ScriptContext';
+import type { TerritoryScenarioInput } from '@/app/contexts/report.types';
 import { databaseService } from '@/services/database.service';
 import { useToast } from '@/app/hooks/useToast';
 import { useTerritories } from '@/app/hooks/useTerritories';
+import { useScenarioQuestions } from '@/app/hooks/useScenarioQuestions';
 import { usePlanGate } from '@/app/hooks/usePlanGate';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { Sidebar, SIDEBAR_W, SIDEBAR_COLLAPSED_W, useSidebarCollapsed } from './Sidebar';
@@ -21,6 +23,7 @@ import { SegmentedToggle } from './SegmentedToggle';
 import { WizardTour } from './WizardTour';
 import { usePrefersReducedMotion } from './tourStyles';
 import { deriveSchedule, type ScheduleDriver } from './scheduleDerivation';
+import { regionOptionsFor, mustFilmInOptionsFor } from './locationOptions';
 
 // Continent grouping for the territory picker — identical mapping to ScriptUpload
 // so the wizard yields the same intake payload the engine already understands.
@@ -68,9 +71,6 @@ function formatDivergesFromFeature(format: string): boolean {
   return FORMATS_WITH_DIVERGENT_ELIGIBILITY.includes(format.trim().toLowerCase());
 }
 const CAMERA_OPTIONS = ['ARRI Alexa 35', 'RED VRAPTOR', 'Sony VENICE 2', 'Film 35mm', 'Blackmagic Cinema', 'Canon C70', 'Sony FX9', 'Panavision', 'IMAX', 'DJI Drone', 'GoPro', 'iPhone', 'Sony Alpha', 'Sony A7S III', 'Canon EOS R5', 'Phantom High Speed', 'Kinefinity Terra', 'Other'];
-const USA_STATES = ['California', 'New York', 'Georgia', 'Louisiana', 'New Mexico', 'Texas', 'North Carolina', 'Massachusetts', 'Illinois', 'Pennsylvania', 'Florida', 'Oregon', 'Washington', 'Nevada', 'Utah', 'Colorado', 'Other'];
-const CANADA_PROVINCES = ['British Columbia', 'Ontario', 'Quebec', 'Alberta', 'Manitoba', 'Nova Scotia', 'Saskatchewan', 'New Brunswick', 'Other'];
-const AUSTRALIA_STATES = ['New South Wales', 'Victoria', 'Queensland', 'South Australia', 'Western Australia', 'Tasmania', 'Other'];
 const CURRENCY_OPTIONS = [
   { value: 'GBP', label: '£ GBP' }, { value: 'USD', label: '$ USD' }, { value: 'EUR', label: '€ EUR' },
   { value: 'ZAR', label: 'R ZAR' }, { value: 'CAD', label: '$ CAD' }, { value: 'AUD', label: '$ AUD' },
@@ -90,6 +90,50 @@ const AUDIENCE_OPTIONS = [
   { v: 'under_25', l: 'Under 25' },
   { v: 'adults_25_plus', l: 'Adults 25+' },
 ];
+
+/** How the selected territories relate to one another.
+ *
+ *  Not presentation. It changes what a spend figure means: in comparison mode it
+ *  is one alternative and the spends are never summed, in co-production mode it is
+ *  an allocation inside one production and they reconcile to the budget. The
+ *  report also must not rank co-production partners against each other, because
+ *  they are complementary rather than competing. */
+const STRUCTURE_MODES = [
+  {
+    value: 'comparison',
+    label: 'Compare territories',
+    hint: 'UK or Germany or Malta. Each spend is a separate scenario.',
+  },
+  {
+    value: 'coproduction',
+    label: 'Build a co-production',
+    hint: 'France and Germany and Ireland. One production split across partners.',
+  },
+  {
+    value: 'undecided',
+    label: 'Not sure yet',
+    hint: 'Keeps comparison logic and shows co-production opportunities separately.',
+  },
+] as const;
+type StructureMode = (typeof STRUCTURE_MODES)[number]['value'];
+
+const CO_PRODUCTION_ROUTES = [
+  'Undecided / candidate',
+  'Revised Council of Europe Convention',
+  'Bilateral treaty',
+  'Other official treaty',
+] as const;
+
+const SUPRANATIONAL_INTEREST = [
+  { value: 'show_opportunity', label: 'Show opportunity' },
+  { value: 'not_considering', label: 'Not considering' },
+  { value: 'application_planned', label: 'Application planned' },
+] as const;
+
+const PARTNER_STATUSES = [
+  { value: 'candidate', label: 'Candidate' },
+  { value: 'confirmed', label: 'Confirmed' },
+] as const;
 
 const STEPS = [
   { key: 'script', title: 'Script & Project', subtitle: 'Upload your script and name the project' },
@@ -111,7 +155,6 @@ export function AnalysisWizard() {
   const { generateAnalysis } = useScript();
   const { showError } = useToast();
   const { isFree, isProducer } = usePlanGate();
-  const maxTerritories = isFree ? 3 : !isProducer ? 5 : null;
 
   // Anonymous users are redirected to sign in at the route level (see
   // ProtectedRoute wrapping /upload and /analysis/new in App.tsx) — no
@@ -153,6 +196,30 @@ export function AnalysisWizard() {
   const [representationMinority, setRepresentationMinority] = useState<string[]>([]);
   const [languagesInput, setLanguagesInput] = useState('');
   const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>([]);
+  const [structureMode, setStructureMode] = useState<StructureMode>('comparison');
+  const isCoProduction = structureMode === 'coproduction';
+  // Two different limits on purpose. The comparison limit bounds how many
+  // alternatives a plan may explore. The co-production limit bounds partners in
+  // one production, and a multilateral co-production needs at least three
+  // co-producers, so reusing Explorer's three would permit only the bare legal
+  // minimum and make a four-partner structure unmodellable.
+  const maxTerritories = isCoProduction ? 6 : isFree ? 3 : !isProducer ? 5 : null;
+  /** Per-territory scenario figures, keyed by territory label.
+   *
+   *  `spend` is deliberately a string so an empty field stays empty rather than
+   *  becoming zero. Null means the producer has not told us; zero would mean they
+   *  said there is none, and the engine treats those differently. */
+  const [scenarios, setScenarios] = useState<Record<string, {
+    spend: string;
+    share: string;
+    partnerStatus: string;
+    inputs: Record<string, { amount: string; known: boolean }>;
+  }>>({});
+  const [unallocatedSpend, setUnallocatedSpend] = useState('');
+  const [coProductionRoute, setCoProductionRoute] = useState('');
+  const [supranationalInterest, setSupranationalInterest] = useState('');
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
+
   const [productionPriority, setProductionPriority] = useState('full');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   // Confirmation that the producer understands incentive eligibility is not
@@ -211,8 +278,19 @@ export function AnalysisWizard() {
     }
   }, [country]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const stateProvinceOptions = country === 'United States' ? USA_STATES : country === 'Canada' ? CANADA_PROVINCES : country === 'Australia' ? AUSTRALIA_STATES : [];
-  const showStateProvince = ['United States', 'Canada', 'Australia'].includes(country);
+  // Only jurisdictions we hold an incentive record for. The list used to be three
+  // hardcoded arrays that named every state a producer might shoot in, which
+  // offered Texas, Florida and a catch-all "Other" as though each were a modelled
+  // regime. Picking one produced a state the analysis had nothing to say about,
+  // and in a state-level incentive country that is the whole answer.
+  const stateProvinceOptions = useMemo(
+    () => regionOptionsFor(allTerritories, country),
+    [allTerritories, country],
+  );
+  // Driven by the data too, so a country that gains sub-territories reveals the
+  // field without a code change, and one whose regions are all removed stops
+  // showing an empty dropdown.
+  const showStateProvince = stateProvinceOptions.length > 0;
   const countryOptions = useMemo(() => allTerritories.filter((x) => !x.isSubTerritory).map((x) => x.label).sort(), [allTerritories]);
 
   const territoryGroups = useMemo(() => {
@@ -254,6 +332,63 @@ export function AnalysisWizard() {
     [territoriesConsidering, containerCountries],
   );
 
+  // Which statutory figures to ask for comes from the programme records, not from
+  // anything held here. A verified programme adding a required input must not need
+  // a frontend release.
+  const { sets: scenarioSets, loading: questionsLoading, error: questionsError } =
+    useScenarioQuestions(countedTerritories, structureMode);
+
+  const setScenarioField = (
+    territory: string,
+    field: 'spend' | 'share' | 'partnerStatus',
+    value: string,
+  ) => setScenarios((prev) => {
+    const current = prev[territory]
+      ?? { spend: '', share: '', partnerStatus: 'candidate', inputs: {} };
+    return { ...prev, [territory]: { ...current, [field]: value } };
+  });
+
+  const setScenarioInput = (
+    territory: string,
+    inputKey: string,
+    patch: { amount?: string; known?: boolean },
+  ) => setScenarios((prev) => {
+    const current = prev[territory]
+      ?? { spend: '', share: '', partnerStatus: 'candidate', inputs: {} };
+    const existing = current.inputs[inputKey] ?? { amount: '', known: true };
+    return {
+      ...prev,
+      [territory]: {
+        ...current,
+        inputs: { ...current.inputs, [inputKey]: { ...existing, ...patch } },
+      },
+    };
+  });
+
+  /** Co-production allocations against the budget.
+   *
+   *  Only meaningful in co-production mode. In comparison mode the spends are
+   *  competing alternatives, so summing them would produce a number that means
+   *  nothing and an over-allocation warning that is simply wrong. */
+  const reconciliation = useMemo(() => {
+    if (!isCoProduction) return null;
+    const total = countedTerritories.reduce(
+      (sum, name) => sum + (Number(scenarios[name]?.spend) || 0), 0,
+    );
+    const unallocated = Number(unallocatedSpend) || 0;
+    const budget = Number(budgetAmount) || 0;
+    const allocated = total + unallocated;
+    return {
+      allocated,
+      budget,
+      // Signed on purpose. Under-allocation is normal while the producer is still
+      // entering figures; over-allocation means the structure cannot be financed
+      // as described, and the two need different wording.
+      variance: allocated - budget,
+      complete: budget > 0 && Math.abs(allocated - budget) < 1,
+    };
+  }, [isCoProduction, countedTerritories, scenarios, unallocatedSpend, budgetAmount]);
+
   // The production country belongs here even when it was never ticked as a
   // territory under consideration. Shooting where the company is based is the
   // most ordinary commitment a production makes, and the only way to declare it
@@ -261,17 +396,28 @@ export function AnalysisWizard() {
   // at the head of the analysis, so it reaches the report the same way any other
   // choice does. Left out when it is a grouping-only country such as the United
   // States, which names no incentive of its own.
-  const mustFilmInOptions = useMemo(() => {
-    const options = countedTerritories.map((label) => ({ label, isProductionCountry: false }));
-    if (
-      country
-      && !containerCountries.has(country)
-      && !options.some((o) => o.label === country)
-    ) {
-      options.push({ label: country, isProductionCountry: true });
+  const mustFilmInOptions = useMemo(
+    () => mustFilmInOptionsFor({
+      countedTerritories,
+      country,
+      stateProvince,
+      regionOptions: stateProvinceOptions,
+      containerCountries,
+    }),
+    [
+      countedTerritories, containerCountries, country, stateProvince,
+      stateProvinceOptions,
+    ],
+  );
+
+  // Changing the production country, or a registry change that drops a region,
+  // would otherwise leave a state selected that the new country does not contain.
+  // That reaches the report as a jurisdiction the production is not in.
+  useEffect(() => {
+    if (stateProvince && !stateProvinceOptions.includes(stateProvince)) {
+      setStateProvince('');
     }
-    return options;
-  }, [countedTerritories, containerCountries, country]);
+  }, [stateProvince, stateProvinceOptions]);
 
   const openToAll = territoriesConsidering.includes('Open to all');
   const atTerritoryLimit = maxTerritories !== null && countedTerritories.length >= maxTerritories;
@@ -413,6 +559,51 @@ export function AnalysisWizard() {
         });
         return;
       }
+      // Built here rather than inline because co-production and comparison do
+      // not send the same fields: participation share, partner status, the
+      // unallocated figure and the treaty route are rejected by the backend in a
+      // comparison, where a territory is an alternative rather than a partner.
+      const scenarioPayload = (): Partial<ScriptMetadata> => {
+        const scenarios_ = countedTerritories.map((name) => {
+          const entered = scenarios[name];
+          const spend = entered?.spend;
+          const base: TerritoryScenarioInput = {
+            territory: name,
+            // Blank stays null. Zero would assert the producer told us there is
+            // no spend here, which is a different fact with a different status.
+            scenario_spend: spend ? Number(spend) : null,
+            scenario_currency: budgetCurrency || undefined,
+            scenario_spend_source: spend ? 'user_entered' : 'unknown',
+            calculation_inputs: Object.entries(entered?.inputs ?? {})
+              .filter(([, v]) => v.amount !== '')
+              .map(([input_key, v]) => ({
+                input_key,
+                amount: Number(v.amount),
+                currency: budgetCurrency || undefined,
+                input_status: v.known ? 'known' : 'planning_assumption',
+                input_source: 'user_entered',
+              })),
+          };
+          if (!isCoProduction) return base;
+          return {
+            ...base,
+            participation_percent: entered?.share ? Number(entered.share) : undefined,
+            partner_status: (entered?.partnerStatus as 'candidate' | 'confirmed') || 'candidate',
+          };
+        });
+        return {
+          productionStructureMode: structureMode,
+          territoryScenarios: scenarios_.length ? scenarios_ : undefined,
+          unallocatedSpend: isCoProduction && unallocatedSpend
+            ? Number(unallocatedSpend) : undefined,
+          coProductionRoute: isCoProduction ? coProductionRoute || undefined : undefined,
+          supranationalSupportInterest: isCoProduction
+            ? (supranationalInterest as ScriptMetadata['supranationalSupportInterest'])
+              || undefined
+            : undefined,
+        };
+      };
+
       const metadata: ScriptMetadata = {
         title,
         genre: genres,
@@ -423,6 +614,7 @@ export function AnalysisWizard() {
         productionPriority,
         stateProvince: stateProvince || undefined,
         territoriesConsidering: territoriesConsidering.length ? territoriesConsidering : undefined,
+        ...scenarioPayload(),
         filmingStart: filmingStart || undefined,
         filmingDuration: filmingDuration || undefined,
         cameraEquipment: cameraEquipment.length ? cameraEquipment : undefined,
@@ -696,6 +888,32 @@ export function AnalysisWizard() {
 
     if (step === 1) return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* First, because it changes what every spend figure below it means. A
+            figure entered against Germany is an alternative in comparison mode
+            and an allocation inside one production in co-production mode, and the
+            report treats them differently: alternatives are ranked against each
+            other, partners never are. */}
+        <Box sx={{ ...card, p: 3 }}>
+          {sectionLabel('How these territories relate')}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            {STRUCTURE_MODES.map((m) => {
+              const on = structureMode === m.value;
+              return (
+                <Box
+                  key={m.value} onClick={() => setStructureMode(m.value)}
+                  sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75, p: 2, borderRadius: '12px', cursor: 'pointer', bgcolor: on ? t.goldDim : t.inputBg, border: `${on ? 2 : 1}px solid ${on ? t.gold : t.border}`, transition: 'all .15s', '&:hover': { borderColor: t.gold } }}
+                >
+                  <Box sx={{ width: 20, height: 20, mt: 0.25, borderRadius: '50%', flexShrink: 0, border: on ? `6px solid ${t.gold}` : `2px solid ${t.textSecondary}` }} />
+                  <Box>
+                    <Typography sx={{ fontWeight: 600, color: t.textPrimary }}>{m.label}</Typography>
+                    <Typography sx={{ fontSize: 12.5, color: t.textSecondary, mt: 0.25 }}>{m.hint}</Typography>
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+
         <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           {sectionLabel('Budget')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
@@ -751,6 +969,218 @@ export function AnalysisWizard() {
             })}
           </Box>
         </Box>
+
+        {/* One card per selected territory. Same fields in both modes would be
+            wrong: a comparison spend is what the production would spend there if
+            it went there, a co-production spend is a committed share of one
+            budget, and only the latter reconciles. */}
+        {countedTerritories.length > 0 && (
+          <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {sectionLabel(isCoProduction ? 'Partner allocations' : 'Expected spend per territory')}
+            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+              {isCoProduction
+                ? 'Each partner holds a share of one budget, so these figures add up to the total.'
+                : 'Each figure is a separate scenario. They are not added together.'}
+              {' '}Leave a figure blank if you do not know it yet. Blank is treated as unknown
+              rather than as nil, so nothing is estimated from a number you did not give us.
+            </Typography>
+
+            {questionsError && (
+              <Alert severity="warning" sx={{ borderRadius: '10px' }}>
+                Could not load the statutory questions for these territories ({questionsError}).
+                You can still continue: the report will say a figure needs more detail rather
+                than estimate one.
+              </Alert>
+            )}
+
+            {countedTerritories.map((name) => {
+              const scenario = scenarios[name];
+              const set = scenarioSets[name]
+                ?? Object.values(scenarioSets).find((x) => x.jurisdiction === name);
+              const questions = set?.questions ?? [];
+              const nonCalculating = set?.nonCalculating ?? [];
+              const open = openAccordions[name] ?? false;
+              const answered = questions.filter(
+                (q) => (scenario?.inputs?.[q.inputKey]?.amount ?? '') !== '',
+              ).length;
+              return (
+                <Box key={name} sx={{ p: 2.25, borderRadius: '12px', bgcolor: t.inputBg, border: `1px solid ${t.border}` }}>
+                  <Typography sx={{ fontWeight: 700, color: t.textPrimary, mb: 1.5 }}>{name}</Typography>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: isCoProduction ? '1fr 1fr 1fr' : '1fr' }, gap: 2 }}>
+                    <TextField
+                      fullWidth sx={fieldSx}
+                      label={isCoProduction
+                        ? `Spend allocated here${budgetCurrency ? ` (${budgetCurrency})` : ''}`
+                        : `Expected spend here${budgetCurrency ? ` (${budgetCurrency})` : ''}`}
+                      placeholder="Leave blank if unknown"
+                      inputProps={{ inputMode: 'numeric' }}
+                      value={scenario?.spend ? Number(scenario.spend).toLocaleString('en-US') : ''}
+                      onChange={(e) => setScenarioField(name, 'spend', e.target.value.replace(/\D/g, ''))}
+                    />
+                    {isCoProduction && (
+                      <>
+                        <TextField
+                          fullWidth sx={fieldSx} label="Participation share (%)"
+                          inputProps={{ inputMode: 'decimal' }}
+                          value={scenario?.share ?? ''}
+                          onChange={(e) => setScenarioField(name, 'share', e.target.value.replace(/[^\d.]/g, ''))}
+                          helperText="Treaty share, if it differs from the spend split."
+                        />
+                        <FormControl fullWidth sx={fieldSx}>
+                          <InputLabel>Partner status</InputLabel>
+                          <Select
+                            label="Partner status" MenuProps={menuProps}
+                            value={scenario?.partnerStatus ?? 'candidate'}
+                            onChange={(e) => setScenarioField(name, 'partnerStatus', e.target.value)}
+                          >
+                            {PARTNER_STATUSES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                          </Select>
+                        </FormControl>
+                      </>
+                    )}
+                  </Box>
+
+                  {/* Statutory questions. Which ones appear is programme data from
+                      the server, never a table held here, so a verified programme
+                      adding an input needs no release. The UK asks for two core
+                      figures while British Columbia asks for one, and both are
+                      rendered by the same loop. */}
+                  {questions.length > 0 && (
+                    <Box sx={{ mt: 1.75 }}>
+                      <Box
+                        onClick={() => setOpenAccordions((prev) => ({ ...prev, [name]: !open }))}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', py: 0.75 }}
+                      >
+                        <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: t.gold }}>
+                          {open ? '\u25be' : '\u25b8'} Improve accuracy for {name}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={`${answered}/${questions.length} provided`}
+                          sx={{ ...goldChip, height: 19, fontSize: 11, fontWeight: 700 }}
+                        />
+                      </Box>
+                      <Collapse in={open}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75, pt: 1 }}>
+                          <Typography sx={{ fontSize: 12, color: t.textFaint, lineHeight: 1.6, maxWidth: '80ch' }}>
+                            Without these, the report states that an exact figure needs a cost
+                            breakdown instead of showing an estimate.
+                          </Typography>
+                          {questions.map((q) => {
+                            const answer = scenario?.inputs?.[q.inputKey];
+                            const known = answer?.known ?? true;
+                            return (
+                              <Box key={q.inputKey}>
+                                <TextField
+                                  fullWidth sx={fieldSx} label={q.label}
+                                  inputProps={{ inputMode: 'numeric' }}
+                                  value={answer?.amount ? Number(answer.amount).toLocaleString('en-US') : ''}
+                                  onChange={(e) => setScenarioInput(name, q.inputKey, { amount: e.target.value.replace(/\D/g, '') })}
+                                  helperText={q.helpText}
+                                />
+                                {/* A confirmed figure and a planning assumption
+                                    carry different weight downstream, so we record
+                                    which one this is rather than inferring it. */}
+                                <Box sx={{ display: 'flex', gap: 1, mt: 0.75, alignItems: 'center', flexWrap: 'wrap' }}>
+                                  {[
+                                    { value: true, label: 'I know this figure' },
+                                    { value: false, label: 'Planning assumption' },
+                                  ].map((o) => (
+                                    <Chip
+                                      key={String(o.value)} size="small" label={o.label}
+                                      onClick={() => setScenarioInput(name, q.inputKey, { known: o.value })}
+                                      sx={{
+                                        cursor: 'pointer', fontWeight: 600, borderRadius: '8px', fontSize: 11.5,
+                                        bgcolor: known === o.value ? t.gold : 'transparent',
+                                        color: known === o.value ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
+                                        border: `1px solid ${known === o.value ? t.gold : t.border}`,
+                                      }}
+                                    />
+                                  ))}
+                                  {q.usedBy.length > 1 && (
+                                    <Typography sx={{ fontSize: 11, color: t.textFaint }}>
+                                      Used by {q.usedBy.length} programmes here.
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </Collapse>
+                    </Box>
+                  )}
+
+                  {questionsLoading && questions.length === 0 && (
+                    <Typography sx={{ fontSize: 12, color: t.textFaint, mt: 1 }}>
+                      Checking which figures this territory needs.
+                    </Typography>
+                  )}
+
+                  {/* Named, not hidden. A competitive grant or an investor shelter
+                      produces no automatic figure, and saying so here stops the
+                      report from looking as though it forgot the territory. */}
+                  {nonCalculating.map((n) => (
+                    <Typography key={n.programmeId ?? n.name} sx={{ fontSize: 11.5, color: t.warning, mt: 1.25, lineHeight: 1.6 }}>
+                      {n.name}: {n.reason}
+                    </Typography>
+                  ))}
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+
+        {isCoProduction && (
+          <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {sectionLabel('Co-production structure')}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
+              <FormControl fullWidth sx={fieldSx}>
+                <InputLabel>Treaty route</InputLabel>
+                <Select value={coProductionRoute} label="Treaty route" MenuProps={menuProps} onChange={(e) => setCoProductionRoute(e.target.value)}>
+                  {CO_PRODUCTION_ROUTES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                </Select>
+                <FormHelperText>
+                  The Council of Europe route needs at least three co-producers.
+                </FormHelperText>
+              </FormControl>
+              <FormControl fullWidth sx={fieldSx}>
+                <InputLabel>Eurimages and similar support</InputLabel>
+                <Select value={supranationalInterest} label="Eurimages and similar support" MenuProps={menuProps} onChange={(e) => setSupranationalInterest(e.target.value)}>
+                  {SUPRANATIONAL_INTEREST.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                </Select>
+                <FormHelperText>
+                  Competitive funds, so no figure is ever assumed for them.
+                </FormHelperText>
+              </FormControl>
+              <TextField
+                fullWidth sx={fieldSx}
+                label={`Spend not allocated to a partner${budgetCurrency ? ` (${budgetCurrency})` : ''}`}
+                inputProps={{ inputMode: 'numeric' }}
+                value={unallocatedSpend ? Number(unallocatedSpend).toLocaleString('en-US') : ''}
+                onChange={(e) => setUnallocatedSpend(e.target.value.replace(/\D/g, ''))}
+                helperText="Third-country shooting, post or overheads that earn nothing locally."
+              />
+            </Box>
+
+            {/* Shown only in co-production mode. Summing comparison alternatives
+                would produce a total that means nothing and an over-allocation
+                warning that is simply wrong. */}
+            {reconciliation && reconciliation.budget > 0 && (
+              <Alert
+                severity={reconciliation.complete ? 'success' : reconciliation.variance > 0 ? 'error' : 'info'}
+                sx={{ borderRadius: '10px' }}
+              >
+                {reconciliation.complete
+                  ? 'Allocations reconcile to the budget.'
+                  : reconciliation.variance > 0
+                    ? `Allocations exceed the budget by ${Math.abs(reconciliation.variance).toLocaleString('en-US')} ${budgetCurrency}. A structure cannot spend more than it is financed for.`
+                    : `${Math.abs(reconciliation.variance).toLocaleString('en-US')} ${budgetCurrency} of the budget is not yet allocated to a partner or to unallocated spend.`}
+              </Alert>
+            )}
+          </Box>
+        )}
 
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Territories considering')}
@@ -971,9 +1401,9 @@ export function AnalysisWizard() {
                   ...mustFilmInOptions.map((o) => (
                     <MenuItem key={o.label} value={o.label}>
                       {o.label}
-                      {o.isProductionCountry && (
+                      {o.originHint && (
                         <Box component="span" sx={{ color: t.textFaint, fontSize: 12, ml: 1 }}>
-                          production country
+                          {o.originHint}
                         </Box>
                       )}
                     </MenuItem>
