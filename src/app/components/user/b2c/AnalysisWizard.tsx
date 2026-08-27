@@ -970,6 +970,218 @@ export function AnalysisWizard() {
           </Box>
         </Box>
 
+        {/* One card per selected territory. Same fields in both modes would be
+            wrong: a comparison spend is what the production would spend there if
+            it went there, a co-production spend is a committed share of one
+            budget, and only the latter reconciles. */}
+        {countedTerritories.length > 0 && (
+          <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {sectionLabel(isCoProduction ? 'Partner allocations' : 'Expected spend per territory')}
+            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
+              {isCoProduction
+                ? 'Each partner holds a share of one budget, so these figures add up to the total.'
+                : 'Each figure is a separate scenario. They are not added together.'}
+              {' '}Leave a figure blank if you do not know it yet. Blank is treated as unknown
+              rather than as nil, so nothing is estimated from a number you did not give us.
+            </Typography>
+
+            {questionsError && (
+              <Alert severity="warning" sx={{ borderRadius: '10px' }}>
+                Could not load the statutory questions for these territories ({questionsError}).
+                You can still continue: the report will say a figure needs more detail rather
+                than estimate one.
+              </Alert>
+            )}
+
+            {countedTerritories.map((name) => {
+              const scenario = scenarios[name];
+              const set = scenarioSets[name]
+                ?? Object.values(scenarioSets).find((x) => x.jurisdiction === name);
+              const questions = set?.questions ?? [];
+              const nonCalculating = set?.nonCalculating ?? [];
+              const open = openAccordions[name] ?? false;
+              const answered = questions.filter(
+                (q) => (scenario?.inputs?.[q.inputKey]?.amount ?? '') !== '',
+              ).length;
+              return (
+                <Box key={name} sx={{ p: 2.25, borderRadius: '12px', bgcolor: t.inputBg, border: `1px solid ${t.border}` }}>
+                  <Typography sx={{ fontWeight: 700, color: t.textPrimary, mb: 1.5 }}>{name}</Typography>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: isCoProduction ? '1fr 1fr 1fr' : '1fr' }, gap: 2 }}>
+                    <TextField
+                      fullWidth sx={fieldSx}
+                      label={isCoProduction
+                        ? `Spend allocated here${budgetCurrency ? ` (${budgetCurrency})` : ''}`
+                        : `Expected spend here${budgetCurrency ? ` (${budgetCurrency})` : ''}`}
+                      placeholder="Leave blank if unknown"
+                      inputProps={{ inputMode: 'numeric' }}
+                      value={scenario?.spend ? Number(scenario.spend).toLocaleString('en-US') : ''}
+                      onChange={(e) => setScenarioField(name, 'spend', e.target.value.replace(/\D/g, ''))}
+                    />
+                    {isCoProduction && (
+                      <>
+                        <TextField
+                          fullWidth sx={fieldSx} label="Participation share (%)"
+                          inputProps={{ inputMode: 'decimal' }}
+                          value={scenario?.share ?? ''}
+                          onChange={(e) => setScenarioField(name, 'share', e.target.value.replace(/[^\d.]/g, ''))}
+                          helperText="Treaty share, if it differs from the spend split."
+                        />
+                        <FormControl fullWidth sx={fieldSx}>
+                          <InputLabel>Partner status</InputLabel>
+                          <Select
+                            label="Partner status" MenuProps={menuProps}
+                            value={scenario?.partnerStatus ?? 'candidate'}
+                            onChange={(e) => setScenarioField(name, 'partnerStatus', e.target.value)}
+                          >
+                            {PARTNER_STATUSES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                          </Select>
+                        </FormControl>
+                      </>
+                    )}
+                  </Box>
+
+                  {/* Statutory questions. Which ones appear is programme data from
+                      the server, never a table held here, so a verified programme
+                      adding an input needs no release. The UK asks for two core
+                      figures while British Columbia asks for one, and both are
+                      rendered by the same loop. */}
+                  {questions.length > 0 && (
+                    <Box sx={{ mt: 1.75 }}>
+                      <Box
+                        onClick={() => setOpenAccordions((prev) => ({ ...prev, [name]: !open }))}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', py: 0.75 }}
+                      >
+                        <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: t.gold }}>
+                          {open ? '\u25be' : '\u25b8'} Improve accuracy for {name}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={`${answered}/${questions.length} provided`}
+                          sx={{ ...goldChip, height: 19, fontSize: 11, fontWeight: 700 }}
+                        />
+                      </Box>
+                      <Collapse in={open}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75, pt: 1 }}>
+                          <Typography sx={{ fontSize: 12, color: t.textFaint, lineHeight: 1.6, maxWidth: '80ch' }}>
+                            Without these, the report states that an exact figure needs a cost
+                            breakdown instead of showing an estimate.
+                          </Typography>
+                          {questions.map((q) => {
+                            const answer = scenario?.inputs?.[q.inputKey];
+                            const known = answer?.known ?? true;
+                            return (
+                              <Box key={q.inputKey}>
+                                <TextField
+                                  fullWidth sx={fieldSx} label={q.label}
+                                  inputProps={{ inputMode: 'numeric' }}
+                                  value={answer?.amount ? Number(answer.amount).toLocaleString('en-US') : ''}
+                                  onChange={(e) => setScenarioInput(name, q.inputKey, { amount: e.target.value.replace(/\D/g, '') })}
+                                  helperText={q.helpText}
+                                />
+                                {/* A confirmed figure and a planning assumption
+                                    carry different weight downstream, so we record
+                                    which one this is rather than inferring it. */}
+                                <Box sx={{ display: 'flex', gap: 1, mt: 0.75, alignItems: 'center', flexWrap: 'wrap' }}>
+                                  {[
+                                    { value: true, label: 'I know this figure' },
+                                    { value: false, label: 'Planning assumption' },
+                                  ].map((o) => (
+                                    <Chip
+                                      key={String(o.value)} size="small" label={o.label}
+                                      onClick={() => setScenarioInput(name, q.inputKey, { known: o.value })}
+                                      sx={{
+                                        cursor: 'pointer', fontWeight: 600, borderRadius: '8px', fontSize: 11.5,
+                                        bgcolor: known === o.value ? t.gold : 'transparent',
+                                        color: known === o.value ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
+                                        border: `1px solid ${known === o.value ? t.gold : t.border}`,
+                                      }}
+                                    />
+                                  ))}
+                                  {q.usedBy.length > 1 && (
+                                    <Typography sx={{ fontSize: 11, color: t.textFaint }}>
+                                      Used by {q.usedBy.length} programmes here.
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </Collapse>
+                    </Box>
+                  )}
+
+                  {questionsLoading && questions.length === 0 && (
+                    <Typography sx={{ fontSize: 12, color: t.textFaint, mt: 1 }}>
+                      Checking which figures this territory needs.
+                    </Typography>
+                  )}
+
+                  {/* Named, not hidden. A competitive grant or an investor shelter
+                      produces no automatic figure, and saying so here stops the
+                      report from looking as though it forgot the territory. */}
+                  {nonCalculating.map((n) => (
+                    <Typography key={n.programmeId ?? n.name} sx={{ fontSize: 11.5, color: t.warning, mt: 1.25, lineHeight: 1.6 }}>
+                      {n.name}: {n.reason}
+                    </Typography>
+                  ))}
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+
+        {isCoProduction && (
+          <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {sectionLabel('Co-production structure')}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
+              <FormControl fullWidth sx={fieldSx}>
+                <InputLabel>Treaty route</InputLabel>
+                <Select value={coProductionRoute} label="Treaty route" MenuProps={menuProps} onChange={(e) => setCoProductionRoute(e.target.value)}>
+                  {CO_PRODUCTION_ROUTES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+                </Select>
+                <FormHelperText>
+                  The Council of Europe route needs at least three co-producers.
+                </FormHelperText>
+              </FormControl>
+              <FormControl fullWidth sx={fieldSx}>
+                <InputLabel>Eurimages and similar support</InputLabel>
+                <Select value={supranationalInterest} label="Eurimages and similar support" MenuProps={menuProps} onChange={(e) => setSupranationalInterest(e.target.value)}>
+                  {SUPRANATIONAL_INTEREST.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                </Select>
+                <FormHelperText>
+                  Competitive funds, so no figure is ever assumed for them.
+                </FormHelperText>
+              </FormControl>
+              <TextField
+                fullWidth sx={fieldSx}
+                label={`Spend not allocated to a partner${budgetCurrency ? ` (${budgetCurrency})` : ''}`}
+                inputProps={{ inputMode: 'numeric' }}
+                value={unallocatedSpend ? Number(unallocatedSpend).toLocaleString('en-US') : ''}
+                onChange={(e) => setUnallocatedSpend(e.target.value.replace(/\D/g, ''))}
+                helperText="Third-country shooting, post or overheads that earn nothing locally."
+              />
+            </Box>
+
+            {/* Shown only in co-production mode. Summing comparison alternatives
+                would produce a total that means nothing and an over-allocation
+                warning that is simply wrong. */}
+            {reconciliation && reconciliation.budget > 0 && (
+              <Alert
+                severity={reconciliation.complete ? 'success' : reconciliation.variance > 0 ? 'error' : 'info'}
+                sx={{ borderRadius: '10px' }}
+              >
+                {reconciliation.complete
+                  ? 'Allocations reconcile to the budget.'
+                  : reconciliation.variance > 0
+                    ? `Allocations exceed the budget by ${Math.abs(reconciliation.variance).toLocaleString('en-US')} ${budgetCurrency}. A structure cannot spend more than it is financed for.`
+                    : `${Math.abs(reconciliation.variance).toLocaleString('en-US')} ${budgetCurrency} of the budget is not yet allocated to a partner or to unallocated spend.`}
+              </Alert>
+            )}
+          </Box>
+        )}
+
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Territories considering')}
           <Typography sx={{ color: t.textSecondary, fontSize: 13, mb: 2 }}>
@@ -1062,218 +1274,6 @@ export function AnalysisWizard() {
             </Box>
           ))}
         </Box>
-
-        {/* One card per selected territory. Same fields in both modes would be
-            wrong: a comparison spend is what the production would spend there if
-            it went there, a co-production spend is a committed share of one
-            budget, and only the latter reconciles. */}
-        {countedTerritories.length > 0 && (
-          <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {sectionLabel(isCoProduction ? 'Partner allocations' : 'Expected spend per territory')}
-            <Typography sx={{ color: t.textSecondary, fontSize: 13 }}>
-              {isCoProduction
-                ? 'Each partner holds a share of one budget, so these figures add up to the total.'
-                : 'Each figure is a separate scenario. They are not added together.'}
-              {' '}Leave a figure blank if you do not know it yet. Blank is treated as unknown
-              rather than as nil, so nothing is estimated from a number you did not give us.
-            </Typography>
-
-            {questionsError && (
-              <Alert severity="warning" sx={{ borderRadius: '10px' }}>
-                Could not load the statutory questions for these territories ({questionsError}).
-                You can still continue: the report will say a figure needs more detail rather
-                than estimate one.
-              </Alert>
-            )}
-
-            {countedTerritories.map((name) => {
-              const scenario = scenarios[name];
-              const set = scenarioSets[name]
-                ?? Object.values(scenarioSets).find((x) => x.jurisdiction === name);
-              const questions = set?.questions ?? [];
-              const nonCalculating = set?.nonCalculating ?? [];
-              const open = openAccordions[name] ?? false;
-              const answered = questions.filter(
-                (q) => (scenario?.inputs?.[q.inputKey]?.amount ?? '') !== '',
-              ).length;
-              return (
-                <Box key={name} sx={{ p: 2.25, borderRadius: '12px', bgcolor: t.inputBg, border: `1px solid ${t.border}` }}>
-                  <Typography sx={{ fontWeight: 700, color: t.textPrimary, mb: 1.5 }}>{name}</Typography>
-
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: isCoProduction ? '1fr 1fr 1fr' : '1fr' }, gap: 2 }}>
-                    <TextField
-                      fullWidth sx={fieldSx}
-                      label={isCoProduction
-                        ? `Spend allocated here${budgetCurrency ? ` (${budgetCurrency})` : ''}`
-                        : `Expected spend here${budgetCurrency ? ` (${budgetCurrency})` : ''}`}
-                      placeholder="Leave blank if unknown"
-                      inputProps={{ inputMode: 'numeric' }}
-                      value={scenario?.spend ?? ''}
-                      onChange={(e) => setScenarioField(name, 'spend', e.target.value.replace(/[^\d]/g, ''))}
-                    />
-                    {isCoProduction && (
-                      <>
-                        <TextField
-                          fullWidth sx={fieldSx} label="Participation share (%)"
-                          inputProps={{ inputMode: 'decimal' }}
-                          value={scenario?.share ?? ''}
-                          onChange={(e) => setScenarioField(name, 'share', e.target.value.replace(/[^\d.]/g, ''))}
-                          helperText="Treaty share, if it differs from the spend split."
-                        />
-                        <FormControl fullWidth sx={fieldSx}>
-                          <InputLabel>Partner status</InputLabel>
-                          <Select
-                            label="Partner status" MenuProps={menuProps}
-                            value={scenario?.partnerStatus ?? 'candidate'}
-                            onChange={(e) => setScenarioField(name, 'partnerStatus', e.target.value)}
-                          >
-                            {PARTNER_STATUSES.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-                          </Select>
-                        </FormControl>
-                      </>
-                    )}
-                  </Box>
-
-                  {/* Statutory questions. Which ones appear is programme data from
-                      the server, never a table held here, so a verified programme
-                      adding an input needs no release. The UK asks for two core
-                      figures while British Columbia asks for one, and both are
-                      rendered by the same loop. */}
-                  {questions.length > 0 && (
-                    <Box sx={{ mt: 1.75 }}>
-                      <Box
-                        onClick={() => setOpenAccordions((prev) => ({ ...prev, [name]: !open }))}
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', py: 0.75 }}
-                      >
-                        <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: t.gold }}>
-                          {open ? '\u25be' : '\u25b8'} Improve accuracy for {name}
-                        </Typography>
-                        <Chip
-                          size="small"
-                          label={`${answered}/${questions.length} provided`}
-                          sx={{ ...goldChip, height: 19, fontSize: 11, fontWeight: 700 }}
-                        />
-                      </Box>
-                      <Collapse in={open}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75, pt: 1 }}>
-                          <Typography sx={{ fontSize: 12, color: t.textFaint, lineHeight: 1.6, maxWidth: '80ch' }}>
-                            Without these, the report states that an exact figure needs a cost
-                            breakdown instead of showing an estimate.
-                          </Typography>
-                          {questions.map((q) => {
-                            const answer = scenario?.inputs?.[q.inputKey];
-                            const known = answer?.known ?? true;
-                            return (
-                              <Box key={q.inputKey}>
-                                <TextField
-                                  fullWidth sx={fieldSx} label={q.label}
-                                  inputProps={{ inputMode: 'numeric' }}
-                                  value={answer?.amount ?? ''}
-                                  onChange={(e) => setScenarioInput(name, q.inputKey, { amount: e.target.value.replace(/[^\d]/g, '') })}
-                                  helperText={q.helpText}
-                                />
-                                {/* A confirmed figure and a planning assumption
-                                    carry different weight downstream, so we record
-                                    which one this is rather than inferring it. */}
-                                <Box sx={{ display: 'flex', gap: 1, mt: 0.75, alignItems: 'center', flexWrap: 'wrap' }}>
-                                  {[
-                                    { value: true, label: 'I know this figure' },
-                                    { value: false, label: 'Planning assumption' },
-                                  ].map((o) => (
-                                    <Chip
-                                      key={String(o.value)} size="small" label={o.label}
-                                      onClick={() => setScenarioInput(name, q.inputKey, { known: o.value })}
-                                      sx={{
-                                        cursor: 'pointer', fontWeight: 600, borderRadius: '8px', fontSize: 11.5,
-                                        bgcolor: known === o.value ? t.gold : 'transparent',
-                                        color: known === o.value ? (mode === 'dark' ? '#000' : '#fff') : t.textSecondary,
-                                        border: `1px solid ${known === o.value ? t.gold : t.border}`,
-                                      }}
-                                    />
-                                  ))}
-                                  {q.usedBy.length > 1 && (
-                                    <Typography sx={{ fontSize: 11, color: t.textFaint }}>
-                                      Used by {q.usedBy.length} programmes here.
-                                    </Typography>
-                                  )}
-                                </Box>
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      </Collapse>
-                    </Box>
-                  )}
-
-                  {questionsLoading && questions.length === 0 && (
-                    <Typography sx={{ fontSize: 12, color: t.textFaint, mt: 1 }}>
-                      Checking which figures this territory needs.
-                    </Typography>
-                  )}
-
-                  {/* Named, not hidden. A competitive grant or an investor shelter
-                      produces no automatic figure, and saying so here stops the
-                      report from looking as though it forgot the territory. */}
-                  {nonCalculating.map((n) => (
-                    <Typography key={n.programmeId ?? n.name} sx={{ fontSize: 11.5, color: t.warning, mt: 1.25, lineHeight: 1.6 }}>
-                      {n.name}: {n.reason}
-                    </Typography>
-                  ))}
-                </Box>
-              );
-            })}
-          </Box>
-        )}
-
-        {isCoProduction && (
-          <Box sx={{ ...card, p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            {sectionLabel('Co-production structure')}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
-              <FormControl fullWidth sx={fieldSx}>
-                <InputLabel>Treaty route</InputLabel>
-                <Select value={coProductionRoute} label="Treaty route" MenuProps={menuProps} onChange={(e) => setCoProductionRoute(e.target.value)}>
-                  {CO_PRODUCTION_ROUTES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
-                </Select>
-                <FormHelperText>
-                  The Council of Europe route needs at least three co-producers.
-                </FormHelperText>
-              </FormControl>
-              <FormControl fullWidth sx={fieldSx}>
-                <InputLabel>Eurimages and similar support</InputLabel>
-                <Select value={supranationalInterest} label="Eurimages and similar support" MenuProps={menuProps} onChange={(e) => setSupranationalInterest(e.target.value)}>
-                  {SUPRANATIONAL_INTEREST.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-                </Select>
-                <FormHelperText>
-                  Competitive funds, so no figure is ever assumed for them.
-                </FormHelperText>
-              </FormControl>
-              <TextField
-                fullWidth sx={fieldSx}
-                label={`Spend not allocated to a partner${budgetCurrency ? ` (${budgetCurrency})` : ''}`}
-                inputProps={{ inputMode: 'numeric' }}
-                value={unallocatedSpend}
-                onChange={(e) => setUnallocatedSpend(e.target.value.replace(/[^\d]/g, ''))}
-                helperText="Third-country shooting, post or overheads that earn nothing locally."
-              />
-            </Box>
-
-            {/* Shown only in co-production mode. Summing comparison alternatives
-                would produce a total that means nothing and an over-allocation
-                warning that is simply wrong. */}
-            {reconciliation && reconciliation.budget > 0 && (
-              <Alert
-                severity={reconciliation.complete ? 'success' : reconciliation.variance > 0 ? 'error' : 'info'}
-                sx={{ borderRadius: '10px' }}
-              >
-                {reconciliation.complete
-                  ? 'Allocations reconcile to the budget.'
-                  : reconciliation.variance > 0
-                    ? `Allocations exceed the budget by ${Math.abs(reconciliation.variance).toLocaleString('en-US')} ${budgetCurrency}. A structure cannot spend more than it is financed for.`
-                    : `${Math.abs(reconciliation.variance).toLocaleString('en-US')} ${budgetCurrency} of the budget is not yet allocated to a partner or to unallocated spend.`}
-              </Alert>
-            )}
-          </Box>
-        )}
       </Box>
     );
 
