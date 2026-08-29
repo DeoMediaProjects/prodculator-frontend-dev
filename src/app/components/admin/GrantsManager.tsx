@@ -706,60 +706,78 @@ function GrantsManagerContent() {
               Each one replaces a stored value on approval and is written to the audit trail.
             </Typography>
           </Box>
-          {pendingChanges.map((change, index) => (
-            <Box
-              key={change.id}
-              sx={{
-                p: 3,
-                borderBottom: index < pendingChanges.length - 1 ? 1 : 0,
-                borderColor: 'divider',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                gap: 2, flexWrap: 'wrap',
-              }}
-            >
-              <Box sx={{ flex: '1 1 320px', minWidth: 0 }}>
-                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 1 }}>
-                  {change.territory}: {change.field}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
-                  <Box>
-                    <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>Stored value</Typography>
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>
-                      {change.currentValue ?? 'Not set'}
-                    </Typography>
+          <Box
+            sx={{
+              maxHeight: 440,
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
+              '&::-webkit-scrollbar': {
+                width: 6,
+              },
+              '&::-webkit-scrollbar-track': {
+                bgcolor: 'transparent',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                bgcolor: 'divider',
+                borderRadius: 3,
+              },
+            }}
+          >
+            {pendingChanges.map((change, index) => (
+              <Box
+                key={change.id}
+                sx={{
+                  p: 3,
+                  borderBottom: index < pendingChanges.length - 1 ? 1 : 0,
+                  borderColor: 'divider',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                  gap: 2, flexWrap: 'wrap',
+                }}
+              >
+                <Box sx={{ flex: '1 1 320px', minWidth: 0 }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 1 }}>
+                    {change.territory}: {change.field}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Box>
+                      <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>Stored value</Typography>
+                      <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'text.primary' }}>
+                        {change.currentValue ?? 'Not set'}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ color: 'text.secondary', fontSize: 18 }}>&rarr;</Typography>
+                    <Box>
+                      <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>Detected value</Typography>
+                      <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'success.main' }}>
+                        {change.detectedValue}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Typography sx={{ color: 'text.secondary', fontSize: 18 }}>&rarr;</Typography>
-                  <Box>
-                    <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>Detected value</Typography>
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: 'success.main' }}>
-                      {change.detectedValue}
-                    </Typography>
-                  </Box>
+                  <Typography sx={{ fontSize: 11.5, color: 'text.secondary', mt: 1 }}>
+                    {change.confidence} confidence, from {change.source}
+                  </Typography>
                 </Box>
-                <Typography sx={{ fontSize: 11.5, color: 'text.secondary', mt: 1 }}>
-                  {change.confidence} confidence, from {change.source}
-                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<CheckCircle />}
+                    onClick={() => void handleApproveChange(change)}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => void handleRejectChange(change)}
+                    sx={{ borderColor: 'divider', color: 'text.secondary' }}
+                  >
+                    Reject
+                  </Button>
+                </Box>
               </Box>
-              <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<CheckCircle />}
-                  onClick={() => void handleApproveChange(change)}
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => void handleRejectChange(change)}
-                  sx={{ borderColor: 'divider', color: 'text.secondary' }}
-                >
-                  Reject
-                </Button>
-              </Box>
-            </Box>
-          ))}
+            ))}
+          </Box>
         </Box>
       </Collapse>
 
