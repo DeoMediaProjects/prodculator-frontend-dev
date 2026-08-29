@@ -252,6 +252,9 @@ function IncentiveDataManagerContent() {
   const [editFormData, setEditFormData] = useState<Partial<IncentiveData>>({});
 
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
+  const [selectedChangeIds, setSelectedChangeIds] = useState<string[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState<'approve' | 'reject' | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncSettings, setSyncSettings] = useState<SyncSettings | null>(null);
   const [syncSettingsForm, setSyncSettingsForm] = useState<SyncSettingsUpdate>({});
@@ -313,9 +316,24 @@ function IncentiveDataManagerContent() {
     }
   };
 
+  const handleToggleSelectAll = () => {
+    if (selectedChangeIds.length === pendingChanges.length) {
+      setSelectedChangeIds([]);
+    } else {
+      setSelectedChangeIds(pendingChanges.map(c => c.id));
+    }
+  };
+
+  const handleToggleSelectChange = (id: string) => {
+    setSelectedChangeIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
   const handleApproveChange = async (change: PendingChange) => {
     setActionInProgressId(change.id);
     setSyncErrorMessage(null);
+    setSuccessMessage(null);
     const { error } = await adminApi.approveIncentivePendingChange(change.id);
     setActionInProgressId(null);
     if (error) {
@@ -323,6 +341,8 @@ function IncentiveDataManagerContent() {
       return;
     }
     setPendingChanges(prev => prev.filter(c => c.id !== change.id));
+    setSelectedChangeIds(prev => prev.filter(id => id !== change.id));
+    setSuccessMessage(`Approved update for ${change.territory}: ${change.field} successfully.`);
     // Refresh incentives and sync status since the approved change updates the underlying record
     const [incentivesRes, statusRes] = await Promise.all([
       adminApi.getIncentives(500, 0),
@@ -335,6 +355,7 @@ function IncentiveDataManagerContent() {
   const handleRejectChange = async (change: PendingChange) => {
     setActionInProgressId(change.id);
     setSyncErrorMessage(null);
+    setSuccessMessage(null);
     const { error } = await adminApi.rejectIncentivePendingChange(change.id);
     setActionInProgressId(null);
     if (error) {
@@ -342,8 +363,82 @@ function IncentiveDataManagerContent() {
       return;
     }
     setPendingChanges(prev => prev.filter(c => c.id !== change.id));
+    setSelectedChangeIds(prev => prev.filter(id => id !== change.id));
+    setSuccessMessage(`Rejected update for ${change.territory}: ${change.field}.`);
     const statusRes = await adminApi.getIncentiveSyncStatus();
     if (statusRes.data) setSyncStatus(statusRes.data);
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedChangeIds.length === 0) return;
+    setBulkActionLoading('approve');
+    setSyncErrorMessage(null);
+    setSuccessMessage(null);
+    const targetIds = [...selectedChangeIds];
+    const results = await Promise.allSettled(
+      targetIds.map(id => adminApi.approveIncentivePendingChange(id))
+    );
+    const successfulIds: string[] = [];
+    const errors: string[] = [];
+    results.forEach((res, i) => {
+      const changeId = targetIds[i];
+      if (res.status === 'fulfilled' && !res.value.error) {
+        successfulIds.push(changeId);
+      } else {
+        const errMsg = res.status === 'fulfilled' ? res.value.error : 'Request failed';
+        errors.push(errMsg || 'Approval failed');
+      }
+    });
+
+    if (successfulIds.length > 0) {
+      setPendingChanges(prev => prev.filter(c => !successfulIds.includes(c.id)));
+      setSelectedChangeIds(prev => prev.filter(id => !successfulIds.includes(id)));
+      setSuccessMessage(`Successfully approved ${successfulIds.length} ${successfulIds.length === 1 ? 'change' : 'changes'}. Live incentive records updated.`);
+      const [incentivesRes, statusRes] = await Promise.all([
+        adminApi.getIncentives(500, 0),
+        adminApi.getIncentiveSyncStatus(),
+      ]);
+      if (incentivesRes.data) setIncentives(incentivesRes.data.items);
+      if (statusRes.data) setSyncStatus(statusRes.data);
+    }
+    if (errors.length > 0) {
+      setSyncErrorMessage(`Failed to approve ${errors.length} change(s): ${errors[0]}`);
+    }
+    setBulkActionLoading(null);
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedChangeIds.length === 0) return;
+    setBulkActionLoading('reject');
+    setSyncErrorMessage(null);
+    setSuccessMessage(null);
+    const targetIds = [...selectedChangeIds];
+    const results = await Promise.allSettled(
+      targetIds.map(id => adminApi.rejectIncentivePendingChange(id))
+    );
+    const successfulIds: string[] = [];
+    const errors: string[] = [];
+    results.forEach((res, i) => {
+      const changeId = targetIds[i];
+      if (res.status === 'fulfilled' && !res.value.error) {
+        successfulIds.push(changeId);
+      } else {
+        const errMsg = res.status === 'fulfilled' ? res.value.error : 'Request failed';
+        errors.push(errMsg || 'Rejection failed');
+      }
+    });
+
+    if (successfulIds.length > 0) {
+      setPendingChanges(prev => prev.filter(c => !successfulIds.includes(c.id)));
+      setSelectedChangeIds(prev => prev.filter(id => !successfulIds.includes(id)));
+      setSuccessMessage(`Successfully rejected ${successfulIds.length} ${successfulIds.length === 1 ? 'change' : 'changes'}.`);
+      const statusRes = await adminApi.getIncentiveSyncStatus();
+      if (statusRes.data) setSyncStatus(statusRes.data);
+    }
+    if (errors.length > 0) {
+      setSyncErrorMessage(`Failed to reject ${errors.length} change(s): ${errors[0]}`);
+    }
+    setBulkActionLoading(null);
   };
 
   const handleDeleteIncentive = async (id: string) => {
@@ -648,6 +743,13 @@ function IncentiveDataManagerContent() {
         </Typography>
       </Box>
 
+      {/* Success Alert */}
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
+
       {/* Sync Error Alert */}
       {syncErrorMessage && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setSyncErrorMessage(null)}>
@@ -681,11 +783,72 @@ function IncentiveDataManagerContent() {
       {/* Pending Changes Section */}
       <Collapse in={showPendingChanges}>
         <Box sx={{ mb: 3, border: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
-          <Box sx={{ p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
-            <Typography sx={EYEBROW_SX}>PENDING CHANGES FOR REVIEW</Typography>
-            <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
-              Each one replaces a stored value on approval and is written to the audit trail.
-            </Typography>
+          <Box
+            sx={{
+              p: 2.5,
+              borderBottom: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+            }}
+          >
+            <Box>
+              <Typography sx={EYEBROW_SX}>PENDING CHANGES FOR REVIEW</Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
+                Each one replaces a stored value on approval and is written to the audit trail.
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={pendingChanges.length > 0 && selectedChangeIds.length === pendingChanges.length}
+                    indeterminate={selectedChangeIds.length > 0 && selectedChangeIds.length < pendingChanges.length}
+                    onChange={handleToggleSelectAll}
+                    disabled={bulkActionLoading !== null || pendingChanges.length === 0}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ fontWeight: 600, userSelect: 'none' }}>
+                    Select all ({pendingChanges.length})
+                  </Typography>
+                }
+                sx={{ mr: 1 }}
+              />
+              {selectedChangeIds.length > 0 && (
+                <>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={bulkActionLoading === 'approve' ? <CircularProgress size={16} color="inherit" /> : <CheckCircle />}
+                    disabled={bulkActionLoading !== null}
+                    onClick={() => void handleBulkApprove()}
+                    sx={{
+                      bgcolor: 'success.main',
+                      color: 'primary.contrastText',
+                      '&:hover': { bgcolor: 'success.main' },
+                      fontWeight: 600,
+                    }}
+                  >
+                    Approve selected ({selectedChangeIds.length})
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={bulkActionLoading === 'reject' ? <CircularProgress size={16} color="inherit" /> : undefined}
+                    disabled={bulkActionLoading !== null}
+                    onClick={() => void handleBulkReject()}
+                    sx={{ borderColor: 'divider', color: 'text.secondary', fontWeight: 600 }}
+                  >
+                    Reject selected ({selectedChangeIds.length})
+                  </Button>
+                </>
+              )}
+            </Box>
           </Box>
           <Box
             sx={{
@@ -704,84 +867,99 @@ function IncentiveDataManagerContent() {
               },
             }}
           >
-            {pendingChanges.map((change, index) => (
-              <Box
-                key={change.id}
-                sx={{
-                  p: 3,
-                  borderBottom: index < pendingChanges.length - 1 ? 1 : 0,
-                  borderColor: 'divider',
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
-                      {change.territory}: {change.field}
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, md: 5 }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
-                          Stored value
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 600 }}>
-                          {change.currentValue ?? 'Not set'}
-                        </Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 2 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography sx={{ color: 'text.secondary', fontSize: 20 }}>&rarr;</Typography>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 5 }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
-                          Detected value
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
-                          {change.detectedValue}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                    <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-                      <Chip
-                        label={`${change.confidence} confidence`}
+            {pendingChanges.map((change, index) => {
+              const isSelected = selectedChangeIds.includes(change.id);
+              const isBusy = actionInProgressId === change.id || bulkActionLoading !== null;
+              return (
+                <Box
+                  key={change.id}
+                  sx={{
+                    p: 3,
+                    borderBottom: index < pendingChanges.length - 1 ? 1 : 0,
+                    borderColor: 'divider',
+                    bgcolor: isSelected ? 'action.hover' : 'inherit',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
+                      <Checkbox
                         size="small"
-                        sx={{
-                          bgcolor: change.confidence === 'high' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
-                          color: change.confidence === 'high' ? 'success.main' : 'warning.main',
-                          fontWeight: 600,
-                        }}
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectChange(change.id)}
+                        disabled={isBusy}
+                        sx={{ mt: -0.5, p: 0.5 }}
                       />
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {change.source}
-                      </Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
+                          {change.territory}: {change.field}
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid size={{ xs: 12, md: 5 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                              Stored value
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 600 }}>
+                              {change.currentValue ?? 'Not set'}
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 2 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Typography sx={{ color: 'text.secondary', fontSize: 20 }}>&rarr;</Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 5 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                              Detected value
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                              {change.detectedValue}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                        <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+                          <Chip
+                            label={`${change.confidence} confidence`}
+                            size="small"
+                            sx={{
+                              bgcolor: change.confidence === 'high' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
+                              color: change.confidence === 'high' ? 'success.main' : 'warning.main',
+                              fontWeight: 600,
+                            }}
+                          />
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {change.source}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={actionInProgressId === change.id ? <CircularProgress size={16} color="inherit" /> : <CheckCircle />}
+                        disabled={isBusy}
+                        onClick={() => void handleApproveChange(change)}
+                        sx={{
+                          bgcolor: 'success.main',
+                          color: 'primary.contrastText',
+                          '&:hover': { bgcolor: 'success.main' },
+                        }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        disabled={isBusy}
+                        onClick={() => void handleRejectChange(change)}
+                        sx={{ borderColor: 'divider', color: 'text.secondary' }}
+                      >
+                        Reject
+                      </Button>
                     </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={actionInProgressId === change.id ? <CircularProgress size={16} color="inherit" /> : <CheckCircle />}
-                      disabled={actionInProgressId === change.id}
-                      onClick={() => void handleApproveChange(change)}
-                      sx={{
-                        bgcolor: 'success.main',
-                        color: 'primary.contrastText',
-                        '&:hover': { bgcolor: 'success.main' },
-                      }}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      disabled={actionInProgressId === change.id}
-                      onClick={() => void handleRejectChange(change)}
-                      sx={{ borderColor: 'divider', color: 'text.secondary' }}
-                    >
-                      Reject
-                    </Button>
-                  </Box>
                 </Box>
-              </Box>
-            ))}
+              );
+            })}
           </Box>
         </Box>
       </Collapse>
