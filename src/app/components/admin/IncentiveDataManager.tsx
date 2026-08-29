@@ -256,6 +256,8 @@ function IncentiveDataManagerContent() {
   const [syncSettings, setSyncSettings] = useState<SyncSettings | null>(null);
   const [syncSettingsForm, setSyncSettingsForm] = useState<SyncSettingsUpdate>({});
   const [syncSettingsLoading, setSyncSettingsLoading] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
+  const [actionInProgressId, setActionInProgressId] = useState<string | null>(null);
   // Read-only detail for the row an admin clicked. Column filtering and
   // sorting are the table's job, so the page keeps no filter state of its own.
   const [detailRow, setDetailRow] = useState<IncentiveData | null>(null);
@@ -293,9 +295,14 @@ function IncentiveDataManagerContent() {
 
   const handleAutoSync = async () => {
     setSyncing(true);
+    setSyncErrorMessage(null);
     const { data, error } = await adminApi.triggerIncentiveSync();
     setSyncing(false);
-    if (!error && data) {
+    if (error) {
+      setSyncErrorMessage(error);
+      return;
+    }
+    if (data) {
       // Refresh sync status and pending changes after sync
       const [statusRes, pendingRes] = await Promise.all([
         adminApi.getIncentiveSyncStatus(),
@@ -307,20 +314,36 @@ function IncentiveDataManagerContent() {
   };
 
   const handleApproveChange = async (change: PendingChange) => {
+    setActionInProgressId(change.id);
+    setSyncErrorMessage(null);
     const { error } = await adminApi.approveIncentivePendingChange(change.id);
-    if (!error) {
-      setPendingChanges(pendingChanges.filter(c => c.id !== change.id));
-      // Refresh incentives since the approved change updates the underlying record
-      const { data } = await adminApi.getIncentives(500, 0);
-      if (data) setIncentives(data.items);
+    setActionInProgressId(null);
+    if (error) {
+      setSyncErrorMessage(error);
+      return;
     }
+    setPendingChanges(prev => prev.filter(c => c.id !== change.id));
+    // Refresh incentives and sync status since the approved change updates the underlying record
+    const [incentivesRes, statusRes] = await Promise.all([
+      adminApi.getIncentives(500, 0),
+      adminApi.getIncentiveSyncStatus(),
+    ]);
+    if (incentivesRes.data) setIncentives(incentivesRes.data.items);
+    if (statusRes.data) setSyncStatus(statusRes.data);
   };
 
   const handleRejectChange = async (change: PendingChange) => {
+    setActionInProgressId(change.id);
+    setSyncErrorMessage(null);
     const { error } = await adminApi.rejectIncentivePendingChange(change.id);
-    if (!error) {
-      setPendingChanges(pendingChanges.filter(c => c.id !== change.id));
+    setActionInProgressId(null);
+    if (error) {
+      setSyncErrorMessage(error);
+      return;
     }
+    setPendingChanges(prev => prev.filter(c => c.id !== change.id));
+    const statusRes = await adminApi.getIncentiveSyncStatus();
+    if (statusRes.data) setSyncStatus(statusRes.data);
   };
 
   const handleDeleteIncentive = async (id: string) => {
@@ -625,6 +648,13 @@ function IncentiveDataManagerContent() {
         </Typography>
       </Box>
 
+      {/* Sync Error Alert */}
+      {syncErrorMessage && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setSyncErrorMessage(null)}>
+          {syncErrorMessage}
+        </Alert>
+      )}
+
       {/* Pending Changes Alert */}
       {pendingChanges.length > 0 && (
         <Alert
@@ -657,82 +687,102 @@ function IncentiveDataManagerContent() {
               Each one replaces a stored value on approval and is written to the audit trail.
             </Typography>
           </Box>
-          {pendingChanges.map((change, index) => (
-            <Box
-              key={change.id}
-              sx={{
-                p: 3,
-                borderBottom: index < pendingChanges.length - 1 ? 1 : 0,
-                borderColor: 'divider',
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
-                    {change.territory}: {change.field}
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
-                        Stored value
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 600 }}>
-                        {change.currentValue ?? 'Not set'}
-                      </Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 2 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Typography sx={{ color: 'text.secondary', fontSize: 20 }}>&rarr;</Typography>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 5 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
-                        Detected value
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
-                        {change.detectedValue}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                  <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <Chip
-                      label={`${change.confidence} confidence`}
-                      size="small"
-                      sx={{
-                        bgcolor: change.confidence === 'high' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
-                        color: change.confidence === 'high' ? 'success.main' : 'warning.main',
-                        fontWeight: 600,
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      {change.source}
+          <Box
+            sx={{
+              maxHeight: 440,
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
+              '&::-webkit-scrollbar': {
+                width: 6,
+              },
+              '&::-webkit-scrollbar-track': {
+                bgcolor: 'transparent',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                bgcolor: 'divider',
+                borderRadius: 3,
+              },
+            }}
+          >
+            {pendingChanges.map((change, index) => (
+              <Box
+                key={change.id}
+                sx={{
+                  p: 3,
+                  borderBottom: index < pendingChanges.length - 1 ? 1 : 0,
+                  borderColor: 'divider',
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 600, mb: 1 }}>
+                      {change.territory}: {change.field}
                     </Typography>
+                    <Grid container spacing={2}>
+                      <Grid size={{ xs: 12, md: 5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                          Stored value
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 600 }}>
+                          {change.currentValue ?? 'Not set'}
+                        </Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 2 }} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Typography sx={{ color: 'text.secondary', fontSize: 20 }}>&rarr;</Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 5 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                          Detected value
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                          {change.detectedValue}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                    <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+                      <Chip
+                        label={`${change.confidence} confidence`}
+                        size="small"
+                        sx={{
+                          bgcolor: change.confidence === 'high' ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 152, 0, 0.2)',
+                          color: change.confidence === 'high' ? 'success.main' : 'warning.main',
+                          fontWeight: 600,
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {change.source}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={actionInProgressId === change.id ? <CircularProgress size={16} color="inherit" /> : <CheckCircle />}
+                      disabled={actionInProgressId === change.id}
+                      onClick={() => void handleApproveChange(change)}
+                      sx={{
+                        bgcolor: 'success.main',
+                        color: 'primary.contrastText',
+                        '&:hover': { bgcolor: 'success.main' },
+                      }}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      disabled={actionInProgressId === change.id}
+                      onClick={() => void handleRejectChange(change)}
+                      sx={{ borderColor: 'divider', color: 'text.secondary' }}
+                    >
+                      Reject
+                    </Button>
                   </Box>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<CheckCircle />}
-                    onClick={() => void handleApproveChange(change)}
-                    sx={{
-                      bgcolor: 'success.main',
-                      color: 'primary.contrastText',
-                      '&:hover': { bgcolor: 'success.main' },
-                    }}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => void handleRejectChange(change)}
-                    sx={{ borderColor: 'divider', color: 'text.secondary' }}
-                  >
-                    Reject
-                  </Button>
-                </Box>
               </Box>
-            </Box>
-          ))}
+            ))}
+          </Box>
         </Box>
       </Collapse>
 
