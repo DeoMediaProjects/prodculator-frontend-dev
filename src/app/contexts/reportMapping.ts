@@ -137,6 +137,11 @@ export function normaliseAnalysisData(
     sectionExplainers: analysisData.sectionExplainers ?? null,
     locationRankings: toArray<LocationRanking>(analysisData.locationRankings),
     incentiveEstimates: toArray<IncentiveEstimate>(analysisData.incentiveEstimates),
+    // Not carried by either mapper previously — a report reaching ReportViewer
+    // through this function (rather than the direct-spread path) would render
+    // no co-production section at all, chosen structure or not.
+    coProductionStructure: analysisData.coProductionStructure ?? null,
+    coProductionOpportunities: analysisData.coProductionOpportunities ?? null,
     formatEligibilityCaveat: analysisData.formatEligibilityCaveat ?? null,
     programmeAvailabilityCaveat: analysisData.programmeAvailabilityCaveat ?? null,
     shortFormatIncentiveNotice: analysisData.shortFormatIncentiveNotice ?? null,
@@ -298,6 +303,8 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
     sectionExplainers: reportData.sectionExplainers ?? null,
     locationRankings,
     incentiveEstimates,
+    coProductionStructure: reportData.coProductionStructure ?? null,
+    coProductionOpportunities: reportData.coProductionOpportunities ?? null,
     formatEligibilityCaveat: reportData.formatEligibilityCaveat ?? null,
     programmeAvailabilityCaveat: reportData.programmeAvailabilityCaveat ?? null,
     shortFormatIncentiveNotice: reportData.shortFormatIncentiveNotice ?? null,

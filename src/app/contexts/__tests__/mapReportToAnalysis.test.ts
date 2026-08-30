@@ -148,6 +148,33 @@ describe('mapReportToAnalysis: comparables count matches the PDF', () => {
   });
 });
 
+// This mapper used to drop the co-production fields entirely: neither
+// coProductionStructure nor coProductionOpportunities was assigned anywhere in
+// its return value, so a report reaching ReportViewer through this fallback
+// path (rather than the direct-spread path) rendered no co-production section
+// at all — chosen structure or not, regardless of what the backend computed.
+describe('mapReportToAnalysis: co-production fields are carried through', () => {
+  it('passes through a chosen co-production structure', () => {
+    const report = bareReport();
+    const structure = { mode: 'coproduction', partners: [], partnerCount: 2 };
+    (report.report_data as any).coProductionStructure = structure;
+    expect(mapReportToAnalysis(report, metadata).coProductionStructure).toEqual(structure);
+  });
+
+  it('passes through undecided-mode co-production opportunities', () => {
+    const report = bareReport();
+    const opportunities = [{ territory: 'France', program: 'CNC Tax Rebate' }];
+    (report.report_data as any).coProductionOpportunities = opportunities;
+    expect(mapReportToAnalysis(report, metadata).coProductionOpportunities).toEqual(opportunities);
+  });
+
+  it('defaults both to null rather than undefined when absent', () => {
+    const mapped = mapReportToAnalysis(bareReport(), metadata);
+    expect(mapped.coProductionStructure).toBeNull();
+    expect(mapped.coProductionOpportunities).toBeNull();
+  });
+});
+
 describe('optionalScore', () => {
   it.each([null, undefined, '', 'abc', NaN])('treats %s as unscored', (v) => {
     expect(optionalScore(v)).toBeNull();

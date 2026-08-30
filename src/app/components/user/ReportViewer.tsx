@@ -1231,6 +1231,30 @@ export function ReportViewer() {
                   )}
                 </Paper>
               )}
+              {/* Only for "undecided": these territories are shown as separate
+                  scenarios below, not combined into one production — this just
+                  points out where a co-production treaty route also exists, in
+                  case that becomes the direction later. Never shown alongside
+                  coProductionStructure above, since a chosen structure already
+                  covers this. */}
+              {analysis.coProductionOpportunities && analysis.coProductionOpportunities.length > 0 && !isSectionLocked('taxIncentives') && (
+                <Alert severity="info" sx={{ mb: 3, fontSize: 13, lineHeight: 1.6 }}>
+                  <Box component="span" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                    Co-production opportunities in this comparison
+                  </Box>
+                  These territories are shown below as separate scenarios, not as one combined
+                  production. At least one programme in each also states an official co-production
+                  treaty route, in case that becomes the direction later:
+                  <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
+                    {analysis.coProductionOpportunities.map((opp, i) => (
+                      <Box component="li" key={i}>
+                        <Box component="span" sx={{ fontWeight: 700 }}>{opp.territory}</Box>
+                        {opp.program ? ` — ${opp.program}` : ''}
+                      </Box>
+                    ))}
+                  </Box>
+                </Alert>
+              )}
               <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Tax Incentive Estimates</Typography>
               {analysis.sectionExplainers?.incentiveEstimates && (
                 <Typography variant="body2" sx={{ color: t.textFaint, mb: 3 }}>{analysis.sectionExplainers.incentiveEstimates}</Typography>

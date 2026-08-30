@@ -66,6 +66,10 @@ export interface ScriptAnalysis {
   /** Present only for a co-production. Absent for a comparison, rather than
    *  empty: a section that renders with nothing in it reads as a bug. */
   coProductionStructure?: CoProductionStructure | null;
+  /** Present only for "undecided" — territories in the comparison whose
+   *  programme states an official co-production treaty route, kept separate
+   *  from coProductionStructure since no structure has actually been chosen. */
+  coProductionOpportunities?: CoProductionOpportunity[] | null;
   /** Blanket caveat, set by the backend only while some programme in this report
    *  is unverified for the production's format. Absent means every programme has
    *  an answer, so no blanket warning is warranted. */
@@ -196,6 +200,14 @@ export interface IncentiveEstimate {
   calculationVerification?: 'ready' | 'conditional' | 'blocked' | null;
   calculationVerificationLabel?: string | null;
   calculationIsApproved?: boolean | null;
+}
+
+/** A territory in an "undecided" comparison whose programme states an
+ *  official co-production treaty route — informational only, never implies
+ *  the territories have been combined into one production. */
+export interface CoProductionOpportunity {
+  territory: string;
+  program: string | null;
 }
 
 export interface CoProductionPartner {
