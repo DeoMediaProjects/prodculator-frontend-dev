@@ -815,7 +815,7 @@ export function ReportViewer() {
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 12, md: 6 }}><Card sx={{ bgcolor: t.cardBgAlt }}><CardContent><Typography variant="overline" color="primary">Genre</Typography><Typography variant="h6">{analysis.genre}</Typography></CardContent></Card></Grid>
                 <Grid size={{ xs: 12, md: 6 }}><Card sx={{ bgcolor: t.cardBgAlt }}><CardContent><Typography variant="overline" color="primary">Complexity</Typography><Typography variant="h6">{analysis.complexity}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 12 }}><Card sx={{ bgcolor: t.cardBgAlt }}><CardContent><Typography variant="overline" color="primary">Tone & Scale</Typography><Typography variant="body1">{analysis.tone}</Typography></CardContent></Card></Grid>
+                <Grid size={{ xs: 12 }}><Card sx={{ bgcolor: t.cardBgAlt }}><CardContent><Typography variant="overline" color="primary">Tone & Scale</Typography><Typography variant="body1">{analysis.tone}{analysis.scale ? `, ${analysis.scale}` : ''}</Typography></CardContent></Card></Grid>
               </Grid>
 
               {isPreview && (
@@ -949,6 +949,29 @@ export function ReportViewer() {
                 <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(212,175,55,0.08)', color: t.gold, border: '1px solid rgba(212,175,55,0.3)', '& .MuiAlert-icon': { color: t.gold } }}>
                   Showing top 3 territories. Upgrade to Professional for up to 5, or buy a single report for all available territories.
                 </Alert>
+              )}
+              {analysis.scoringMethodology?.dimensions && analysis.scoringMethodology.dimensions.length > 0 && (
+                <Paper sx={{ mb: 2.5, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+                  <Typography variant="caption" sx={{ display: 'block', px: 2.5, py: 1.5, borderBottom: `1px solid ${t.border}`, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.gold, fontSize: '0.7rem' }}>
+                    What the six dimensions measure
+                  </Typography>
+                  <Box sx={{ px: 2.5, py: 1.5 }}>
+                    {analysis.scoringMethodology.dimensions.map((dim, di) => (
+                      <Box key={di} sx={{ display: 'flex', gap: 2, py: 1, borderBottom: di < analysis.scoringMethodology!.dimensions.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 160, flexShrink: 0 }}>{dim.name}</Typography>
+                        <Typography variant="body2" sx={{ color: t.textSecondary }}>{dim.description}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                  {analysis.scoringMethodology.weightingNote && (
+                    <Box sx={{ px: 2.5, py: 1.5, borderTop: `1px solid ${t.border}` }}>
+                      <Typography variant="caption" sx={{ color: t.textFaint }}>
+                        <Box component="span" sx={{ color: t.gold, fontWeight: 700 }}>How we score </Box>
+                        {analysis.scoringMethodology.overview} {analysis.scoringMethodology.weightingNote}
+                      </Typography>
+                    </Box>
+                  )}
+                </Paper>
               )}
               {analysis.locationRankings.map((loc, i) => {
                 const isLockedTerritory = isPreview && (loc as any).lockedPreview;
@@ -1087,6 +1110,52 @@ export function ReportViewer() {
                       />
                     </Box>
                   )}
+                  {/* Deep-dive detail: rebate mechanics, infrastructure, cultural
+                      test and admin complexity, plus the specific advantages and
+                      risks of shooting here — beyond what the ranking table alone
+                      shows. */}
+                  {!isPreview && (() => {
+                    const dive = analysis.territoryDeepDives?.find(d => d.name === loc.name);
+                    if (!dive) return null;
+                    return (
+                      <Box sx={{ mt: 1, mb: 1 }}>
+                        <Grid container spacing={1} sx={{ mb: dive.keyAdvantages?.length || dive.keyRisks?.length ? 1.5 : 0 }}>
+                          {[
+                            { label: 'Cultural test', value: dive.culturalTestLikelihood },
+                            { label: 'Admin complexity', value: dive.adminComplexity },
+                            { label: 'Payment speed', value: dive.paymentSpeed },
+                          ].filter(f => f.value).map((f, fi) => (
+                            <Grid size={{ xs: 12, sm: 4 }} key={fi}>
+                              <Typography variant="caption" sx={{ color: t.textFaint, display: 'block' }}>{f.label}</Typography>
+                              <Typography variant="body2" sx={{ color: t.textPrimary, fontWeight: 500 }}>{f.value}</Typography>
+                            </Grid>
+                          ))}
+                        </Grid>
+                        <Grid container spacing={2}>
+                          {dive.keyAdvantages?.length > 0 && (
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                              <Typography variant="caption" sx={{ color: t.success, fontWeight: 700, display: 'block', mb: 0.5 }}>Key advantages</Typography>
+                              <List dense disablePadding>
+                                {dive.keyAdvantages.slice(0, 4).map((adv, ai) => (
+                                  <ListItem key={ai} disablePadding sx={{ color: t.textSecondary, fontSize: '0.85rem' }}>• {adv}</ListItem>
+                                ))}
+                              </List>
+                            </Grid>
+                          )}
+                          {dive.keyRisks?.length > 0 && (
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                              <Typography variant="caption" sx={{ color: t.warning, fontWeight: 700, display: 'block', mb: 0.5 }}>Key risks</Typography>
+                              <List dense disablePadding>
+                                {dive.keyRisks.slice(0, 4).map((risk, ri) => (
+                                  <ListItem key={ri} disablePadding sx={{ color: t.textSecondary, fontSize: '0.85rem' }}>• {risk}</ListItem>
+                                ))}
+                              </List>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Box>
+                    );
+                  })()}
                   <Divider sx={{ my: 2, borderColor: t.border }} />
                   <Typography variant="subtitle2" sx={{ mb: 1, color: t.gold }}>Key Intelligence:</Typography>
                   {isPreview ? (
@@ -1116,6 +1185,56 @@ export function ReportViewer() {
                 </Paper>
                 );
               })}
+              {/* The script's own setting, called out separately when it wasn't
+                  one of the compared territories — it has no incentive-scoring
+                  basis, so ranking it alongside the others would misstate why
+                  a producer might still choose to shoot there. */}
+              {!isPreview && analysis.scriptOriginCallout && (
+                <Paper sx={{ p: 3, mt: 1, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}` }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                    <Typography variant="h6" sx={{ color: t.gold }}>
+                      Script-origin territory · {analysis.scriptOriginCallout.territory}
+                    </Typography>
+                    <Chip label="Outside the ranking" size="small" sx={{ bgcolor: t.cardBg, color: t.textFaint, border: `1px solid ${t.border}` }} />
+                  </Box>
+                  <Typography variant="body2" sx={{ color: t.textSecondary, lineHeight: 1.7, mb: 2 }}>
+                    Your script is set in {analysis.scriptOriginCallout.territory}, {analysis.scriptOriginCallout.hasIncentiveProgramme
+                      ? 'ranked separately here because it was not among the compared territories.'
+                      : 'but it offers no formal production incentive, so it cannot rank on financial dimensions. That is a fact about the incentive landscape, not about whether you should shoot there.'}
+                  </Typography>
+                  <Grid container spacing={2} sx={{ mb: 2 }}>
+                    {analysis.scriptOriginCallout.scenesPct != null && (
+                      <Grid size={{ xs: 6, sm: 3 }}>
+                        <Typography variant="h6">{analysis.scriptOriginCallout.scenesPct}%</Typography>
+                        <Typography variant="caption" sx={{ color: t.textFaint }}>of scenes set there</Typography>
+                      </Grid>
+                    )}
+                    <Grid size={{ xs: 6, sm: 3 }}>
+                      <Typography variant="h6">
+                        {analysis.scriptOriginCallout.hasIncentiveProgramme ? (analysis.scriptOriginCallout.programmeNote || '—') : '—'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: t.textFaint }}>
+                        {analysis.scriptOriginCallout.hasIncentiveProgramme ? 'Programme' : 'No incentive programme'}
+                      </Typography>
+                    </Grid>
+                    {analysis.scriptOriginCallout.currencyAdvantage != null && (
+                      <Grid size={{ xs: 6, sm: 3 }}>
+                        <Typography variant="h6">{analysis.scriptOriginCallout.currencyAdvantage}<Box component="span" sx={{ fontSize: '0.75rem', color: t.textFaint }}>/100</Box></Typography>
+                        <Typography variant="caption" sx={{ color: t.textFaint }}>Currency advantage</Typography>
+                      </Grid>
+                    )}
+                    {analysis.scriptOriginCallout.crewDepthTier && (
+                      <Grid size={{ xs: 6, sm: 3 }}>
+                        <Typography variant="h6">{analysis.scriptOriginCallout.crewDepthTier}</Typography>
+                        <Typography variant="caption" sx={{ color: t.textFaint }}>Crew depth tier</Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+                  <Typography variant="body2" sx={{ color: t.textSecondary, lineHeight: 1.7 }}>
+                    The case for shooting there is authenticity and purchasing power, not rebate value; weigh it as a creative and currency decision alongside the ranked financial options above.
+                  </Typography>
+                </Paper>
+              )}
             </TabPanel>
 
             {/* Tab 3: Tax Incentives */}
@@ -1532,6 +1651,123 @@ export function ReportViewer() {
 
             {/* Tab 4: Financial Analysis */}
             <TabPanel value={tabValue} index={3}>
+              {/* Deterministic — no AI involved in any figure here, and every one
+                  cites its input. The backend omits this entirely for previews and
+                  the free-tier filter strips it, so its presence is the tier gate;
+                  it is not wrapped in the isPreview branch below on purpose. */}
+              {analysis.financialReadiness && (() => {
+                const readiness = analysis.financialReadiness!;
+                const verdictColor = {
+                  READY: t.success, CONDITIONAL: t.warning,
+                  'NOT READY': t.error, 'INSUFFICIENT DATA': t.textFaint,
+                }[readiness.verdict] || t.textFaint;
+                const statusWord: Record<string, string> = {
+                  ready: 'Ready', conditional: 'Conditional',
+                  not_ready: 'Not ready', insufficient_data: 'No data',
+                };
+                const statusColor: Record<string, string> = {
+                  ready: t.success, conditional: t.warning,
+                  not_ready: t.error, insufficient_data: t.textFaint,
+                };
+                const checkMark: Record<string, string> = { pass: '✓', fail: '✕', warn: '!', skipped: '·' };
+                const checkColor: Record<string, string> = { pass: t.success, fail: t.error, warn: t.warning, skipped: t.textFaint };
+                const severityColor: Record<string, string> = { critical: t.error, warning: t.warning, info: t.textFaint };
+                return (
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: t.cardBgAlt, border: `2px solid ${verdictColor}` }}>
+                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>Financial Readiness</Typography>
+                    <Typography variant="body2" sx={{ color: t.textFaint, mb: 2.5 }}>
+                      Computed from the figures elsewhere in this report, against a fixed rule. Not a score, not an opinion.
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: t.textFaint, display: 'block' }}>
+                          Verdict{readiness.territory ? ` · ${readiness.territory}` : ''}{readiness.programme ? ` · ${readiness.programme}` : ''}
+                        </Typography>
+                        <Typography variant="h4" sx={{ color: verdictColor, fontWeight: 800 }}>{readiness.verdict}</Typography>
+                        <Typography variant="body2" sx={{ color: t.textSecondary, mt: 0.5 }}>{readiness.verdictReason}</Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                        <Typography variant="h3" sx={{ fontWeight: 800, color: verdictColor }}>{readiness.score}</Typography>
+                        <Typography variant="caption" sx={{ color: t.textFaint }}>/ 100</Typography>
+                      </Box>
+                    </Box>
+
+                    <Typography variant="subtitle2" sx={{ color: t.gold, mb: 1.5 }}>
+                      Components · rule applied: {readiness.rule}
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: readiness.flags?.length ? 3 : 0 }}>
+                      {readiness.components.map((comp, ci) => (
+                        <Paper key={ci} variant="outlined" sx={{ p: 2, bgcolor: t.cardBg, borderColor: t.border }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{comp.label}</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip
+                                label={statusWord[comp.status] || comp.status}
+                                size="small"
+                                sx={{ fontWeight: 700, fontSize: '0.7rem', color: statusColor[comp.status], border: `1px solid ${statusColor[comp.status]}`, bgcolor: 'transparent' }}
+                              />
+                              <Typography variant="caption" sx={{ color: t.textFaint }}>{comp.weight}% weight</Typography>
+                            </Box>
+                          </Box>
+                          <Typography variant="body2" sx={{ color: t.textSecondary, mb: comp.figures?.length ? 1 : 0 }}>{comp.headline}</Typography>
+                          {comp.figures?.map((fig, fi) => (
+                            <Box key={fi} sx={{ mt: 0.75 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="caption" sx={{ color: t.textFaint }}>{fig.label}</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 700 }}>{fig.value}</Typography>
+                              </Box>
+                              <Typography variant="caption" sx={{ color: t.textFaint, display: 'block', fontSize: '0.68rem' }}>{fig.basis}</Typography>
+                            </Box>
+                          ))}
+                          {comp.checks?.length > 0 && (
+                            <Box sx={{ mt: 1.5 }}>
+                              {comp.checks.map((chk, chi) => (
+                                <Box key={chi} sx={{ display: 'flex', gap: 0.75, alignItems: 'flex-start', mb: 0.4 }}>
+                                  <Typography component="span" sx={{ color: checkColor[chk.result], fontWeight: 700, fontSize: '0.75rem', lineHeight: 1.6 }}>
+                                    {checkMark[chk.result] || '·'}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: t.textSecondary }}>{chk.detail}</Typography>
+                                </Box>
+                              ))}
+                            </Box>
+                          )}
+                          {comp.note && (
+                            <Typography variant="caption" sx={{ color: t.textFaint, display: 'block', mt: 1 }}>{comp.note}</Typography>
+                          )}
+                        </Paper>
+                      ))}
+                    </Box>
+
+                    {readiness.flags?.length > 0 && (
+                      <>
+                        <Typography variant="subtitle2" sx={{ color: t.gold, mb: 1.5 }}>
+                          Unverified or stale inputs
+                          {' · '}{readiness.flagCounts?.critical || 0} critical,{' '}
+                          {readiness.flagCounts?.warning || 0} warning,{' '}
+                          {readiness.flagCounts?.info || 0} informational
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          {readiness.flags.map((flag, flagi) => (
+                            <Paper key={flagi} variant="outlined" sx={{ p: 1.5, bgcolor: t.cardBg, borderColor: t.border, display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                              <Chip
+                                label={flag.severity}
+                                size="small"
+                                sx={{ fontWeight: 700, fontSize: '0.65rem', color: severityColor[flag.severity], border: `1px solid ${severityColor[flag.severity]}`, bgcolor: 'transparent', flexShrink: 0 }}
+                              />
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>{flag.label || flag.input}</Typography>
+                                <Typography variant="caption" sx={{ color: t.textSecondary, display: 'block' }}>{flag.detail}</Typography>
+                                <Typography variant="caption" sx={{ color: t.gold, display: 'block', mt: 0.25 }}>{flag.action}</Typography>
+                              </Box>
+                            </Paper>
+                          ))}
+                        </Box>
+                      </>
+                    )}
+                  </Paper>
+                );
+              })()}
               {isPreview ? (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Financial Analysis</Typography>

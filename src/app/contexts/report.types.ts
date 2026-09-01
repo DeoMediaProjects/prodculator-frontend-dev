@@ -70,6 +70,16 @@ export interface ScriptAnalysis {
    *  programme states an official co-production treaty route, kept separate
    *  from coProductionStructure since no structure has actually been chosen. */
   coProductionOpportunities?: CoProductionOpportunity[] | null;
+  /** Explainer for the six location-ranking dimensions — shown once, above the
+   *  ranked territory table. */
+  scoringMethodology?: ScoringMethodology | null;
+  /** The script's own setting, when it wasn't among the compared territories. */
+  scriptOriginCallout?: ScriptOriginCallout | null;
+  /** Per-territory detail beyond the ranking table. */
+  territoryDeepDives?: TerritoryDeepDive[] | null;
+  /** Present only on paid tiers — the backend omits it for previews and the
+   *  free-tier filter strips it, so its presence here is the tier gate. */
+  financialReadiness?: FinancialReadiness | null;
   /** Blanket caveat, set by the backend only while some programme in this report
    *  is unverified for the production's format. Absent means every programme has
    *  an answer, so no blanket warning is warranted. */
@@ -208,6 +218,109 @@ export interface IncentiveEstimate {
 export interface CoProductionOpportunity {
   territory: string;
   program: string | null;
+}
+
+export interface ScoringDimension {
+  name: string;
+  key: string;
+  description: string;
+}
+
+export interface ScoringColorKey {
+  green: string;
+  gold: string;
+  red: string;
+}
+
+/** How the six location-ranking dimensions are scored and weighted — the
+ *  same explainer the PDF prints before the ranked territory table. */
+export interface ScoringMethodology {
+  overview: string;
+  dimensions: ScoringDimension[];
+  weightingNote: string;
+  colorKey: ScoringColorKey;
+}
+
+/** The script's own setting, shown separately from the ranked territories
+ *  when it wasn't one of the compared options — see the PDF's "Script-origin
+ *  territory" callout. */
+export interface ScriptOriginCallout {
+  territory: string;
+  hasIncentiveProgramme: boolean;
+  scenesPct?: number | null;
+  programmeNote?: string | null;
+  currencyAdvantage?: number | null;
+  crewDepthTier?: string | null;
+}
+
+/** Per-territory detail beyond the ranking table: rebate mechanics,
+ *  infrastructure, payment speed, and the specific advantages/risks of
+ *  shooting there. */
+export interface TerritoryDeepDive {
+  name: string;
+  country: string;
+  score: number;
+  rebate: string;
+  headlineRate?: string | null;
+  infrastructure: string;
+  paymentSpeed: string;
+  keyAdvantages: string[];
+  keyRisks: string[];
+  culturalTestLikelihood: string;
+  adminComplexity: string;
+  estimatedRebate: string;
+  incentiveIsConfirmed?: boolean;
+  incentiveEligibilityLabel?: string | null;
+  confirmedIncentive?: string | null;
+  potentialIncentive?: string | null;
+}
+
+export interface ReadinessFigure {
+  label: string;
+  value: string;
+  basis: string;
+}
+
+export interface ReadinessCheck {
+  result: 'pass' | 'fail' | 'warn' | 'skipped';
+  detail: string;
+}
+
+export interface ReadinessComponent {
+  key: string;
+  label: string;
+  status: 'ready' | 'conditional' | 'insufficient_data' | 'not_ready';
+  weight: number;
+  headline: string;
+  figures: ReadinessFigure[];
+  checks: ReadinessCheck[];
+  note?: string | null;
+  grade?: string | null;
+}
+
+export interface ReadinessFlag {
+  severity: 'critical' | 'warning' | 'info';
+  input: string;
+  label?: string | null;
+  detail: string;
+  action: string;
+}
+
+/** Deterministic verdict on whether the production can be financed as
+ *  planned — no AI involved, every figure cites its input. */
+export interface FinancialReadiness {
+  verdict: 'READY' | 'CONDITIONAL' | 'NOT READY' | 'INSUFFICIENT DATA';
+  verdictReason: string;
+  rule: string;
+  score: number;
+  territory: string;
+  programme?: string | null;
+  currencySymbol: string;
+  components: ReadinessComponent[];
+  flags: ReadinessFlag[];
+  flagCounts: Record<string, number>;
+  methodology: string;
+  computedOn: string;
 }
 
 export interface CoProductionPartner {

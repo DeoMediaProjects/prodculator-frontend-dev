@@ -175,6 +175,49 @@ describe('mapReportToAnalysis: co-production fields are carried through', () => 
   });
 });
 
+// Same class of bug: scoringMethodology, scriptOriginCallout, territoryDeepDives
+// and financialReadiness are all computed by the backend and rendered in the
+// PDF, but were never assigned by this mapper — so a report reaching
+// ReportViewer through this fallback path showed none of them, regardless of
+// what the backend computed.
+describe('mapReportToAnalysis: PDF-only sections are carried through', () => {
+  it('passes through scoringMethodology', () => {
+    const report = bareReport();
+    const methodology = { overview: 'x', dimensions: [], weightingNote: 'y', colorKey: { green: 'a', gold: 'b', red: 'c' } };
+    (report.report_data as any).scoringMethodology = methodology;
+    expect(mapReportToAnalysis(report, metadata).scoringMethodology).toEqual(methodology);
+  });
+
+  it('passes through scriptOriginCallout', () => {
+    const report = bareReport();
+    const callout = { territory: 'Nigeria', hasIncentiveProgramme: false };
+    (report.report_data as any).scriptOriginCallout = callout;
+    expect(mapReportToAnalysis(report, metadata).scriptOriginCallout).toEqual(callout);
+  });
+
+  it('passes through territoryDeepDives', () => {
+    const report = bareReport();
+    const dives = [{ name: 'South Africa', country: 'ZA', score: 41 }];
+    (report.report_data as any).territoryDeepDives = dives;
+    expect(mapReportToAnalysis(report, metadata).territoryDeepDives).toEqual(dives);
+  });
+
+  it('passes through financialReadiness', () => {
+    const report = bareReport();
+    const readiness = { verdict: 'READY', score: 88, components: [], flags: [] };
+    (report.report_data as any).financialReadiness = readiness;
+    expect(mapReportToAnalysis(report, metadata).financialReadiness).toEqual(readiness);
+  });
+
+  it('defaults all four to null rather than undefined when absent', () => {
+    const mapped = mapReportToAnalysis(bareReport(), metadata);
+    expect(mapped.scoringMethodology).toBeNull();
+    expect(mapped.scriptOriginCallout).toBeNull();
+    expect(mapped.territoryDeepDives).toBeNull();
+    expect(mapped.financialReadiness).toBeNull();
+  });
+});
+
 describe('optionalScore', () => {
   it.each([null, undefined, '', 'abc', NaN])('treats %s as unscored', (v) => {
     expect(optionalScore(v)).toBeNull();
