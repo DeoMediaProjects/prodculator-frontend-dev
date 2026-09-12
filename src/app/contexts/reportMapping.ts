@@ -158,6 +158,9 @@ export function normaliseAnalysisData(
     distributorRecommendations: toArray<any>(analysisData.distributorRecommendations),
     weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
     fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities),
+    // Counts only — the cards themselves come from fundingOpportunities above. Absent
+    // on reports generated before Grants Engine v2, which is why it stays optional.
+    grantsPayload: analysisData.grantsPayload,
     scriptTitle: analysisData.scriptTitle || metadata.title,
     generatedAt: analysisData.generatedAt || new Date().toISOString(),
   };
