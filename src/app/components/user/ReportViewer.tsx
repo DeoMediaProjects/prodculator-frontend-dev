@@ -2139,10 +2139,28 @@ export function ReportViewer() {
                 <>
                   {/* The API drops festival-typed entries for Explorer, so the
                       heading must not promise festivals it will not show. */}
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
                     {isSectionLocked('festivals')
                       ? 'Grant & Funding Opportunities'
                       : 'Funding & Festival Opportunities'}
+                  </Typography>
+                  {/* How much is not on screen. Every package searches the same
+                      database and only reads a different distance down the ranked
+                      list, so a five-card view with eighteen further matches behind
+                      it is a fact the producer is entitled to. */}
+                  {analysis.grantsPayload?.eligible_match_count ? (
+                    <Typography variant="body2" sx={{ color: t.textSecondary, mb: 1 }}>
+                      {analysis.grantsPayload.narrative_context?.summary_statement ||
+                        `${analysis.fundingOpportunities.filter(o => o.type === 'Fund').length} shown from ${analysis.grantsPayload.eligible_match_count} eligible funding opportunities.`}
+                    </Typography>
+                  ) : null}
+                  {/* Stated once, above the cards, rather than repeated on each. A
+                      match is an opportunity; it is not money in the budget until it
+                      is awarded and contracted. */}
+                  <Typography variant="caption" sx={{ color: t.textFaint, display: 'block', mb: 3 }}>
+                    Matched opportunities are not committed finance. Eligibility is the
+                    funder&apos;s decision, not ours — confirm each programme on its official
+                    source before relying on it.
                   </Typography>
                   <Grid container spacing={3}>
                     {Array.isArray(analysis.fundingOpportunities) ? analysis.fundingOpportunities.map((opp, i) => (
@@ -2156,28 +2174,107 @@ export function ReportViewer() {
                                 size="small"
                                 sx={{ bgcolor: opp.type === 'Fund' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(33, 150, 243, 0.2)', color: opp.type === 'Fund' ? t.success : '#2196f3', fontWeight: 600 }}
                               />
+                              {/* The engine's verdict, shown rather than flattened.
+                                  Most records are CURRENT_CYCLE_UNVERIFIED — a real
+                                  programme whose current round nobody has confirmed —
+                                  and presenting those identically to a fully verified
+                                  open call is the specific overstatement the v2
+                                  contract exists to prevent. */}
+                              {opp.eligibilityStatus && opp.eligibilityStatus !== 'ELIGIBLE' && (
+                                <Chip
+                                  label={
+                                    opp.eligibilityStatus === 'CURRENT_CYCLE_UNVERIFIED'
+                                      ? 'Cycle unverified'
+                                      : 'Conditional'
+                                  }
+                                  size="small"
+                                  sx={{ bgcolor: 'rgba(255, 152, 0, 0.15)', color: '#ff9800', fontWeight: 600, fontSize: '0.65rem' }}
+                                />
+                              )}
+                              {opp.eligibilityStatus === 'ELIGIBLE' && (
+                                <Chip
+                                  label="Eligible"
+                                  size="small"
+                                  sx={{ bgcolor: 'rgba(76, 175, 80, 0.15)', color: t.success, fontWeight: 600, fontSize: '0.65rem' }}
+                                />
+                              )}
                               {opp.tier && (
                                 <Chip label={opp.tier} size="small" sx={{ bgcolor: t.cardBgAlt, color: t.textSecondary }} />
                               )}
                             </Box>
                           </Box>
+                          {/* Badges replace the old genre chip row, which read
+                              `opp.genre` — a field the report has never populated for
+                              funds, so it rendered an empty box on every card. These
+                              carry the restrictions that decide whether a producer can
+                              actually apply. */}
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                            {Array.isArray(opp.genre) ? opp.genre.map((g, gi) => (
-                              <Chip key={gi} label={g} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.1)', color: t.gold, fontSize: '0.7rem' }} />
-                            )) : null}
+                            {(opp.badges || []).map((b, bi) => (
+                              <Chip
+                                key={bi}
+                                label={b}
+                                size="small"
+                                sx={{
+                                  bgcolor: b === 'CLOSING SOON' ? 'rgba(244, 67, 54, 0.15)' : 'rgba(212, 175, 55, 0.1)',
+                                  color: b === 'CLOSING SOON' ? '#f44336' : t.gold,
+                                  fontSize: '0.65rem',
+                                  fontWeight: 600,
+                                }}
+                              />
+                            ))}
+                            {(opp.genre || []).map((g, gi) => (
+                              <Chip key={`g${gi}`} label={g} size="small" sx={{ bgcolor: 'rgba(212, 175, 55, 0.1)', color: t.gold, fontSize: '0.7rem' }} />
+                            ))}
                           </Box>
-                          {opp.deadline && (
+                          {opp.territory && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                              <Typography variant="body2" sx={{ color: t.textSecondary }}>Deadline:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{opp.deadline}</Typography>
+                              <Typography variant="body2" sx={{ color: t.textSecondary }}>Territory:</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{opp.territory}</Typography>
                             </Box>
                           )}
-                          <Typography variant="body2" sx={{ color: t.textFaint }}>{opp.notes}</Typography>
-                          {opp.website && (
-                            <Button size="small" href={opp.website} target="_blank" sx={{ mt: 1, color: t.gold, textTransform: 'none', p: 0 }}>
-                              Visit Website
-                            </Button>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: t.textSecondary }}>Deadline:</Typography>
+                            {/* An absent deadline says so. It is not "Rolling" —
+                                that claim belongs to the engine, which sets the word
+                                itself only where the programme genuinely is. */}
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {opp.deadline || 'Not published'}
+                            </Typography>
+                          </Box>
+                          {opp.notes && (
+                            <Typography variant="body2" sx={{ color: t.textFaint }}>{opp.notes}</Typography>
                           )}
+                          {opp.whyMatched && (
+                            <Box sx={{ mt: 1.5 }}>
+                              <Typography variant="caption" sx={{ color: t.textSecondary, fontWeight: 600, display: 'block' }}>
+                                Why it matched
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: t.textFaint }}>
+                                {opp.whyMatched}
+                              </Typography>
+                            </Box>
+                          )}
+                          {opp.caveats && opp.caveats.length > 0 && (
+                            <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${t.border}` }}>
+                              {opp.caveats.map((c, ci) => (
+                                <Typography key={ci} variant="caption" sx={{ color: t.textFaint, display: 'block' }}>
+                                  • {c}
+                                </Typography>
+                              ))}
+                            </Box>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
+                            {(opp.officialSource || opp.website) ? (
+                              <Button size="small" href={String(opp.officialSource || opp.website)} target="_blank" sx={{ color: t.gold, textTransform: 'none', p: 0 }}>
+                                Official source
+                              </Button>
+                            ) : null}
+                            {opp.verifiedAt && (
+                              <Typography variant="caption" sx={{ color: t.textFaint }}>
+                                Verified {opp.verifiedAt.slice(0, 10)}
+                              </Typography>
+                            )}
+                          </Box>
                         </Paper>
                       </Grid>
                     )) : null}

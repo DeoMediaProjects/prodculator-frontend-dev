@@ -99,6 +99,9 @@ export interface ScriptAnalysis {
 
   // Tab 7: Funding & Festivals
   fundingOpportunities: FundingOpportunity[];
+  /** Grants Engine v2 result counts. Optional — reports generated before v2 have no
+   *  payload, and the funding list must still render without it. */
+  grantsPayload?: GrantsPayload;
   /** Matched festivals, passed through from the report. */
   festivalRecommendations?: any[];
   /** Distributors, ranked partly on the festivals above. */
@@ -390,14 +393,65 @@ export interface WeatherLogistics {
   seasonalConsiderations?: string;
 }
 
+/** How confident the Grants Engine is that this fund is open to this project.
+ *
+ *  These are not shades of the same thing. ELIGIBLE means every rule the engine
+ *  could check was checked and passed. CURRENT_CYCLE_UNVERIFIED means the programme
+ *  is real but nobody has confirmed its current round — the majority of records, and
+ *  the reason the UI must not present them all as "apply now". CONDITIONAL means a
+ *  fact the engine needed (applicant nationality, co-production structure) was never
+ *  supplied, so eligibility could not be established either way. */
+export type GrantEligibilityStatus =
+  | 'ELIGIBLE'
+  | 'CONDITIONAL'
+  | 'CURRENT_CYCLE_UNVERIFIED'
+  | 'INELIGIBLE';
+
 export interface FundingOpportunity {
   type: 'Fund' | 'Festival';
   name: string;
-  genre: string[];
+  /** Optional: the grants engine does not tag funds by genre, and requiring it here
+   *  produced an empty chip row on every card. */
+  genre?: string[];
+  /** Empty string when nothing is published. Never rendered as "Rolling" unless the
+   *  programme genuinely is rolling — the engine decides that, not the UI. */
   deadline: string;
   notes: string;
   website?: string;
   tier?: string;
+
+  // ── Grants Engine v2 ──────────────────────────────────────────────────────
+  territory?: string;
+  /** Prominence markers: NATIONALITY RESTRICTION, CO-PRODUCTION REQUIRED,
+   *  CLOSING SOON, ROLLING, CURRENT CYCLE UNVERIFIED. */
+  badges?: string[];
+  /** Plain-English reasons this fund matched, joined with "; ". */
+  whyMatched?: string;
+  matchScore?: number;
+  eligibilityStatus?: GrantEligibilityStatus;
+  portfolioRank?: number | null;
+  /** Always includes "not committed finance". Shown, not hidden: a matched fund is
+   *  an opportunity, never money in the budget. */
+  caveats?: string[];
+  officialSource?: string | null;
+  verifiedAt?: string | null;
+}
+
+/** Counts behind the funding list, so the UI can say how much it is not showing.
+ *
+ *  Every paid package searches the same database; the package only controls how far
+ *  down the ranked list it may read. Without these counts a Single customer sees five
+ *  funds and no indication that another eighteen matched. */
+export interface GrantsPayload {
+  database_version?: string;
+  eligible_match_count?: number;
+  display_limit?: number;
+  narrative_context?: {
+    summary_statement?: string;
+    financing_stack_role?: string;
+    not_committed_finance?: boolean;
+    cross_engine_caveats?: string[];
+  };
 }
 
 /** One producer-supplied statutory cost base, with its provenance.
