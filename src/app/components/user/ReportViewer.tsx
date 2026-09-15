@@ -2265,7 +2265,7 @@ export function ReportViewer() {
                           )}
                           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}>
                             {(opp.officialSource || opp.website) ? (
-                              <Button size="small" href={String(opp.officialSource || opp.website)} target="_blank" sx={{ color: t.gold, textTransform: 'none', p: 0 }}>
+                              <Button size="small" href={String(opp.officialSource || opp.website)} target="_blank" rel="noopener noreferrer" sx={{ color: t.gold, textTransform: 'none', p: 0 }}>
                                 Official source
                               </Button>
                             ) : null}

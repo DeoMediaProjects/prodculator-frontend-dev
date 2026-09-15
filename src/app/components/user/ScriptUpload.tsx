@@ -1234,7 +1234,7 @@ export function ScriptUpload() {
                     with OpenAI as failover), which process it solely to generate that report. We do not store the
                     uploaded file itself, and we do not sell your script or disclose it to anyone for their own
                     purposes. See our{' '}
-                    <Link href="/privacy" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                    <Link href="/privacy" target="_blank" rel="noopener noreferrer" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                       Privacy Policy
                     </Link>
                     .
@@ -1254,15 +1254,15 @@ export function ScriptUpload() {
                     label={
                       <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
                         By generating this report, I agree to the{' '}
-                        <Link href="/terms" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                        <Link href="/terms" target="_blank" rel="noopener noreferrer" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                           Terms of Service
                         </Link>
                         ,{' '}
-                        <Link href="/privacy" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                        <Link href="/privacy" target="_blank" rel="noopener noreferrer" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                           Privacy Policy
                         </Link>
                         {' '}and{' '}
-                        <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                        <Link href="/acceptable-use" target="_blank" rel="noopener noreferrer" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                           Acceptable Use Policy
                         </Link>
                         .
@@ -1341,15 +1341,15 @@ export function ScriptUpload() {
             label={
               <Typography variant="caption" sx={{ color: '#a0a0a0', lineHeight: 1.6 }}>
                 By continuing, I agree to the{' '}
-                <Link href="/terms" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                <Link href="/terms" target="_blank" rel="noopener noreferrer" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                   Terms of Service
                 </Link>
                 ,{' '}
-                <Link href="/privacy" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                <Link href="/privacy" target="_blank" rel="noopener noreferrer" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                   Privacy Policy
                 </Link>
                 {' '}and{' '}
-                <Link href="/acceptable-use" target="_blank" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
+                <Link href="/acceptable-use" target="_blank" rel="noopener noreferrer" sx={{ color: '#D4AF37', textDecorationColor: '#D4AF37' }}>
                   Acceptable Use Policy
                 </Link>
                 .

@@ -310,7 +310,7 @@ export function PrivacyPolicy() {
             If you are in the EU/UK and believe we have not addressed your privacy concerns adequately, you have the right to lodge a complaint with your local data protection authority:
           </Typography>
           <ul>
-            <li><strong>UK:</strong> Information Commissioner's Office (ICO) <Link href="https://ico.org.uk" target="_blank" sx={{ color: t.gold }}>ico.org.uk</Link></li>
+            <li><strong>UK:</strong> Information Commissioner's Office (ICO) <Link href="https://ico.org.uk" target="_blank" rel="noopener noreferrer" sx={{ color: t.gold }}>ico.org.uk</Link></li>
             <li><strong>EU:</strong> Your national data protection authority</li>
           </ul>
 

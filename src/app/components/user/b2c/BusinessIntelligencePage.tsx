@@ -153,7 +153,7 @@ export function BusinessIntelligencePage() {
   const [newRecipient, setNewRecipient] = useState('');
   const [savingRecipient, setSavingRecipient] = useState(false);
 
-  const initialPeriod = useMemo(lastCompleteMonth, []);
+  const [initialPeriod] = useState(lastCompleteMonth);
   const [periodStart, setPeriodStart] = useState(initialPeriod.start);
   const [periodEnd, setPeriodEnd] = useState(initialPeriod.end);
   const [requesting, setRequesting] = useState(false);
@@ -273,7 +273,7 @@ export function BusinessIntelligencePage() {
       list.push({ email: extra, primary: false });
     }
     return list;
-  }, [subscription, user?.email]);
+  }, [subscription, user]);
 
   const isActive = subscription?.status === 'active';
   // Two slots: the account holder, who cannot be removed, plus one address.

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router';
+import { ThemeModeProvider } from '@/app/theme/AppTheme';
 
 vi.mock('@/services/auth.service', () => ({
   authService: {
@@ -19,14 +20,16 @@ const mockVerify = vi.mocked(authService.verifyEmailToken);
 
 function renderCallback(search = '') {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/auth/callback', search }]}>
-      <Routes>
-        <Route path="/auth/callback" element={<EmailVerifyCallback />} />
-        <Route path="/dashboard" element={<div>Dashboard</div>} />
-        <Route path="/login" element={<div>Login</div>} />
-        <Route path="/verify-email" element={<div>Verify Email</div>} />
-      </Routes>
-    </MemoryRouter>
+    <ThemeModeProvider>
+      <MemoryRouter initialEntries={[{ pathname: '/auth/callback', search }]}>
+        <Routes>
+          <Route path="/auth/callback" element={<EmailVerifyCallback />} />
+          <Route path="/dashboard" element={<div>Dashboard</div>} />
+          <Route path="/login" element={<div>Login</div>} />
+          <Route path="/verify-email" element={<div>Verify Email</div>} />
+        </Routes>
+      </MemoryRouter>
+    </ThemeModeProvider>
   );
 }
 

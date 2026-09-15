@@ -248,7 +248,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
 
   // ── Seed from report ───────────────────────────────────────────────────
 
-  const handleSeed = async (reportId: string) => {
+  async function handleSeed(reportId: string) {
     setSeeding(true);
     setError(null);
     const { data, error: err } = await seedMilestones(reportId);
@@ -259,7 +259,7 @@ export function ProductionTimeline({ userPlan, reports = [] }: ProductionTimelin
       setSelectedReportId(reportId);
     }
     setSeeding(false);
-  };
+  }
 
   // ── Calendar export placeholder ────────────────────────────────────────
 

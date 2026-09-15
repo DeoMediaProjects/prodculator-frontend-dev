@@ -297,7 +297,7 @@ export function UserSignup() {
                   sx={{ color: t.gold, textDecoration: 'underline', cursor: 'pointer' }}
                   onClick={(e) => {
                     e.preventDefault();
-                    window.open('/terms', '_blank');
+                    window.open('/terms', '_blank', 'noopener,noreferrer');
                   }}
                 >
                   Terms of Service
@@ -309,7 +309,7 @@ export function UserSignup() {
                   sx={{ color: t.gold, textDecoration: 'underline', cursor: 'pointer' }}
                   onClick={(e) => {
                     e.preventDefault();
-                    window.open('/privacy', '_blank');
+                    window.open('/privacy', '_blank', 'noopener,noreferrer');
                   }}
                 >
                   Privacy Policy
