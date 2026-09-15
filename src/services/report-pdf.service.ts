@@ -60,6 +60,7 @@ export async function viewReportPDF(reportId: string): Promise<void> {
   // fetch first, the browser's popup blocker kills window.open. We then point
   // the already-open tab at the blob once it arrives.
   const tab = window.open('', '_blank');
+  if (tab) tab.opener = null;
   try {
     const blob = await apiClient.get<Blob>(`/api/reports/${reportId}/pdf`, {
       auth: true,
@@ -70,7 +71,7 @@ export async function viewReportPDF(reportId: string): Promise<void> {
       tab.location.href = url;
     } else {
       // Popup was blocked despite the gesture — fall back to a same-tab open.
-      window.open(url, '_blank', 'noopener');
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   } catch (err) {
@@ -93,6 +94,7 @@ export async function generateReportPDF(analysis: ScriptAnalysis): Promise<void>
     
     try {
       printWindow = window.open('', '_blank');
+      if (printWindow) printWindow.opener = null;
     } catch (error) {
       console.error('SecurityError: window.open blocked:', error);
       alert('Unable to generate PDF. Please allow pop ups for this site and ensure you are not in a sandboxed environment.');

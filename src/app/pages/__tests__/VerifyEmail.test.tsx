@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
+import { ThemeModeProvider } from '@/app/theme/AppTheme';
 
 vi.mock('@/services/auth.service', () => ({
   authService: {
@@ -21,13 +22,15 @@ const mockResend = vi.mocked(authService.resendVerification);
 function renderVerifyEmail(email?: string) {
   const state = email ? { email } : undefined;
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/verify-email', state }]}>
-      <Routes>
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/login" element={<div>Login</div>} />
-        <Route path="/" element={<div>Home</div>} />
-      </Routes>
-    </MemoryRouter>
+    <ThemeModeProvider>
+      <MemoryRouter initialEntries={[{ pathname: '/verify-email', state }]}>
+        <Routes>
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/login" element={<div>Login</div>} />
+          <Route path="/" element={<div>Home</div>} />
+        </Routes>
+      </MemoryRouter>
+    </ThemeModeProvider>
   );
 }
 

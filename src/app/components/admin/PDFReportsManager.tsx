@@ -74,7 +74,7 @@ function PDFReportsManagerContent() {
       return;
     }
     if (data?.url) {
-      window.open(data.url, '_blank');
+      window.open(data.url, '_blank', 'noopener,noreferrer');
     }
   };
 

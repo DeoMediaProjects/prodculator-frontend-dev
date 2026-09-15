@@ -1523,7 +1523,7 @@ export function AnalysisWizard() {
               connection to our AI service providers (Anthropic, with OpenAI as failover), which process it solely to
               generate that report. We do not store the uploaded file itself, and we do not sell your script or
               disclose it to anyone for their own purposes. Full detail is in our{' '}
-              <Link href="/privacy" target="_blank" sx={{ color: t.gold }}>Privacy Policy</Link>.
+              <Link href="/privacy" target="_blank" rel="noopener noreferrer" sx={{ color: t.gold }}>Privacy Policy</Link>.
             </Typography>
           </Box>
 
@@ -1532,7 +1532,7 @@ export function AnalysisWizard() {
             <FormControlLabel
               sx={{ alignItems: 'flex-start', m: 0, mb: 1.5 }}
               control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} sx={{ ...cbSx, pt: 0 }} />}
-              label={<Typography sx={{ color: t.textSecondary, fontSize: 13 }}>I accept the <Link href="/terms" target="_blank" sx={{ color: t.gold }}>Terms of Service</Link>, <Link href="/privacy" target="_blank" sx={{ color: t.gold }}>Privacy Policy</Link> and Acceptable Use Policy.</Typography>}
+              label={<Typography sx={{ color: t.textSecondary, fontSize: 13 }}>I accept the <Link href="/terms" target="_blank" rel="noopener noreferrer" sx={{ color: t.gold }}>Terms of Service</Link>, <Link href="/privacy" target="_blank" rel="noopener noreferrer" sx={{ color: t.gold }}>Privacy Policy</Link> and Acceptable Use Policy.</Typography>}
             />
             {/* Required only for the formats whose eligibility is unverified, so
                 the consent screen does not grow a checkbox for producers it does

@@ -95,12 +95,11 @@ export class EmailService {
     attachments?: Array<{ filename: string; content: string; type: string }>
   ): Promise<void> {
     try {
-      const result = await apiClient.post('/api/emails', {
-        template,
-        to,
-        data,
-        attachments,
-      });
+      const result = await apiClient.post(
+        '/api/emails',
+        { template, to, data, attachments },
+        { auth: true },
+      );
       console.log('Email sent successfully:', result);
     } catch (error) {
       console.error('Error sending email:', error);
@@ -117,18 +116,20 @@ export class EmailService {
     data: EmailData
   ): Promise<{ subject: string; html: string }> {
     try {
-      return await apiClient.post('/api/emails/preview', {
-        template,
-        data,
-      });
+      return await apiClient.post(
+        '/api/emails/preview',
+        { template, data },
+        { auth: true },
+      );
     } catch (error) {
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status === 404) {
         // Backward-compatibility fallback for older backend instances.
-        return apiClient.post('/api/admin/email/preview', {
-          template_name: template,
-          context: data,
-        });
+        return apiClient.post(
+          '/api/admin/email/preview',
+          { template_name: template, context: data },
+          { auth: true },
+        );
       }
       throw error;
     }

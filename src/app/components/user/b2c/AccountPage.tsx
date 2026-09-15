@@ -359,13 +359,13 @@ export function AccountPage() {
                 <Button
                   size="small"
                   variant="contained"
-                  onClick={() => window.open(inv.hosted_invoice_url as string, '_blank')}
+                  onClick={() => window.open(inv.hosted_invoice_url as string, '_blank', 'noopener,noreferrer')}
                   sx={{ bgcolor: t.gold, color: '#000', fontWeight: 700, fontSize: 12, px: 1.5, '&:hover': { bgcolor: t.gold } }}
                 >
                   Pay now
                 </Button>
               ) : (
-                <IconButton size="small" disabled={!inv.invoice_pdf && !inv.hosted_invoice_url} onClick={() => { const u = inv.invoice_pdf || inv.hosted_invoice_url; if (u) window.open(u, '_blank'); }} sx={{ color: t.gold }}>
+                <IconButton size="small" disabled={!inv.invoice_pdf && !inv.hosted_invoice_url} onClick={() => { const u = inv.invoice_pdf || inv.hosted_invoice_url; if (u) window.open(u, '_blank', 'noopener,noreferrer'); }} sx={{ color: t.gold }}>
                   <FileDownloadOutlined fontSize="small" />
                 </IconButton>
               )

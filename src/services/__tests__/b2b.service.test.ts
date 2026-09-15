@@ -83,11 +83,15 @@ describe('b2bService', () => {
     await b2bService.downloadRequestPdf({
       id: 'req-1',
       product_type: 'camera_equipment',
+      period_start: '2026-01-01',
+      period_end: '2026-01-31',
     } as B2BIntelligenceRequest);
 
     expect(mockApiFetch).toHaveBeenCalledWith('/api/b2b/requests/req-1/pdf');
     expect(click).toHaveBeenCalled();
-    expect(anchor.download).toBe('B2B Intelligence - camera_equipment.pdf');
+    expect(anchor.download).toBe(
+      'Business Intelligence - camera_equipment - 2026-01-01 to 2026-01-31.pdf',
+    );
   });
 });
 
