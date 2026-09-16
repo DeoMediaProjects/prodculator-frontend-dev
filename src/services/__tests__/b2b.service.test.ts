@@ -78,7 +78,10 @@ describe('b2bService', () => {
       createObjectURL: vi.fn(() => 'blob:pdf'),
       revokeObjectURL: vi.fn(),
     });
-    mockApiFetch.mockResolvedValueOnce(new Response(new Blob(['pdf'], { type: 'application/pdf' }), { status: 200 }));
+    mockApiFetch.mockResolvedValueOnce({
+      ok: true,
+      blob: vi.fn(async () => new Blob(['pdf'], { type: 'application/pdf' })),
+    } as unknown as Response);
 
     await b2bService.downloadRequestPdf({
       id: 'req-1',
