@@ -371,12 +371,12 @@ export interface CoProductionStructure {
 
 export interface ComparableProduction {
   title: string;
-  genre: string;
-  budgetRange: string;
-  visualScale: string;
-  location: string;
-  year: number;
-  source: string;
+  genre: string | null;
+  budgetRange: string | null;
+  visualScale: string | null;
+  location: string | null;
+  year: number | null;
+  source: string | null;
 }
 
 export interface WeatherLogistics {

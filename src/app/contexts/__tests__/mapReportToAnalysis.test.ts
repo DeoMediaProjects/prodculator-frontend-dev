@@ -146,6 +146,23 @@ describe('mapReportToAnalysis: comparables count matches the PDF', () => {
     (report.report_data as any).comparableProductions = [{ title: 'Blue Jean' }];
     expect(mapReportToAnalysis(report, metadata).comparables).toHaveLength(1);
   });
+
+  it('preserves backend comparable evidence without filling missing facts from the project', () => {
+    const report = bareReport();
+    (report.report_data as any).comparables = [
+      { title: 'Known Film', genre: 'Drama', budgetRange: '$2m', location: 'Kenya', year: 2024, source: 'Official credits' },
+      { title: 'Sparse Film' },
+      { genre: 'Horror' },
+    ];
+    const rows = mapReportToAnalysis(report, metadata).comparables;
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      genre: 'Drama', budgetRange: '$2m', location: 'Kenya', year: 2024, source: 'Official credits',
+    });
+    expect(rows[1]).toMatchObject({
+      title: 'Sparse Film', genre: null, budgetRange: null, location: null, year: null, source: null,
+    });
+  });
 });
 
 // This mapper used to drop the co-production fields entirely: neither

@@ -2055,13 +2055,17 @@ export function ReportViewer() {
                         {analysis.comparables.map((comp, i) => (
                           <TableRow key={i}>
                             <TableCell sx={{ color: t.textPrimary, fontWeight: 500 }}>{comp.title}</TableCell>
-                            <TableCell sx={{ color: t.textSecondary }}>{comp.genre}</TableCell>
+                            <TableCell sx={{ color: t.textSecondary }}>{comp.genre || 'Not recorded'}</TableCell>
                             {!isPreview && (
-                              <TableCell sx={{ color: t.textSecondary }}>{comp.budgetRange}</TableCell>
+                              <TableCell sx={{ color: t.textSecondary }}>{comp.budgetRange || 'Not recorded'}</TableCell>
                             )}
-                            <TableCell sx={{ color: t.textSecondary }}>{comp.location}</TableCell>
-                            <TableCell sx={{ color: t.textSecondary }}>{comp.year}</TableCell>
-                            <TableCell sx={{ color: t.textSecondary }}>{cleanSource(comp.source)}</TableCell>
+                            <TableCell sx={{ color: t.textSecondary }}>{comp.location || 'Not recorded'}</TableCell>
+                            <TableCell sx={{ color: t.textSecondary }}>{comp.year ?? 'Not recorded'}</TableCell>
+                            <TableCell sx={{ color: t.textSecondary }}>
+                              {comp.source && !/^\s*(tmdb|the movie database)\s*$/i.test(comp.source)
+                                ? cleanSource(comp.source)
+                                : 'Not recorded'}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

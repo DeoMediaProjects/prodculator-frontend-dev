@@ -249,15 +249,27 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
   const comparableRows = toArray<any>(reportData.comparables).length
     ? toArray<any>(reportData.comparables)
     : toArray<any>(reportData.comparableProductions);
-  const comparables: ComparableProduction[] = comparableRows.map((item: any) => ({
-    title: item.title || 'Comparable Project',
-    genre: toArray<string>(item.genres).join(', ') || metadata.genre.join(', '),
-    budgetRange: item.budget || `${metadata.budgetCurrency} ${metadata.budgetAmount}`,
-    visualScale: 'Comparable production scale',
-    location: item.territory || 'Unknown',
-    year: Number(item.year || new Date().getFullYear()),
-    source: 'Prodculator backend comparables',
-  }));
+  const knownText = (value: unknown): string | null =>
+    typeof value === 'string' && value.trim() ? value.trim() : null;
+  const comparables: ComparableProduction[] = comparableRows
+    .filter((item: any) => knownText(item?.title))
+    .map((item: any) => {
+      const rawGenre = item.genre ?? item.genres;
+      const genre = Array.isArray(rawGenre)
+        ? knownText(rawGenre.filter((value: unknown) => typeof value === 'string' && value.trim()).join(', '))
+        : knownText(rawGenre);
+      const rawYear = item.year ?? item.release_year;
+      const year = /^\d{4}$/.test(String(rawYear ?? '')) ? Number(rawYear) : null;
+      return {
+        title: item.title.trim(),
+        genre,
+        budgetRange: knownText(item.budgetRange ?? item.budget_range ?? item.budget),
+        visualScale: knownText(item.visualScale),
+        location: knownText(item.location ?? item.primary_territory ?? item.territory),
+        year,
+        source: knownText(item.source),
+      };
+    });
 
   // Read from the report, not manufactured from it.
   //
