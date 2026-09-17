@@ -157,7 +157,10 @@ export function normaliseAnalysisData(
     festivalRecommendations: toArray<any>(analysisData.festivalRecommendations),
     distributorRecommendations: toArray<any>(analysisData.distributorRecommendations),
     weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
-    fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities),
+    // Older stored reports mixed festival cards into this list. Section 08 is
+    // grants only; festivals have their own recommendation section.
+    fundingOpportunities: toArray<FundingOpportunity>(analysisData.fundingOpportunities)
+      .filter((opportunity) => opportunity.type === 'Fund'),
     // Counts only — the cards themselves come from fundingOpportunities above. Absent
     // on reports generated before Grants Engine v2, which is why it stays optional.
     grantsPayload: analysisData.grantsPayload,
@@ -296,14 +299,6 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
       genre: metadata.genre,
       deadline: grant.deadline || '',
       notes: `${grant.organization || 'Program'} • ${grant.amount || 'Amount varies'}`,
-    })),
-    ...toArray<any>(reportData.festivalRecommendations).map((festival: any) => ({
-      type: 'Festival' as const,
-      name: festival.name || 'Festival Opportunity',
-      genre: metadata.genre,
-      deadline: festival.deadline || '',
-      notes: `${festival.location || 'Global'} • Tier ${festival.tier || 'N/A'}`,
-      tier: festival.tier,
     })),
   ];
 

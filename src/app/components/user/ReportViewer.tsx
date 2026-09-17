@@ -1930,7 +1930,7 @@ export function ReportViewer() {
                 <>
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>Where Your Film Could Be Seen</Typography>
                   <Typography variant="body2" sx={{ color: t.textSecondary, mb: 3 }}>
-                    Matched on format, timing, genre and your declared audience — never inferred.
+                    Strategic festival matches require current-cycle and premiere checks before submission.
                   </Typography>
                   <Grid container spacing={3} sx={{ mb: 4 }}>
                     {((analysis as any).festivalRecommendations || []).map((fest: any, i: number) => (
@@ -2138,15 +2138,11 @@ export function ReportViewer() {
                 </>
             </TabPanel>
 
-            {/* Tab 8: Funding & Festivals */}
+            {/* Tab 8: Grants and funding only; festivals have their own tab. */}
             <TabPanel value={tabValue} index={7}>
                 <>
-                  {/* The API drops festival-typed entries for Explorer, so the
-                      heading must not promise festivals it will not show. */}
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-                    {isSectionLocked('festivals')
-                      ? 'Grant & Funding Opportunities'
-                      : 'Funding & Festival Opportunities'}
+                    Grant & Funding Opportunities
                   </Typography>
                   {/* How much is not on screen. Every package searches the same
                       database and only reads a different distance down the ranked

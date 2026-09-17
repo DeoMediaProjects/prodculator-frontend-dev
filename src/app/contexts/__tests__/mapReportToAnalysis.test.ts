@@ -23,7 +23,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { mapReportToAnalysis, optionalScore } from '../reportMapping';
+import { mapReportToAnalysis, normaliseAnalysisData, optionalScore } from '../reportMapping';
 
 const metadata: any = {
   title: 'EJE DRAFT 7',
@@ -162,6 +162,28 @@ describe('mapReportToAnalysis: comparables count matches the PDF', () => {
     expect(rows[1]).toMatchObject({
       title: 'Sparse Film', genre: null, budgetRange: null, location: null, year: null, source: null,
     });
+  });
+});
+
+describe('report mapping: grants and festivals remain separate', () => {
+  it('keeps festival recommendations out of the grant cards for legacy reports', () => {
+    const report = bareReport();
+    const data = report.report_data as Record<string, unknown>;
+    data.grantOpportunities = [{ title: 'Verified Fund' }];
+    data.festivalRecommendations = [{ name: 'Example Festival' }];
+    const mapped = mapReportToAnalysis(report, metadata);
+    expect(mapped.fundingOpportunities.map((item) => item.name)).toEqual(['Verified Fund']);
+    expect(mapped.festivalRecommendations).toHaveLength(1);
+  });
+
+  it('filters festival cards from old direct analysis payloads', () => {
+    const mapped = normaliseAnalysisData({
+      fundingOpportunities: [
+        { type: 'Fund', name: 'Verified Fund', deadline: '', notes: '' },
+        { type: 'Festival', name: 'Example Festival', deadline: '', notes: '' },
+      ],
+    }, metadata);
+    expect(mapped.fundingOpportunities.map((item) => item.name)).toEqual(['Verified Fund']);
   });
 });
 
