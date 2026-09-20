@@ -67,6 +67,18 @@ const FORMAT_OPTIONS = ['Feature Film', 'TV Series', 'TV Pilot', 'Limited Series
  *  production can claim. */
 const FORMATS_WITH_DIVERGENT_ELIGIBILITY = ['short', 'short film'];
 
+/** Co-production openness, read off the production structure already chosen.
+ *
+ *  The two vocabularies line up exactly, which is the tell that they were always
+ *  one question: a producer whose territories are partners in a single structure
+ *  has said yes, and one comparing alternatives has said no. The backend derives
+ *  it identically when a client sends neither. */
+const CO_PRODUCTION_INTEREST_BY_MODE: Record<StructureMode, 'yes' | 'no' | 'undecided'> = {
+  coproduction: 'yes',
+  comparison: 'no',
+  undecided: 'undecided',
+};
+
 function formatDivergesFromFeature(format: string): boolean {
   return FORMATS_WITH_DIVERGENT_ELIGIBILITY.includes(format.trim().toLowerCase());
 }
@@ -189,7 +201,6 @@ export function AnalysisWizard() {
   const [filmingDuration, setFilmingDuration] = useState('');
   const [completionDate, setCompletionDate] = useState('');
   const [mustFilmIn, setMustFilmIn] = useState('');
-  const [coProductionInterest, setCoProductionInterest] = useState('');
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [audienceSkewChoice, setAudienceSkewChoice] = useState('');
   const [representationGender, setRepresentationGender] = useState('');
@@ -198,6 +209,13 @@ export function AnalysisWizard() {
   const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>([]);
   const [structureMode, setStructureMode] = useState<StructureMode>('comparison');
   const isCoProduction = structureMode === 'coproduction';
+  // Derived, not asked. The producer chose a production structure a step
+  // earlier, and "are these territories partners in one structure" is the same
+  // question as "are you open to official co-production". Asking it twice
+  // invites the two answers to disagree, and nothing downstream could then say
+  // which one the producer meant. The backend derives it the same way for any
+  // client that sends neither.
+  const coProductionInterest = CO_PRODUCTION_INTEREST_BY_MODE[structureMode];
   // Two different limits on purpose. The comparison limit bounds how many
   // alternatives a plan may explore. The co-production limit bounds partners in
   // one production, and a multilateral co-production needs at least three
@@ -458,7 +476,7 @@ export function AnalysisWizard() {
   const detailsValid =
     !!filmingStart && !!filmingDuration && !!completionDate &&
     cameraEquipment.length > 0 && !!crewSize && !!principalCast && !!supportingCast &&
-    primaryLanguages.length > 0 && !!mustFilmIn && !!coProductionInterest &&
+    primaryLanguages.length > 0 && !!mustFilmIn &&
     targetAudience.length > 0 && !!audienceSkewChoice;
   // Which programmes this warning is actually about: the territories the
   // producer has chosen, or every territory while the choice is still open,
@@ -518,7 +536,7 @@ export function AnalysisWizard() {
     if (i === 2) return [
       ...(!filmingStart ? ['filming start'] : []), ...(!filmingDuration ? ['filming duration'] : []), ...(!completionDate ? ['expected completion'] : []),
       ...(cameraEquipment.length === 0 ? ['camera equipment'] : []), ...(!crewSize ? ['crew size'] : []), ...(!principalCast ? ['principal cast'] : []), ...(!supportingCast ? ['supporting cast'] : []),
-      ...(primaryLanguages.length === 0 ? ['primary language(s)'] : []), ...(!mustFilmIn ? ['must film in'] : []), ...(!coProductionInterest ? ['co-production'] : []),
+      ...(primaryLanguages.length === 0 ? ['primary language(s)'] : []), ...(!mustFilmIn ? ['must film in'] : []),
       ...(targetAudience.length === 0 ? ['target audience'] : []), ...(!audienceSkewChoice ? ['audience skew'] : []),
     ];
     return [
@@ -1411,15 +1429,6 @@ export function AnalysisWizard() {
                 ]
               )}
             </TextField>
-            <FormControl fullWidth required sx={fieldSx}>
-              <InputLabel>Open to Official Co-Production?</InputLabel>
-              <Select value={coProductionInterest} label="Open to Official Co-Production?" onChange={(e) => setCoProductionInterest(e.target.value)} MenuProps={menuProps}>
-                <MenuItem value="">Not specified</MenuItem>
-                <MenuItem value="yes">Yes</MenuItem>
-                <MenuItem value="no">No</MenuItem>
-                <MenuItem value="undecided">Undecided</MenuItem>
-              </Select>
-            </FormControl>
             <FormControl fullWidth required sx={fieldSx}>
               <InputLabel>Target Audience</InputLabel>
               <Select<string[]>
