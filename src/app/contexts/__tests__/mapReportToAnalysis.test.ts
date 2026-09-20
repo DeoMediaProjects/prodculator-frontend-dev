@@ -271,3 +271,40 @@ describe('optionalScore', () => {
     expect(optionalScore(-5)).toBe(0);
   });
 });
+
+// The payload is absent on every report generated with the flag off, which is
+// all of them today. A consumer that assumed its presence would break on every
+// existing report, so the mapper has to carry it as genuinely optional.
+describe('mapReportToAnalysis: the v2 orchestration payload', () => {
+  it('carries the payload through when the backend supplied one', () => {
+    const report = bareReport();
+    const data = report.report_data as Record<string, unknown>;
+    data.orchestrationV2 = {
+      report_run_id: 'run-1',
+      projectfacts_snapshot_id: 'snap-a',
+      projectfacts_version: '1',
+      generated_at: '2026-09-20T00:00:00+00:00',
+      engine_versions: {},
+      sections: [],
+      financial_readiness: {
+        documented_committed_finance: [],
+        conditional_statutory_benefits: [],
+        selective_pipeline_opportunities: [],
+        strategic_access_opportunities: [],
+      },
+      qa: { status: 'PASS', checks: [] },
+    };
+    const mapped = mapReportToAnalysis(report, metadata);
+    expect(mapped.orchestrationV2?.report_run_id).toBe('run-1');
+    expect(mapped.orchestrationV2?.projectfacts_snapshot_id).toBe('snap-a');
+  });
+
+  it('leaves it undefined on a report generated with the flag off', () => {
+    const mapped = mapReportToAnalysis(bareReport(), metadata);
+    expect(mapped.orchestrationV2).toBeUndefined();
+  });
+
+  it('leaves it undefined on the direct analysis path too', () => {
+    expect(normaliseAnalysisData({}, metadata).orchestrationV2).toBeUndefined();
+  });
+});

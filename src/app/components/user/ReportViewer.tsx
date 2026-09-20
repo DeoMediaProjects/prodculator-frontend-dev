@@ -1933,7 +1933,7 @@ export function ReportViewer() {
                     Strategic festival matches require current-cycle and premiere checks before submission.
                   </Typography>
                   <Grid container spacing={3} sx={{ mb: 4 }}>
-                    {((analysis as any).festivalRecommendations || []).map((fest: any, i: number) => (
+                    {(analysis.festivalRecommendations || []).map((fest, i) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
@@ -1978,7 +1978,7 @@ export function ReportViewer() {
                         </Paper>
                       </Grid>
                     ))}
-                    {((analysis as any).festivalRecommendations || []).length === 0 && (
+                    {(analysis.festivalRecommendations || []).length === 0 && (
                       <Grid size={{ xs: 12 }}>
                         <Alert severity="info" sx={{ bgcolor: t.cardBgAlt, color: t.textSecondary }}>
                           No festival matches for this production's format and timing.
@@ -1997,12 +1997,12 @@ export function ReportViewer() {
                       : 'Distributors are ranked partly on whether they actively scout the festivals recommended above.'}
                   </Typography>
                   <Grid container spacing={3}>
-                    {((analysis as any).distributorRecommendations || []).map((dist: any, i: number) => (
+                    {(analysis.distributorRecommendations || []).map((dist, i) => (
                       <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Paper sx={{ p: 3, bgcolor: t.cardBgAlt, border: `1px solid ${t.border}`, height: '100%' }}>
                           {/* Names a festival from the paid Festival Recommendations
                               section, so it is withheld while that section is locked. */}
-                          {!isSectionLocked('festivals') && dist.scoutsRecommendedFestivals?.length > 0 && (
+                          {!isSectionLocked('festivals') && !!dist.scoutsRecommendedFestivals?.[0] && (
                             <Typography variant="caption" sx={{ color: t.gold, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', mb: 1 }}>
                               ⟶ Scouts {dist.scoutsRecommendedFestivals[0]}
                             </Typography>

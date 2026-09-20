@@ -9,6 +9,8 @@
  */
 import type {
   ComparableProduction,
+  DistributorRecommendation,
+  FestivalRecommendation,
   FundingOpportunity,
   IncentiveEstimate,
   LocationRanking,
@@ -154,8 +156,12 @@ export function normaliseAnalysisData(
     // mapper, so the Festivals & Distributors tab could only ever render its empty
     // state — even when the backend had matched five festivals and the PDF printed
     // them. A missing key here is indistinguishable from no matches downstream.
-    festivalRecommendations: toArray<any>(analysisData.festivalRecommendations),
-    distributorRecommendations: toArray<any>(analysisData.distributorRecommendations),
+    festivalRecommendations: toArray<FestivalRecommendation>(analysisData.festivalRecommendations),
+    distributorRecommendations: toArray<DistributorRecommendation>(analysisData.distributorRecommendations),
+    // Present only when the backend flag is on; nothing renders from it yet.
+    // Passed through rather than dropped so the old-versus-v2 comparison can read
+    // it from a served report instead of only from the database.
+    orchestrationV2: analysisData.orchestrationV2 ?? undefined,
     weatherLogistics: toArray<WeatherLogistics>(analysisData.weatherLogistics),
     // Older stored reports mixed festival cards into this list. Section 08 is
     // grants only; festivals have their own recommendation section.
@@ -326,8 +332,9 @@ export function mapReportToAnalysis(report: any, metadata: ScriptMetadata, isPre
     formatEligibilityCaveat: reportData.formatEligibilityCaveat ?? null,
     programmeAvailabilityCaveat: reportData.programmeAvailabilityCaveat ?? null,
     shortFormatIncentiveNotice: reportData.shortFormatIncentiveNotice ?? null,
-    festivalRecommendations: toArray<any>(reportData.festivalRecommendations),
-    distributorRecommendations: toArray<any>(reportData.distributorRecommendations),
+    festivalRecommendations: toArray<FestivalRecommendation>(reportData.festivalRecommendations),
+    distributorRecommendations: toArray<DistributorRecommendation>(reportData.distributorRecommendations),
+    orchestrationV2: reportData.orchestrationV2 ?? undefined,
     comparables,
     weatherLogistics,
     fundingOpportunities,

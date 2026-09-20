@@ -103,9 +103,15 @@ export interface ScriptAnalysis {
    *  payload, and the funding list must still render without it. */
   grantsPayload?: GrantsPayload;
   /** Matched festivals, passed through from the report. */
-  festivalRecommendations?: any[];
+  festivalRecommendations?: FestivalRecommendation[];
   /** Distributors, ranked partly on the festivals above. */
-  distributorRecommendations?: any[];
+  distributorRecommendations?: DistributorRecommendation[];
+  /** The canonical v2 orchestration payload, present only when the backend's
+   *  REPORT_ORCHESTRATION_V2_ENABLED flag is on. Nothing renders from it yet:
+   *  it exists so the old-versus-v2 comparison can run against real reports.
+   *  Absent on every report generated with the flag off, which is all of them
+   *  today, so every consumer must treat it as optional. */
+  orchestrationV2?: OrchestrationV2Payload;
 
   // Metadata
   scriptTitle: string;
@@ -442,6 +448,99 @@ export interface FundingOpportunity {
  *  Every paid package searches the same database; the package only controls how far
  *  down the ranked list it may read. Without these counts a Single customer sees five
  *  funds and no indication that another eighteen matched. */
+/** One matched festival, as the report viewer reads it.
+ *
+ *  Every field is optional because the backend's festival records are unevenly
+ *  populated — and because that unevenness is the point. A festival with no
+ *  `deadlinePattern` has not had its current cycle verified, and typing the
+ *  field as required would push the renderer into printing a confident blank
+ *  where the honest answer is that nobody has checked. */
+export interface FestivalRecommendation {
+  name?: string | null;
+  location?: string | null;
+  tier?: string | null;
+  /** Prose, not a date. The festival data carries submission timing as text on
+   *  every record that carries it at all, so this must never be parsed into a
+   *  deadline the producer could plan against. */
+  deadlinePattern?: string | null;
+  oscarQualifying?: boolean | null;
+  sourceUrl?: string | null;
+  whyMatched?: string | null;
+}
+
+/** One matched distributor or sales agent.
+ *
+ *  `whyMatched` is a strategic-fit explanation and never a statement about
+ *  acquisition intent; `submissionProcess` is how a producer would approach
+ *  them, which is a separate fact from whether they would be interested. */
+export interface DistributorRecommendation {
+  name?: string | null;
+  primaryMarket?: string | null;
+  rightsType?: string | null;
+  submissionProcess?: string | null;
+  verified?: boolean | null;
+  /** Names festivals from the paid section, so it is withheld while that
+   *  section is locked. */
+  scoutsRecommendedFestivals?: string[] | null;
+  whyMatched?: string | null;
+}
+
+/** One block of engine output inside a v2 section.
+ *
+ *  Both counts travel together: a reader told "5 shown" must not infer that
+ *  only five were searched, and the list of five cannot carry that number. */
+export interface OrchestrationV2Block {
+  block_type: string;
+  data: {
+    recommendations: unknown[];
+    eligible_universe_count: number;
+    displayed_count: number;
+    package_entitlement: number;
+  };
+  provenance?: string[];
+  warnings?: string[];
+}
+
+export interface OrchestrationV2Section {
+  section_number: number;
+  section_key: string;
+  title: string;
+  source_engines: string[];
+  summary?: string | null;
+  blocks: OrchestrationV2Block[];
+  engine_reason_codes?: string[];
+  /** True for Executive Summary and Next Steps, which summarise other sections
+   *  and compute nothing themselves. */
+  owns_no_calculation?: boolean;
+}
+
+/** The canonical 13-section payload.
+ *
+ *  `financial_readiness` keeps pipeline out of committed finance: only
+ *  documented award evidence reaches `documented_committed_finance`, so a
+ *  matched grant, a festival selection and a distributor target never total
+ *  into a production's finance position. */
+export interface OrchestrationV2Payload {
+  report_run_id: string;
+  projectfacts_snapshot_id: string;
+  projectfacts_version: string;
+  generated_at: string;
+  engine_versions: Record<string, string>;
+  sections: OrchestrationV2Section[];
+  financial_readiness: {
+    documented_committed_finance: Array<Record<string, unknown>>;
+    conditional_statutory_benefits: Array<Record<string, unknown>>;
+    selective_pipeline_opportunities: Array<Record<string, unknown>>;
+    strategic_access_opportunities: Array<Record<string, unknown>>;
+  };
+  cross_engine_conflicts?: Array<Record<string, unknown>>;
+  next_steps?: Array<Record<string, unknown>>;
+  qa: {
+    status: 'PASS' | 'FAIL' | 'PASS_WITH_WARNINGS';
+    checks: Array<Record<string, unknown>>;
+  };
+}
+
 export interface GrantsPayload {
   database_version?: string;
   eligible_match_count?: number;
