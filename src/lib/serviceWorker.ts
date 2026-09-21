@@ -63,6 +63,15 @@ export function initServiceWorker(): void {
     void navigator.serviceWorker.getRegistration().then((reg) => reg?.update());
   };
 
+  // Once on boot, not only on the interval and on focus. A tab opened and never
+  // hidden fired neither for a full hour, so a deploy could sit unseen in front
+  // of someone actively using the app — which is how a shipped fix was reported
+  // as not working while the built asset on the server plainly contained it.
+  //
+  // After the plugin's own registration, so this updates the worker it just
+  // registered rather than racing it.
+  void navigator.serviceWorker.ready.then(checkForUpdate);
+
   window.setInterval(checkForUpdate, UPDATE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkForUpdate();

@@ -4,6 +4,7 @@ import {
   Box, Typography, Button, IconButton, TextField, MenuItem, FormControl, InputLabel, Select,
   OutlinedInput, Chip, Checkbox, ListItemText, FormHelperText, FormControlLabel, Link,
   CircularProgress, useMediaQuery, useTheme, Drawer, Tooltip, Alert, Collapse,
+  Autocomplete,
 } from '@mui/material';
 import {
   ArrowBack, CloudUpload, CheckCircle, LightModeOutlined, DarkModeOutlined,
@@ -24,6 +25,7 @@ import { WizardTour } from './WizardTour';
 import { usePrefersReducedMotion } from './tourStyles';
 import { deriveSchedule, type ScheduleDriver } from './scheduleDerivation';
 import { regionOptionsFor, mustFilmInOptionsFor, containerCountriesIn } from './locationOptions';
+import { LANGUAGE_OPTIONS, COMMON_LANGUAGE_LABELS, MAX_LANGUAGES } from './languages';
 
 // Continent grouping for the territory picker. Carried over unchanged from the
 // intake form this wizard replaced, so the payload the engine receives is the
@@ -211,7 +213,10 @@ export function AnalysisWizard() {
   const [audienceSkewChoice, setAudienceSkewChoice] = useState('');
   const [representationGender, setRepresentationGender] = useState('');
   const [representationMinority, setRepresentationMinority] = useState<string[]>([]);
-  const [languagesInput, setLanguagesInput] = useState('');
+  // Held as the chosen labels rather than as a comma-separated string, because
+  // the catalogue is now the only way in and splitting text back apart was the
+  // step that let an unmatchable spelling through.
+  const [primaryLanguages, setPrimaryLanguages] = useState<string[]>([]);
   const [territoriesConsidering, setTerritoriesConsidering] = useState<string[]>([]);
   const [structureMode, setStructureMode] = useState<StructureMode>('comparison');
   const isCoProduction = structureMode === 'coproduction';
@@ -257,7 +262,6 @@ export function AnalysisWizard() {
   // generating — suppresses the auto-navigate to the report when it finishes.
   const leftDuringProcessing = useRef(false);
 
-  const primaryLanguages = languagesInput.split(',').map((l) => l.trim()).filter(Boolean).slice(0, 5);
 
   // Keep filming start, duration (weeks) and expected completion in sync:
   // completion = start + duration weeks. Whichever of duration/completion the
@@ -685,15 +689,21 @@ export function AnalysisWizard() {
     '& input': { color: t.textPrimary },
   } as const;
   // Native <input type="date"> renders a browser calendar picker whose icon is
-  // dark by default and therefore invisible on the dark input background — which
-  // made it look like there was no picker and forced manual typing. color-scheme
-  // themes the picker (and its popup) correctly, and inverting the indicator
-  // guarantees the calendar button is visible and clickable in dark mode.
+  // dark by default and therefore invisible on the dark input background, which
+  // makes it look like there is no picker and forces manual typing.
+  //
+  // `color-scheme` alone fixes it. Chrome draws the indicator — and the popup —
+  // to match the declared scheme, so under `dark` the icon is already light.
+  //
+  // It previously also inverted the indicator, belt and braces. The two cancel:
+  // color-scheme makes the glyph white, invert(1) turns that white back to
+  // black, and the result was an invisible icon in exactly the mode the fix was
+  // written for. Rendered side by side, color-scheme alone and invert alone both
+  // show the icon; the two together show nothing.
   const dateFieldSx = {
     ...fieldSx,
     '& input': { color: t.textPrimary, colorScheme: mode === 'dark' ? 'dark' : 'light' },
     '& input::-webkit-calendar-picker-indicator': {
-      filter: mode === 'dark' ? 'invert(1) brightness(1.8)' : 'none',
       cursor: 'pointer',
       opacity: 1,
     },
@@ -1408,7 +1418,48 @@ export function AnalysisWizard() {
         <Box sx={{ ...card, p: 3 }}>
           {sectionLabel('Creative context')}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
-            <TextField fullWidth required label="Primary Language(s)" placeholder="e.g. English, French" helperText="Separate with commas, up to 5" value={languagesInput} onChange={(e) => setLanguagesInput(e.target.value)} sx={fieldSx} />
+            {/* Chosen from the catalogue, not typed. Language is matched against
+                cultural tests and grant eligibility by name, so "Eng" or a typo
+                matched no rule and did so silently — the producer saw the answer
+                accepted and nothing act on it. */}
+            <Autocomplete
+              multiple
+              disableCloseOnSelect
+              options={LANGUAGE_OPTIONS}
+              groupBy={(o) => (COMMON_LANGUAGE_LABELS.includes(o.label)
+                ? 'Most used'
+                : o.group === 'Sign' ? 'Sign languages' : 'All languages')}
+              getOptionLabel={(o) => o.label}
+              isOptionEqualToValue={(a, b) => a.code === b.code}
+              value={LANGUAGE_OPTIONS.filter((o) => primaryLanguages.includes(o.label))}
+              onChange={(_, picked) =>
+                setPrimaryLanguages(picked.slice(0, MAX_LANGUAGES).map((o) => o.label))}
+              // The cap is enforced on the value above rather than by disabling
+              // the input, so a producer at the limit can still swap one choice
+              // for another instead of having to work out what to remove first.
+              getOptionDisabled={(o) =>
+                primaryLanguages.length >= MAX_LANGUAGES && !primaryLanguages.includes(o.label)}
+              ListboxProps={{ style: { maxHeight: 320 } }}
+              disablePortal={false}
+              slotProps={{ popper: { modifiers: [{ name: 'preventOverflow', enabled: true }] } }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  required={primaryLanguages.length === 0}
+                  label="Primary Language(s)"
+                  placeholder={primaryLanguages.length ? '' : 'Start typing, e.g. English'}
+                  helperText={`Up to ${MAX_LANGUAGES}. Sign languages are listed separately.`}
+                  sx={fieldSx}
+                />
+              )}
+              sx={{
+                '& .MuiChip-root': { bgcolor: t.goldDim, color: t.textPrimary, fontWeight: 600 },
+                '& .MuiChip-deleteIcon': { color: t.textSecondary },
+                '& .MuiAutocomplete-clearIndicator, & .MuiAutocomplete-popupIndicator': {
+                  color: t.textSecondary,
+                },
+              }}
+            />
             {/* Chosen from the territories already selected, not typed. Free text
                 meant a producer could name a territory the analysis had never been
                 asked to consider, and the answer silently went nowhere. */}
