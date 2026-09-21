@@ -1034,9 +1034,18 @@ export function AnalysisWizard() {
                 ?? Object.values(scenarioSets).find((x) => x.jurisdiction === name);
               const questions = set?.questions ?? [];
               const nonCalculating = set?.nonCalculating ?? [];
-              const answered = questions.filter(
-                (q) => (scenario?.inputs?.[q.inputKey]?.amount ?? '') !== '',
-              ).length;
+              // Only the figures a primary programme needs are counted. An
+              // uplift a production may or may not claim — the UK's VFX credit
+              // stacks onto AVEC rather than replacing it — is offered but not
+              // counted against the producer, because "0/3 provided" when two
+              // answers produce a rebate says the form is longer than it is.
+              const requiredQuestions = questions.filter((q) => q.requiredForExact);
+              const filled = (q: { inputKey: string }) =>
+                (scenario?.inputs?.[q.inputKey]?.amount ?? '') !== '';
+              const answered = requiredQuestions.filter(filled).length;
+              // Completeness, for the prose and the open/closed default, is
+              // about the required ones too.
+              const outstanding = requiredQuestions.length - answered;
               // Open unless the producer closed it. These fields are the only
               // thing that lets a rebate be calculated at all, and behind a
               // collapsed section headed "Improve accuracy" they read as
@@ -1101,7 +1110,7 @@ export function AnalysisWizard() {
                         </Typography>
                         <Chip
                           size="small"
-                          label={`${answered}/${questions.length} provided`}
+                          label={`${answered}/${requiredQuestions.length} provided`}
                           sx={{ ...goldChip, height: 19, fontSize: 11, fontWeight: 700 }}
                         />
                       </Box>
@@ -1110,7 +1119,7 @@ export function AnalysisWizard() {
                           so it was visible only to a producer who had already
                           opened the section, that is, only to someone who no
                           longer needed telling. */}
-                      {answered < questions.length && (
+                      {outstanding > 0 && (
                         <Typography sx={{ fontSize: 12, color: t.textFaint, lineHeight: 1.6, maxWidth: '80ch', pb: 0.5 }}>
                           Without {answered === 0 ? 'these' : 'the rest of these'}, no rebate is
                           shown for {name} at all: the report states that an exact figure needs a
@@ -1127,11 +1136,20 @@ export function AnalysisWizard() {
                             return (
                               <Box key={q.inputKey}>
                                 <TextField
-                                  fullWidth sx={fieldSx} label={q.label}
+                                  fullWidth sx={fieldSx}
+                                  // Said on the field, not only in the count.
+                                  // An input only an uplift uses is worth
+                                  // offering and must not read as a gap.
+                                  label={q.requiredForExact ? q.label : `${q.label} (optional)`}
                                   inputProps={{ inputMode: 'numeric' }}
                                   value={answer?.amount ? Number(answer.amount).toLocaleString('en-US') : ''}
                                   onChange={(e) => setScenarioInput(name, q.inputKey, { amount: e.target.value.replace(/\D/g, '') })}
-                                  helperText={q.helpText}
+                                  helperText={
+                                    q.requiredForExact
+                                      ? q.helpText
+                                      : [q.helpText, 'Only needed to model this uplift; the main credit does not require it.']
+                                          .filter(Boolean).join(' ')
+                                  }
                                 />
                                 {/* A confirmed figure and a planning assumption
                                     carry different weight downstream, so we record
