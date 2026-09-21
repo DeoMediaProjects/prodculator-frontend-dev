@@ -25,8 +25,10 @@ import { usePrefersReducedMotion } from './tourStyles';
 import { deriveSchedule, type ScheduleDriver } from './scheduleDerivation';
 import { regionOptionsFor, mustFilmInOptionsFor, containerCountriesIn } from './locationOptions';
 
-// Continent grouping for the territory picker — identical mapping to ScriptUpload
-// so the wizard yields the same intake payload the engine already understands.
+// Continent grouping for the territory picker. Carried over unchanged from the
+// intake form this wizard replaced, so the payload the engine receives is the
+// one it already understands — the grouping is presentational, but the country
+// labels it keys on are what the analysis resolves jurisdictions from.
 const CONTINENT_ORDER = ['Europe', 'North America', 'Africa', 'Asia', 'Oceania', 'South America', 'Other'] as const;
 const CONTINENT_BY_COUNTRY: Record<string, string> = {
   'United Kingdom': 'Europe', 'Ireland': 'Europe', 'France': 'Europe', 'Germany': 'Europe',
@@ -175,7 +177,11 @@ export function AnalysisWizard() {
 
   const [step, setStep] = useState(0);
 
-  // ----- Intake state (mirrors ScriptUpload so the payload is unchanged) -----
+  // ----- Intake state -----
+  // Field-for-field the shape the intake form this wizard replaced submitted.
+  // Kept deliberately: the backend request schema was written against it, so a
+  // renamed or dropped field here is a silently missing answer there rather
+  // than a compile error.
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [title, setTitle] = useState('');
