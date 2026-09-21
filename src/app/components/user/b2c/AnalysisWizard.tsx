@@ -23,7 +23,7 @@ import { SegmentedToggle } from './SegmentedToggle';
 import { WizardTour } from './WizardTour';
 import { usePrefersReducedMotion } from './tourStyles';
 import { deriveSchedule, type ScheduleDriver } from './scheduleDerivation';
-import { regionOptionsFor, mustFilmInOptionsFor } from './locationOptions';
+import { regionOptionsFor, mustFilmInOptionsFor, containerCountriesIn } from './locationOptions';
 
 // Continent grouping for the territory picker — identical mapping to ScriptUpload
 // so the wizard yields the same intake payload the engine already understands.
@@ -331,18 +331,14 @@ export function AnalysisWizard() {
   // federal film incentive, only state ones. Counting it as a chosen territory
   // spent a slot on nothing and offered it as a filming commitment, and the
   // report answered by picking a state the producer never asked for.
-  const containerCountries = useMemo(() => {
-    const chosenParents = new Set(
-      allTerritories
-        .filter((x) => x.isSubTerritory && x.parent && territoriesConsidering.includes(x.label))
-        .map((x) => x.parent as string),
-    );
-    return new Set(
-      allTerritories
-        .filter((x) => !x.isSubTerritory && x.hasOwnIncentive === false && chosenParents.has(x.label))
-        .map((x) => x.label),
-    );
-  }, [allTerritories, territoriesConsidering]);
+  //
+  // Derived from the registry alone, not from what is currently selected. It
+  // used to also require a selected region, which is unreachable at the moment
+  // it matters: selecting the country is what reveals the regions.
+  const containerCountries = useMemo(
+    () => containerCountriesIn(allTerritories),
+    [allTerritories],
+  );
   // What the producer has actually committed to, which is what the plan limit
   // and the Must Film In choice are both about.
   const countedTerritories = useMemo(
@@ -631,7 +627,12 @@ export function AnalysisWizard() {
         country,
         productionPriority,
         stateProvince: stateProvince || undefined,
-        territoriesConsidering: territoriesConsidering.length ? territoriesConsidering : undefined,
+        // The counted list, not the raw selection. A grouping country is in the
+        // raw list because opening it is how its regions are reached, and
+        // sending it asked the report to analyse a territory with no programme
+        // to analyse — which is how "United States" came back ranked on an
+        // incentive that does not exist.
+        territoriesConsidering: countedTerritories.length ? countedTerritories : undefined,
         ...scenarioPayload(),
         filmingStart: filmingStart || undefined,
         filmingDuration: filmingDuration || undefined,
@@ -1237,7 +1238,12 @@ export function AnalysisWizard() {
                     ?? (c.hasActiveIncentive === false ? 'none' : 'active');
                   const unconfirmed = status === 'unconfirmed';
                   const noIncentive = status === 'none';
-                  const flagged = unconfirmed || noIncentive;
+                  // A grouping country reads as covered, because its regions are
+                  // and the builder expands to them. But it is not a territory
+                  // the producer can choose, so it needs its own explanation
+                  // rather than the reassuring silence an active chip gets.
+                  const container = containerCountries.has(c.label);
+                  const flagged = unconfirmed || noIncentive || container;
                   const chip = (
                     <Chip
                       key={c.label}
@@ -1261,9 +1267,11 @@ export function AnalysisWizard() {
                   return flagged ? (
                     <Tooltip
                       key={c.label}
-                      title={unconfirmed
-                        ? 'Has a tax incentive programme, but its bankability cannot be confirmed today, so no rebate is modelled for it. Still selectable for location, crew and currency reasons.'
-                        : 'No active incentive to model right now. Still selectable for location, crew and currency reasons.'}
+                      title={container
+                        ? `${c.label} has no incentive of its own — its ${regions.length} region${regions.length === 1 ? '' : 's'} each run their own. Opening it lists them; pick the one you mean. The country itself uses no territory slot and is not asked for a spend.`
+                        : unconfirmed
+                          ? 'Has a tax incentive programme, but its bankability cannot be confirmed today, so no rebate is modelled for it. Still selectable for location, crew and currency reasons.'
+                          : 'No active incentive to model right now. Still selectable for location, crew and currency reasons.'}
                     >
                       <span style={{ display: 'inline-flex' }}>{chip}</span>
                     </Tooltip>
@@ -1494,7 +1502,8 @@ export function AnalysisWizard() {
       { label: 'Genre(s)', value: genres.join(', ') || '—' },
       { label: 'Budget', value: fmtBudget },
       { label: 'Production country', value: country + (stateProvince ? ` · ${stateProvince}` : '') || '—' },
-      { label: 'Territories', value: openToAll ? 'Open to all' : (territoriesConsidering.join(', ') || 'Not specified') },
+      // The counted list, so the review names exactly what is being submitted.
+      { label: 'Territories', value: openToAll ? 'Open to all' : (countedTerritories.join(', ') || 'Not specified') },
       { label: 'Production priority', value: PRIORITY_OPTIONS.find((p) => p.value === productionPriority)?.label || '—' },
       { label: 'Filming start', value: filmingStart || 'Not specified' },
       { label: 'Filming duration', value: filmingDuration ? `${filmingDuration} weeks` : 'Not specified' },
