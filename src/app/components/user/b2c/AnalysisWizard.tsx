@@ -1108,15 +1108,15 @@ export function AnalysisWizard() {
                       {/* Outside the Collapse deliberately. The one sentence
                           saying these are not optional used to sit inside it,
                           so it was visible only to a producer who had already
-                          opened the section \u2014 that is, only to someone who no
+                          opened the section, that is, only to someone who no
                           longer needed telling. */}
                       {answered < questions.length && (
                         <Typography sx={{ fontSize: 12, color: t.textFaint, lineHeight: 1.6, maxWidth: '80ch', pb: 0.5 }}>
                           Without {answered === 0 ? 'these' : 'the rest of these'}, no rebate is
                           shown for {name} at all: the report states that an exact figure needs a
                           cost breakdown, and Financial Readiness records the incentive as
-                          unassessed. Leave one blank only if you genuinely do not know it \u2014 a
-                          blank is read as unknown, never as nil.
+                          unassessed. Leave one blank only if you genuinely do not know
+                          it: a blank is read as unknown, never as nil.
                         </Typography>
                       )}
                       <Collapse in={open}>
