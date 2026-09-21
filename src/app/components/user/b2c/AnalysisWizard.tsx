@@ -1018,10 +1018,19 @@ export function AnalysisWizard() {
                 ?? Object.values(scenarioSets).find((x) => x.jurisdiction === name);
               const questions = set?.questions ?? [];
               const nonCalculating = set?.nonCalculating ?? [];
-              const open = openAccordions[name] ?? false;
               const answered = questions.filter(
                 (q) => (scenario?.inputs?.[q.inputKey]?.amount ?? '') !== '',
               ).length;
+              // Open unless the producer closed it. These fields are the only
+              // thing that lets a rebate be calculated at all, and behind a
+              // collapsed section headed "Improve accuracy" they read as
+              // optional polish — reports came back with every programme
+              // saying "needs a cost breakdown" because nobody had opened one.
+              //
+              // Not `?? answered === 0`, which looks like the tidier rule and
+              // would collapse the section under the producer the moment they
+              // filled the first field.
+              const open = openAccordions[name] ?? true;
               return (
                 <Box key={name} sx={{ p: 2.25, borderRadius: '12px', bgcolor: t.inputBg, border: `1px solid ${t.border}` }}>
                   <Typography sx={{ fontWeight: 700, color: t.textPrimary, mb: 1.5 }}>{name}</Typography>
@@ -1072,7 +1081,7 @@ export function AnalysisWizard() {
                         sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', py: 0.75 }}
                       >
                         <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: t.gold }}>
-                          {open ? '\u25be' : '\u25b8'} Improve accuracy for {name}
+                          {open ? '\u25be' : '\u25b8'} Figures {name} calculates its rebate from
                         </Typography>
                         <Chip
                           size="small"
@@ -1080,12 +1089,22 @@ export function AnalysisWizard() {
                           sx={{ ...goldChip, height: 19, fontSize: 11, fontWeight: 700 }}
                         />
                       </Box>
+                      {/* Outside the Collapse deliberately. The one sentence
+                          saying these are not optional used to sit inside it,
+                          so it was visible only to a producer who had already
+                          opened the section \u2014 that is, only to someone who no
+                          longer needed telling. */}
+                      {answered < questions.length && (
+                        <Typography sx={{ fontSize: 12, color: t.textFaint, lineHeight: 1.6, maxWidth: '80ch', pb: 0.5 }}>
+                          Without {answered === 0 ? 'these' : 'the rest of these'}, no rebate is
+                          shown for {name} at all: the report states that an exact figure needs a
+                          cost breakdown, and Financial Readiness records the incentive as
+                          unassessed. Leave one blank only if you genuinely do not know it \u2014 a
+                          blank is read as unknown, never as nil.
+                        </Typography>
+                      )}
                       <Collapse in={open}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75, pt: 1 }}>
-                          <Typography sx={{ fontSize: 12, color: t.textFaint, lineHeight: 1.6, maxWidth: '80ch' }}>
-                            Without these, the report states that an exact figure needs a cost
-                            breakdown instead of showing an estimate.
-                          </Typography>
                           {questions.map((q) => {
                             const answer = scenario?.inputs?.[q.inputKey];
                             const known = answer?.known ?? true;
