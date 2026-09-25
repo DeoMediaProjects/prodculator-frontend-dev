@@ -1,11 +1,31 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import path from 'path'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// api.ts falls back to http://localhost:8000 when VITE_API_BASE_URL is unset,
+// which is right for `vite dev` and wrong for anything deployed: a production
+// bundle built without it calls the visitor's own machine and fails silently.
+// So a production build without the variable stops here instead.
+function requireApiBaseUrl(): Plugin {
+  return {
+    name: 'require-api-base-url',
+    apply: 'build',
+    configResolved(config) {
+      if (config.mode === 'production' && !config.env.VITE_API_BASE_URL) {
+        throw new Error(
+          'VITE_API_BASE_URL is not set. A production build needs the backend URL; ' +
+          'set it in the deploy environment (or .env for a local build).',
+        )
+      }
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
+    requireApiBaseUrl(),
     react(),
     VitePWA({
       // Auto-update the service worker on new deploys (no manual reload prompt

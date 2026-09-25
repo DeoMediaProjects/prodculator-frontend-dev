@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSnackbar } from 'notistack';
 import {
   Box,
   Typography,
@@ -76,6 +77,7 @@ export function FestivalsManager() {
 function FestivalsManagerContent() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
+  const { enqueueSnackbar } = useSnackbar();
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -215,9 +217,12 @@ function FestivalsManagerContent() {
     if (editingFestival) {
       const payload: Festival = { ...formData as Festival, id: editingFestival.id, updatedAt: new Date().toISOString() };
       const { data, error } = await adminApi.updateFestival(editingFestival.id, payload);
-      if (!error && data) {
-        setFestivals(festivals.map(f => f.id === editingFestival.id ? data : f));
+      // On failure the dialog stays open with the form intact, so nothing typed is lost.
+      if (error || !data) {
+        enqueueSnackbar(`Could not save the festival: ${error ?? 'no festival came back'}`, { variant: 'error' });
+        return;
       }
+      setFestivals(festivals.map(f => f.id === editingFestival.id ? data : f));
     } else {
       const payload: Festival = {
         ...formData as Festival,
@@ -228,9 +233,11 @@ function FestivalsManagerContent() {
         lastVerifiedAt: new Date().toISOString(),
       };
       const { data, error } = await adminApi.createFestival(payload);
-      if (!error && data) {
-        setFestivals([...festivals, data]);
+      if (error || !data) {
+        enqueueSnackbar(`Could not add the festival: ${error ?? 'no festival came back'}`, { variant: 'error' });
+        return;
       }
+      setFestivals([...festivals, data]);
     }
     handleCloseDialog();
   };
@@ -243,9 +250,11 @@ function FestivalsManagerContent() {
   const handleDeleteConfirm = async () => {
     if (festivalToDelete) {
       const { error } = await adminApi.deleteFestival(festivalToDelete.id);
-      if (!error) {
-        setFestivals(festivals.filter(f => f.id !== festivalToDelete.id));
+      if (error) {
+        enqueueSnackbar(`Could not delete the festival: ${error}`, { variant: 'error' });
+        return;
       }
+      setFestivals(festivals.filter(f => f.id !== festivalToDelete.id));
     }
     setDeleteConfirmOpen(false);
     setFestivalToDelete(null);

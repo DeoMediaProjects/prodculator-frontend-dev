@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSnackbar } from 'notistack';
 import {
   Box,
   Typography,
@@ -154,6 +155,7 @@ export function GrantsManager() {
 function GrantsManagerContent() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
+  const { enqueueSnackbar } = useSnackbar();
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -373,9 +375,12 @@ function GrantsManagerContent() {
     if (warnings.length > 0 && !dupeWarned) { setDupeWarned(true); return; } // first click warns, second proceeds
     const payload = { ...buildGrantPayload(), dataSource: 'manual', isNew: true } as CreateGrantPayload;
     const { data, error } = await adminApi.createGrant(payload);
-    if (!error && data) {
-      setGrants([...grants, data]);
+    // On failure the dialog stays open with the form intact, so nothing typed is lost.
+    if (error || !data) {
+      enqueueSnackbar(`Could not add the grant: ${error ?? 'no grant came back'}`, { variant: 'error' });
+      return;
     }
+    setGrants([...grants, data]);
     setAddGrantOpen(false);
     setDupeWarned(false);
     resetForm();
@@ -389,9 +394,11 @@ function GrantsManagerContent() {
     if (errors.length > 0) return;
     const payload = buildGrantPayload();
     const { data, error } = await adminApi.updateGrant(selectedGrant.id, payload);
-    if (!error && data) {
-      setGrants(grants.map(g => g.id === selectedGrant.id ? data : g));
+    if (error || !data) {
+      enqueueSnackbar(`Could not save the grant: ${error ?? 'no grant came back'}`, { variant: 'error' });
+      return;
     }
+    setGrants(grants.map(g => g.id === selectedGrant.id ? data : g));
     setEditGrantOpen(false);
     setSelectedGrant(null);
     resetForm();
@@ -400,9 +407,11 @@ function GrantsManagerContent() {
   const handleDeleteGrant = async () => {
     if (!selectedGrant) return;
     const { error } = await adminApi.deleteGrant(selectedGrant.id);
-    if (!error) {
-      setGrants(grants.filter(g => g.id !== selectedGrant.id));
+    if (error) {
+      enqueueSnackbar(`Could not delete the grant: ${error}`, { variant: 'error' });
+      return;
     }
+    setGrants(grants.filter(g => g.id !== selectedGrant.id));
     setDeleteConfirmOpen(false);
     setSelectedGrant(null);
   };
