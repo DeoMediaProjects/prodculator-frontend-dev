@@ -38,6 +38,10 @@ jobs:
 
       - name: Build
         run: npm run build
+        # The build refuses to run without a backend URL (see vite.config.ts).
+        # CI only checks that it compiles, so any URL will do.
+        env:
+          VITE_API_BASE_URL: https://api.ci.invalid
 
       # Block on known CVEs in *production* dependencies. Dev-only build-tool
       # advisories (esbuild/vite) are excluded here and tracked separately as a

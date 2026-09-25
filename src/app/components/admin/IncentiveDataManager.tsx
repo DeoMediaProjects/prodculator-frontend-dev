@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useSnackbar } from 'notistack';
 import {
   Box,
   Typography,
@@ -240,6 +241,7 @@ function QualifyingSpendCalculator({ incentives }: { incentives: IncentiveData[]
 function IncentiveDataManagerContent() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
+  const { enqueueSnackbar } = useSnackbar();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -443,9 +445,11 @@ function IncentiveDataManagerContent() {
 
   const handleDeleteIncentive = async (id: string) => {
     const { error } = await adminApi.deleteIncentive(id);
-    if (!error) {
-      setIncentives(incentives.filter(i => i.id !== id));
+    if (error) {
+      enqueueSnackbar(`Could not delete the incentive: ${error}`, { variant: 'error' });
+      return;
     }
+    setIncentives(incentives.filter(i => i.id !== id));
   };
 
   const handleSaveIncentive = async () => {
@@ -472,14 +476,19 @@ function IncentiveDataManagerContent() {
         editingIncentive.id,
         { ...editingIncentive, ...payload } as IncentiveData,
       );
-      if (!error && data) {
-        setIncentives(incentives.map(i => i.id === editingIncentive.id ? data : i));
+      // On failure the dialog stays open with the form intact, so nothing typed is lost.
+      if (error || !data) {
+        enqueueSnackbar(`Could not save the incentive: ${error ?? 'no incentive came back'}`, { variant: 'error' });
+        return;
       }
+      setIncentives(incentives.map(i => i.id === editingIncentive.id ? data : i));
     } else {
       const { data, error } = await adminApi.createIncentive(payload as IncentiveData);
-      if (!error && data) {
-        setIncentives([...incentives, data]);
+      if (error || !data) {
+        enqueueSnackbar(`Could not add the incentive: ${error ?? 'no incentive came back'}`, { variant: 'error' });
+        return;
       }
+      setIncentives([...incentives, data]);
     }
     setEditDialogOpen(false);
     setEditingIncentive(null);

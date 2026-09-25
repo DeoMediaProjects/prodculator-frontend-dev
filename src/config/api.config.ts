@@ -90,7 +90,8 @@ export const API_CONFIG = {
   // App Configuration
   app: {
     url: import.meta.env.VITE_APP_URL || 'http://localhost:5173',
-    apiBaseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+    // No fallback: the backend is only "active" when a URL is configured.
+    apiBaseURL: import.meta.env.VITE_API_BASE_URL || '',
     environment: import.meta.env.NODE_ENV || 'development',
   },
 };
