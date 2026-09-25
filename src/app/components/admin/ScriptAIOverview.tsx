@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSnackbar } from 'notistack';
 import {
   Box,
   Typography,
@@ -26,6 +27,7 @@ import {
   PeopleOutlined,
 } from '@mui/icons-material';
 import { adminApi } from '@/services/admin.api';
+import { useAuth } from '@/app/contexts/AuthContext';
 import type { SubscriberMetrics, Subscriber, SubscriberListResponse } from '@/services/admin.types';
 import { useThemeMode, tokens } from '@/app/theme/AppTheme';
 import { DataTable, type Column } from '@/app/components/user/b2c/DataTable';
@@ -39,6 +41,9 @@ type CurrencyView = 'BOTH' | 'USD' | 'GBP';
 // the selected status rather than the first server page of twenty-five.
 const FETCH_LIMIT = 500;
 
+// Mirrors MAX_CREDIT_ADJUSTMENT in the backend's subscriber schemas.
+const MAX_CREDIT_ADJUSTMENT = 100;
+
 function initials(name: string): string {
   return name.split(' ').filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
 }
@@ -51,6 +56,11 @@ function csvCell(value: string | number | null): string {
 export function ScriptAIOverview() {
   const { mode } = useThemeMode();
   const t = tokens(mode);
+  const { enqueueSnackbar } = useSnackbar();
+  const { hasAdminPermission } = useAuth();
+  // Blocking and crediting need canManageSubscribers on the backend; other
+  // roles can still read the list, so they see it without the actions.
+  const canManageSubscribers = hasAdminPermission('canManageSubscribers');
   const [status, setStatus] = useState<StatusFilter>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [currencyView, setCurrencyView] = useState<CurrencyView>('BOTH');
@@ -116,31 +126,47 @@ export function ScriptAIOverview() {
     setActionLoading(userId);
     const { error } = await adminApi.blockSubscriber(userId);
     setActionLoading(null);
-    if (!error) void fetchSubscribers();
+    if (error) {
+      enqueueSnackbar(`Could not block this account: ${error}`, { variant: 'error' });
+      return;
+    }
+    void fetchSubscribers();
   };
 
   const handleUnblock = async (userId: string) => {
     setActionLoading(userId);
     const { error } = await adminApi.unblockSubscriber(userId);
     setActionLoading(null);
-    if (!error) void fetchSubscribers();
+    if (error) {
+      enqueueSnackbar(`Could not restore this account: ${error}`, { variant: 'error' });
+      return;
+    }
+    void fetchSubscribers();
   };
 
+  const creditAmountNumber = Number(creditAmount);
+  const creditAmountValid = creditAmount.trim() !== ''
+    && Number.isInteger(creditAmountNumber)
+    && creditAmountNumber !== 0
+    && Math.abs(creditAmountNumber) <= MAX_CREDIT_ADJUSTMENT;
+
   const handleCreditSubmit = async () => {
-    if (!creditUserId || !creditAmount) return;
+    if (!creditUserId || !creditAmountValid) return;
     setCreditLoading(true);
     const { error } = await adminApi.creditSubscriber(creditUserId, {
-      adjustment: Number(creditAmount),
+      adjustment: creditAmountNumber,
       reason: creditReason || undefined,
     });
     setCreditLoading(false);
-    if (!error) {
-      setCreditDialogOpen(false);
-      setCreditUserId(null);
-      setCreditAmount('');
-      setCreditReason('');
-      void fetchSubscribers();
+    if (error) {
+      enqueueSnackbar(`Could not adjust credits: ${error}`, { variant: 'error' });
+      return;
     }
+    setCreditDialogOpen(false);
+    setCreditUserId(null);
+    setCreditAmount('');
+    setCreditReason('');
+    void fetchSubscribers();
   };
 
   const counts = subscriberData?.counts ?? { active: 0, past_due: 0, canceled: 0 };
@@ -484,7 +510,7 @@ export function ScriptAIOverview() {
         emptyMessage={debouncedSearch
           ? `No subscriber matches "${debouncedSearch}" in this status.`
           : 'No subscribers hold this status.'}
-        rowActions={(u) => {
+        rowActions={canManageSubscribers ? (u) => {
           const isBlocked = u.status === 'Canceled';
           const isLoading = actionLoading === u.id;
           return (
@@ -512,7 +538,7 @@ export function ScriptAIOverview() {
               </Tooltip>
             </>
           );
-        }}
+        } : undefined}
       />
 
       <Dialog
@@ -528,7 +554,10 @@ export function ScriptAIOverview() {
             fullWidth
             value={creditAmount}
             onChange={(e) => setCreditAmount(e.target.value)}
-            helperText="Positive adds credits, negative deducts them"
+            error={creditAmount !== '' && !creditAmountValid}
+            helperText={creditAmount !== '' && !creditAmountValid
+              ? `Enter a whole number from -${MAX_CREDIT_ADJUSTMENT} to ${MAX_CREDIT_ADJUSTMENT}, other than 0`
+              : 'Positive adds credits, negative deducts them'}
             sx={{ mt: 1, mb: 2 }}
           />
           <TextField
@@ -543,7 +572,7 @@ export function ScriptAIOverview() {
           <Button onClick={() => setCreditDialogOpen(false)} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleCreditSubmit} disabled={!creditAmount || creditLoading}>
+          <Button variant="contained" onClick={handleCreditSubmit} disabled={!creditAmountValid || creditLoading}>
             {creditLoading ? <CircularProgress size={18} /> : 'Apply'}
           </Button>
         </DialogActions>
