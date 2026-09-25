@@ -15,6 +15,7 @@ export interface AdminPermissions {
   canManagePDFReports: boolean;
   canViewPlatformEconomics: boolean;
   canManageB2B: boolean;
+  canManageSubscribers: boolean;
 }
 
 type PlanType = 'free' | 'single' | 'professional' | 'producer' | 'studio';
@@ -94,6 +95,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManagePDFReports: true,
     canViewPlatformEconomics: true,
     canManageB2B: true,
+    canManageSubscribers: true,
   },
   senior_admin: {
     canManageAdmins: false,
@@ -105,6 +107,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManagePDFReports: true,
     canViewPlatformEconomics: true,
     canManageB2B: true,
+    canManageSubscribers: true,
   },
   data_admin: {
     canManageAdmins: false,
@@ -116,6 +119,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManagePDFReports: false,
     canViewPlatformEconomics: false,
     canManageB2B: false,
+    canManageSubscribers: false,
   },
   support_admin: {
     canManageAdmins: false,
@@ -127,6 +131,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermissions> = {
     canManagePDFReports: true,
     canViewPlatformEconomics: false,
     canManageB2B: false,
+    canManageSubscribers: false,
   },
 };
 
